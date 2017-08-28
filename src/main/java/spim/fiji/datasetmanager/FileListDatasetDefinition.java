@@ -726,7 +726,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if (state.getMultiplicityMap().get( Angle.class ) == CheckResult.MULTIPLE_INDEXED)
 			{
 				choices.add( "Tiles" );
-				inFileSummarySB.append( "<p style=\"color:orange\">WARNING: no matadata for Angles found either, cannot distinguish </p>" );
+				inFileSummarySB.append( "<p style=\"color:orange\">WARNING: no metadata for Angles found either, cannot distinguish </p>" );
 				inFileSummarySB.append( "<p style=\"color:orange\">WARNING: choose manually wether files contain Tiles or Angles below </p>" );
 			}
 		}
@@ -909,7 +909,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		// default choice for size re-check: do it if all stacks are the same size
 		gdSave.addCheckbox( "check_stack_sizes", zSizeEqualInEveryFile );
-		gdSave.addCheckbox( "resave as HDF5", false );
+		gdSave.addCheckbox( "resave_as_HDF5", true );
 
 		gdSave.showDialog();
 		
