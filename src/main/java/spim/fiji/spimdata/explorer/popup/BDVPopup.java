@@ -10,9 +10,13 @@ import java.util.List;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.joda.time.field.FieldUtils;
+
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cache.Cache;
+import net.imglib2.cache.util.CacheAsUncheckedCacheAdapter;
 import net.imglib2.histogram.DiscreteFrequencyDistribution;
 import net.imglib2.histogram.Histogram1d;
 import net.imglib2.histogram.Real1dBinMapper;
@@ -146,6 +150,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 				final int tpi = getCurrentTimePointIndex( s );
 				callLoadTimePoint( s, tpi );
+//				forceBDVReload( s );
 			}
 
 			if ( state.asVolatile() != null )
@@ -162,6 +167,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 					final int tpi = getCurrentTimePointIndex( s );
 					callLoadTimePoint( s, tpi );
+//					forceBDVReload( s );
 				}
 			}
 		}
@@ -366,6 +372,56 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		return viewerTransform;
 	}
 
+
+	/*
+	This does not work yet, because invalidateAll is not implemented yet.
+
+	private static final void forceBDVReload(final AbstractSpimSource< ? > s)
+	{
+		try
+		{
+			Class< ? > clazz = null;
+			boolean found = false;
+
+			do
+			{
+				if ( clazz == null )
+					clazz = s.getClass();
+				else
+					clazz = clazz.getSuperclass();
+
+				if ( clazz != null )
+					for ( final Field field : clazz.getDeclaredFields() )
+						if ( field.getName().equals( "cachedSources" ) )
+							found = true;
+			}
+			while ( !found && clazz != null );
+
+			if ( !found )
+			{
+				System.out.println( "Failed to find SpimSource.cachedSources field. Quiting." );
+				return;
+			}
+
+			final Field cachedSources = clazz.getDeclaredField( "cachedSources" );
+			cachedSources.setAccessible( true );
+			CacheAsUncheckedCacheAdapter< ?, ? > chachedSourcesField =
+					(CacheAsUncheckedCacheAdapter< ?, ? >) cachedSources.get( s );
+			chachedSourcesField.invalidateAll();
+			final Field cachedInterpolatedSources = clazz.getDeclaredField( "cachedInterpolatedSources" );
+			cachedInterpolatedSources.setAccessible( true );
+			CacheAsUncheckedCacheAdapter< ?, ? > cachedInterpolatedSourcesField =
+					(CacheAsUncheckedCacheAdapter< ?, ? >) cachedInterpolatedSources.get( s );
+			cachedInterpolatedSourcesField.invalidateAll();
+
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+
+	}
+	*/
 
 	private static final void callLoadTimePoint( final AbstractSpimSource< ? > s, final int timePointIndex )
 	{
