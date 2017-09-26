@@ -101,7 +101,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<imglib2-cache.version>1.0.0-beta-7</imglib2-cache.version>
 		<imglib2-ij.version>2.0.0-beta-38</imglib2-ij.version>
-		<ui-behaviour.version>1.3.0</ui-behaviour.version>
 		<multiview-simulation.version>0.1.0</multiview-simulation.version>
 	</properties>
 
@@ -145,11 +144,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>imglib2-ui</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.scijava</groupId>
-			<artifactId>ui-behaviour</artifactId>
-			<version>${ui-behaviour.version}</version>
-		</dependency>
-		<dependency>
+			<!-- NB: dependency:analyze erroneously flags this, but it's required -->
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
 		</dependency>
@@ -166,6 +161,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.imglib2</groupId>
+			<artifactId>imglib2-algorithm-fft</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
@@ -209,6 +208,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		</dependency>
 
 		<!-- Third party dependencies -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
