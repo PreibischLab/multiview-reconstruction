@@ -3,20 +3,29 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>sc.fiji</groupId>
-		<artifactId>pom-fiji</artifactId>
-		<version>24.3.0</version>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>17.0.0</version>
 		<relativePath />
 	</parent>
 
-	<artifactId>SPIM_Registration</artifactId>
-	<version>6.5.3-SNAPSHOT</version>
+	<groupId>net.preibisch</groupId>
+	<artifactId>multiview-reconstruction</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
 
-	<name>SPIM Registration</name>
-	<description>Software for the reconstruction of multi-view microscopic acquisitions like Selective Plane Illumination Microscopy (SPIM) Data.</description>
+	<name>Multiview Reconstruction</name>
+	<description>Software for the reconstruction of multi-view microscopic acquisitions like
+Selective Plane Illumination Microscopy (SPIM) Data.</description>
+	<url>https://github.com/PreibischLab/multiview-reconstruction</url>
+	<inceptionYear>2012</inceptionYear>
+	<organization>
+		<name>Preibisch Lab</name>
+		<url>http://preibischlab.mdc-berlin.de</url>
+	</organization>
 	<licenses>
 		<license>
-			<name>GNU Public License v2</name>
+			<name>GNU General Public License v2+</name>
+			<url>https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html</url>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
@@ -37,198 +46,152 @@
 			</roles>
 		</developer>
 		<developer>
-			<id>ctrueden</id>
-			<name>Curtis Rueden</name>
-			<url>http://imagej.net/User:Rueden</url>
+			<id>hoerldavid</id>
+			<name>David Hoerl</name>
+			<url>http://imagej.net/User:Davidhoerl</url>
 			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
 				<role>maintainer</role>
 			</roles>
 		</developer>
 	</developers>
 	<contributors>
 		<contributor>
-			<name>Johannes Schindelin</name>
-			<url>http://imagej.net/User:Schindelin</url>
-			<properties><id>dscho</id></properties>
-		</contributor>
-		<contributor>
 			<name>Tobias Pietzsch</name>
 			<url>http://imagej.net/User:Pietzsch</url>
 			<properties><id>tpietzsch</id></properties>
 		</contributor>
 		<contributor>
-			<name>Fernando Amat</name>
-			<properties><id>fernandoamat</id></properties>
-		</contributor>
-		<contributor>
-			<name>Christian Dietz</name>
-			<url>http://imagej.net/User:Dietzc</url>
-			<properties><id>dietzc</id></properties>
-		</contributor>
-		<contributor>
-			<name>Mark Hiner</name>
-			<url>http://imagej.net/User:Hinerm</url>
-			<properties><id>hinerm</id></properties>
-		</contributor>
-		<contributor>
-			<name>Stephan Janosch</name>
-			<url>http://imagej.net/User:StephanJanosch</url>
-			<properties><id>StephanJanosch</id></properties>
-		</contributor>
-		<contributor>
-			<name>Stephan Saalfeld</name>
-			<url>http://imagej.net/User:Saalfeld</url>
-			<properties><id>axtimwalde</id></properties>
-		</contributor>
-		<contributor>
-			<name>Christopher Schmied</name>
-			<properties><id>schmiedc</id></properties>
-		</contributor>
-		<contributor>
-			<name>Peter Steinbach</name>
-			<properties><id>psteinb</id></properties>
-		</contributor>
-		<contributor>
-			<name>Nico Stuurman</name>
-			<url>http://imagej.net/User:Nico</url>
-			<properties><id>nicost</id></properties>
+			<name>Curtis Rueden</name>
+			<url>http://imagej.net/User:Rueden</url>
+			<properties><id>ctrueden</id></properties>
 		</contributor>
 	</contributors>
 
+	<mailingLists>
+		<mailingList>
+			<name>ImageJ Forum</name>
+			<archive>http://forum.imagej.net/</archive>
+		</mailingList>
+	</mailingLists>
+
 	<scm>
-		<connection>scm:git:git://github.com/fiji/SPIM_Registration</connection>
-		<developerConnection>scm:git:git@github.com:fiji/SPIM_Registration</developerConnection>
+		<connection>scm:git:git://github.com/PreibischLab/multiview-reconstruction</connection>
+		<developerConnection>scm:git:git@github.com:PreibischLab/multiview-reconstruction</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/fiji/SPIM_Registration</url>
+		<url>https://github.com/PreibischLab/multiview-reconstruction</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/fiji/SPIM_Registration/issues</url>
+		<url>https://github.com/PreibischLab/multiview-reconstruction/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Jenkins</system>
-		<url>http://jenkins.imagej.net/job/SPIM_Registration/</url>
+		<system>Travis CI</system>
+		<url>https://travis-ci.org/PreibischLab/multiview-reconstruction</url>
 	</ciManagement>
 
 	<properties>
-		<scijava.jvm.version>1.8</scijava.jvm.version>
+		<package-name>net.preibisch.mvrecon</package-name>
+
+		<license.licenseName>gpl_v2</license.licenseName>
+		<license.copyrightOwners>Multiview Reconstruction developers.</license.copyrightOwners>
+
+		<imglib2-cache.version>1.0.0-beta-7</imglib2-cache.version>
+		<imglib2-ij.version>2.0.0-beta-38</imglib2-ij.version>
+		<ui-behaviour.version>1.3.0</ui-behaviour.version>
+		<multiview-simulation.version>0.1.0</multiview-simulation.version>
 	</properties>
 
 	<repositories>
-		<!-- NB: for project parent -->
 		<repository>
 			<id>imagej.public</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
 		</repository>
 	</repositories>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>sc.fiji</groupId>
-				<artifactId>pom-bigdataviewer</artifactId>
-				<version>${pom-bigdataviewer.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 	<dependencies>
 		<!-- BigDataViewer dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-core</artifactId>
-			<version>4.1.0</version>
 		</dependency>
 
 		<!-- Fiji dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>Fiji_Plugins</artifactId>
-			<version>3.1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>fiji-lib</artifactId>
-			<version>2.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>legacy-imglib1</artifactId>
-			<version>1.1.8</version>
 		</dependency>
 
 		<!-- ImageJ dependencies -->
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-			<version>1.51n</version>
 		</dependency>
 
 		<!-- vistools temporary -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ui</artifactId>
-			<version>2.0.0-beta-32</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scijava</groupId>
 			<artifactId>ui-behaviour</artifactId>
-			<version>1.3.0</version>
+			<version>${ui-behaviour.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
-			<version>1.0.0-beta-5</version>
 		</dependency>
 
 		<!-- ImgLib2 dependencies -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2</artifactId>
-			<version>4.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cache</artifactId>
-			<version>1.0.0-beta-7</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm</artifactId>
-			<version>0.8.0</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm-gpl</artifactId>
-			<version>0.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
-			<version>2.0.0-beta-38</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-realtransform</artifactId>
-			<version>2.0.0-beta-37</version>
 		</dependency>
 
 		<!-- OME dependencies -->
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-api</artifactId>
-			<version>5.5.1</version>
 		</dependency>
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-bsd</artifactId>
-			<version>5.5.1</version>
 		</dependency>
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-gpl</artifactId>
-			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.systems.cisd</groupId>
@@ -239,12 +202,10 @@
 		<dependency>
 			<groupId>org.openmicroscopy</groupId>
 			<artifactId>ome-xml</artifactId>
-			<version>5.5.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openmicroscopy</groupId>
 			<artifactId>ome-common</artifactId>
-			<version>5.3.1</version>
 		</dependency>
 
 		<!-- Third party dependencies -->
@@ -259,7 +220,6 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>4.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jdom</groupId>
@@ -268,7 +228,6 @@
 		<dependency>
 			<groupId>org.jfree</groupId>
 			<artifactId>jcommon</artifactId>
-			<version>1.0.24</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jfree</groupId>
@@ -277,12 +236,11 @@
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>spim_data</artifactId>
-			<version>2.2.0</version>
 		</dependency>
 		<dependency>
-			<groupId>net.imglib2.simulation</groupId>
+			<groupId>net.preibisch</groupId>
 			<artifactId>multiview-simulation</artifactId>
-			<version>1.0.5</version>
+			<version>${multiview-simulation.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>

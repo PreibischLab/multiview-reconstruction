@@ -12,7 +12,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
-import simulation.imgloader.SimulatedBeadsImgLoader;
+import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 import spim.fiji.spimdata.SpimData2;
 import spim.headless.registration.TestRegistration;
 import spim.process.export.DisplayImage;
