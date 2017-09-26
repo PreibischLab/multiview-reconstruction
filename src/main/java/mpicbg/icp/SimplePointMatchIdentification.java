@@ -8,7 +8,7 @@ import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
-import spim.process.interestpointregistration.pairwise.LinkedInterestPoint;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 
 public class SimplePointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >
 {

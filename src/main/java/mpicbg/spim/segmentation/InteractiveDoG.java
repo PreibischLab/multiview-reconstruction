@@ -63,7 +63,7 @@ import net.imglib2.exception.ImgLibException;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.imageplus.FloatImagePlus;
 import net.imglib2.view.Views;
-import spim.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 /**
  * An interactive tool for determining the required sigma and peak threshold

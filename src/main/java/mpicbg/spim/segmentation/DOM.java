@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.preibisch.mvrecon.Threads;
+
 import mpicbg.imglib.algorithm.fft.FourierConvolution;
 import mpicbg.imglib.algorithm.integral.IntegralImageLong;
 import mpicbg.imglib.container.array.ArrayContainerFactory;
@@ -21,7 +23,6 @@ import mpicbg.imglib.multithreading.SimpleMultiThreading;
 import mpicbg.imglib.type.numeric.integer.LongType;
 import mpicbg.imglib.type.numeric.real.FloatType;
 import mpicbg.imglib.util.Util;
-import spim.Threads;
 
 public class DOM 
 {

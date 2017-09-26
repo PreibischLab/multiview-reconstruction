@@ -27,6 +27,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.ImagePortion;
+
 import fiji.tool.SliceListener;
 import fiji.tool.SliceObserver;
 import ij.IJ;
@@ -57,9 +61,6 @@ import mpicbg.imglib.type.numeric.integer.LongType;
 import mpicbg.imglib.type.numeric.real.FloatType;
 import mpicbg.imglib.util.Util;
 import mpicbg.spim.registration.detection.DetectionSegmentation;
-import spim.process.deconvolution.DeconViews;
-import spim.process.fusion.FusionTools;
-import spim.process.fusion.ImagePortion;
 
 /**
  * An interactive tool for determining the required radius and peak threshold

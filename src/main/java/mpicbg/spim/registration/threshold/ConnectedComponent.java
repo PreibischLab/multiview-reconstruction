@@ -4,13 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import spim.vecmath.Point3d;
-
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.vecmath.Point3d;
 
 public class ConnectedComponent
 {	

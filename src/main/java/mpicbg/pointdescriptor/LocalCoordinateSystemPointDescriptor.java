@@ -6,8 +6,8 @@ import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.pointdescriptor.exception.NoSuitablePointsException;
 import net.imglib2.RealLocalizable;
-import spim.vecmath.Matrix3d;
-import spim.vecmath.Vector3d;
+import net.preibisch.mvrecon.vecmath.Matrix3d;
+import net.preibisch.mvrecon.vecmath.Vector3d;
 
 public class LocalCoordinateSystemPointDescriptor < P extends Point > extends AbstractPointDescriptor< P, LocalCoordinateSystemPointDescriptor<P> >
 		implements RealLocalizable

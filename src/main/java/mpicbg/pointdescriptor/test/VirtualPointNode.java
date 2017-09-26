@@ -2,7 +2,7 @@ package mpicbg.pointdescriptor.test;
 
 import mpicbg.models.Point;
 import net.imglib2.RealLocalizable;
-import spim.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
 public class VirtualPointNode<P extends Point> implements RealLocalizable
 {

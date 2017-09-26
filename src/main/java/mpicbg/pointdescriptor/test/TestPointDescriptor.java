@@ -7,13 +7,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
-import spim.vecmath.Transform3D;
-//import spim.vecmath.Color3f;
-import spim.vecmath.Matrix3f;
-import spim.vecmath.Point3f;
-import spim.vecmath.Quat4f;
-import spim.vecmath.Vector3f;
-
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.Point;
 import mpicbg.pointdescriptor.LinkedPoint;
@@ -32,6 +25,11 @@ import net.imglib2.neighborsearch.KNearestNeighborSearch;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.util.Util;
 //import customnode.CustomLineMesh;
+import net.preibisch.mvrecon.vecmath.Matrix3f;
+import net.preibisch.mvrecon.vecmath.Point3f;
+import net.preibisch.mvrecon.vecmath.Quat4f;
+import net.preibisch.mvrecon.vecmath.Transform3D;
+import net.preibisch.mvrecon.vecmath.Vector3f;
 
 public class TestPointDescriptor
 {

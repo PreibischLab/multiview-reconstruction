@@ -25,7 +25,7 @@ import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
-import spim.fiji.plugin.resave.ProgressWriterIJ;
+import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 
 public class IOFunctions
 {

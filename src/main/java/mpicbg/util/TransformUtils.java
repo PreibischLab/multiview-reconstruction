@@ -1,11 +1,12 @@
 package mpicbg.util;
 
+import net.preibisch.mvrecon.vecmath.Matrix4d;
+import net.preibisch.mvrecon.vecmath.Transform3D;
+import net.preibisch.mvrecon.vecmath.Vector3d;
+
 import mpicbg.models.AbstractAffineModel3D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.RigidModel3D;
-import spim.vecmath.Matrix4d;
-import spim.vecmath.Transform3D;
-import spim.vecmath.Vector3d;
 
 public class TransformUtils
 {

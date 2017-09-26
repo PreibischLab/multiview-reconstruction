@@ -6,7 +6,7 @@ import java.util.List;
 import mpicbg.pointdescriptor.exception.NoSuitablePointsException;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.RealLocalizable;
-import spim.process.interestpointregistration.pairwise.LinkedInterestPoint;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 
 public interface PointMatchIdentification < P extends RealLocalizable >
 {

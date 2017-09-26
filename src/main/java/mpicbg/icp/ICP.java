@@ -15,7 +15,7 @@ import mpicbg.models.PointMatch;
 import mpicbg.pointdescriptor.exception.NoSuitablePointsException;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.RealLocalizable;
-import spim.process.interestpointregistration.pairwise.LinkedInterestPoint;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 
 /**
  * Implementation of the ICP, takes anything RealLocalizable and internally uses LinkedInterestPoint to compute the ICP

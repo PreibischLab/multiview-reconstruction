@@ -1,0 +1,171 @@
+package net.preibisch.mvrecon.process.fusion.transformed.weights;
+
+import ij.ImageJ;
+import ij.ImagePlus;
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealInterval;
+import net.imglib2.RealRandomAccess;
+import net.imglib2.RealRandomAccessible;
+import net.imglib2.algorithm.fft2.FFTConvolution;
+import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.exception.IncompatibleTypeException;
+import net.imglib2.img.Img;
+import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.complex.ComplexFloatType;
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Util;
+import net.imglib2.view.Views;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
+
+/**
+ * Computes the content-based fusion on a given image
+ * 
+ * @author Stephan Preibisch (stephan.preibisch@gmx.de)
+ *
+ * @param <T> pixel type
+ */
+public class ContentBasedRealRandomAccessible< T extends RealType< T > > implements RealRandomAccessible< FloatType >
+{
+	/**
+	 * The Img containing the approxmimated content-based weights
+	 */
+	final Img< FloatType > contentBasedImg;
+	final int n;
+	
+	public ContentBasedRealRandomAccessible(
+			final RandomAccessibleInterval< T > input,
+			final ImgFactory< ComplexFloatType > imgFactory,
+			final double[] sigma1,
+			final double[] sigma2 )
+	{
+		this.n = input.numDimensions();
+		
+		this.contentBasedImg = approximateEntropy(
+				new ConvertedRandomAccessibleInterval< T, FloatType >( input, new RealFloatConverter< T >(),  new FloatType() ),
+				imgFactory,
+				sigma1,
+				sigma2 );
+	}
+	
+	public Img< FloatType > getContentBasedImg() { return contentBasedImg; }
+	
+	protected Img< FloatType > approximateEntropy(
+			final RandomAccessibleInterval< FloatType > input,
+			final ImgFactory< ComplexFloatType > imgFactory,
+			final double[] sigma1,
+			final double[] sigma2 )
+
+	{
+		// the result
+		ImgFactory<FloatType> f;
+		try { f = imgFactory.imgFactory( new FloatType() ); } catch (IncompatibleTypeException e) { f = new ArrayImgFactory< FloatType >(); }
+		
+		final Img< FloatType > conv = f.create( input, new FloatType() );
+		
+		// compute I*sigma1
+		FFTConvolution< FloatType > fftConv = new FFTConvolution<FloatType>( input, createGaussianKernel( sigma1 ), conv, imgFactory );
+		fftConv.convolve();
+		
+		// compute ( I - I*sigma1 )^2
+		final Cursor< FloatType > c = conv.cursor();
+		final RandomAccess< FloatType > r = input.randomAccess();
+		
+		while ( c.hasNext() )
+		{
+			c.fwd();
+			r.setPosition( c );
+			
+			final float diff = c.get().get() - r.get().get();
+			c.get().set( diff * diff );
+		}
+		
+		// compute ( ( I - I*sigma1 )^2 ) * sigma2
+		fftConv = new FFTConvolution<FloatType>( conv, createGaussianKernel( sigma2 ), imgFactory );
+		fftConv.convolve();
+
+		// normalize to [0...1]
+		FusionTools.normalizeImage( conv );
+
+		return conv;
+	}
+	
+	@Override
+	public int numDimensions() { return contentBasedImg.numDimensions(); }
+
+	@Override
+	public RealRandomAccess<FloatType> realRandomAccess()
+	{ 
+		return Views.interpolate(
+			Views.extendZero( this.contentBasedImg ),
+			new NLinearInterpolatorFactory< FloatType >()
+			).realRandomAccess();
+	}
+
+	@Override
+	public RealRandomAccess<FloatType> realRandomAccess( final RealInterval interval )
+	{
+		return Views.interpolate(
+				Views.extendZero( this.contentBasedImg ),
+				new NLinearInterpolatorFactory< FloatType >()
+				).realRandomAccess( interval );
+	}
+
+	final private static Img< FloatType > createGaussianKernel( final double[] sigmas )
+	{
+		final int numDimensions = sigmas.length;
+
+		final long[] imageSize = new long[ numDimensions ];
+		final double[][] kernel = new double[ numDimensions ][];
+
+		for ( int d = 0; d < numDimensions; ++d )
+		{
+			kernel[ d ] = Util.createGaussianKernel1DDouble( sigmas[ d ], true );
+			imageSize[ d ] = kernel[ d ].length;
+		}
+
+		final Img< FloatType > kernelImg = ArrayImgs.floats( imageSize );
+
+		final Cursor< FloatType > cursor = kernelImg.localizingCursor();
+		final int[] position = new int[ numDimensions ];
+
+		while ( cursor.hasNext() )
+		{
+			cursor.fwd();
+			cursor.localize( position );
+
+			double value = 1;
+
+			for ( int d = 0; d < numDimensions; ++d )
+				value *= kernel[ d ][ position[ d ] ];
+
+			cursor.get().set( ( float ) value );
+		}
+
+		return kernelImg;
+	}
+	
+	public static void main( String[] args ) throws IncompatibleTypeException
+	{
+		new ImageJ();
+		
+		ImagePlus imp = new ImagePlus( "/Users/preibischs/workspace/TestLucyRichardson/src/resources/dros-1.tif" );
+		
+		Img< FloatType > img = ImageJFunctions.wrap( imp );
+
+		final double[] sigma1 = new double[]{ 20, 20 };
+		final double[] sigma2 = new double[]{ 30, 30 };
+		
+		ContentBasedRealRandomAccessible< FloatType > cb = new ContentBasedRealRandomAccessible<FloatType>( img, img.factory().imgFactory( new ComplexFloatType() ), sigma1, sigma2 );
+		
+		ImageJFunctions.show( cb.getContentBasedImg() );
+	}
+
+}
