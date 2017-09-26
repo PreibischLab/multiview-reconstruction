@@ -14,8 +14,8 @@
 	<version>0.1.0-SNAPSHOT</version>
 
 	<name>Multiview Reconstruction</name>
-	<description>Software for the reconstruction of multi-view microscopic acquisitions like
-Selective Plane Illumination Microscopy (SPIM) Data.</description>
+	<description>Software for the reconstruction of multi-view microscopic acquisitions
+like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	<url>https://github.com/PreibischLab/multiview-reconstruction</url>
 	<inceptionYear>2012</inceptionYear>
 	<organization>

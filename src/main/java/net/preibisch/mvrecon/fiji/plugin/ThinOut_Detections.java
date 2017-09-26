@@ -1,8 +1,9 @@
 /*-
  * #%L
- * Fiji distribution of ImageJ for the life sciences.
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2007 - 2017 Fiji developers.
+ * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
