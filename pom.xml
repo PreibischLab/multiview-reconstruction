@@ -228,13 +228,13 @@
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-gpl</artifactId>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.systems.cisd</groupId>
 					<artifactId>jhdf5</artifactId>
 				</exclusion>
 			</exclusions>
-			<version>5.5.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openmicroscopy</groupId>
@@ -290,19 +290,19 @@
 		</dependency>
 	</dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-		  <groupId>org.apache.maven.plugins</groupId>
-		  <artifactId>maven-assembly-plugin</artifactId>
-		  <configuration>
-		    <archive>
-		      <manifest>
-		        <mainClass>spim.fiji.plugin.Data_Explorer</mainClass>
-		      </manifest>
-		    </archive>
-		  </configuration>
-		</plugin>
-	</plugins>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>spim.fiji.plugin.Data_Explorer</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>
