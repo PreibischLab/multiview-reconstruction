@@ -274,6 +274,8 @@ public class AppendSpimData2HDF5 implements ImgExport
 		++newAngleId;
 		++newIllumId;
 
+		final double downsampling = Double.isNaN( fusion.getDownsampling() ) ? 1.0 : fusion.getDownsampling();
+
 		if ( fusion.getSplittingType() < 2 ) // "Each timepoint & channel" or "Each timepoint, channel & illumination"
 		{
 			newTimepoints = SpimData2.getAllTimePointsSorted( fusion.getSpimData(), fusion.getViews() );
@@ -288,7 +290,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 							newViewSetupId++,
 							c.getName(),
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 							new Tile( newTileId ),
 							c,
 							new Angle( newAngleId ),
@@ -305,7 +307,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 									newViewSetupId++,
 									channels.get( c ).getName() + "_" + illums.get( i ).getName(),
 									fusion.getDownsampledBoundingBox(),
-									new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+									new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 									new Tile( newTileId ),
 									channels.get( newChannelId ),
 									new Angle( newAngleId ),
@@ -322,7 +324,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 							newViewSetupId++,
 							"Fused",
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 							new Tile( newTileId ),
 							new Channel( newChannelId ),
 							new Angle( newAngleId ),
@@ -341,7 +343,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 								newViewSetupId++,
 								vs.getName(),
 								fusion.getDownsampledBoundingBox(),
-								new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+								new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 								vs.getTile(),
 								vs.getChannel(),
 								vs.getAngle(),

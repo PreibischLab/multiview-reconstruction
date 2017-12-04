@@ -247,6 +247,8 @@ public class ExportSpimData2TIFF implements ImgExport
 
 		int newViewSetupId = 0;
 
+		final double downsampling = Double.isNaN( fusion.getDownsampling() ) ? 1.0 : fusion.getDownsampling();
+
 		if ( fusion.getSplittingType() < 2 ) // "Each timepoint & channel" or "Each timepoint, channel & illumination"
 		{
 			newTimepoints = SpimData2.getAllTimePointsSorted( fusion.getSpimData(), fusion.getViews() );
@@ -261,7 +263,7 @@ public class ExportSpimData2TIFF implements ImgExport
 							newViewSetupId++,
 							c.getName(),
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 							new Tile( 0 ),
 							c,
 							new Angle( 0 ),
@@ -278,7 +280,7 @@ public class ExportSpimData2TIFF implements ImgExport
 									newViewSetupId++,
 									channels.get( c ).getName() + "_" + illums.get( i ).getName(),
 									fusion.getDownsampledBoundingBox(),
-									new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+									new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 									new Tile( 0 ),
 									channels.get( c ),
 									new Angle( 0 ),
@@ -295,7 +297,7 @@ public class ExportSpimData2TIFF implements ImgExport
 							0,
 							"Fused",
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 							new Tile( 0 ),
 							new Channel( 0 ),
 							new Angle( 0 ),
@@ -314,7 +316,7 @@ public class ExportSpimData2TIFF implements ImgExport
 								vs.getId(),
 								vs.getName(),
 								fusion.getDownsampledBoundingBox(),
-								new FinalVoxelDimensions( "px", Util.getArrayFromValue( fusion.getDownsampling(), 3 ) ),
+								new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
 								vs.getTile(),
 								vs.getChannel(),
 								vs.getAngle(),
