@@ -95,7 +95,11 @@ public class RemoveTransformationPopup extends JMenu implements ExplorerWindowSe
 			for ( final ViewId viewId : viewIds )
 			{
 				final ViewRegistration v = vr.getViewRegistrations().get( viewId );
-				
+
+				// nothing left to remove, skip this view
+				if (v.getTransformList().size() < 1)
+					continue;
+
 				if ( index == 0 )
 					v.getTransformList().remove( 0 );
 				else
