@@ -284,7 +284,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
 	public boolean groupTiles() { return groupTiles; }
 	public boolean groupIllums() { return groupIllums; }
-	public ImgExport getExporter() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
+
+	@Override
+	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
 
 	public boolean queryDetails()
 	{

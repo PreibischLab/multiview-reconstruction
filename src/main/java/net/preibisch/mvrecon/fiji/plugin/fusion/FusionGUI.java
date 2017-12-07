@@ -180,7 +180,8 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public int getSplittingType() { return splittingType; }
 
-	public ImgExport getExporter() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
+	@Override
+	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
 
 	public boolean queryDetails()
 	{

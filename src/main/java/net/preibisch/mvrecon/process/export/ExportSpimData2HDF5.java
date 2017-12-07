@@ -125,6 +125,8 @@ public class ExportSpimData2HDF5 implements ImgExport
 		this.newTimepoints = newStructure.getA();
 		this.newViewSetups = newStructure.getB();
 
+		System.out.println( this + " " + fusion );
+
 		perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( newViewSetups );
 
 		String fn = LoadParseQueryXML.defaultXMLfilename;
@@ -276,6 +278,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 			double min, double max )
 	{
 		System.out.println( "exportImage2()" );
+		System.out.println( this + " " + fusion );
 
 		final ViewId newViewId = ExportSpimData2TIFF.identifyNewViewId( newTimepoints, newViewSetups, fusionGroup, fusion );
 

@@ -27,6 +27,7 @@ import java.util.Collection;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
+import net.preibisch.mvrecon.process.export.ImgExport;
 
 public interface FusionExportInterface
 {
@@ -53,4 +54,9 @@ public interface FusionExportInterface
 	Interval getDownsampledBoundingBox();
 	double getDownsampling();
 	Collection< ? extends ViewId > getViews();
+
+	/**
+	 * @return - creates a new instance of the exporter object
+	 */
+	public ImgExport getNewExporterInstance();
 }
