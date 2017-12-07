@@ -78,7 +78,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	List< TimePoint > newTimepoints;
 	List< ViewSetup > newViewSetups;
 	FusionExportInterface fusion;
-	HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap;
+	HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap = new HashMap<>();
 
 	Parameters params;
 	Save3dTIFF saver;
@@ -113,7 +113,7 @@ public class ExportSpimData2TIFF implements ImgExport
 		final ViewDescription newVD = newSpimData.getSequenceDescription().getViewDescription( newViewId );
 
 		// populate HashMap for the ImgLoader
-		fileMap.put( newVD, new ValuePair< File, Pair<Integer,Integer> >( new File( this.path, title ), new ValuePair<>( newViewId.getTimePointId(), newViewId.getViewSetupId() ) ) );
+		fileMap.put( newVD, new ValuePair< File, Pair<Integer,Integer> >( new File( saver.getFileName( title ) ), new ValuePair<>( newViewId.getTimePointId(), newViewId.getViewSetupId() ) ) );
 
 		// update the registrations
 		final ViewRegistration vr = newSpimData.getViewRegistrations().getViewRegistration( newViewId );
