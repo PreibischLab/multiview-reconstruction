@@ -185,7 +185,7 @@ public class Resave_TIFF implements PlugIn
 			defaultPath = LoadParseQueryXML.defaultXMLfilename;
 
 		PluginHelper.addSaveAsFileField( gd, "Select new XML", defaultPath, 80 );
-		gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", defaultCompress );
+		//gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", defaultCompress );
 
 		gd.showDialog();
 		
@@ -193,15 +193,15 @@ public class Resave_TIFF implements PlugIn
 			return null;
 
 		final Parameters params = new Parameters();
-		
+
 		params.xmlFile = gd.getNextString();
-		
+
 		if ( !params.xmlFile.endsWith( ".xml" ) )
 			params.xmlFile += ".xml";
 
 		defaultPath = LoadParseQueryXML.defaultXMLfilename = params.xmlFile;
 
-		params.compress = defaultCompress = gd.getNextBoolean();
+		params.compress = false; //defaultCompress = gd.getNextBoolean();
 
 		if ( defaultContainer == 0 )
 			params.imgFactory = new ArrayImgFactory< FloatType >();
