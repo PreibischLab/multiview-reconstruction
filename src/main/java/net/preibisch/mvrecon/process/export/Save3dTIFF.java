@@ -77,6 +77,21 @@ public class Save3dTIFF implements ImgExport
 		return exportImage( img, bb, 1.0, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
+	public String getFileName( final String title )
+	{
+		String fileName;
+
+		if ( !title.endsWith( ".tif" ) )
+			fileName = new File( path, title + ".tif" ).getAbsolutePath();
+		else
+			fileName = new File( path, title ).getAbsolutePath();
+
+		if ( compress )
+			return fileName + ".zip";
+		else
+			return fileName;
+	}
+
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
@@ -99,37 +114,23 @@ public class Save3dTIFF implements ImgExport
 
 		imp.updateAndDraw();
 
-		final String fileName;
-		
-		if ( !title.endsWith( ".tif" ) )
-			fileName = new File( path, title + ".tif" ).getAbsolutePath();
-		else
-			fileName = new File( path, title ).getAbsolutePath();
-		
+		final String fileName = getFileName( title );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saving file " + fileName );
+
+		final boolean success;
+
 		if ( compress )
-		{
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saving file " + fileName + ".zip" );
-			boolean success = new FileSaver( imp ).saveAsZip( fileName );
-
-			if ( success )
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved file " + fileName + ".zip" );
-			else
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED saving file " + fileName + ".zip" );
-
-			return success;
-		}
+			success = new FileSaver( imp ).saveAsZip( fileName );
 		else
-		{
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saving file " + fileName );
-			boolean success = saveTiffStack( imp, fileName ); //new FileSaver( imp ).saveAsTiffStack( fileName );
+			success = saveTiffStack( imp, fileName ); //new FileSaver( imp ).saveAsTiffStack( fileName );
 
-			if ( success )
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved file " + fileName  );
-			else
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED saving file " + fileName );
+		if ( success )
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved file " + fileName );
+		else
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED saving file " + fileName );
 
-			return success;
-		}
+		return success;
 	}
 
 	/*
