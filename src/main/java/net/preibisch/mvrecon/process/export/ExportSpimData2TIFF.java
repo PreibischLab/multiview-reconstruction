@@ -89,10 +89,11 @@ public class ExportSpimData2TIFF implements ImgExport
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup )
 	{
-		return exportImage( img, bb, downsampling, title, fusionGroup, Double.NaN, Double.NaN );
+		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
 	@Override
@@ -100,13 +101,14 @@ public class ExportSpimData2TIFF implements ImgExport
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup,
 			final double min,
 			final double max )
 	{
 		// write the image
-		if ( !this.saver.exportImage( img, bb, downsampling, title, fusionGroup, min, max ) )
+		if ( !this.saver.exportImage( img, bb, downsampling, anisoF, title, fusionGroup, min, max ) )
 			return false;
 
 		final ViewId newViewId = identifyNewViewId( newTimepoints, newViewSetups, fusionGroup, fusion );
@@ -119,11 +121,12 @@ public class ExportSpimData2TIFF implements ImgExport
 		final ViewRegistration vr = newSpimData.getViewRegistrations().getViewRegistration( newViewId );
 
 		final double scale = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+		final double ai = Double.isNaN( anisoF ) ? 1.0 : anisoF;
 
 		final AffineTransform3D m = new AffineTransform3D();
 		m.set( scale, 0.0f, 0.0f, bb.min( 0 ), 
 			   0.0f, scale, 0.0f, bb.min( 1 ),
-			   0.0f, 0.0f, scale, bb.min( 2 ) );
+			   0.0f, 0.0f, scale * ai, bb.min( 2 ) * ai ); // TODO: bb * ai is right?
 		final ViewTransform vt = new ViewTransformAffine( "fusion bounding box", m );
 
 		vr.getTransformList().clear();
@@ -190,6 +193,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	@Override
 	public String getDescription() { return "Save as new XML Project (TIFF)"; }
 
+	// TODO: respect "preserve voxel size" if necessary
 	public static ViewId identifyNewViewId(
 			final List< TimePoint > newTimepoints,
 			final List< ViewSetup > newViewSetups,

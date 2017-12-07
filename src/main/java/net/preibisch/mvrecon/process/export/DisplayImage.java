@@ -48,12 +48,12 @@ public class DisplayImage implements ImgExport
 
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img )
 	{
-		exportImage( img, null, 1.0, "Image", null );
+		exportImage( img, null, Double.NaN, Double.NaN, "Image", null );
 	}
 
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
 	{
-		exportImage( img, null, 1.0, title, null );
+		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
 	@Override
@@ -61,16 +61,18 @@ public class DisplayImage implements ImgExport
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup )
 	{
-		return exportImage( img, bb, downsampling, title, fusionGroup, Double.NaN, Double.NaN );
+		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup,
 			final double min,
@@ -87,7 +89,7 @@ public class DisplayImage implements ImgExport
 
 		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minmax[ 0 ], minmax[ 1 ] );
 
-		setCalibration( imp, bb, downsampling );
+		setCalibration( imp, bb, downsampling, anisoF );
 
 		imp.updateAndDraw();
 		imp.show();
@@ -95,16 +97,18 @@ public class DisplayImage implements ImgExport
 		return true;
 	}
 
-	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling )
+	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling, final double anisoF )
 	{
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+		final double ai = Double.isNaN( anisoF ) ? 1.0 : anisoF;
 
 		if ( bb != null )
 		{
 			imp.getCalibration().xOrigin = -(bb.min( 0 ) / ds);
 			imp.getCalibration().yOrigin = -(bb.min( 1 ) / ds);
 			imp.getCalibration().zOrigin = -(bb.min( 2 ) / ds);
-			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = imp.getCalibration().pixelDepth = ds;
+			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = ds;
+			imp.getCalibration().pixelDepth = ds * ai;
 		}
 	}
 

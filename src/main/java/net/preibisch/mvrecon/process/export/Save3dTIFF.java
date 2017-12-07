@@ -63,7 +63,7 @@ public class Save3dTIFF implements ImgExport
 	
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
 	{
-		exportImage( img, null, 1.0, title, null );
+		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
 	@Override
@@ -71,10 +71,11 @@ public class Save3dTIFF implements ImgExport
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup )
 	{
-		return exportImage( img, bb, 1.0, title, fusionGroup, Double.NaN, Double.NaN );
+		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
 	public String getFileName( final String title )
@@ -96,6 +97,7 @@ public class Save3dTIFF implements ImgExport
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup,
 			final double min,
@@ -110,7 +112,7 @@ public class Save3dTIFF implements ImgExport
 
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
 
-		DisplayImage.setCalibration( imp, bb, downsampling );
+		DisplayImage.setCalibration( imp, bb, downsampling, anisoF );
 
 		imp.updateAndDraw();
 

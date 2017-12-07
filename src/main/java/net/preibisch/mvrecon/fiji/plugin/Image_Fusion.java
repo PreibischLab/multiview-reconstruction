@@ -233,11 +233,12 @@ public class Image_Fusion implements PlugIn
 			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, true );
 
 		final String title = getTitle( fusion.getSplittingType(), group );
+		final double anisoF = fusion.preserveAnisotropy() ? fusion.getAnisotropyFactor() : Double.NaN;
 
 		if ( minmax == null )
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), title, group );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), anisoF, title, group );
 		else
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), title, group, minmax[ 0 ], minmax[ 1 ] );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), anisoF, title, group, minmax[ 0 ], minmax[ 1 ] );
 	}
 
 	public static String getTitle( final int splittingType, final Group< ViewDescription > group )
