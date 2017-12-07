@@ -216,7 +216,8 @@ public class AppendSpimData2HDF5 implements ImgExport
 		// update the registrations
 		final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( newViewId );
 
-		final double scale = downsampling;
+		final double scale = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+
 		final AffineTransform3D m = new AffineTransform3D();
 		m.set( scale, 0.0f, 0.0f, bb.min( 0 ),
 			   0.0f, scale, 0.0f, bb.min( 1 ),

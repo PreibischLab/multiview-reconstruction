@@ -278,7 +278,6 @@ public class ExportSpimData2HDF5 implements ImgExport
 			double min, double max )
 	{
 		System.out.println( "exportImage2()" );
-		System.out.println( this + " " + fusion );
 
 		final ViewId newViewId = ExportSpimData2TIFF.identifyNewViewId( newTimepoints, newViewSetups, fusionGroup, fusion );
 
@@ -298,7 +297,8 @@ public class ExportSpimData2HDF5 implements ImgExport
 		// update the registrations
 		final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( newViewId );
 
-		final double scale = downsampling;
+		final double scale = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+
 		final AffineTransform3D m = new AffineTransform3D();
 		m.set( scale, 0.0f, 0.0f, bb.min( 0 ),
 			   0.0f, scale, 0.0f, bb.min( 1 ),
