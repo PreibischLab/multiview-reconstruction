@@ -27,6 +27,7 @@ import java.util.Collection;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
+import net.preibisch.mvrecon.process.export.ImgExport;
 
 public interface FusionExportInterface
 {
@@ -51,6 +52,20 @@ public interface FusionExportInterface
 	int getSplittingType();
 
 	Interval getDownsampledBoundingBox();
-	double getDownsampling();
 	Collection< ? extends ViewId > getViews();
+
+	/**
+	 * @return the downsampling used for the fusion, or Double.NaN if no downsampling
+	 */
+	double getDownsampling();
+
+	/**
+	 * @return the average anisotropy factor in z of all views used to "flatten" the fused image, or Double.NaN if no change
+	 */
+	public double getAnisotropyFactor();
+
+	/**
+	 * @return - creates a new instance of the exporter object
+	 */
+	public ImgExport getNewExporterInstance();
 }

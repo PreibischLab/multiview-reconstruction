@@ -258,6 +258,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public double getDownsampling(){ return downsampling; }
 
 	@Override
+	public double getAnisotropyFactor() { return Double.NaN; }
+
+	@Override
 	public int getSplittingType() { return splittingType; }
 
 	public ImgDataType getInputImgCacheType() { return ImgDataType.values()[ cacheTypeInputImg ]; }
@@ -284,7 +287,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
 	public boolean groupTiles() { return groupTiles; }
 	public boolean groupIllums() { return groupIllums; }
-	public ImgExport getExporter() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
+
+	@Override
+	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
 
 	public boolean queryDetails()
 	{

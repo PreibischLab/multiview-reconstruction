@@ -87,7 +87,7 @@ public class Image_Fusion implements PlugIn
 		final List< Group< ViewDescription > > groups = fusion.getFusionGroups();
 		int i = 0;
 
-		if ( fusion.preserveAnisotropy() )
+		if ( !Double.isNaN( fusion.getAnisotropyFactor() ) ) // flatten the fused image
 		{
 			final double anisoF = fusion.getAnisotropyFactor();
 
@@ -108,7 +108,10 @@ public class Image_Fusion implements PlugIn
 		}
 
 		// query exporter parameters
-		if ( !fusion.getExporter().queryParameters( fusion ) )
+		final ImgExport exporter = fusion.getNewExporterInstance();
+
+		// query exporter parameters
+		if ( !exporter.queryParameters( fusion ) )
 			return false;
 
 		for ( final Group< ViewDescription > group : groups )
@@ -118,13 +121,10 @@ public class Image_Fusion implements PlugIn
 			for ( final ViewDescription vd : group )
 				System.out.println( Group.pvid( vd ) );
 			final Interval boundingBox = fusion.getBoundingBox();
-			final double anisoF = fusion.preserveAnisotropy() ? fusion.getAnisotropyFactor() : Double.NaN;
-
-			final double downsampling = fusion.getDownsampling();
 
 			final RandomAccessibleInterval< FloatType > virtual;
 
-			if ( !fusion.preserveAnisotropy() )
+			if ( Double.isNaN( fusion.getAnisotropyFactor() ) ) // no flattening of the fused image
 			{
 				virtual = FusionTools.fuseVirtual(
 					spimData,
@@ -133,7 +133,7 @@ public class Image_Fusion implements PlugIn
 					fusion.useContentBased(),
 					fusion.getInterpolation(),
 					boundingBox,
-					downsampling );
+					fusion.getDownsampling() );
 			}
 			else
 			{
@@ -150,7 +150,7 @@ public class Image_Fusion implements PlugIn
 					aniso.set(
 							1.0, 0.0, 0.0, 0.0,
 							0.0, 1.0, 0.0, 0.0,
-							0.0, 0.0, 1.0/anisoF, 0.0 );
+							0.0, 0.0, 1.0/fusion.getAnisotropyFactor(), 0.0 );
 					model.preConcatenate( aniso );
 					registrations.put( viewId, model );
 				}
@@ -166,7 +166,7 @@ public class Image_Fusion implements PlugIn
 						fusion.useContentBased(),
 						fusion.getInterpolation(),
 						boundingBox,
-						downsampling );
+						fusion.getDownsampling() );
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit
@@ -177,15 +177,17 @@ public class Image_Fusion implements PlugIn
 				if ( !cacheAndExport(
 						new ConvertedRandomAccessibleInterval< FloatType, UnsignedShortType >(
 								virtual, new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] ), new UnsignedShortType() ),
-						new UnsignedShortType(), fusion, group, minmax ) )
+						new UnsignedShortType(), fusion, exporter, group, minmax ) )
 					return false;
 			}
 			else
 			{
-				if ( !cacheAndExport( virtual, new FloatType(), fusion, group, null ) )
+				if ( !cacheAndExport( virtual, new FloatType(), fusion, exporter, group, null ) )
 					return false;
 			}
 		}
+
+		exporter.finish();
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
@@ -214,6 +216,7 @@ public class Image_Fusion implements PlugIn
 			final RandomAccessibleInterval< T > output,
 			final T type,
 			final FusionGUI fusion,
+			final ImgExport exporter,
 			final Group< ViewDescription > group,
 			final double[] minmax )
 	{
@@ -229,9 +232,9 @@ public class Image_Fusion implements PlugIn
 		final String title = getTitle( fusion.getSplittingType(), group );
 
 		if ( minmax == null )
-			return fusion.getExporter().exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), title, group );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group );
 		else
-			return fusion.getExporter().exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), title, group, minmax[ 0 ], minmax[ 1 ] );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
 	}
 
 	public static String getTitle( final int splittingType, final Group< ViewDescription > group )

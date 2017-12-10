@@ -59,7 +59,7 @@ public class BoundingBoxMaximalGroupOverlap< V extends ViewId > implements Bound
 	protected final Map< Integer, ? extends BasicViewSetup > vss;
 
 	public BoundingBoxMaximalGroupOverlap( final Collection< ? extends Iterable< V > > viewGroups,
-			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ?, ? > > spimData )
+			final AbstractSpimData< ? > spimData )
 	{
 		this.vss = spimData.getSequenceDescription().getViewSetups();
 		this.vrs = spimData.getViewRegistrations();

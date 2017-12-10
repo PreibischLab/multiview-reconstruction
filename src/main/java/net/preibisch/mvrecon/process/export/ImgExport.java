@@ -44,7 +44,8 @@ public interface ImgExport
 	 * 
 	 * @param img - Note, in rare cases this can be null (i.e. do nothing)
 	 * @param bb - the bounding box used to fuse this image
-	 * @param downsampling - how much it was downsampled
+	 * @param downsampling - how much it was downsampled (or NaN if not)
+	 * @param anisoF - how much the z-dimension was scaled (or NaN if not)
 	 * @param title - the name of the image
 	 * @param fusionGroup - which views are part of this fusion
 	 * @param <T> pixel type
@@ -54,6 +55,7 @@ public interface ImgExport
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup );
 	
@@ -62,7 +64,8 @@ public interface ImgExport
 	 * 
 	 * @param img - Note, in rare cases this can be null (i.e. do nothing)
 	 * @param bb - the bounding box used to fuse this image
-	 * @param downsampling - how much it was downsampled
+	 * @param downsampling - how much it was downsampled (or NaN if not)
+	 * @param anisoF - how much the z-dimension was scaled (or NaN if not)
 	 * @param title - the name of the image
 	 * @param fusionGroup - which views are part of this fusion
 	 * @param min - define min intensity of this image
@@ -74,6 +77,7 @@ public interface ImgExport
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
+			final double anisoF,
 			final String title,
 			final Group< ? extends ViewId > fusionGroup,
 			final double min,

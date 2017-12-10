@@ -173,6 +173,12 @@ public class RegularTranformHelpers
 		
 		final ArrayList< Translation3D > transforms = new ArrayList<>();
 		int nTiles = prod(params.nSteps);
+
+		// we have 0 tiles, return empty list
+		if (nTiles < 1)
+			return transforms;
+
+
 		for (int i = 0; i < nTiles; ++i)
 			transforms.add(new Translation3D());
 

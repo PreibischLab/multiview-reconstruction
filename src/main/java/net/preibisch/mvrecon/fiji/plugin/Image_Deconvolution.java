@@ -96,6 +96,13 @@ public class Image_Deconvolution implements PlugIn
 		if ( !decon.queryDetails() )
 			return false;
 
+		// query exporter parameters
+		final ImgExport exporter = decon.getNewExporterInstance();
+
+		// query exporter parameters
+		if ( !exporter.queryParameters( decon ) )
+			return false;
+
 		final List< Group< ViewDescription > > deconGroupBatches = decon.getFusionGroups();
 		int i = 0;
 
@@ -219,9 +226,9 @@ public class Image_Deconvolution implements PlugIn
 				mvDecon.setDebugInterval( debugInterval );
 				mvDecon.runIterations();
 
-				if ( !export( mvDecon.getPSI(), decon, deconGroup ) )
+				if ( !export( mvDecon.getPSI(), decon, exporter, deconGroup ) )
 				{
-					IOFunctions.println( "ERROR exporting the image using '" + decon.getExporter().getClass().getSimpleName() + "'" );
+					IOFunctions.println( "ERROR exporting the image using '" + exporter.getClass().getSimpleName() + "'" );
 					return false;
 				}
 			}
@@ -238,6 +245,8 @@ public class Image_Deconvolution implements PlugIn
 
 		service.shutdown();
 
+		exporter.finish();
+
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
 		return true;
@@ -246,15 +255,12 @@ public class Image_Deconvolution implements PlugIn
 	protected static boolean export(
 			final RandomAccessibleInterval< FloatType > output,
 			final DeconvolutionGUI fusion,
+			final ImgExport exporter,
 			final Group< ViewDescription > group )
 	{
-		final ImgExport exporter = fusion.getExporter();
-
-		exporter.queryParameters( fusion );
-
 		final String title = Image_Fusion.getTitle( fusion.getSplittingType(), group );
 
-		return exporter.exportImage( output, fusion.getBoundingBox(), fusion.getDownsampling(), title, group );
+		return exporter.exportImage( output, fusion.getBoundingBox(), fusion.getDownsampling(), Double.NaN, title, group );
 	}
 
 	public static void main( String[] args )

@@ -77,7 +77,7 @@ public class PSF_Extract implements PlugIn
 
 		if ( labels.length == 0 )
 		{
-			IOFunctions.printErr( "No interest points available, stopping. Please run Interest Ppint Detection first" );
+			IOFunctions.printErr( "No interest points available, stopping. Please run Interest Point Detection first" );
 			return false;
 		}
 
