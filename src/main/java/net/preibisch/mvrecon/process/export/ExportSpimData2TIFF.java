@@ -57,7 +57,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
@@ -177,7 +176,7 @@ public class ExportSpimData2TIFF implements ImgExport
 		this.saver = new Save3dTIFF( this.path.toString(), this.params.compress() );
 
 		// define new timepoints and viewsetups
-		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = defineNewViewSetups( fusion );
+		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = defineNewViewSetups( fusion, fusion.getDownsampling(), fusion.getAnisotropyFactor() );
 		this.newTimepoints = newStructure.getA();
 		this.newViewSetups = newStructure.getB();
 
@@ -193,7 +192,6 @@ public class ExportSpimData2TIFF implements ImgExport
 	@Override
 	public String getDescription() { return "Save as new XML Project (TIFF)"; }
 
-	// TODO: respect "preserve voxel size" if necessary
 	public static ViewId identifyNewViewId(
 			final List< TimePoint > newTimepoints,
 			final List< ViewSetup > newViewSetups,
@@ -245,14 +243,15 @@ public class ExportSpimData2TIFF implements ImgExport
 		}
 	}
 
-	public static Pair< List< TimePoint >, List< ViewSetup > > defineNewViewSetups( final FusionExportInterface fusion )
+	public static Pair< List< TimePoint >, List< ViewSetup > > defineNewViewSetups( final FusionExportInterface fusion, double downsampling, double anisoF )
 	{
 		final List< ViewSetup > newViewSetups = new ArrayList<>();
 		final List< TimePoint > newTimepoints;
 
 		int newViewSetupId = 0;
 
-		final double downsampling = Double.isNaN( fusion.getDownsampling() ) ? 1.0 : fusion.getDownsampling();
+		downsampling = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+		anisoF = Double.isNaN( anisoF ) ? 1.0 : anisoF;
 
 		if ( fusion.getSplittingType() < 2 ) // "Each timepoint & channel" or "Each timepoint, channel & illumination"
 		{
@@ -268,7 +267,7 @@ public class ExportSpimData2TIFF implements ImgExport
 							newViewSetupId++,
 							c.getName(),
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
+							new FinalVoxelDimensions( "px", new double[] { downsampling, downsampling, downsampling * anisoF } ),
 							new Tile( 0 ),
 							c,
 							new Angle( 0 ),
@@ -285,7 +284,7 @@ public class ExportSpimData2TIFF implements ImgExport
 									newViewSetupId++,
 									channels.get( c ).getName() + "_" + illums.get( i ).getName(),
 									fusion.getDownsampledBoundingBox(),
-									new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
+									new FinalVoxelDimensions( "px", new double[] { downsampling, downsampling, downsampling * anisoF } ),
 									new Tile( 0 ),
 									channels.get( c ),
 									new Angle( 0 ),
@@ -302,7 +301,7 @@ public class ExportSpimData2TIFF implements ImgExport
 							0,
 							"Fused",
 							fusion.getDownsampledBoundingBox(),
-							new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
+							new FinalVoxelDimensions( "px", new double[] { downsampling, downsampling, downsampling * anisoF } ),
 							new Tile( 0 ),
 							new Channel( 0 ),
 							new Angle( 0 ),
@@ -321,7 +320,7 @@ public class ExportSpimData2TIFF implements ImgExport
 								vs.getId(),
 								vs.getName(),
 								fusion.getDownsampledBoundingBox(),
-								new FinalVoxelDimensions( "px", Util.getArrayFromValue( downsampling, 3 ) ),
+								new FinalVoxelDimensions( "px", new double[] { downsampling, downsampling, downsampling * anisoF } ),
 								vs.getTile(),
 								vs.getChannel(),
 								vs.getAngle(),

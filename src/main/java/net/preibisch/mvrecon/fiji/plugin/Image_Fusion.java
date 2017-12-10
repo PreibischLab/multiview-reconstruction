@@ -87,7 +87,7 @@ public class Image_Fusion implements PlugIn
 		final List< Group< ViewDescription > > groups = fusion.getFusionGroups();
 		int i = 0;
 
-		if ( fusion.preserveAnisotropy() )
+		if ( !Double.isNaN( fusion.getAnisotropyFactor() ) ) // flatten the fused image
 		{
 			final double anisoF = fusion.getAnisotropyFactor();
 
@@ -121,13 +121,10 @@ public class Image_Fusion implements PlugIn
 			for ( final ViewDescription vd : group )
 				System.out.println( Group.pvid( vd ) );
 			final Interval boundingBox = fusion.getBoundingBox();
-			final double anisoF = fusion.preserveAnisotropy() ? fusion.getAnisotropyFactor() : Double.NaN;
-
-			final double downsampling = fusion.getDownsampling();
 
 			final RandomAccessibleInterval< FloatType > virtual;
 
-			if ( !fusion.preserveAnisotropy() )
+			if ( Double.isNaN( fusion.getAnisotropyFactor() ) ) // no flattening of the fused image
 			{
 				virtual = FusionTools.fuseVirtual(
 					spimData,
@@ -136,7 +133,7 @@ public class Image_Fusion implements PlugIn
 					fusion.useContentBased(),
 					fusion.getInterpolation(),
 					boundingBox,
-					downsampling );
+					fusion.getDownsampling() );
 			}
 			else
 			{
@@ -153,7 +150,7 @@ public class Image_Fusion implements PlugIn
 					aniso.set(
 							1.0, 0.0, 0.0, 0.0,
 							0.0, 1.0, 0.0, 0.0,
-							0.0, 0.0, 1.0/anisoF, 0.0 );
+							0.0, 0.0, 1.0/fusion.getAnisotropyFactor(), 0.0 );
 					model.preConcatenate( aniso );
 					registrations.put( viewId, model );
 				}
@@ -169,7 +166,7 @@ public class Image_Fusion implements PlugIn
 						fusion.useContentBased(),
 						fusion.getInterpolation(),
 						boundingBox,
-						downsampling );
+						fusion.getDownsampling() );
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit
@@ -233,12 +230,11 @@ public class Image_Fusion implements PlugIn
 			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, true );
 
 		final String title = getTitle( fusion.getSplittingType(), group );
-		final double anisoF = fusion.preserveAnisotropy() ? fusion.getAnisotropyFactor() : Double.NaN;
 
 		if ( minmax == null )
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), anisoF, title, group );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group );
 		else
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), anisoF, title, group, minmax[ 0 ], minmax[ 1 ] );
+			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
 	}
 
 	public static String getTitle( final int splittingType, final Group< ViewDescription > group )

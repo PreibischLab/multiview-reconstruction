@@ -121,7 +121,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		this.fusion = fusion;
 
 		// define new timepoints and viewsetups
-		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = ExportSpimData2TIFF.defineNewViewSetups( fusion );
+		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = ExportSpimData2TIFF.defineNewViewSetups( fusion, fusion.getDownsampling(), fusion.getAnisotropyFactor() );
 		this.newTimepoints = newStructure.getA();
 		this.newViewSetups = newStructure.getB();
 

@@ -102,7 +102,7 @@ public class FusionGUI implements FusionExportInterface
 	protected boolean useBlending = defaultUseBlending;
 	protected boolean useContentBased = defaultUseContentBased;
 	protected boolean preserveAnisotropy = defaultPreserveAnisotropy;
-	protected double avgAnisoF = 1.0;
+	protected double avgAnisoF;
 	protected int imgExport = defaultImgExportAlgorithm;
 
 	static
@@ -173,8 +173,7 @@ public class FusionGUI implements FusionExportInterface
 
 	public boolean useContentBased() { return useContentBased; }
 
-	public boolean preserveAnisotropy() { return preserveAnisotropy; }
-
+	@Override
 	public double getAnisotropyFactor() { return avgAnisoF; }
 
 	@Override
@@ -208,7 +207,7 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addMessage( "" );
 
-		if ( avgAnisoF > 1.0 )
+		if ( avgAnisoF > 1.01 ) // for numerical instabilities (computed upon instantiation)
 		{
 			gd.addCheckbox( "Preserve_original data anisotropy (shrink image " + TransformationTools.f.format( avgAnisoF ) + " times in z) ", defaultPreserveAnisotropy );
 			gd.addMessage(
@@ -233,7 +232,7 @@ public class FusionGUI implements FusionExportInterface
 				(Choice)gd.getChoices().get( 1 ),
 				(Choice)gd.getChoices().get( 3 ),
 				(Checkbox)gd.getCheckboxes().get( 1 ),
-				avgAnisoF > 1.0 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
+				avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
 				(Choice)gd.getChoices().get( 4 ),
 				label1,
 				label2,
@@ -257,10 +256,14 @@ public class FusionGUI implements FusionExportInterface
 		cacheType = defaultCache = gd.getNextChoiceIndex();
 		useBlending = defaultUseBlending = gd.getNextBoolean();
 		useContentBased = defaultUseContentBased = gd.getNextBoolean();
-		if ( avgAnisoF > 1.0 )
+		if ( avgAnisoF > 1.01 )
 			preserveAnisotropy = defaultPreserveAnisotropy = gd.getNextBoolean();
 		else
 			preserveAnisotropy = defaultPreserveAnisotropy = false;
+
+		if ( !preserveAnisotropy )
+			avgAnisoF = Double.NaN;
+
 		splittingType = defaultSplittingType = gd.getNextChoiceIndex();
 		imgExport = defaultImgExportAlgorithm = gd.getNextChoiceIndex();
 
@@ -273,8 +276,7 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.println( "CacheType: " + FusionTools.imgDataTypeChoice[ getCacheType() ] );
 		IOFunctions.println( "Blending: " + useBlending );
 		IOFunctions.println( "Content-based: " + useContentBased );
-		IOFunctions.println( "Preserve Anisotropy: " + preserveAnisotropy );
-		IOFunctions.println( "Anisotropy: " + avgAnisoF );
+		IOFunctions.println( "AnisotropyFactor: " + avgAnisoF );
 		IOFunctions.println( "Split by: " + splittingTypes[ getSplittingType() ] );
 		IOFunctions.println( "Image Export: " + imgExportDescriptions[ imgExport ] );
 		IOFunctions.println( "ImgLoader.isVirtual(): " + isImgLoaderVirtual() );

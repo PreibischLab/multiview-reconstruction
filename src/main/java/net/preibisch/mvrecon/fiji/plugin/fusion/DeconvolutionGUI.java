@@ -258,6 +258,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public double getDownsampling(){ return downsampling; }
 
 	@Override
+	public double getAnisotropyFactor() { return Double.NaN; }
+
+	@Override
 	public int getSplittingType() { return splittingType; }
 
 	public ImgDataType getInputImgCacheType() { return ImgDataType.values()[ cacheTypeInputImg ]; }
