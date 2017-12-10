@@ -1066,7 +1066,9 @@ public class Interest_Point_Registration implements PlugIn
 			final ViewId viewId = views.get( i );
 			gd.addCheckbox( "ViewSetupId_" + viewId.getViewSetupId() + "_Timepoint_" + viewId.getTimePointId(), defaultFixedViews[ i ] );
 		}
-		
+
+		GUIHelper.addScrollBars( gd );
+
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return false;
