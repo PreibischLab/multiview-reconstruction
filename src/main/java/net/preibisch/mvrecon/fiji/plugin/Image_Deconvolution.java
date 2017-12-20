@@ -136,7 +136,7 @@ public class Image_Deconvolution implements PlugIn
 			fusion.fuseGroups();
 
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Normalizing weights ... " );
-			fusion.normalizeWeights( decon.getOSEMSpeedUp(), true, 0.1f, 0.05f );
+			fusion.normalizeWeights( decon.getOSEMSpeedUp(), decon.getAdditionalSmoothBlending(), 0.1f, 0.05f );
 
 			if ( decon.getInputImgCacheType() == ImgDataType.CACHED )
 			{
