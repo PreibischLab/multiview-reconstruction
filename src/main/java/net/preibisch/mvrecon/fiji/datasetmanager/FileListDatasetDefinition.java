@@ -66,8 +66,6 @@ import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
-import mpicbg.spim.data.registration.ViewTransform;
-import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
@@ -84,7 +82,6 @@ import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -586,8 +583,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				minResolution = Math.min( minResolution, d.dimension( di ) );
 		}
 
-
-		ViewRegistrations vrs = createViewRegistrations( sd.getViewDescriptions(), minResolution );
+		// create calibration + translation view registrations
+		ViewRegistrations vrs = DatasetCreationUtils.createViewRegistrations( sd.getViewDescriptions(), minResolution );
 
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
@@ -596,59 +593,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		SpimData2 data = new SpimData2( new File("/"), sd, vrs, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults() );
 		return data;
 	}
-	
-	/**
-	 * Assembles the {@link ViewRegistration} object consisting of a list of {@link ViewRegistration}s for all {@link ViewDescription}s that are present
-	 * 
-	 * @param viewDescriptionList - map
-	 * @param minResolution - the smallest resolution in any dimension (distance between two pixels in the output image will be that wide)
-	 * @return the viewregistrations
-	 */
-	protected static ViewRegistrations createViewRegistrations( final Map< ViewId, ViewDescription > viewDescriptionList, final double minResolution )
-	{
-		final HashMap< ViewId, ViewRegistration > viewRegistrationList = new HashMap< ViewId, ViewRegistration >();
-		
-		for ( final ViewDescription viewDescription : viewDescriptionList.values() )
-			if ( viewDescription.isPresent() )
-			{
-				final ViewRegistration viewRegistration = new ViewRegistration( viewDescription.getTimePointId(), viewDescription.getViewSetupId() );
-				
-				final VoxelDimensions voxelSize = viewDescription.getViewSetup().getVoxelSize(); 
 
-				final double calX = voxelSize.dimension( 0 ) / minResolution;
-				final double calY = voxelSize.dimension( 1 ) / minResolution;
-				final double calZ = voxelSize.dimension( 2 ) / minResolution;
-				
-				final AffineTransform3D m = new AffineTransform3D();
-				m.set( calX, 0.0f, 0.0f, 0.0f, 
-					   0.0f, calY, 0.0f, 0.0f,
-					   0.0f, 0.0f, calZ, 0.0f );
-				final ViewTransform vt = new ViewTransformAffine( "calibration", m );
-				viewRegistration.preconcatenateTransform( vt );
-				
-				final Tile tile = viewDescription.getViewSetup().getAttribute( Tile.class );
-
-				if (tile.hasLocation()){
-					final double shiftX = tile.getLocation()[0] / voxelSize.dimension( 0 ) * calX;
-					final double shiftY = tile.getLocation()[1] / voxelSize.dimension( 1 ) * calY;
-					final double shiftZ = tile.getLocation()[2] / voxelSize.dimension( 2 ) * calZ;
-					
-					final AffineTransform3D m2 = new AffineTransform3D();
-					m2.set( 1.0f, 0.0f, 0.0f, shiftX, 
-						   0.0f, 1.0f, 0.0f, shiftY,
-						   0.0f, 0.0f, 1.0f, shiftZ );
-					final ViewTransform vt2 = new ViewTransformAffine( "Translation", m2 );
-					viewRegistration.preconcatenateTransform( vt2 );
-				}
-				
-				viewRegistrationList.put( viewRegistration, viewRegistration );
-			}
-		
-		return new ViewRegistrations( viewRegistrationList );
-	}
-	
-	
-	
 
 	@Override
 	public SpimData2 createDataset( )
