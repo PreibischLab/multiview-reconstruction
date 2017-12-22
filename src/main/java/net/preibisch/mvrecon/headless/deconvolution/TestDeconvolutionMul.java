@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
+import ij.CompositeImage;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -65,6 +66,7 @@ import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationBl
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
@@ -79,7 +81,7 @@ public class TestDeconvolutionMul
 		new ImageJ();
 
 		// load drosophila
-		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/BIMSB/Projects/Betzig/testDataforStephen_2017_12_14/cell/dataset.xml" );
+		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "Z:/Betzig/dataset.xml" );
 		Collection< Group< ViewDescription > >groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		BoundingBox bb = BoundingBoxTools.maximalBoundingBox( spimData, new ArrayList<>( spimData.getSequenceDescription().getViewDescriptions().values() ), "All Views" );
@@ -105,7 +107,7 @@ public class TestDeconvolutionMul
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): " + Group.gvids( Group.getViewsSorted( virtualView.getViews() ) ) );
 
 		final double osemSpeedUp = 1.0;
-		final double downsampling = 2.0;
+		final double downsampling = 1.0;
 
 		final ProcessInputImages< V > fusion = new ProcessInputImages<>(
 				spimData,
@@ -147,14 +149,14 @@ public class TestDeconvolutionMul
 
 		final ImgFactory< FloatType > blockFactory = new ArrayImgFactory<>();
 		final ImgFactory< FloatType > psiFactory = new ArrayImgFactory<>();
-		final int[] blockSize = new int[]{ 256, 256, 256 };
-		final int numIterations = 10;
+		final int[] blockSize = new int[]{ 1024, 1024, 512 };
+		final int numIterations = 1000;
 		final float lambda = 0.0006f;
 		final PSFTYPE psfType = PSFTYPE.INDEPENDENT;
 		final boolean filterBlocksForContent = false;
 		final PsiInit psiInitType = PsiInit.FUSED_BLURRED;
 		final boolean debug = true;
-		final int debugInterval = 1;
+		final int debugInterval = 10;
 
 		// one common ExecutorService for all
 		final ExecutorService service = DeconViews.createExecutorService();
@@ -223,6 +225,7 @@ public class TestDeconvolutionMul
 
 			final DeconViews views = new DeconViews( deconViews, service );
 			final Img< FloatType > psi;
+			final CompositeImage debugImp;
 
 			if ( mul )
 			{
@@ -233,6 +236,7 @@ public class TestDeconvolutionMul
 				decon.setDebugInterval( debugInterval );
 				decon.runIterations();
 				psi = decon.getPSI();
+				debugImp = decon.getDebugImage();
 			}
 			else
 			{
@@ -243,6 +247,7 @@ public class TestDeconvolutionMul
 				decon.setDebugInterval( debugInterval );
 				decon.runIterations();
 				psi = decon.getPSI();
+				debugImp = null;
 			}
 
 			ImagePlus imp = DisplayImage.getImagePlusInstance( psi, false, "Deconvolved", Double.NaN, Double.NaN );
@@ -253,6 +258,10 @@ public class TestDeconvolutionMul
 			imp.show();
 
 			service.shutdown();
+
+			Save3dTIFF.saveTiffStack(imp, "Z:/Betzig/psi.tiff" );
+			if ( debugImp != null )
+				Save3dTIFF.saveTiffStack(debugImp, "Z:/Betzig/psi_debug.tiff" );
 		}
 		catch ( OutOfMemoryError oome )
 		{

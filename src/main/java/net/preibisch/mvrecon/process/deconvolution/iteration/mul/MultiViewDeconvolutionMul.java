@@ -141,6 +141,7 @@ public class MultiViewDeconvolutionMul
 
 	public boolean initWasSuccessful() { return max != null; }
 	public Img< FloatType > getPSI() { return psi; }
+	public CompositeImage getDebugImage() { return ci; }
 	public void setDebug( final boolean debug ) { this.debug = debug; }
 	public void setDebugInterval( final int debugInterval ) { this.debugInterval = debugInterval; }
 
