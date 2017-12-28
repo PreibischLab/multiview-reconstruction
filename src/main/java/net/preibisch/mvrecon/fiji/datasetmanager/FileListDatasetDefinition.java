@@ -528,22 +528,29 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 											catch ( Exception e ) {};
 										}
 									}
-									
+
 									Tile tI = new Tile( tileId, tileId.toString() );
-									
+
 									if (state.getDetailMap().get( Tile.class ) != null && state.getDetailMap().get( Tile.class ).containsKey( tileId ))
 									{
 										TileInfo tInfoI = (TileInfo) state.getDetailMap().get( Tile.class ).get( tileId );
-										if (tInfoI.locationX != null) // TODO: clean check here
-											tI.setLocation( new double[] {tInfoI.locationX, tInfoI.locationY, tInfoI.locationZ} );
+
+										// check if we have at least one location != null
+										// in the case that location in one dimension (e.g. z) is null, it is set to 0
+										final boolean hasLocation = (tInfoI.locationX != null) || (tInfoI.locationY != null) || (tInfoI.locationZ != null);
+										if (hasLocation)
+											tI.setLocation( new double[] {
+													tInfoI.locationX != null ? tInfoI.locationX : 0,
+													tInfoI.locationY != null ? tInfoI.locationY : 0,
+													tInfoI.locationZ != null ? tInfoI.locationZ : 0} );
 									}
-																		
+
 									ViewSetup vs = new ViewSetup( viewSetupId, 
 													viewSetupId.toString(), 
 													state.getDimensionMap().get( (viewList.get( 0 ))).getA(),
 													state.getDimensionMap().get( (viewList.get( 0 ))).getB(),
 													tI, chI, aI, illumI );
-									
+
 									viewSetups.add( vs );
 									viewSetupId++;
 									addedViewSetup = true;
