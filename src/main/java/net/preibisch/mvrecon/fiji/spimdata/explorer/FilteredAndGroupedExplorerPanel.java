@@ -433,6 +433,12 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 255 ) ) );
 	}
 
+	public static void sameColorSources(final List< ConverterSetup > cs, final int r, final int g, final int b, final int a)
+	{
+		for ( int i = 0; i < cs.size(); ++i )
+			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( r, g, b, a ) ) );
+	}
+
 	public static void setVisibleSources(final VisibilityAndGrouping vag, final boolean[] active)
 	{
 		for ( int i = 0; i < active.length; ++i )
