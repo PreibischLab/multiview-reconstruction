@@ -54,6 +54,18 @@ public class GlobalOptIterative
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
+		return compute( model, pmc, ics, lms, null, fixedViews, groupsIn );
+	}
+
+	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > compute(
+			final M model,
+			final PointMatchCreator pmc,
+			final IterativeConvergenceStrategy ics,
+			final LinkRemovalStrategy lms,
+			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs,
+			final Collection< ViewId > fixedViews,
+			final Collection< Group< ViewId > > groupsIn )
+	{
 
 		final Pair< HashMap< ViewId, Tile< M > >, ArrayList< Group< ViewId > > > globalOpt = GlobalOpt.initGlobalOpt( model, pmc, fixedViews, groupsIn );
 
@@ -110,8 +122,12 @@ public class GlobalOptIterative
 				finished = false;
 
 				// if we cannot remove any link, then we are finished too
-				if ( !lms.removeLink( tc, map ) )
+				final Pair< Group< ViewId >, Group< ViewId > > removed = lms.removeLink( tc, map );
+
+				if ( removed == null )
 					finished = true;
+				else if ( removedInconsistentPairs != null )
+					removedInconsistentPairs.add( removed );
 			}
 		}
 
