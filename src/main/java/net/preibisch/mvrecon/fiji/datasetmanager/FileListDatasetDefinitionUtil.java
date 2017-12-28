@@ -560,7 +560,7 @@ public class FileListDatasetDefinitionUtil
 			state.getIdMap().get( cl ).clear();
 			state.getDetailMap().get( cl ).clear();
 			Boolean singleEntityPerFile = state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE;
-			
+
 			if ( singleEntityPerFile && fileVariableToUse.get( cl ).size() > 0 )
 			{
 				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > expandedMap;
@@ -580,11 +580,21 @@ public class FileListDatasetDefinitionUtil
 				state.getIdMap().get( cl ).putAll( expandedMap.getB() );
 				state.getDetailMap().get( cl ).putAll( expandedMap.getA() );
 			}
-			
+
 			else if ( singleEntityPerFile )
 			{
-				state.getIdMap().get( cl ).put( 0, state.getAccumulateMap( cl ).values().iterator().next() );
+				// FIXME: this is a hacky fix for the case of single, instances of attribute PER FILE
+				// in this case, multiplicity will be SINGLE (even though it should be MULTIPLE_NAMED )
+				// TODO: this should probably be fixed upstream
+				// At the moment, all instances of this attribute will get id 0
+				// NB: this throws away metadata
+				final ArrayList< Pair< File, Pair< Integer, Integer > > > allViews = state.getAccumulateMap( cl ).values().stream().collect(
+						ArrayList<Pair<File, Pair<Integer, Integer>>>::new,
+						(a,b) -> a.addAll(b),
+						(a,b) -> a.addAll(b) );
+				state.getIdMap().get( cl ).put( 0, allViews );
 			}
+
 			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MULTIPLE_INDEXED )
 			{
 				if (cl.equals( TimePoint.class ))
@@ -592,6 +602,7 @@ public class FileListDatasetDefinitionUtil
 				else
 					state.getIdMap().get( cl ).putAll( expandMapIndexed( state.getAccumulateMap( cl ), cl.equals( Angle.class ) || cl.equals( Tile.class) ) );
 			}
+
 			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MUlTIPLE_NAMED )
 			{
 				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > resortMapNamed = resortMapNamed(
