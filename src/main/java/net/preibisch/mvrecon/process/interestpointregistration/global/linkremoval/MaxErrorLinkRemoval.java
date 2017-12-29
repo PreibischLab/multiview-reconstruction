@@ -26,6 +26,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 import mpicbg.models.PointMatch;
@@ -37,7 +39,7 @@ import mpicbg.spim.io.IOFunctions;
 public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 {
 	@Override
-	public boolean removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
+	public Pair< Group< ViewId >, Group< ViewId > > removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
 	{
 		double worstDistance = -Double.MAX_VALUE;
 		Tile<?> worstTile1 = null;
@@ -68,15 +70,18 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 		if (worstTile1 == null)
 		{
 			System.err.println( "WARNING: can not remove any more links without disconnecting components" );
-			return false;
+			return null;
 		}
 
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + findGroup( worstTile1, map ) + " to " + findGroup( worstTile2, map ) );
+		final Group<ViewId> groupA = findGroup( worstTile1, map );
+		final Group<ViewId> groupB = findGroup( worstTile2, map );
 
-		return true;
+		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + groupA + " to " + groupB );
+
+		return new ValuePair< Group<ViewId>, Group<ViewId> >( groupA, groupB );
 	}
 
 	public static Group< ViewId > findGroup( final Tile< ? > tile, final HashMap< ViewId, ? extends Tile< ? > > map )
