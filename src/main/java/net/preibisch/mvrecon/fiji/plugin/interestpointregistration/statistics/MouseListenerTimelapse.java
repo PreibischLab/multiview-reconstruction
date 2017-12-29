@@ -31,18 +31,18 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.preibisch.mvrecon.fiji.plugin.Interest_Point_Registration;
-
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
+
+import net.preibisch.mvrecon.fiji.plugin.Interest_Point_Registration;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.ui.RectangleAnchor;
-import org.jfree.ui.TextAnchor;
+import org.jfree.chart.ui.RectangleAnchor;
+import org.jfree.chart.ui.TextAnchor;
 
 public class MouseListenerTimelapse implements ChartMouseListener
 {
