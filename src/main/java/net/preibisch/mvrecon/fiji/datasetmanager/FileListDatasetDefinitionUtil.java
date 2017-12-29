@@ -391,9 +391,11 @@ public class FileListDatasetDefinitionUtil
 				
 				channelandIllumInfos.add( infoI );
 			}
-			
-			//channelandIllumInfos.forEach( System.out::println );
-			result.add( new ValuePair<>( r.getSizeT(), channelandIllumInfos ));
+
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			final int numTPs = (!r.isOrderCertain() && r.getSizeZ() <= 1 && r.getSizeT() > 1 ) ? r.getSizeZ() : r.getSizeT();
+			result.add( new ValuePair<>( numTPs, channelandIllumInfos ));
 			
 			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Channels and Illuminations in Series " + (i+1) + " of " + nSeries );
 		}
@@ -843,13 +845,19 @@ public class FileListDatasetDefinitionUtil
 		{
 			if (reader.getCurrentFile() != file.getAbsolutePath())
 				reader.setId( file.getAbsolutePath() );
-		
-		
+
 		for (int i = 0 ; i < reader.getSeriesCount(); i++)
 		{
 			reader.setSeries( i );
 			MetadataRetrieve meta = (MetadataRetrieve)reader.getMetadataStore();
-			
+
+			if (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ){
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": WARNING: Uncertain XZY/XZT order in File " + file.getAbsolutePath() + 
+						", Image " + i);
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": Assuming XYZ. For XYT, please resave the data as "
+						+ "separate 2D images for each time point or set the metadata for the third dimesion." );
+			}
+
 			double sizeX = 1;
 			double sizeY = 1;
 			double sizeZ = 1;
@@ -881,12 +889,15 @@ public class FileListDatasetDefinitionUtil
 			{				
 			}
 			sizeZ = pszZ != null ? pszZ.value().doubleValue() : 1 ;
-			
+
+			// get view dimensions
 			int dimX = reader.getSizeX();
 			int dimY = reader.getSizeY();
-			int dimZ = reader.getSizeZ();
-			
-			// get pixel units from size			
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			int dimZ  = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? reader.getSizeT() : reader.getSizeZ();
+
+			// get pixel units from size
 			String unit = pszX != null ? pszX.unit().getSymbol() : "pixels";
 			
 			FinalVoxelDimensions finalVoxelDimensions = new FinalVoxelDimensions( unit, sizeX, sizeY, sizeZ );
@@ -983,7 +994,6 @@ public class FileListDatasetDefinitionUtil
 		{
 			e.printStackTrace();
 		}
-
 
 		if (reader.getRGBChannelCount() > 1)
 		{
