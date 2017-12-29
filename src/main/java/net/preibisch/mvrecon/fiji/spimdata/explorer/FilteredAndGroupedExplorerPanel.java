@@ -208,9 +208,6 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		Collections.sort( list );
 		return list;
 	}
-	
-	
-
 
 	public void addListener(final SelectedViewDescriptionListener< AS > listener)
 	{
