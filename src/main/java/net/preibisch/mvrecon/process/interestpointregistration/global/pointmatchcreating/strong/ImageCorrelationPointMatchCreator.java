@@ -59,6 +59,13 @@ public class ImageCorrelationPointMatchCreator implements PointMatchCreator
 		this.correlationT = correlationT;
 	}
 
+	public ImageCorrelationPointMatchCreator(
+			final Collection< ? extends PairwiseStitchingResult< ? extends ViewId > > pairwiseResults )
+	{
+		// TODO: new class that doesn't check
+		this( pairwiseResults, -Double.MAX_VALUE );
+	}
+
 	@Override
 	public HashSet< ViewId > getAllViews()
 	{
