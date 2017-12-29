@@ -250,7 +250,11 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 
 				final Cursor< T > cursor = Views.iterable( Views.hyperSlice( img, 2, z ) ).localizingCursor();
 
-				reader.openBytes( reader.getIndex( z, ch, tpNo ), b );
+				// FIX for XYZ <-> XYT mixup in rare cases
+				int actualTP = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? z : tpNo;
+				int actualZ = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? tpNo : z;
+
+				reader.openBytes( reader.getIndex( actualZ, ch, actualTP ), b );
 
 				if ( pixelType == FormatTools.UINT8 )
 				{
