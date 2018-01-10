@@ -48,6 +48,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -268,7 +269,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		buttons.add( save, BorderLayout.EAST );
 
 		final JPanel header = new JPanel( new BorderLayout() );
-		header.add( new JLabel( "XML: " + xml ), BorderLayout.WEST );
+		header.add( getXMLLabel( xml ), BorderLayout.WEST );
 		header.add( buttons, BorderLayout.EAST );
 		this.add( header, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
@@ -307,6 +308,13 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		table.getSelectionModel().setSelectionInterval( 0, 0 );
 
 		addPopupMenu( table );
+	}
+
+	public static JLabel getXMLLabel( final String xml )
+	{
+		final JLabel l = new JLabel( "XML: " + xml );
+		l.setBorder( new EmptyBorder( 0, 9, 0, 0 ) );
+		return l;
 	}
 
 	@Override
