@@ -173,6 +173,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public void setSpimData(final Object data)
 	{
 		this.data = (AS) data;
+		this.getTableModel().updateElements();
 	}
 
 	@Override

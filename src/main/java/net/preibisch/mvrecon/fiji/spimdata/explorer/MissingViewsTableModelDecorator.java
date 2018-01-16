@@ -168,4 +168,7 @@ public class MissingViewsTableModelDecorator < AS extends AbstractSpimData< ? > 
 		return decorated.getFilters();
 	}
 
+	@Override
+	public void updateElements() { decorated.updateElements(); }
+
 }
