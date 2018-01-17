@@ -223,13 +223,17 @@ public class GUIHelper
 	 *
 	 * @param pane - the Container to add the scroll bar to
 	 */
-	public static void addScrollBars(Container pane) {
+	public static void addScrollBars(Object obj) {
 //        * <dependency>
 //        * <groupId>${bio-formats.groupId}</groupId>
 //        * <artifactId>loci_plugins</artifactId>
 //        * <version>${bio-formats.version}</version>
 //        * </dependency>
 
+		if (!(obj instanceof Container))
+				return;
+
+		final Container pane = (Container) obj;
 		GridBagLayout layout = (GridBagLayout) pane.getLayout();
 
 		// extract components

@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
 import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
@@ -293,7 +294,8 @@ public class GenericLoadParseQueryXML<
 			gd.addMessage( "Note: Later on you need to merge the different XML's using Plugins>MultiView Reconstruction>Tools>Cluster>Merge Cluster Jobs", GUIHelper.smallStatusFont );
 		}
 
-		addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
+		if ( !PluginHelper.isHeadless() )
+			addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
 
 		if ( buttonText != null && listener != null )
 		{
