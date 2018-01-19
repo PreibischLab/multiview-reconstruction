@@ -1113,6 +1113,11 @@ public class Interest_Point_Registration implements PlugIn
 		return tps;
 	}
 
+	public List< Pair< Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > getStatistics()
+	{
+		return statistics;
+	}
+
 	/*
 	 * Registers all timepoints. No matter which matching is done it is always the same principle.
 	 * 
