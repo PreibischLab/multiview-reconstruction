@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -108,6 +109,20 @@ public class Group< V > implements Iterable< V >
 
 	@Override
 	public String toString() { return gvids( this ); }
+
+	public void filterMissingViews( final Set< ? extends V > missingViews )
+	{
+		filterMissingViews( this, missingViews );
+	}
+
+	public static < V > void filterMissingViews( final Group< V > group, final Set< ? extends V > missingViews )
+	{
+		for ( final V viewId : new ArrayList<>( group.getViews() ) )
+		{
+			if ( missingViews.contains( viewId ) )
+				group.getViews().remove( viewId );
+		}
+	}
 
 	public static < V extends ViewId > List< V > getViewsSorted( final Collection< V > views )
 	{
