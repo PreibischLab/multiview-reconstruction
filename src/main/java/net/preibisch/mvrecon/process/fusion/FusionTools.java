@@ -886,7 +886,7 @@ public class FusionTools
 		else
 			numPortions = Math.max( Threads.numThreads(), (int)( imageSize / ( 64l*64l*64l ) ) );
 
-		System.out.println( "nPortions for copy:" + numPortions );
+		//System.out.println( "nPortions for copy:" + numPortions );
 
 		final Vector<ImagePortion> portions = new Vector<ImagePortion>();
 
