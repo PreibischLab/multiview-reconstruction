@@ -101,7 +101,7 @@ public class AdvancedRegistrationParameters
 		}
 
 		// combine vs split
-		if ( groupTiles || groupIllums )
+		if ( groupTiles || groupIllums || groupChannels )
 		{
 			final ArrayList< ViewDescription > vds = new ArrayList<>();
 
