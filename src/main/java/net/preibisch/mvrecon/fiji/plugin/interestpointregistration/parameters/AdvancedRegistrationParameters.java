@@ -72,6 +72,17 @@ public class AdvancedRegistrationParameters
 			final boolean groupIllums,
 			final boolean groupChannels )
 	{
+		return getGroups( data, views, groupTiles, groupIllums, groupChannels, groupTimePoints );
+	}
+
+	public static HashSet< Group< ViewId > > getGroups(
+			final SpimData2 data,
+			final List< ViewId > views,
+			final boolean groupTiles,
+			final boolean groupIllums,
+			final boolean groupChannels,
+			final boolean groupTimePoints )
+	{
 		final HashSet< Group< ViewId > > groups = new HashSet<>();
 
 		if ( groupTimePoints )
