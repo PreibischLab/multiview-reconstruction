@@ -36,6 +36,7 @@ import java.util.Set;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.models.AbstractModel;
+import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
@@ -296,7 +297,7 @@ public class Interest_Point_Registration implements PlugIn
 			fixedViews.addAll( viewsToFix );
 			IOFunctions.println( "Removed " + subset.fixViews( fixedViews ).size() + " views due to fixing all views (in total " + fixedViews.size() + ")" );
 
-			final HashMap< ViewId, Tile< ? extends AbstractModel< ? > > > models;
+			HashMap< ViewId, Tile< ? extends AbstractModel< ? > > > models;
 
 			if ( groupingType == InterestpointGroupingType.DO_NOT_GROUP )
 			{
@@ -395,22 +396,31 @@ public class Interest_Point_Registration implements PlugIn
 				models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, groups );
 			}
 
-			// global opt failed
-			if ( models == null )
-				return false;
-
 			AffineTransform3D mapBack = null;
 
-			if ( mapBackModel != null )
+			// global opt failed
+			if ( models == null || models.keySet().size() == 0 )
 			{
-				final ViewId mapBackView = mapBackViews.get( subset ).getA();
-				mapBack = TransformationTools.computeMapBackModel(
-						mapBackViews.get( subset ).getB(),
-						registrations.get( mapBackView ).getModel(),
-						models.get( mapBackView ).getModel(),
-						mapBackModel );
-		
-				IOFunctions.println( "Mapback model: " + mapBack );
+				models = new HashMap<>();
+
+				for ( final ViewId viewId : subset.getViews() )
+					models.put( viewId, new Tile< AffineModel3D >( new AffineModel3D() ) );
+
+				IOFunctions.println( "No transformations could be found, setting all models to identity transformation." );
+			}
+			else
+			{
+				if ( mapBackModel != null )
+				{
+					final ViewId mapBackView = mapBackViews.get( subset ).getA();
+					mapBack = TransformationTools.computeMapBackModel(
+							mapBackViews.get( subset ).getB(),
+							registrations.get( mapBackView ).getModel(),
+							models.get( mapBackView ).getModel(),
+							mapBackModel );
+
+					IOFunctions.println( "Mapback model: " + mapBack );
+				}
 			}
 
 			// pre-concatenate models to spimdata2 viewregistrations (from SpimData(2))
