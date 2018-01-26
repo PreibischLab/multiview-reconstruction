@@ -40,6 +40,8 @@ import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
+import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger;
+import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger.StateChanger;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
@@ -115,6 +117,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 					boundingBoxes.add( new Separator() );
 
 					final JMenuItem[] items = new JMenuItem[ FusionTools.imgDataTypeChoice.length ];
+					final StateChanger typeStateChanger = new StateChanger() { public void setSelectedState( int state ) { defaultCache = state; } };
 
 					for ( int i = 0; i < items.length; ++i )
 					{
@@ -131,7 +134,9 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 					for ( int i = 0; i < items.length; ++i )
 					{
 						final JMenuItem item = items[ i ];
-						item.addActionListener( new ChangeCacheState( items, i ) );
+						final MouseOverPopUpStateChanger mopusc = new MouseOverPopUpStateChanger( items, i, typeStateChanger );
+						item.addActionListener( mopusc );
+						item.addMouseListener( mopusc );
 						boundingBoxes.add( item );
 					}
 
@@ -207,32 +212,6 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 
 				}
 			} ).start();
-		}
-	}
-
-	public class ChangeCacheState implements ActionListener
-	{
-		final JMenuItem[] items;
-		final int myState;
-
-		public ChangeCacheState( final JMenuItem[] items, final int myState )
-		{
-			this.items = items;
-			this.myState = myState;
-		}
-
-		@Override
-		public void actionPerformed( final ActionEvent e )
-		{
-			for ( int i = 0; i < items.length; ++i )
-			{
-				if ( i == myState )
-					items[ i ].setForeground( Color.RED );
-				else
-					items[ i ].setForeground( Color.GRAY );
-			}
-
-			defaultCache = myState;
 		}
 	}
 }
