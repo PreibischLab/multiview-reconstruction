@@ -77,7 +77,7 @@ public class AdvancedRegistrationParameters
 
 	public static HashSet< Group< ViewId > > getGroups(
 			final SpimData2 data,
-			final List< ViewId > views,
+			final List< ? extends ViewId > views,
 			final boolean groupTiles,
 			final boolean groupIllums,
 			final boolean groupChannels,
