@@ -59,8 +59,9 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import bdv.BigDataViewer;
+import bdv.tools.HelpDialog;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.tools.transformation.TransformedSource;
 
@@ -253,7 +254,25 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		return null;
 	}
 
+	protected void addHelp()
+	{
+		table.addKeyListener( new KeyListener()
+			{
+				public void keyTyped( KeyEvent e ) {}
 	
+				@Override
+				public void keyReleased( KeyEvent e ) {}
+	
+				@Override
+				public void keyPressed( KeyEvent e )
+				{
+					if ( e.getKeyCode() == 112 )
+						new HelpDialog( explorer().getFrame(), this.getClass().getResource( getHelpHtml() ) ).setVisible( true );
+				}
+			} );
+	}
+
+	protected abstract String getHelpHtml();
 
 	protected ListSelectionListener getSelectionListener()
 	{
@@ -548,6 +567,34 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			public void keyTyped(final KeyEvent arg0)
 			{
 			}
+		} );
+	}
+
+	protected void addReCenterShortcut()
+	{
+		table.addKeyListener( new KeyListener()
+		{
+			@Override
+			public void keyPressed(final KeyEvent arg0)
+			{
+				if ( arg0.getKeyChar() == 'r' || arg0.getKeyChar() == 'R' )
+				{
+					final BDVPopup p = bdvPopup();
+					if ( p != null && p.bdv != null && p.bdv.getViewerFrame().isVisible() )
+					{
+						TransformationTools.reCenterViews( p.bdv,
+								selectedRows.stream().collect( 
+										HashSet< BasicViewDescription< ? > >::new,
+										(a, b) -> a.addAll( b ), (a, b) -> a.addAll( b ) ),
+										data.getViewRegistrations() );
+					}
+				}
+			}
+
+			@Override
+			public void keyReleased(final KeyEvent arg0){}
+			@Override
+			public void keyTyped(final KeyEvent arg0){}
 		} );
 	}
 

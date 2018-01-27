@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import bdv.BigDataViewer;
 import mpicbg.models.AbstractAffineModel3D;
 import mpicbg.models.AbstractModel;
 import mpicbg.models.Affine3D;
@@ -41,7 +42,9 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.SpimData;
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.SequenceDescription;
@@ -53,13 +56,16 @@ import net.imglib2.Dimensions;
 import net.imglib2.RealInterval;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.Scale3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.vecmath.Matrix4f;
 import net.preibisch.mvrecon.vecmath.Quat4f;
@@ -70,6 +76,71 @@ import net.preibisch.mvrecon.vecmath.Vector3f;
 public class TransformationTools
 {
 	public static NumberFormat f = new DecimalFormat("#.####");
+
+	public static void reCenterViews(final BigDataViewer viewer, final Collection<BasicViewDescription< ? >> selectedViews, final ViewRegistrations viewRegistrations)
+	{
+		AffineTransform3D currentViewerTransform = viewer.getViewer().getDisplay().getTransformEventHandler().getTransform().copy();
+		final int cX = viewer.getViewer().getWidth() / 2; // size of the display area of the frame
+		final int cY = viewer.getViewer().getHeight() / 2; // size of the display area of the frame
+
+		IOFunctions.println( viewer.getViewer().getWidth() + " " + viewer.getViewer().getHeight() );
+
+		final HashMap< BasicViewDescription< ? >, Dimensions > dimensions = new HashMap<>();
+		final HashMap< BasicViewDescription< ? >, AffineTransform3D > registrations = new HashMap<>();
+
+		for ( final BasicViewDescription< ? > view : selectedViews )
+		{
+			viewRegistrations.getViewRegistration( view ).updateModel();
+			registrations.put( view, viewRegistrations.getViewRegistration( view ).getModel() );
+			dimensions.put( view, view.getViewSetup().getSize() );
+		}
+
+		final BoundingBox bb = new BoundingBoxMaximal( selectedViews, dimensions, registrations ).estimate( "max" );
+		final double[] com = new double[] {
+				( bb.max( 0 ) - bb.min( 0 ) )/2 + bb.min( 0 ),
+				( bb.max( 1 ) - bb.min( 1 ) )/2 + bb.min( 1 ),
+				( bb.max( 2 ) - bb.min( 2 ) )/2 + bb.min( 2 ) };
+
+		final RealInterval bounds = currentViewerTransform.estimateBounds( bb );
+		IOFunctions.println( printRealInterval( bounds ));
+
+		double currentScale = Math.max( 
+				( bounds.realMax( 0 ) - bounds.realMin( 0 ) ) / viewer.getViewer().getWidth(),
+				( bounds.realMax( 1 ) - bounds.realMin( 1 ) ) / viewer.getViewer().getHeight() );
+
+		final Scale3D scale = new Scale3D( 1.0/currentScale, 1.0/currentScale, 1.0/currentScale );
+
+		// ignore old translation
+		currentViewerTransform.set( 0, 0, 3 );
+		currentViewerTransform.set( 0, 1, 3 );
+		currentViewerTransform.set( 0, 2, 3 );
+
+		currentViewerTransform.preConcatenate( scale );
+
+		// to screen units
+		currentViewerTransform.apply( com, com );
+
+		// reset translational part
+		currentViewerTransform.set( -com[0] + cX , 0, 3 );
+		currentViewerTransform.set( -com[1] + cY , 1, 3 );
+
+		// check if all selected views are 2d
+		boolean allViews2D = true;
+		for (final BasicViewDescription< ? > vd : selectedViews)
+			if (vd.isPresent() && vd.getViewSetup().hasSize() && vd.getViewSetup().getSize().dimension( 2 ) != 1)
+			{
+				allViews2D = false;
+				break;
+			}
+
+		// do not move in z if we have 2d data
+		if (allViews2D)
+			currentViewerTransform.set( 0, 2, 3 );
+		else
+			currentViewerTransform.set( -com[2], 2, 3 );
+
+		viewer.getViewer().setCurrentViewerTransform( currentViewerTransform );
+	}
 
 	public static Pair< double[], AffineTransform3D > scaling( final Dimensions dim, final AffineTransform3D transformationModel )
 	{
