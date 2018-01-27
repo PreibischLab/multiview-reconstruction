@@ -221,7 +221,7 @@ public class GUIHelper
 	 * https://github.com/openmicroscopy/bioformats/blob/v4.4.8/components/loci-plugins/src/loci/plugins/util/WindowTools.java#L72
 	 * 
 	 *
-	 * @param pane - the Container to add the scroll bar to
+	 * @param obj - the Container to add the scroll bar to
 	 */
 	public static void addScrollBars(Object obj) {
 //        * <dependency>
