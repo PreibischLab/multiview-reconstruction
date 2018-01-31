@@ -94,6 +94,10 @@ public abstract class BoundingBoxGUI extends BoundingBox
 	public boolean queryParameters()
 	{
 		final GenericDialog gd = getSimpleDialog( allowModifyDimensions() );
+
+		if ( gd == null )
+			return false;
+
 		Label label1 = null, label2 = null;
 
 		gd.addMessage( "" );
