@@ -105,9 +105,9 @@ public class FRGLDMMatcher< I extends InterestPoint >
 			final ArrayList< I > basisPoints,
 			final int redundancy )
 	{
-		final int[][] neighborIndicies = SubsetMatcher.computePD( 2 + redundancy, 2, 1 );
+		final int[][] neighborIndicies = SubsetMatcher.computePD( 3 + redundancy, 3, 1 );
 
-		final KNearestNeighborSearchOnKDTree< I > nnsearch = new KNearestNeighborSearchOnKDTree<>( tree, 2 + redundancy + 1 );
+		final KNearestNeighborSearchOnKDTree< I > nnsearch = new KNearestNeighborSearchOnKDTree<>( tree, 3 + redundancy + 1 );
 		final ArrayList< TranslationInvariantLocalCoordinateSystemPointDescriptor< I > > descriptors = new ArrayList<> ( );
 		
 		for ( final I p : basisPoints )
@@ -118,10 +118,11 @@ public class FRGLDMMatcher< I extends InterestPoint >
 			{
 				final I point1 = nnsearch.getSampler( neighbors[ 0 ] ).get();
 				final I point2 = nnsearch.getSampler( neighbors[ 1 ] ).get();
+				final I point3 = nnsearch.getSampler( neighbors[ 2 ] ).get();
 
 				try
 				{
-					descriptors.add( new TranslationInvariantLocalCoordinateSystemPointDescriptor< I >( p, point1, point2 ) );
+					descriptors.add( new TranslationInvariantLocalCoordinateSystemPointDescriptor< I >( p, point1, point2, point3 ) );
 				}
 				catch ( NoSuitablePointsException e )
 				{
