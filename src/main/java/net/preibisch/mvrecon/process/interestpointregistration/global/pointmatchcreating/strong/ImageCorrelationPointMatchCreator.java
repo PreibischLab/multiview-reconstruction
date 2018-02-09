@@ -43,7 +43,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOpt;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.Link;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.PointMatchCreator;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.Link.LinkType;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ImageCorrelationPointMatchCreator implements PointMatchCreator
@@ -105,7 +105,7 @@ public class ImageCorrelationPointMatchCreator implements PointMatchCreator
 			// only consider Pairs that were selected and that have high enough correlation
 			if ( res.r() >= correlationT )
 			{
-				strongLinks.add( new Link< Group< ? extends ViewId > >( res.pair().getA(), res.pair().getB(), res.getBoundingBox(), res.getTransform(), LinkType.STRONG ) );
+				strongLinks.add( new Link< Group< ? extends ViewId > >( res.pair().getA(), res.pair().getB(), res.getBoundingBox(), res.getTransform(), res.r() ) );
 				System.out.println( "added strong link between " + res.pair().getA() + " and " + res.pair().getB() + ": " + res.getTransform() + " " + res.r() );
 			}
 		}
@@ -124,6 +124,7 @@ public class ImageCorrelationPointMatchCreator implements PointMatchCreator
 		final ArrayList< PointMatch > pm = new ArrayList< PointMatch >();
 		final List<Point> pointsA = new ArrayList<>();
 		final List<Point> pointsB = new ArrayList<>();
+		final List<Double> quality = new ArrayList<>();
 
 		final RealInterval bb = link.getBoundingBox();
 
@@ -146,11 +147,12 @@ public class ImageCorrelationPointMatchCreator implements PointMatchCreator
 			link.getTransform().applyInverse( pb[i], pa[i] );
 			pointsA.add( new Point( pa[i] ) );
 			pointsB.add( new Point( pb[i] ) );
+			quality.add( link.getLinkQuality() );
 		}
 
 		// create PointMatches and connect Tiles
 		for (int i = 0; i < pointsA.size(); ++i)
-			pm.add( new PointMatch( pointsA.get( i ) , pointsB.get( i ) ) );
+			pm.add( new QualityPointMatch( pointsA.get( i ) , pointsB.get( i ), quality.get( i ) ) );
 
 		tileA.addMatches( pm );
 		tileB.addMatches( PointMatch.flip( pm ) );
