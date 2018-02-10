@@ -28,6 +28,7 @@ import java.util.HashSet;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 import mpicbg.models.PointMatch;
@@ -41,29 +42,45 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 	@Override
 	public Pair< Group< ViewId >, Group< ViewId > > removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
 	{
-		double worstDistance = -Double.MAX_VALUE;
+		double worstInvScore = -Double.MAX_VALUE;
 		Tile<?> worstTile1 = null;
 		Tile<?> worstTile2 = null;
 		
 		for (Tile<?> t : tc.getTiles())
 		{
+			System.out.println( "Inspecting group: " + findGroup( t, map ) );
+
+			final int connected = t.getConnectedTiles().size();
+
 			// we mustn't disconnect a tile entirely
-			if (t.getConnectedTiles().size() <= 1)
+			if ( connected <= 1 )
 				continue;
-			
-			for (PointMatch pm : t.getMatches())
+
+			for ( final PointMatch pm : t.getMatches() )
 			{
-				
-				if (/*worstTile1 == null || */ pm.getDistance() > worstDistance)
+				double quality = 0.01; // between [0.01, 1.00]
+
+				if ( QualityPointMatch.class.isInstance( pm ) )
+					quality = ( (QualityPointMatch)pm ).getQuality(); // most likely cross correlation
+
+				quality = Math.min( 1.0, quality );
+				quality = Math.max( 0.01, quality );
+
+				final double invScore = Math.pow( ( 1.01 - quality ), 2 ) * Math.sqrt( pm.getDistance() ) * Math.log10( connected );
+
+				System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
+
+
+				if ( invScore > worstInvScore )
 				{
-					worstDistance = pm.getDistance();
-					
-					
+					worstInvScore = invScore;
+
 					worstTile1 = t;
 					worstTile2 = t.findConnectedTile( pm );
+
+					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
 				}
 				
-				//System.out.println( pm.getDistance() + " " + worstDistance + " " + worstTile1 );
 			}
 		}
 

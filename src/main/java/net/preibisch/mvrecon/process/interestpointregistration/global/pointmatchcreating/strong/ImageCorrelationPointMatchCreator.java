@@ -155,7 +155,7 @@ public class ImageCorrelationPointMatchCreator implements PointMatchCreator
 			pm.add( new QualityPointMatch( pointsA.get( i ) , pointsB.get( i ), quality.get( i ) ) );
 
 		tileA.addMatches( pm );
-		tileB.addMatches( PointMatch.flip( pm ) );
+		tileB.addMatches( QualityPointMatch.flipQ( pm ) ); //TODO: PointMatch needs a clone() method
 		tileA.addConnectedTile( tileB );
 		tileB.addConnectedTile( tileA );
 	}
