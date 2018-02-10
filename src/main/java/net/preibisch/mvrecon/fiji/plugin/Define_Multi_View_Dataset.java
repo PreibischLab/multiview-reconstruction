@@ -101,14 +101,20 @@ public class Define_Multi_View_Dataset implements PlugIn
 			titles[ i ] = datasetDefinitions.get( i ).getTitle();
 		
 		// query the dataset definition to use
-		final GenericDialogPlus gd1 = new GenericDialogPlus( "Select type of multi-view dataset" );
+		final GenericDialogPlus gd1 = new GenericDialogPlus( "Choose method to define dataset" );
 
 		if ( defaultDatasetDef >= numDatasetDefinitions )
 			defaultDatasetDef = 0;
-		
-		gd1.addChoice( "Type_of_dataset: ", titles, titles[ defaultDatasetDef ] );
+
+		gd1.addChoice( "Define_Dataset using:", titles, titles[ defaultDatasetDef ] );
 		//Choice choice = (Choice)gd1.getChoices().lastElement();
-		gd1.addStringField( "XML_filename", defaultXMLName, 30 );
+		gd1.addStringField( "Project_filename (will be created):", defaultXMLName, 30 );
+
+		gd1.addMessage(
+				"We recommend using the AutoLoader for dataset definition. Please note that only one\n"
+				+ "XML per directory is currently supported. All functionality is macro-scriptable via\n"
+				+ "BigStitcher > Batch Processing.", GUIHelper.smallStatusFont );
+
 		/*
 		final MyMultiLineLabel label = MyMultiLineLabel.addMessage( gd1,
 				formatEntry( datasetDefinitions.get( defaultDatasetDef ).getExtendedDescription(), numCharacters, numLinesDocumentation ),

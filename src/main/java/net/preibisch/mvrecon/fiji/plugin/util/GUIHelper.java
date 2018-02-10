@@ -71,13 +71,13 @@ public class GUIHelper
 
 	public static Font staticfont = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
 
-	final public static String myURL = "http://www.preibisch.net/";
+	final public static String myURL = "http://preibischlab.mdc-berlin.de/";
 	final public static String paperURL = "http://www.nature.com/nmeth/journal/v7/n6/full/nmeth0610-418.html";
 	final public static String messagePaper = "Please note that the SPIM Registration is based on a publication.\n" +
 											  "If you use it successfully for your research please be so kind to cite our work:\n" +
 											  "Preibisch et al., Nature Methods (2010), 7(6):418-419\n";
 
-	final public static String messageWebsite = "This plugin is written and maintained by Stephan Preibisch (click for webpage)\n";
+	final public static String messageWebsite = "This plugin is written and maintained by the Preibisch Lab (click for webpage)\n";
 
 	public static void addNatMethBeadsPaper( final GenericDialog gd ) { addNatMethBeadsPaper( gd, messagePaper ); }
 	public static void addNatMethBeadsPaper( final GenericDialog gd, final String msg )  { addHyperLink( gd, msg, paperURL ); }

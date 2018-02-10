@@ -85,7 +85,7 @@ public class LightSheetZ1 implements MultiViewDatasetDefinition
 	private boolean fixBioformats = false;
 
 	@Override
-	public String getTitle() { return "Zeiss Lightsheet Z.1 Dataset (Bioformats)"; }
+	public String getTitle() { return "Zeiss Lightsheet Z.1 Dataset Loader (Bioformats)"; }
 
 	@Override
 	public String getExtendedDescription()
