@@ -58,11 +58,13 @@ public interface ISpimDataTableModel<AS extends AbstractSpimData<?>> extends Tab
 	public void clearFilters();
 
 	public void addFilter(Class<? extends Entity> cl, List<? extends Entity> instances);
-	
+
 	public Map<Class<? extends Entity> , List<? extends Entity>> getFilters();
-	
+
 	public List<List< BasicViewDescription< ?  >> > getElements();
-	
+
+	public void updateElements();
+
 	public void sortByColumn( final int column );
 	
 	public void setColumnClasses(List< Class< ? extends Entity > > columnClasses);

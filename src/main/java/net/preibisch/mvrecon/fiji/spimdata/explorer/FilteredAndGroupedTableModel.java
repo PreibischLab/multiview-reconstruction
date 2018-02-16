@@ -172,7 +172,12 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 
 	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements()
 	{
-		if (elements != null)
+		return elements(false);
+	}
+
+	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements( boolean forceUpdate )
+	{
+		if (!forceUpdate && elements != null)
 			return elements;
 
 		final List<BasicViewDescription< ? > > ungroupedElements =
@@ -301,5 +306,11 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	public Map< Class< ? extends Entity >, List< ? extends Entity > > getFilters()
 	{
 		return filters;
+	}
+
+	@Override
+	public void updateElements()
+	{
+		elements(true);
 	}
 }

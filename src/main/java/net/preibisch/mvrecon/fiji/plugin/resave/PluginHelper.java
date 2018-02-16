@@ -23,6 +23,8 @@
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
 import fiji.util.gui.GenericDialogPlus;
+import ij.gui.GenericDialog;
+import net.imagej.patcher.HeadlessGenericDialog;
 
 import java.awt.Button;
 import java.awt.FlowLayout;
@@ -43,8 +45,14 @@ import javax.swing.filechooser.FileFilter;
 
 public class PluginHelper
 {
-	public static void addSaveAsFileField( final GenericDialogPlus dialog, final String label, final String defaultPath, final int columns) {
+	public static boolean isHeadless() { return GenericDialog.class.getSuperclass().equals( HeadlessGenericDialog.class ); }
+
+	public static void addSaveAsFileField( final GenericDialogPlus dialog, final String label, final String defaultPath, final int columns)
+	{
 		dialog.addStringField( label, defaultPath, columns );
+
+		if ( isHeadless() )
+			return;
 
 		final TextField text = ( TextField ) dialog.getStringFields().lastElement();
 		final GridBagLayout layout = ( GridBagLayout ) dialog.getLayout();
@@ -64,8 +72,12 @@ public class PluginHelper
 		dialog.add( panel );
 	}
 
-	public static void addSaveAsDirectoryField( final GenericDialogPlus dialog, final String label, final String defaultPath, final int columns) {
+	public static void addSaveAsDirectoryField( final GenericDialogPlus dialog, final String label, final String defaultPath, final int columns)
+	{
 		dialog.addStringField( label, defaultPath, columns );
+
+		if ( isHeadless() )
+			return;
 
 		final TextField text = ( TextField ) dialog.getStringFields().lastElement();
 		final GridBagLayout layout = ( GridBagLayout ) dialog.getLayout();

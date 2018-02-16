@@ -34,7 +34,7 @@ import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 
-public class StitchingResults
+public class StitchingResults implements PairwiseLinkInterface
 {
 	Map<Pair<Group<ViewId>, Group<ViewId>>, PairwiseStitchingResult<ViewId>> pairwiseResults;
 	// TODO: check and potentially change error calculation (this was done way back when we used absolute shifts)
@@ -138,5 +138,11 @@ public class StitchingResults
 //		
 //		ArrayList< PairwiseStitchingResult<ViewId> > psr = sr.getAllPairwiseResultsForViewId( new ViewId( 0, 0 ) );
 //		System.out.println( psr.size() );
+	}
+
+	@Override
+	public Set< Pair< Group< ViewId >, Group< ViewId > > > getPairwiseLinks()
+	{
+		return getPairwiseResults().keySet();
 	}
 }

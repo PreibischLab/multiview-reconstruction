@@ -26,6 +26,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 import mpicbg.models.PointMatch;
@@ -37,46 +40,65 @@ import mpicbg.spim.io.IOFunctions;
 public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 {
 	@Override
-	public boolean removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
+	public Pair< Group< ViewId >, Group< ViewId > > removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
 	{
-		double worstDistance = -Double.MAX_VALUE;
+		double worstInvScore = -Double.MAX_VALUE;
 		Tile<?> worstTile1 = null;
 		Tile<?> worstTile2 = null;
 		
 		for (Tile<?> t : tc.getTiles())
 		{
+			System.out.println( "Inspecting group: " + findGroup( t, map ) );
+
+			final int connected = t.getConnectedTiles().size();
+
 			// we mustn't disconnect a tile entirely
-			if (t.getConnectedTiles().size() <= 1)
+			if ( connected <= 1 )
 				continue;
-			
-			for (PointMatch pm : t.getMatches())
+
+			for ( final PointMatch pm : t.getMatches() )
 			{
-				
-				if (/*worstTile1 == null || */ pm.getDistance() > worstDistance)
+				double quality = 0.01; // between [0.01, 1.00]
+
+				if ( QualityPointMatch.class.isInstance( pm ) )
+					quality = ( (QualityPointMatch)pm ).getQuality(); // most likely cross correlation
+
+				quality = Math.min( 1.0, quality );
+				quality = Math.max( 0.01, quality );
+
+				final double invScore = Math.pow( ( 1.01 - quality ), 2 ) * Math.sqrt( pm.getDistance() ) * Math.log10( connected );
+
+				System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
+
+
+				if ( invScore > worstInvScore )
 				{
-					worstDistance = pm.getDistance();
-					
-					
+					worstInvScore = invScore;
+
 					worstTile1 = t;
 					worstTile2 = t.findConnectedTile( pm );
+
+					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
 				}
 				
-				//System.out.println( pm.getDistance() + " " + worstDistance + " " + worstTile1 );
 			}
 		}
 
 		if (worstTile1 == null)
 		{
 			System.err.println( "WARNING: can not remove any more links without disconnecting components" );
-			return false;
+			return null;
 		}
 
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + findGroup( worstTile1, map ) + " to " + findGroup( worstTile2, map ) );
+		final Group<ViewId> groupA = findGroup( worstTile1, map );
+		final Group<ViewId> groupB = findGroup( worstTile2, map );
 
-		return true;
+		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + groupA + " to " + groupB );
+
+		return new ValuePair< Group<ViewId>, Group<ViewId> >( groupA, groupB );
 	}
 
 	public static Group< ViewId > findGroup( final Tile< ? > tile, final HashMap< ViewId, ? extends Tile< ? > > map )

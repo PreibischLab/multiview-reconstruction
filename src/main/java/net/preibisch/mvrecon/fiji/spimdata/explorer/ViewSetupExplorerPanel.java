@@ -31,6 +31,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,6 +50,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -94,6 +97,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RemoveTransformationPo
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ReorientSamplePopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ResavePopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.Separator;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SimpleHyperlinkPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SpecifyCalibrationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeDetectionsPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
@@ -230,6 +234,8 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 			addAppleA();
 
 		addColorMode();
+		addHelp();
+		addReCenterShortcut();
 
 		table.setPreferredScrollableViewportSize( new Dimension( 750, 300 ) );
 		table.getColumnModel().getColumn( 0 ).setPreferredWidth( 20 );
@@ -268,7 +274,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		buttons.add( save, BorderLayout.EAST );
 
 		final JPanel header = new JPanel( new BorderLayout() );
-		header.add( new JLabel( "XML: " + xml ), BorderLayout.WEST );
+		header.add( getXMLLabel( xml ), BorderLayout.WEST );
 		header.add( buttons, BorderLayout.EAST );
 		this.add( header, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
@@ -307,6 +313,13 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		table.getSelectionModel().setSelectionInterval( 0, 0 );
 
 		addPopupMenu( table );
+	}
+
+	public static JLabel getXMLLabel( final String xml )
+	{
+		final JLabel l = new JLabel( "XML: " + xml );
+		l.setBorder( new EmptyBorder( 0, 9, 0, 0 ) );
+		return l;
 	}
 
 	@Override
@@ -645,34 +658,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		} );
 	}
 
-	protected void addAppleA()
-	{
-		table.addKeyListener( new KeyListener()
-		{
-			boolean appleKeyDown = false;
-
-			@Override
-			public void keyTyped( KeyEvent arg0 )
-			{
-				if ( appleKeyDown && arg0.getKeyChar() == 'a' )
-					table.selectAll();
-			}
-
-			@Override
-			public void keyReleased( KeyEvent arg0 )
-			{
-				if ( arg0.getKeyCode() == 157 )
-					appleKeyDown = false;
-			}
-
-			@Override
-			public void keyPressed(KeyEvent arg0)
-			{
-				if ( arg0.getKeyCode() == 157 )
-					appleKeyDown = true;
-			}
-		});
-	}
+	protected String getHelpHtml() { return "/mvr/Help.html"; }
 
 	private static class CheckBoxRenderer extends JCheckBox implements TableCellRenderer
 	{
@@ -748,6 +734,15 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 
 		popups.add( new LabelPopUp( " Modifications" ) );
 		popups.add( new ResavePopup() );
+		popups.add( new Separator() );
+
+		// add link to wiki
+		popups.add( new LabelPopUp( "Help" ) );
+		try
+		{
+			popups.add( new SimpleHyperlinkPopup("Browse Wiki...", new URI( "https://imagej.net/Multiview-Reconstruction" )) );
+		}
+		catch ( URISyntaxException e ) { e.printStackTrace(); }
 
 		return popups;
 	}

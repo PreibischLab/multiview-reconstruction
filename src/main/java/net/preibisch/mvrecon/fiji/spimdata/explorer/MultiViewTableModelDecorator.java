@@ -279,5 +279,8 @@ public class MultiViewTableModelDecorator < AS extends AbstractSpimData< ? > > i
 		return decorated.getFilters();
 	}
 
+	@Override
+	public void updateElements() { decorated.updateElements(); }
+
 
 }

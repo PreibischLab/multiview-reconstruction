@@ -49,6 +49,7 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -301,21 +302,22 @@ public class DeconvolutionGUI implements FusionExportInterface
 		if ( defaultBB >= choices.length )
 			defaultBB = 0;
 
-		Choice boundingBoxChoice, inputCacheChoice, weightCacheChoice, blockChoice, computeOnChoice, splitChoice;
-		TextField downsampleField;
+		Choice boundingBoxChoice = null, inputCacheChoice = null, weightCacheChoice = null, blockChoice = null, computeOnChoice = null, splitChoice = null;
+		TextField downsampleField = null;
+		Label label1 = null, label2 = null;
 
 		final GenericDialog gd = new GenericDialog( "Image Fusion" );
 
 		gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
-		boundingBoxChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) boundingBoxChoice = (Choice)gd.getChoices().lastElement();
 		gd.addMessage( "" );
 
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
-		downsampleField = (TextField)gd.getNumericFields().lastElement();
+		if ( !PluginHelper.isHeadless() ) downsampleField = (TextField)gd.getNumericFields().lastElement();
 		gd.addChoice( "Input image(s)", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultInputImgCacheType ] );
-		inputCacheChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) inputCacheChoice = (Choice)gd.getChoices().lastElement();
 		gd.addChoice( "Weight image(s)", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultWeightCacheType ] );
-		weightCacheChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) weightCacheChoice = (Choice)gd.getChoices().lastElement();
 
 		gd.addMessage( "" );
 
@@ -330,36 +332,39 @@ public class DeconvolutionGUI implements FusionExportInterface
 		gd.addMessage( "" );
 
 		gd.addChoice( "Compute", blocksChoice, blocksChoice[ defaultBlockSizeIndex ] );
-		blockChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) blockChoice = (Choice)gd.getChoices().lastElement();
 		gd.addChoice( "Compute_on", computationOnChoice, computationOnChoice[ defaultComputeOnIndex ] );
-		computeOnChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) computeOnChoice = (Choice)gd.getChoices().lastElement();
 		gd.addCheckbox( "Adjust_blending & grouping parameters", defaultAdjustBlending );
 
 		gd.addMessage( "" );
 
 		gd.addChoice( "Produce one fused image for", splittingTypes, splittingTypes[ defaultSplittingType ] );
-		splitChoice = (Choice)gd.getChoices().lastElement();
+		if ( !PluginHelper.isHeadless() ) splitChoice = (Choice)gd.getChoices().lastElement();
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
 
 		gd.addMessage( "Estimated size: ", GUIHelper.largestatusfont, GUIHelper.good );
-		Label label1 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label1 = (Label)gd.getMessage();
 		gd.addMessage( "???x???x??? pixels", GUIHelper.smallStatusFont, GUIHelper.good );
-		Label label2 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label2 = (Label)gd.getMessage();
 
-		final ManageDeconvolutionDialogListeners m = new ManageDeconvolutionDialogListeners(
-				gd,
-				boundingBoxChoice,
-				downsampleField,
-				inputCacheChoice,
-				weightCacheChoice,
-				blockChoice,
-				computeOnChoice,
-				splitChoice,
-				label1,
-				label2,
-				this );
-
-		m.update();
+		if ( !PluginHelper.isHeadless() )
+		{
+			final ManageDeconvolutionDialogListeners m = new ManageDeconvolutionDialogListeners(
+					gd,
+					boundingBoxChoice,
+					downsampleField,
+					inputCacheChoice,
+					weightCacheChoice,
+					blockChoice,
+					computeOnChoice,
+					splitChoice,
+					label1,
+					label2,
+					this );
+	
+			m.update();
+		}
 
 		gd.showDialog();
 

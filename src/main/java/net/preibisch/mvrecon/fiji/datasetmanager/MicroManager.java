@@ -114,9 +114,9 @@ public class MicroManager implements MultiViewDatasetDefinition
 
 		IOFunctions.println( "Minimal resolution in all dimensions is: " + minResolution );
 		IOFunctions.println( "(The smallest resolution in any dimension; the distance between two pixels in the output image will be that wide)" );
-		
-		// create the initial view registrations (they are all the identity transform)
-		final ViewRegistrations viewRegistrations = StackList.createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
+
+		// create calibration + translation view registrations
+		final ViewRegistrations viewRegistrations = DatasetCreationUtils.createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
 		
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();

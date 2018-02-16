@@ -32,11 +32,11 @@ import net.imglib2.RealLocalizable;
 public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extends Point > extends AbstractPointDescriptor< P, TranslationInvariantLocalCoordinateSystemPointDescriptor<P> >
 		implements RealLocalizable
 {
-	public double ax, ay, az, bx, by, bz;
+	public double ax, ay, az, bx, by, bz, cx, cy, cz;
 	
-	public TranslationInvariantLocalCoordinateSystemPointDescriptor( final P basisPoint, final P point1, final P point2 ) throws NoSuitablePointsException 
+	public TranslationInvariantLocalCoordinateSystemPointDescriptor( final P basisPoint, final P point1, final P point2, final P point3 ) throws NoSuitablePointsException 
 	{
-		super( basisPoint, toList( point1, point2 ), null, null );
+		super( basisPoint, toList( point1, point2, point3 ), null, null );
 		
 		if ( numDimensions != 3 )
 			throw new NoSuitablePointsException( "LocalCoordinateSystemPointDescriptor does not support dim = " + numDimensions + ", only dim = 3 is valid." );
@@ -44,11 +44,12 @@ public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extend
 		buildLocalCoordinateSystem( descriptorPoints );
 	}
 
-	private static < P extends Point > ArrayList< P > toList( final P point1, final P point2 )
+	private static < P extends Point > ArrayList< P > toList( final P point1, final P point2, final P point3 )
 	{
 		final ArrayList< P > list = new ArrayList<>();
 		list.add( point1 );
 		list.add( point2 );
+		list.add( point3 );
 		return list;
 	}
 
@@ -63,8 +64,11 @@ public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extend
 		difference += ( bx - pointDescriptor.bx ) * ( bx - pointDescriptor.bx );
 		difference += ( by - pointDescriptor.by ) * ( by - pointDescriptor.by );
 		difference += ( bz - pointDescriptor.bz ) * ( bz - pointDescriptor.bz );
+		difference += ( cx - pointDescriptor.cx ) * ( cx - pointDescriptor.cx );
+		difference += ( cy - pointDescriptor.cy ) * ( cy - pointDescriptor.cy );
+		difference += ( cz - pointDescriptor.cz ) * ( cz - pointDescriptor.cz );
 
-		return difference;// / 3.0;	
+		return difference / numDimensions; // (numDimensions)
 	}
 	
 	/**
@@ -82,10 +86,14 @@ public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extend
 		this.bx = neighbors.get( 1 ).getL()[ 0 ];
 		this.by = neighbors.get( 1 ).getL()[ 1 ];
 		this.bz = neighbors.get( 1 ).getL()[ 2 ];
+
+		this.cx = neighbors.get( 2 ).getL()[ 0 ];
+		this.cy = neighbors.get( 2 ).getL()[ 1 ];
+		this.cz = neighbors.get( 2 ).getL()[ 2 ];
 	}
 
 	@Override
-	public int numDimensions() { return 6; }
+	public int numDimensions() { return 9; }
 
 	@Override
 	public boolean resetWorldCoordinatesAfterMatching() { return true; }
@@ -102,6 +110,9 @@ public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extend
 		position[ 3 ] = (float)bx;
 		position[ 4 ] = (float)by;
 		position[ 5 ] = (float)bz;
+		position[ 6 ] = (float)cx;
+		position[ 7 ] = (float)cy;
+		position[ 8 ] = (float)cz;
 	}
 
 	@Override
@@ -118,18 +129,29 @@ public class TranslationInvariantLocalCoordinateSystemPointDescriptor < P extend
 	@Override
 	public double getDoublePosition( final int d )
 	{
-		if ( d == 0 )
+		switch ( d )
+		{
+		case 0:
 			return ax;
-		else if ( d == 1 )
+		case 1:
 			return ay;
-		else if ( d == 2 )
+		case 2:
 			return az;
-		else if ( d == 3 )
+		case 3:
 			return bx;
-		else if ( d == 4 )
+		case 4:
 			return by;
-		else
+		case 5:
 			return bz;
+		case 6:
+			return cx;
+		case 7:
+			return cy;
+		case 8:
+			return cz;
+		default:
+			return 0;
+		}
 	}
 
 	@Override

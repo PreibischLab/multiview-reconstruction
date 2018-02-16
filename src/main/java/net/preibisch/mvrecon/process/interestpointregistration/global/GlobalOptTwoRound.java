@@ -35,6 +35,7 @@ import mpicbg.models.Tile;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.IterativeConvergenceStrategy;
@@ -73,8 +74,41 @@ public class GlobalOptTwoRound
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
+		return compute( model, pmc, csStrong, lms, null, wlf, csWeak, fixedViews, groupsIn );
+	}
+
+	/**
+	 * 
+	 * @param model - the transformation model to run the global optimizations on
+	 * @param pmc - the pointmatch creator (makes mpicbg PointMatches from anything,
+	 * e.g. corresponding interest points or stitching results)
+	 * @param csStrong - the Iterative Convergence strategy applied to the strong links,
+	 * as created by the pmc
+	 * @param lms - decides for the iterative global optimization that is run on the
+	 * strong links, which link to drop in an iteration
+	 * @param removedInconsistentPairs - optional Collection in which pairs that were identified
+	 * to be inconsistent and were removed are added (can be null)
+	 * @param wlf - a factory for creating weak links for the not optimized views.
+	 * @param csWeak - the convergence strategy for optimizing the weak links, typically
+	 * this is a new ConvergenceStrategy( Double.MAX_VALUE );
+	 * @param fixedViews - which views are fixed
+	 * @param groupsIn - which views are grouped
+	 * @return map from view id to resulting transform
+	 * @param <M> mpicbg model type
+	 */
+	public static < M extends Model< M > > HashMap< ViewId, AffineTransform3D > compute(
+			final M model,
+			final PointMatchCreator pmc,
+			final IterativeConvergenceStrategy csStrong,
+			final LinkRemovalStrategy lms,
+			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs,
+			final WeakLinkFactory wlf,
+			final ConvergenceStrategy csWeak,
+			final Collection< ViewId > fixedViews,
+			final Collection< Group< ViewId > > groupsIn )
+	{
 		// find strong links, run global opt iterative
-		final HashMap< ViewId, Tile< M > > models1 = GlobalOptIterative.compute( model, pmc, csStrong, lms, fixedViews, groupsIn );
+		final HashMap< ViewId, Tile< M > > models1 = GlobalOptIterative.compute( model, pmc, csStrong, lms, removedInconsistentPairs, fixedViews, groupsIn );
 
 		// identify groups of connected views
 		final List< Set< Tile< ? > > > sets = Tile.identifyConnectedGraphs( models1.values() );

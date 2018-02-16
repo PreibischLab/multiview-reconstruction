@@ -99,14 +99,18 @@ class VirtualRandomAccessibleIntervalLOCI<T extends RealType< T > & NativeType< 
 
 //			System.out.println( "reading z plane " + position[2] + " from series " + series + " in file " + file.getAbsolutePath() );
 
+			// FIX for XYZ <-> XYT mixup in rare cases
+			int actualTP = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? (int) position[2] : timepoint;
+			int actualZ = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? timepoint : (int) position[2];
+
 			try
 			{
 				// the image is RGB -> we have to read bytes for all channels at once?
 				if (reader.getRGBChannelCount() == reader.getSizeC())
-					reader.openBytes( reader.getIndex( (int) position[2], 0, timepoint), buffer );
+					reader.openBytes( reader.getIndex( actualZ, 0, actualTP), buffer );
 				// normal image -> read specified channel
 				else
-					reader.openBytes( reader.getIndex( (int) position[2], channel, timepoint), buffer );
+					reader.openBytes( reader.getIndex( actualZ, channel, actualTP), buffer );
 			}
 			catch ( FormatException | IOException e )
 			{

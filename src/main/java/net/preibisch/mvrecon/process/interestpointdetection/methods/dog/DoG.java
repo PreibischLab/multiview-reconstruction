@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dog;
 import java.util.HashMap;
 import java.util.List;
 
+import ij.IJ;
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.real.FloatType;
 import mpicbg.imglib.wrapper.ImgLib2;
@@ -58,6 +59,11 @@ public class DoG
 
 	public static void addInterestPoints( final HashMap< ViewId, List< InterestPoint > > interestPoints, final DoGParameters dog )
 	{
+		if ( dog.showProgress() )
+			IJ.showProgress( dog.showProgressMin );
+
+		int count = 1;
+
 		// TODO: special iterator that takes into account missing views
 		for ( final ViewDescription vd : dog.toProcess )
 		{
@@ -117,6 +123,13 @@ public class DoG
 						+ ". Continuing with next one." );
 				e.printStackTrace();
 			}
+
+			if ( dog.showProgress() )
+				IJ.showProgress( dog.showProgressMin + 
+						( (double)(count++) / (double)dog.toProcess.size() ) / ( dog.showProgressMax - dog.showProgressMin ) );
 		}
+
+		if ( dog.showProgress() )
+			IJ.showProgress( dog.showProgressMax );
 	}
 }

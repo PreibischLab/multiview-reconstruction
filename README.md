@@ -1,3 +1,5 @@
+[![](https://travis-ci.org/PreibischLab/multiview-reconstruction.svg?branch=master)](https://travis-ci.org/PreibischLab/multiview-reconstruction)
+
 #  Introduction & Overview
 
 Selective Plane Illumination Microscopy

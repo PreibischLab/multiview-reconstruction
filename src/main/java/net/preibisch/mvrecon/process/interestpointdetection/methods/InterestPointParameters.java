@@ -40,11 +40,15 @@ public class InterestPointParameters
 	public double maxIntensity = Double.NaN;
 
 	public boolean limitDetections;
-	public int maxDetections, maxDetectionsTypeIndex;
+	public int maxDetections;
+	public int maxDetectionsTypeIndex; // { "Brightest", "Around median (of those above threshold)", "Weakest (above threshold)" };
 
 	// downsampleXY == 0 : a bit less then z-resolution
 	// downsampleXY == -1 : a bit more then z-resolution
 	public int downsampleXY = 1, downsampleZ = 1;
+
+	public double showProgressMin = Double.NaN;
+	public double showProgressMax = Double.NaN;
 
 	public InterestPointParameters() {}
 
@@ -54,5 +58,18 @@ public class InterestPointParameters
 	{
 		this.toProcess = toProcess;
 		this.imgloader = imgloader;
+	}
+
+	public boolean showProgress() { return !Double.isNaN( showProgressMin ) && !Double.isNaN( showProgressMax ); }
+
+	/**
+	 * 
+	 * @param min - if not Double.NaN show progress, e.g. this is 0 (for multiple timepoints e.g. 0.25)
+	 * @param max - if not Double.NaN show progress, e.g. this is 1 (for multiple timepoints e.g. 0.50)
+	 */
+	public void showProgress( final double min, final double max )
+	{
+		this.showProgressMin = min;
+		this.showProgressMax = max;
 	}
 }

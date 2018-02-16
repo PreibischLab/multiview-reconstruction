@@ -39,7 +39,7 @@ public class FRGLDMParameters
 	public FRGLDMParameters( final Model< ? > model )
 	{
 		this.rod = ratioOfDistance;
-		this.nn = 2;
+		this.nn = 3;
 		this.re = redundancy;
 		this.model = model;
 	}
@@ -48,7 +48,7 @@ public class FRGLDMParameters
 	{
 		this.model = model;
 		this.rod = ratioOfDistance;
-		this.nn = 2;
+		this.nn = 3;
 		this.re = redundancy;
 	}
 
