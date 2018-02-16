@@ -232,9 +232,14 @@ public class Image_Deconvolution implements PlugIn
 				final MultiViewDeconvolution< ? > mvDecon;
 
 				if ( mul )
+				{
+					((ComputeBlockMulThreadCPUFactory)cptf).setNumViews( deconVirtualViews.size() );
 					mvDecon = new MultiViewDeconvolutionMul( views, numIterations, psiInit, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
+				}
 				else
+				{
 					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInit, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+				}
 
 				if ( !mvDecon.initWasSuccessful() )
 					return false;

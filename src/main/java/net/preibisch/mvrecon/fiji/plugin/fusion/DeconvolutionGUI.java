@@ -63,6 +63,7 @@ import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCUDAFactory;
 import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
@@ -326,8 +327,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		gd.addChoice( "Initialize_with", psiInitChoice, psiInitChoice[ defaultPsiInit ] );
 		gd.addChoice( "Type_of_iteration", psfTypeChoice, psfTypeChoice[ defaultPSFType ] );
-		gd.addCheckbox( "Fast_sequential_iterations", !defaultMul );
-		gd.addNumericField( "OSEM_acceleration (only for fast sequential iterations)", defaultOsemSpeedup, 1 );
+		gd.addCheckbox( "Fast_sequential_iterations (OSEM)", !defaultMul );
+		gd.addNumericField( "OSEM_acceleration", defaultOsemSpeedup, 1 );
 		gd.addNumericField( "Number_of_iterations", defaultNumIterations, 0 );
 		gd.addCheckbox( "Debug_mode", defaultDebugMode );
 		gd.addCheckbox( "Use_Tikhonov_regularization", defaultUseTikhonovRegularization );
@@ -398,9 +399,14 @@ public class DeconvolutionGUI implements FusionExportInterface
 		imgExport = defaultImgExportAlgorithm = gd.getNextChoiceIndex();
 
 		if ( mul )
+		{
 			testEmptyBlocks = false;
+			osemSpeedup = 1.0;
+		}
 		else
+		{
 			testEmptyBlocks = defaultTestEmptyBlocks;
+		}
 
 		if ( !getDebug() )
 			return false;
@@ -423,6 +429,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 		IOFunctions.println( "Downsampled Bounding Box: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "Input Image Cache Type: " + FusionTools.imgDataTypeChoice[ getInputImgCacheType().ordinal() ] );
 		IOFunctions.println( "Weight Cache Type: " + FusionTools.imgDataTypeChoice[ getWeightCacheType().ordinal() ] );
+		IOFunctions.println( "Multiplicative iterations: " + mul );
 		IOFunctions.println( "PSF Type: " + psfTypeChoice[ getPSFType().ordinal() ] );
 		IOFunctions.println( "Psi Init: " + psiInitChoice[ getPsiInitType().ordinal() ] );
 		IOFunctions.println( "OSEMSpeedup: " + osemSpeedup );
@@ -592,7 +599,12 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 	protected boolean getComputeDevice()
 	{
-		if ( computeOnIndex == 0 )
+		if ( mul )
+		{
+			// numViews is set later in Image_Deconvolution
+			this.computeFactory = new ComputeBlockMulThreadCPUFactory( service, -1, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
+		}
+		else if ( computeOnIndex == 0 )
 		{
 			this.computeFactory = new ComputeBlockSeqThreadCPUFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
 		}

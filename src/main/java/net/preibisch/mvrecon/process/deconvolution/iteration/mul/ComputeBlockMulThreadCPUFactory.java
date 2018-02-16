@@ -34,7 +34,7 @@ public class ComputeBlockMulThreadCPUFactory implements ComputeBlockThreadFactor
 	final ExecutorService service;
 	final float minValue;
 	final float lambda;
-	final int numViews;
+	int numViews;
 	final int[] blockSize;
 	final ImgFactory< FloatType > blockFactory;
 
@@ -67,6 +67,11 @@ public class ComputeBlockMulThreadCPUFactory implements ComputeBlockThreadFactor
 		this.lambda = lambda;
 		this.blockSize = blockSize.clone();
 		this.blockFactory = blockFactory;
+	}
+
+	public void setNumViews( final int numViews )
+	{
+		this.numViews = numViews;
 	}
 
 	@Override
