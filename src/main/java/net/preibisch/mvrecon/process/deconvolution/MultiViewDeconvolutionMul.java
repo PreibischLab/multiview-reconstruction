@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration.mul;
+package net.preibisch.mvrecon.process.deconvolution;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,17 +28,11 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ij.CompositeImage;
-import ij.IJ;
-import ij.ImagePlus;
-import ij.ImageStack;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
@@ -46,187 +40,54 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.cuda.Block;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread.IterationStatistics;
-import net.preibisch.mvrecon.process.deconvolution.DeconView;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization;
-import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThread;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
-public class MultiViewDeconvolutionMul
+public class MultiViewDeconvolutionMul extends MultiViewDeconvolution< ComputeBlockMulThread >
 {
-	final public static float outsideValueImg = 0f; // the value the input image has if there is no data at this pixel
-	final public static float minValueImg = 1f; // mininal value for the input image (as it is not normalized)
-	final public static float minValue = 0.0001f; // minimal value for the deconvolved image
-
-	public static int defaultBlendingRange = 12;
-	public static int defaultBlendingBorder = -8;
-	public static int cellDim = 32;
-	public static int maxCacheSize = 10000;
-
-	// for additional smoothing of weights in areas where many views contribute less than 100%
-	public static float maxDiffRange = 0.1f;
-	public static float scalingRange = 0.05f;
-	public static boolean additionalSmoothBlending = false;
-
-	// current iteration
-	int it = 0;
-
-	// the multi-view deconvolved image
-	final Img< FloatType > psi;
-
-	// the input data
-	final DeconViews views;
-
-	// the thread that will compute the iteration for each block independently
-	final ComputeBlockMulThreadFactory computeBlockFactory;
-
-	// the actual block compute threads
-	final ArrayList< ComputeBlockMulThread > computeBlockThreads;
-
-	// max intensities for each contributing view, ordered as in views
-	final float[] max;
-
-	final int numIterations;
-	final double avgMax;
-
-	boolean debug = false;
-	int debugInterval = 1;
-
-	// for debug
-	ImageStack stack;
-	CompositeImage ci;
-
 	public MultiViewDeconvolutionMul(
 			final DeconViews views,
 			final int numIterations,
 			final PsiInitialization psiInit,
-			final ComputeBlockMulThreadFactory computeBlockFactory,
+			final ComputeBlockThreadFactory< ComputeBlockMulThread > computeBlockFactory,
 			final ImgFactory< FloatType > psiFactory )
 	{
-		this.computeBlockFactory = computeBlockFactory;
-		this.views = views;
-		this.numIterations = numIterations;
-
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Deconvolved image factory: " + psiFactory.getClass().getSimpleName() );
-
-		this.psi = psiFactory.create( views.getPSIDimensions(), new FloatType() );
-
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting up " + computeBlockFactory.numParallelBlocks() + " Block Thread(s), using '" + computeBlockFactory.getClass().getSimpleName() + "'" );
-
-		this.computeBlockThreads = new ArrayList<>();
-
-		for ( int i = 0; i < computeBlockFactory.numParallelBlocks(); ++i )
-			computeBlockThreads.add( computeBlockFactory.create( i ) );
-
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Inititalizing PSI image using '" + psiInit.getClass().getSimpleName() + "'" );
-
-		if ( !psiInit.runInitialization( psi, views.getViews(), views.getExecutorService() ) )
-		{
-			this.max = null;
-			this.avgMax = 0;
-		}
-		else
-		{
-			this.max = psiInit.getMax();
-	
-			double avgMaxIntensity = 0;
-			for ( int i = 0; i < max.length; ++i )
-			{
-				avgMaxIntensity += max[ i ];
-				IOFunctions.println( "Max intensity in overlapping area of view " + i + ": " + max[ i ] );
-			}
-			this.avgMax = avgMaxIntensity / (double)max.length;
-		}
+		super( views, numIterations, psiInit, computeBlockFactory, psiFactory );
 	}
 
-	public boolean initWasSuccessful() { return max != null; }
-	public Img< FloatType > getPSI() { return psi; }
-	public CompositeImage getDebugImage() { return ci; }
-	public void setDebug( final boolean debug ) { this.debug = debug; }
-	public void setDebugInterval( final int debugInterval ) { this.debugInterval = debugInterval; }
-
-	public void runIterations()
+	public boolean initWasSuccessful()
 	{
-		if ( this.max == null )
-			return;
-
-		// run the deconvolution
-		while ( it < numIterations )
-		{
-			// show the fused image first
-			if ( debug && ( it-1 ) % debugInterval == 0 )
-			{
-				// if it is slices, wrap & copy otherwise virtual & copy - never use the actual image
-				// as it is being updated in the process
-				final ImagePlus tmp = DisplayImage.getImagePlusInstance( psi, true, "Psi", 0, avgMax ).duplicate();
-
-				if ( this.stack == null )
-				{
-					this.stack = tmp.getImageStack();
-					for ( int i = 0; i < this.psi.dimension( 2 ); ++i )
-						this.stack.setSliceLabel( "Iteration 1", i + 1 );
-
-					tmp.setTitle( "debug view" );
-					this.ci = new CompositeImage( tmp, CompositeImage.COMPOSITE );
-					this.ci.setDimensions( 1, (int)this.psi.dimension( 2 ), 1 );
-					this.ci.setDisplayMode( IJ.GRAYSCALE );
-					this.ci.show();
-				}
-				else if ( stack.getSize() == this.psi.dimension( 2 ) )
-				{
-					final ImageStack t = tmp.getImageStack();
-					for ( int i = 0; i < this.psi.dimension( 2 ); ++i )
-						this.stack.addSlice( "Iteration 2", t.getProcessor( i + 1 ) );
-					this.ci.hide();
-
-					this.ci = new CompositeImage( new ImagePlus( "debug view", this.stack ), CompositeImage.COMPOSITE );
-					this.ci.setDimensions( 1, (int)this.psi.dimension( 2 ), 2 );
-					this.ci.setDisplayMode( IJ.GRAYSCALE );
-					this.ci.show();
-				}
-				else
-				{
-					final ImageStack t = tmp.getImageStack();
-					for ( int i = 0; i < this.psi.dimension( 2 ); ++i )
-						this.stack.addSlice( "Iteration " + i, t.getProcessor( i + 1 ) );
-
-					this.ci.setStack( this.stack, 1, (int)this.psi.dimension( 2 ), stack.getSize() / (int)this.psi.dimension( 2 ) );
-				}
-			}
-
-			runNextIteration();
-		}
-
-		// TODO: IOFunctions.println( "Masking never updated pixels." );
-		// maskNeverUpdatedPixels( tmp1, views.getViews() );
-
-		IOFunctions.println( "DONE (" + new Date(System.currentTimeMillis()) + ")." );
+		return max != null && testBlockIntegrity();
 	}
 
-	public void runNextIteration()
+	public boolean testBlockIntegrity()
 	{
-		if ( this.max == null )
-			return;
-
-		++it;
-
-		IOFunctions.println( "iteration: " + it + " (" + new Date(System.currentTimeMillis()) + ")" );
-
 		final int totalNumBlocks = views.getViews().get( 0 ).getNumBlocks();
 		final List< List< Block > > blocks = views.getViews().get( 0 ).getNonInterferingBlocks();
 
 		for ( final DeconView view : views.getViews() )
 		{
 			if ( view.getNumBlocks() != totalNumBlocks )
-				throw new RuntimeException( "only a constant number of blocks is supported." );
+			{
+				IOFunctions.println( "only a constant number of blocks is supported." );
+				return false;
+			}
 
 			if ( view.getNonInterferingBlocks().size() != blocks.size() )
-				throw new RuntimeException( "only a constant number of block batches is supported." );
+			{
+				IOFunctions.println( "only a constant number of block batches is supported." );
+				return false;
+			}
 
 			for ( int i = 0; i < blocks.size(); ++i )
 			{
 				if ( blocks.get( i ).size() != view.getNonInterferingBlocks().get( i ).size() )
-					throw new RuntimeException( "only a constant number of blocks within batches is supported." );
+				{
+					IOFunctions.println( "only a constant number of blocks within batches is supported." );
+					return false;
+				}
 
 				for ( int j = 0; j < blocks.get( i ).size(); ++j )
 				{
@@ -240,12 +101,29 @@ public class MultiViewDeconvolutionMul
 								blockA.getEffectiveSize()[ d ] != blockB.getEffectiveSize()[ d ] ||
 								blockA.min( d ) != blockB.min( d ) ||
 								blockA.max( d ) != blockB.max( d ) )
-							throw new RuntimeException( "Block dimensions/offset/effective sizes not compatible, stopping." );
+						{
+							IOFunctions.println( "Block dimensions/offset/effective sizes not compatible, stopping." );
+							return false;
+						}
 					}
-					
 				}
 			}
 		}
+
+		return true;
+	}
+
+	public void runNextIteration()
+	{
+		if ( this.max == null )
+			return;
+
+		++it;
+
+		IOFunctions.println( "iteration: " + it + " (" + new Date(System.currentTimeMillis()) + ")" );
+
+		final int totalNumBlocks = views.getViews().get( 0 ).getNumBlocks();
+		final List< List< Block > > blocks = views.getViews().get( 0 ).getNonInterferingBlocks();
 
 		final Vector< IterationStatistics > stats = new Vector<>();
 
@@ -364,15 +242,5 @@ public class MultiViewDeconvolutionMul
 
 		IOFunctions.println( "iteration: " + it + " --- sum change: " + is.sumChange + " --- max change per pixel: " + is.maxChange );
 
-	}
-
-	protected static final void writeBack( final Img< FloatType > psi, final Vector< Pair< Pair< Integer, Block >, Img< FloatType > > > blockWritebackQueue )
-	{
-		for ( final Pair< Pair< Integer, Block >, Img< FloatType > > writeBackBlock : blockWritebackQueue )
-		{
-			long time = System.currentTimeMillis();
-			writeBackBlock.getA().getB().pasteBlock( psi, writeBackBlock.getB() );
-			System.out.println( " block " + writeBackBlock.getA().getA() + ", (CPU): paste " + (System.currentTimeMillis() - time) );
-		}
 	}
 }

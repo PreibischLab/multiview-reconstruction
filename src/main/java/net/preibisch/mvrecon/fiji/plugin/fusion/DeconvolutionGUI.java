@@ -61,10 +61,10 @@ import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadCPUFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadCUDAFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCUDAFactory;
 import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
@@ -137,6 +137,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static int defaultInputImgCacheType = 1;
 	public static int defaultWeightCacheType = 1;
 	public static double defaultDownsampling = 1.0;
+	public static boolean defaultMul = false;
 	public static int defaultPSFType = 1;
 	public static int defaultPsiInit = 0;
 	public static double defaultOsemSpeedup = 1;
@@ -164,6 +165,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 	protected int boundingBox = defaultBB;
 	protected double downsampling = defaultDownsampling;
+	protected boolean mul = defaultMul;
 	protected int cacheTypeInputImg = defaultInputImgCacheType;
 	protected int cacheTypeWeights = defaultWeightCacheType;
 	protected int psfType = defaultPSFType;
@@ -184,7 +186,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	protected ImgFactory< FloatType > psiFactory = null;
 	protected ImgFactory< FloatType > copyFactory = null;
 	protected ImgFactory< FloatType > blockFactory = new ArrayImgFactory<>();
-	protected ComputeBlockThreadFactory computeFactory = null;
+	protected ComputeBlockThreadFactory< ? > computeFactory = null;
 	protected boolean adjustBlending = defaultAdjustBlending;
 	protected float blendingRange = defaultBlendingRange;
 	protected float blendingBorder = defaultBlendingBorder;
@@ -282,7 +284,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public ImgFactory< FloatType > getBlockFactory() { return blockFactory; }
 	public ImgFactory< FloatType > getPsiFactory() { return psiFactory; }
 	public ImgFactory< FloatType > getCopyFactory() { return copyFactory; }
-	public ComputeBlockThreadFactory getComputeBlockThreadFactory() { return computeFactory; }
+	public ComputeBlockThreadFactory< ? > getComputeBlockThreadFactory() { return computeFactory; }
+	public boolean isMultiplicative() { return mul; } //TODO: maybe this actually multiplicative (cannot remove remove blocks, psf must be the same size)
 	public float getBlendingRange() { return blendingRange; }
 	public float getBlendingBorder() { return blendingBorder; }
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
@@ -321,9 +324,10 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		gd.addMessage( "" );
 
-		gd.addChoice( "Type_of_iteration", psfTypeChoice, psfTypeChoice[ defaultPSFType ] );
 		gd.addChoice( "Initialize_with", psiInitChoice, psiInitChoice[ defaultPsiInit ] );
-		gd.addNumericField( "OSEM_acceleration", defaultOsemSpeedup, 1 );
+		gd.addChoice( "Type_of_iteration", psfTypeChoice, psfTypeChoice[ defaultPSFType ] );
+		gd.addCheckbox( "Fast_sequential_iterations", !defaultMul );
+		gd.addNumericField( "OSEM_acceleration (only for fast sequential iterations)", defaultOsemSpeedup, 1 );
 		gd.addNumericField( "Number_of_iterations", defaultNumIterations, 0 );
 		gd.addCheckbox( "Debug_mode", defaultDebugMode );
 		gd.addCheckbox( "Use_Tikhonov_regularization", defaultUseTikhonovRegularization );
@@ -379,8 +383,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		cacheTypeInputImg = defaultInputImgCacheType = gd.getNextChoiceIndex();
 		cacheTypeWeights = defaultWeightCacheType = gd.getNextChoiceIndex();
-		psfType = defaultPSFType = gd.getNextChoiceIndex();
+		mul = defaultMul = !gd.getNextBoolean();
 		psiInit = defaultPsiInit = gd.getNextChoiceIndex();
+		psfType = defaultPSFType = gd.getNextChoiceIndex();
 		osemSpeedup = defaultOsemSpeedup = gd.getNextNumber();
 		numIterations = defaultNumIterations = (int)Math.round( gd.getNextNumber() );
 		debugMode = defaultDebugMode = gd.getNextBoolean();
@@ -391,6 +396,11 @@ public class DeconvolutionGUI implements FusionExportInterface
 		adjustBlending = defaultAdjustBlending = gd.getNextBoolean();
 		splittingType = defaultSplittingType = gd.getNextChoiceIndex();
 		imgExport = defaultImgExportAlgorithm = gd.getNextChoiceIndex();
+
+		if ( mul )
+			testEmptyBlocks = false;
+		else
+			testEmptyBlocks = defaultTestEmptyBlocks;
 
 		if ( !getDebug() )
 			return false;
@@ -532,10 +542,13 @@ public class DeconvolutionGUI implements FusionExportInterface
 					+ "too small or even negative effective blocksize (blocksize-2*kernelsize)", GUIHelper.smallStatusFont );
 			gd.addMessage( "" );
 
-			gd.addCheckbox( "Remove_empty_blocks", defaultTestEmptyBlocks );
-			gd.addMessage( "Note: if selected, all blocks of each virtual input view are scanned to test\n"
-					+ "if some of them are entirely empty. This takes some time, but if some are, it saves a lot.", GUIHelper.smallStatusFont );
-			gd.addMessage( "" );
+			if ( !mul )
+			{
+				gd.addCheckbox( "Remove_empty_blocks", defaultTestEmptyBlocks );
+				gd.addMessage( "Note: if selected, all blocks of each virtual input view are scanned to test\n"
+						+ "if some of them are entirely empty. This takes some time, but if some are, it saves a lot.", GUIHelper.smallStatusFont );
+				gd.addMessage( "" );
+			}
 
 			gd.addNumericField( "Deconvolved_image_block_size", defaultPsiCopyBlockSize, 0 );
 			gd.addMessage( "Note: this values defines the block size for the deconvolved & copied images", GUIHelper.smallStatusFont );
@@ -558,7 +571,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 					defaultBlockSizeY = Math.max( 1, (int)Math.round( gd.getNextNumber() ) ),
 					defaultBlockSizeZ = Math.max( 1, (int)Math.round( gd.getNextNumber() ) ) };
 
-			this.testEmptyBlocks = defaultTestEmptyBlocks = gd.getNextBoolean();
+			if ( !mul )
+				this.testEmptyBlocks = defaultTestEmptyBlocks = gd.getNextBoolean();
 
 			this.psiCopyBlockSize = defaultPsiCopyBlockSize = Math.max( 1, (int)Math.round( gd.getNextNumber() ) );
 
@@ -580,7 +594,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	{
 		if ( computeOnIndex == 0 )
 		{
-			this.computeFactory = new ComputeBlockThreadCPUFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
+			this.computeFactory = new ComputeBlockSeqThreadCPUFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
 		}
 		else if ( computeOnIndex == 1 )
 		{
@@ -606,7 +620,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 			for ( int devId = 0; devId < selectedDevices.size(); ++devId )
 				idToCudaDevice.put( devId, selectedDevices.get( devId ) );
 
-			this.computeFactory = new ComputeBlockThreadCUDAFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, cuda, idToCudaDevice );
+			this.computeFactory = new ComputeBlockSeqThreadCUDAFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, cuda, idToCudaDevice );
 		}
 		else
 		{

@@ -20,13 +20,12 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration.mul;
-
-import java.util.List;
+package net.preibisch.mvrecon.process.deconvolution.iteration.sequential;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.process.cuda.Block;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread;
 
@@ -38,14 +37,13 @@ import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread;
  * @author stephan.preibisch@gmx.de
  *
  */
-public interface ComputeBlockMulThread extends ComputeBlockThread
+public interface ComputeBlockSeqThread extends ComputeBlockThread
 {
-	public int getNumViews();
-
 	/**
 	 * run an iteration on the block
 	 *
 	 * @param view - the input view
+	 * @param block - the Block instance
 	 * @param imgBlock - the input image as block (virtual, outofbounds is zero)
 	 * @param weightBlock - the weights for this image (virtual, outofbounds is zero)
 	 * @param maxIntensityView - the maximum intensity of the view
@@ -54,12 +52,13 @@ public interface ComputeBlockMulThread extends ComputeBlockThread
 	 * @return - statistics of this block
 	 */
 	public IterationStatistics runIteration(
-			final List< DeconView > view,
-			final List< RandomAccessibleInterval< FloatType > > imgBlock, // out of bounds is ZERO
-			final List< RandomAccessibleInterval< FloatType > > weightBlock,
-			final List< Float > maxIntensityView,
-			final List< ArrayImg< FloatType, ? > > kernel1,
-			final List< ArrayImg< FloatType, ? > > kernel2 );
+			final DeconView view,
+			final Block block,
+			final RandomAccessibleInterval< FloatType > imgBlock, // out of bounds is ZERO
+			final RandomAccessibleInterval< FloatType > weightBlock,
+			final float maxIntensityView,
+			final ArrayImg< FloatType, ? > kernel1,
+			final ArrayImg< FloatType, ? > kernel2 );
 	//
 	// convolve psi (current guess of the image) with the PSF of the current view
 	// [psi >> tmp1]

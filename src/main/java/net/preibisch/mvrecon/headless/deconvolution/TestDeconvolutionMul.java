@@ -42,8 +42,6 @@ import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -53,16 +51,16 @@ import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionMul;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization.PsiInit;
-import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.mul.MultiViewDeconvolutionMul;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationAvgApprox;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationAvgPrecise;
 import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationBlurredFused;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -139,7 +137,7 @@ public class TestDeconvolutionMul
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Loading, grouping, and transforming PSF's " );
 
 		final HashMap< Group< V >, ArrayImg< FloatType, ? > > psfs =
-				PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion );
+				PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion, mul );
 
 		//final Img< FloatType > avgPSF = PSFCombination.computeAverageImage( psfs.values(), new ArrayImgFactory< FloatType >(), true );
 		//DisplayImage.getImagePlusInstance( Views.rotate( avgPSF, 0, 2 ), false, "avgPSF", 0, 1 ).show();
@@ -163,13 +161,11 @@ public class TestDeconvolutionMul
 
 		try
 		{
-			final ComputeBlockThreadFactory cptf;
-			final ComputeBlockMulThreadFactory cpmtf;
+			final ComputeBlockThreadFactory< ? > cptf;
 
 			if ( mul )
 			{
-				cptf = null;
-				cpmtf = new ComputeBlockMulThreadCPUFactory(
+				cptf = new ComputeBlockMulThreadCPUFactory(
 						service,
 						deconVirtualViews.size(),
 						lambda,
@@ -178,8 +174,7 @@ public class TestDeconvolutionMul
 			}
 			else
 			{
-				cpmtf = null;
-				cptf = new ComputeBlockThreadCPUFactory(
+				cptf = new ComputeBlockSeqThreadCPUFactory(
 						service,
 						lambda,
 						blockSize,
@@ -211,7 +206,7 @@ public class TestDeconvolutionMul
 						psfs.get( group ),
 						psfType,
 						blockSize,
-						mul ? cpmtf.numParallelBlocks() : cptf.numParallelBlocks(),
+						cptf.numParallelBlocks(),
 						filterBlocksForContent );
 
 				if ( view.getNumBlocks() <= 0 )
@@ -226,29 +221,20 @@ public class TestDeconvolutionMul
 			final DeconViews views = new DeconViews( deconViews, service );
 			final Img< FloatType > psi;
 			final CompositeImage debugImp;
+			final MultiViewDeconvolution< ? > decon;
 
 			if ( mul )
-			{
-				final MultiViewDeconvolutionMul decon = new MultiViewDeconvolutionMul( views, numIterations, psiInit, cpmtf, psiFactory );
-				if ( !decon.initWasSuccessful() )
-					return;
-				decon.setDebug( debug );
-				decon.setDebugInterval( debugInterval );
-				decon.runIterations();
-				psi = decon.getPSI();
-				debugImp = decon.getDebugImage();
-			}
+				decon = new MultiViewDeconvolutionMul( views, numIterations, psiInit, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
 			else
-			{
-				final MultiViewDeconvolution decon = new MultiViewDeconvolution( views, numIterations, psiInit, cptf, psiFactory );
-				if ( !decon.initWasSuccessful() )
-					return;
-				decon.setDebug( debug );
-				decon.setDebugInterval( debugInterval );
-				decon.runIterations();
-				psi = decon.getPSI();
-				debugImp = null;
-			}
+				decon = new MultiViewDeconvolutionSeq( views, numIterations, psiInit, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+
+			if ( !decon.initWasSuccessful() )
+				return;
+			decon.setDebug( debug );
+			decon.setDebugInterval( debugInterval );
+			decon.runIterations();
+			psi = decon.getPSI();
+			debugImp = decon.getDebugImage();
 
 			ImagePlus imp = DisplayImage.getImagePlusInstance( psi, false, "Deconvolved", Double.NaN, Double.NaN );
 			imp.getCalibration().xOrigin = -(boundingBox.min( 0 ) / downsampling);

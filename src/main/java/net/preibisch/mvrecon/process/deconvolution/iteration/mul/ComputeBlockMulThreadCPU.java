@@ -36,7 +36,6 @@ import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread.IterationStatistics;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import util.FFTConvolution;
@@ -98,7 +97,7 @@ public class ComputeBlockMulThreadCPU extends ComputeBlockMulThreadAbstract
 		// [psi >> tmp1]
 		//
 		for ( int i = 0; i < numViews; ++i )
-			convolve1( psiBlockTmp, kernel1.get( i ), view.get( i ).getPSF().getKernel1FFT(), tmp1.get( i ) );
+			convolve1( getPsiBlockTmp(), kernel1.get( i ), view.get( i ).getPSF().getKernel1FFT(), tmp1.get( i ) );
 
 		//
 		// compute quotient img/psiBlurred
@@ -162,11 +161,11 @@ public class ComputeBlockMulThreadCPU extends ComputeBlockMulThreadAbstract
 					DeconvolutionMethods.computeFinalValuesMul(
 							portion.getStartPosition(),
 							portion.getLoopSize(),
-							psiBlockTmp,
+							getPsiBlockTmp(),
 							tmp2,
 							weightBlock,
 							lambda,
-							minValue,
+							getMinValue(),
 							miv,
 							sumMax[ portionId ] );
 					return null;

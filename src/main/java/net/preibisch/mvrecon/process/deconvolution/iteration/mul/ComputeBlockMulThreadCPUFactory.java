@@ -27,8 +27,9 @@ import java.util.concurrent.ExecutorService;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
+import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 
-public class ComputeBlockMulThreadCPUFactory implements ComputeBlockMulThreadFactory
+public class ComputeBlockMulThreadCPUFactory implements ComputeBlockThreadFactory< ComputeBlockMulThread >
 {
 	final ExecutorService service;
 	final float minValue;
