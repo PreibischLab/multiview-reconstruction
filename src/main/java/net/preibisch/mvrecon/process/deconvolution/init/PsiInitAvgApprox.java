@@ -25,22 +25,17 @@ package net.preibisch.mvrecon.process.deconvolution.init;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import mpicbg.spim.io.IOFunctions;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.RealSum;
-import net.preibisch.mvrecon.fiji.ImgLib2Temp.Triple;
+import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
-public class PsiInitializationAvgPrecise implements PsiInitialization
+public class PsiInitAvgApprox implements PsiInit
 {
 	double avg = -1;
 	float[] max = null;
@@ -54,33 +49,25 @@ public class PsiInitializationAvgPrecise implements PsiInitialization
 		this.max = new float[ views.size() ];
 
 		// split up into many parts for multithreading
-		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( psi.size() );
-		final ArrayList< Callable< Triple< RealSum, Long, float[] > > > tasks = new ArrayList< Callable< Triple< RealSum, Long, float[] > > >();
+		final ArrayList< Callable< Pair< double[], Integer > > > tasks = new ArrayList<>();
 
-		final ArrayList< RandomAccessibleInterval< FloatType > > imgs = new ArrayList< RandomAccessibleInterval< FloatType > >();
+		for ( int i = 0; i < views.size(); ++i )
+			tasks.add( new PsiInitAvgApproxThread( views.get( i ), i ) );
 
-		for ( final DeconView mvdecon : views )
-			imgs.add( mvdecon.getImage() );
-
-		for ( final ImagePortion portion : portions )
-			tasks.add( new PsiInitializationAvgPreciseThread( portion, psi, imgs ) );
-
-		final RealSum s = new RealSum();
-		long count = 0;
+		double avg = 0;
 
 		try
 		{
 			// invokeAll() returns when all tasks are complete
-			final List< Future< Triple< RealSum, Long, float[] > > > imgIntensities = service.invokeAll( tasks );
+			final List< Future< Pair< double[], Integer > > > imgIntensities = service.invokeAll( tasks );
 
-			for ( final Future< Triple< RealSum, Long, float[] >  > future : imgIntensities )
+			for ( final Future< Pair< double[], Integer > > future : imgIntensities )
 			{
-				s.add( future.get().getA().getSum() );
-				count += future.get().getB().longValue();
+				final Pair< double[], Integer > f = future.get();
+				final double[] minMaxAvg = f.getA();
 
-				if ( max != null )
-					for ( int i = 0; i < max.length; ++i )
-						max[ i ] = Math.max( max[ i ], future.get().getC()[ i ] );
+				avg += minMaxAvg[ 2 ];
+				max[ f.getB() ] = (float)minMaxAvg[ 1 ];
 			}
 		}
 		catch ( final Exception e )
@@ -90,7 +77,7 @@ public class PsiInitializationAvgPrecise implements PsiInitialization
 			return false;
 		}
 
-		avg = s.getSum() / (double)count;
+		avg /= (double)max.length;
 
 		if ( Double.isNaN( avg ) )
 		{

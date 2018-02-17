@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.fusion;
 import java.awt.Choice;
 import java.awt.Label;
 import java.awt.TextField;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -59,9 +61,14 @@ import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDAFourierConvolution;
 import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
-import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApproxFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPreciseFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFusedFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFromFileFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
@@ -126,7 +133,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static String[] psiInitChoice = new String[]{
 			"Blurred, fused image (suggested, higher compute effort)",
 			"Average intensity (higer compute effort)",
-			"Approximated average intensity (fast option)", };
+			"Approximated average intensity (fast option)",
+			"From TIFF file (dimensions must match bounding box)" };
 
 	public static String[] splittingTypes = new String[]{
 			"Each timepoint & channel",
@@ -162,6 +170,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static boolean defaultGroupIllums = true;
 	public static int defaultSplittingType = 0;
 	public static int defaultImgExportAlgorithm = 0;
+	public static String defaultPsiStartFile = "";
+	public static boolean defaultPreciseAvgMax = true;
 
 
 	protected int boundingBox = defaultBB;
@@ -197,7 +207,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	protected int splittingType = defaultSplittingType;
 	protected int imgExport = defaultImgExportAlgorithm;
 	protected long[] maxBlock = null;
-	
+	protected String psiStartFile = "";
+	protected boolean preciseAvgMax = true;
+
 	final protected SpimData2 spimData;
 	final List< ViewId > views;
 	final List< BoundingBox > allBoxes;
@@ -270,7 +282,6 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public ImgDataType getInputImgCacheType() { return ImgDataType.values()[ cacheTypeInputImg ]; }
 	public ImgDataType getWeightCacheType() { return ImgDataType.values()[ cacheTypeWeights ]; }
 	public PSFTYPE getPSFType() { return PSFTYPE.values()[ psfType ]; }
-	public PsiInit getPsiInitType() { return PsiInit.values()[ psiInit ]; }
 	public double getOSEMSpeedUp() { return osemSpeedup; }
 	public int getNumIterations() { return numIterations; }
 	public boolean getDebugMode() { return debugMode; }
@@ -292,6 +303,19 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
 	public boolean groupTiles() { return groupTiles; }
 	public boolean groupIllums() { return groupIllums; }
+	public PsiInitFactory getPsiInitFactory()
+	{
+		final PsiInitType psiInitType = PsiInitType.values()[ psiInit ];
+
+		if ( psiInitType == PsiInitType.FUSED_BLURRED )
+			return new PsiInitBlurredFusedFactory();
+		else if ( psiInitType == PsiInitType.AVG )
+			return new PsiInitAvgPreciseFactory();
+		else if ( psiInitType == PsiInitType.APPROX_AVG )
+			return new PsiInitAvgApproxFactory();
+		else
+			return new PsiInitFromFileFactory( new File( psiStartFile ), preciseAvgMax );
+	}
 
 	@Override
 	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
@@ -408,6 +432,12 @@ public class DeconvolutionGUI implements FusionExportInterface
 			testEmptyBlocks = defaultTestEmptyBlocks;
 		}
 
+		if ( PsiInitType.values()[ psiInit ] == PsiInitType.FROM_FILE )
+		{
+			if ( !getPsiFile() )
+				return false;
+		}
+
 		if ( !getDebug() )
 			return false;
 
@@ -431,7 +461,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 		IOFunctions.println( "Weight Cache Type: " + FusionTools.imgDataTypeChoice[ getWeightCacheType().ordinal() ] );
 		IOFunctions.println( "Multiplicative iterations: " + mul );
 		IOFunctions.println( "PSF Type: " + psfTypeChoice[ getPSFType().ordinal() ] );
-		IOFunctions.println( "Psi Init: " + psiInitChoice[ getPsiInitType().ordinal() ] );
+		IOFunctions.println( "Psi Init: " + psiInitChoice[ psiInit ] );
 		IOFunctions.println( "OSEMSpeedup: " + osemSpeedup );
 		IOFunctions.println( "Num Iterations: " + numIterations );
 		IOFunctions.println( "Debug Mode: " + debugMode );
@@ -500,6 +530,23 @@ public class DeconvolutionGUI implements FusionExportInterface
 		}
 
 		return psfs;
+	}
+
+	protected boolean getPsiFile()
+	{
+		GenericDialogPlus gd = new GenericDialogPlus( "Select PSI init file" );
+		gd.addFileField( "PSI_file", defaultPsiStartFile, 80 );
+		gd.addCheckbox( "Precise avg & max computation from input", defaultPreciseAvgMax );
+
+		gd.showDialog();
+
+		if ( gd.wasCanceled() )
+			return false;
+
+		defaultPsiStartFile = psiStartFile = gd.getNextString();
+		defaultPreciseAvgMax = preciseAvgMax = gd.getNextBoolean();
+
+		return true;
 	}
 
 	protected boolean getDebug()

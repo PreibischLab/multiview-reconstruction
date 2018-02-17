@@ -47,11 +47,11 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitialization;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitializationAvgApprox;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitializationAvgPrecise;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitializationBlurredFused;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApprox;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPrecise;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFused;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
@@ -165,7 +165,7 @@ public class TestDeconvolution
 		final float lambda = 0.0006f;
 		final PSFTYPE psfType = PSFTYPE.INDEPENDENT;
 		final boolean filterBlocksForContent = true;
-		final PsiInit psiInitType = PsiInit.FUSED_BLURRED;
+		final PsiInitType psiInitType = PsiInitType.FUSED_BLURRED;
 		final boolean debug = true;
 		final int debugInterval = 1;
 
@@ -180,14 +180,14 @@ public class TestDeconvolution
 					blockSize,
 					blockFactory );
 
-			final PsiInitialization psiInit;
+			final PsiInit psiInit;
 
-			if ( psiInitType == PsiInit.FUSED_BLURRED )
-				psiInit = new PsiInitializationBlurredFused();
-			else if ( psiInitType == PsiInit.AVG )
-				psiInit = new PsiInitializationAvgPrecise();
+			if ( psiInitType == PsiInitType.FUSED_BLURRED )
+				psiInit = new PsiInitBlurredFused();
+			else if ( psiInitType == PsiInitType.AVG )
+				psiInit = new PsiInitAvgPrecise();
 			else
-				psiInit = new PsiInitializationAvgApprox();
+				psiInit = new PsiInitAvgApprox();
 
 			if ( filterBlocksForContent )
 				IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting up blocks for deconvolution and testing for empty ones that can be dropped." );

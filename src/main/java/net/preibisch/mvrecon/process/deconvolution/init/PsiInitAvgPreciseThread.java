@@ -34,7 +34,6 @@ import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Triple;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValueTriple;
-import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
 /**
@@ -42,7 +41,7 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
  *
  * @author Stephan Preibisch (stephan.preibisch@gmx.de)
  */
-public class PsiInitializationBlurredFusedThread implements Callable< Triple< RealSum, Long, float[] > >
+public class PsiInitAvgPreciseThread implements Callable< Triple< RealSum, Long, float[] > >
 {
 	final ImagePortion portion;
 	final RandomAccessibleInterval< FloatType > psi;
@@ -55,7 +54,7 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 
 	boolean compatibleIteration;
 
-	public PsiInitializationBlurredFusedThread(
+	public PsiInitAvgPreciseThread(
 			final ImagePortion portion,
 			final RandomAccessibleInterval< FloatType > psi,
 			final ArrayList< RandomAccessibleInterval< FloatType > > imgs )
@@ -85,9 +84,6 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 	@Override
 	public Triple< RealSum, Long, float[] > call()
 	{
-		final Cursor< FloatType > psiCursor = psiIterable.localizingCursor();
-		psiCursor.jumpFwd( portion.getStartPosition() );
-
 		final int m = iterableImgs.size();
 		long count = 0;
 
@@ -107,11 +103,14 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 			}
 
 			for ( int j = 0; j < portion.getLoopSize(); ++j )
-				if ( compatibleLoop( psiCursor, cursorImgs, max, realSum, m ) > 0 )
+				if ( compatibleLoop( cursorImgs, max, realSum, m ) > 0 )
 					++count;
 		}
 		else
 		{
+			final Cursor< FloatType > psiCursor = psiIterable.localizingCursor();
+			psiCursor.jumpFwd( portion.getStartPosition() );
+
 			final ArrayList< RandomAccess< FloatType > > randomAccessImgs = new ArrayList< RandomAccess< FloatType > >();
 
 			for ( final RandomAccessibleInterval< FloatType > img : imgs )
@@ -126,7 +125,6 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 	}
 
 	private static final int compatibleLoop(
-			final Cursor< FloatType > psiCursor,
 			final ArrayList< Cursor< FloatType > > cursorImgs,
 			final float[] max,
 			final RealSum realSum,
@@ -151,11 +149,6 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 		{
 			final double i = sum / count;
 			realSum.add( i );
-			psiCursor.next().set( (float)i ); // has fused data from n views
-		}
-		else
-		{
-			psiCursor.next().set( MultiViewDeconvolution.minValue ); // minimal deconvolution value
 		}
 
 		return count;
@@ -168,7 +161,7 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 			final RealSum realSum,
 			final int m )
 	{
-		final FloatType p = psiCursor.next();
+		psiCursor.fwd();
 		double sum = 0;
 		int count = 0;
 
@@ -191,11 +184,6 @@ public class PsiInitializationBlurredFusedThread implements Callable< Triple< Re
 		{
 			final double i = sum / count;
 			realSum.add( i );
-			p.set( (float)i ); // has fused data from n views
-		}
-		else
-		{
-			p.set( 0 ); // minimal deconvolution value
 		}
 
 		return count;

@@ -13,24 +13,28 @@ import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
-public class PsiInitializationFromFile implements PsiInitialization
+public class PsiInitFromFile implements PsiInit
 {
 	final File psiStartFile;
-	PsiInitialization init2; // for max and avg
+	PsiInit init2; // for max and avg
 
-	public PsiInitializationFromFile( final File psiStartFile, final boolean precise )
+	/**
+	 * @param psiStartFile - what is used as init for the deconvolved image (loaded from disc)
+	 * @param precise - if avg and max[] of input are computed approximately or precise
+	 */
+	public PsiInitFromFile( final File psiStartFile, final boolean precise )
 	{
 		this.psiStartFile = psiStartFile;
 
 		if ( precise )
 		{
-			final PsiInitializationAvgPrecise init2 = new PsiInitializationAvgPrecise();
+			final PsiInitAvgPrecise init2 = new PsiInitAvgPrecise();
 			init2.setImgToAvg( false );
 			this.init2 = init2;
 		}
 		else
 		{
-			final PsiInitializationAvgApprox init2 = new PsiInitializationAvgApprox();
+			final PsiInitAvgApprox init2 = new PsiInitAvgApprox();
 			init2.setImgToAvg( false );
 			this.init2 = init2;
 		}

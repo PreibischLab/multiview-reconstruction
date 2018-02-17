@@ -34,14 +34,14 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 
-public class PsiInitializationAvgApproxThread implements Callable< Pair< double[], Integer > >
+public class PsiInitAvgApproxThread implements Callable< Pair< double[], Integer > >
 {
 	final DeconView mvdecon;
 	final int listId;
 	final int numPixels;
 	final Random rnd;
 
-	public PsiInitializationAvgApproxThread( final DeconView mvdecon, final int listId, final int numPixels )
+	public PsiInitAvgApproxThread( final DeconView mvdecon, final int listId, final int numPixels )
 	{
 		this.mvdecon = mvdecon;
 		this.listId = listId;
@@ -49,7 +49,7 @@ public class PsiInitializationAvgApproxThread implements Callable< Pair< double[
 		this.rnd = new Random( 34556 + listId ); // not the same pseudo-random numbers for each thread
 	}
 
-	public PsiInitializationAvgApproxThread( final DeconView mvdecon, final int listId )
+	public PsiInitAvgApproxThread( final DeconView mvdecon, final int listId )
 	{
 		this( mvdecon, listId, 1000 );
 	}

@@ -40,7 +40,7 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.cuda.Block;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread.IterationStatistics;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitialization;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThread;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -50,7 +50,7 @@ public class MultiViewDeconvolutionMul extends MultiViewDeconvolution< ComputeBl
 	public MultiViewDeconvolutionMul(
 			final DeconViews views,
 			final int numIterations,
-			final PsiInitialization psiInit,
+			final PsiInit psiInit,
 			final ComputeBlockThreadFactory< ComputeBlockMulThread > computeBlockFactory,
 			final ImgFactory< FloatType > psiFactory )
 	{
