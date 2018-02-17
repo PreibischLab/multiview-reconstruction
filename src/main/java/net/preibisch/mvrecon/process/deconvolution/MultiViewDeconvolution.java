@@ -36,9 +36,9 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.process.cuda.Block;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitialization;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 
 public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
