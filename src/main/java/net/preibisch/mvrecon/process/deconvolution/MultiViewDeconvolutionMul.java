@@ -39,8 +39,8 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.cuda.Block;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread.IterationStatistics;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThread;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -50,11 +50,11 @@ public class MultiViewDeconvolutionMul extends MultiViewDeconvolution< ComputeBl
 	public MultiViewDeconvolutionMul(
 			final DeconViews views,
 			final int numIterations,
-			final PsiInit psiInit,
+			final PsiInitFactory psiInitFactory,
 			final ComputeBlockThreadFactory< ComputeBlockMulThread > computeBlockFactory,
 			final ImgFactory< FloatType > psiFactory )
 	{
-		super( views, numIterations, psiInit, computeBlockFactory, psiFactory );
+		super( views, numIterations, psiInitFactory, computeBlockFactory, psiFactory );
 	}
 
 	public boolean initWasSuccessful()

@@ -37,6 +37,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.process.cuda.Block;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -88,7 +89,7 @@ public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
 	public MultiViewDeconvolution(
 			final DeconViews views,
 			final int numIterations,
-			final PsiInit psiInit,
+			final PsiInitFactory psiInitFactory,
 			final ComputeBlockThreadFactory< C > computeBlockFactory,
 			final ImgFactory< FloatType > psiFactory )
 	{
@@ -108,7 +109,11 @@ public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
 		for ( int i = 0; i < computeBlockFactory.numParallelBlocks(); ++i )
 			computeBlockThreads.add( computeBlockFactory.create( i ) );
 
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Inititalizing PSI image using '" + psiInit.getClass().getSimpleName() + "'" );
+		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Inititalizing PSI image using '" + psiInitFactory.getClass().getSimpleName() + "'" );
+
+		final PsiInit psiInit = psiInitFactory.createPsiInitialization();
+
+		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Running PSI image '" + psiInit.getClass().getSimpleName() + "'" );
 
 		if ( !psiInit.runInitialization( psi, views.getViews(), views.getExecutorService() ) )
 		{

@@ -49,15 +49,15 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApprox;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPrecise;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFused;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionMul;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApproxFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPreciseFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFusedFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
@@ -180,15 +180,17 @@ public class TestDeconvolutionMul
 						blockSize,
 						blockFactory );
 			}
-			
-			final PsiInit psiInit;
+
+			final PsiInitFactory psiInitFactory;
 
 			if ( psiInitType == PsiInitType.FUSED_BLURRED )
-				psiInit = new PsiInitBlurredFused();
+				psiInitFactory = new PsiInitBlurredFusedFactory();
 			else if ( psiInitType == PsiInitType.AVG )
-				psiInit = new PsiInitAvgPrecise();
+				psiInitFactory = new PsiInitAvgPreciseFactory();
+			else if ( psiInitType == PsiInitType.APPROX_AVG )
+				psiInitFactory = new PsiInitAvgApproxFactory();
 			else
-				psiInit = new PsiInitAvgApprox();
+				throw new RuntimeException( "PsiInitFactory '" + psiInitType + "' needs more parameters, please add the code." );
 
 			if ( filterBlocksForContent )
 				IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting up blocks for deconvolution and testing for empty ones that can be dropped." );
@@ -224,9 +226,9 @@ public class TestDeconvolutionMul
 			final MultiViewDeconvolution< ? > decon;
 
 			if ( mul )
-				decon = new MultiViewDeconvolutionMul( views, numIterations, psiInit, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
+				decon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
 			else
-				decon = new MultiViewDeconvolutionSeq( views, numIterations, psiInit, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+				decon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
 
 			if ( !decon.initWasSuccessful() )
 				return;

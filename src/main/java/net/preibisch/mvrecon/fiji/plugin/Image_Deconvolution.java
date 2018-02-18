@@ -48,11 +48,6 @@ import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionMul;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInit;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApprox;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPrecise;
-import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFused;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
@@ -225,11 +220,11 @@ public class Image_Deconvolution implements PlugIn
 				if ( mul )
 				{
 					((ComputeBlockMulThreadCPUFactory)cptf).setNumViews( deconVirtualViews.size() );
-					mvDecon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory.createPsiInitialization(), (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
+					mvDecon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
 				}
 				else
 				{
-					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory.createPsiInitialization(), (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
 				}
 
 				if ( !mvDecon.initWasSuccessful() )
