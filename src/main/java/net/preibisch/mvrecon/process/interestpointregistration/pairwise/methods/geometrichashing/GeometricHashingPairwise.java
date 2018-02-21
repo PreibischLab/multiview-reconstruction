@@ -62,7 +62,9 @@ public class GeometricHashingPairwise< I extends InterestPoint > implements Matc
 		for ( final I i : listBIn )
 			listB.add( i );
 
-		if ( listA.size() < 4 || listB.size() < 4 )
+		final int minPoints = 3 + gp.getRedundancy() + 1;
+
+		if ( listA.size() < minPoints || listB.size() < minPoints )
 		{
 			result.setResult( System.currentTimeMillis(), "Not enough detections to match" );
 			result.setCandidates( new ArrayList< PointMatchGeneric< I > >() );
