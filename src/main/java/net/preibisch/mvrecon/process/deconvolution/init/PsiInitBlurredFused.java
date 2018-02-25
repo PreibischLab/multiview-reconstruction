@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.init;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,19 +42,19 @@ import net.preibisch.mvrecon.process.deconvolution.util.FusedNonZeroRandomAccess
 import net.preibisch.mvrecon.process.deconvolution.util.FusedNonZeroRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
-public class PsiInitializationBlurredFused implements PsiInitialization
+public class PsiInitBlurredFused implements PsiInit
 {
 	final double sigma;
 
 	double avg = -1;
 	float[] max = null;
 
-	public PsiInitializationBlurredFused( final double sigma )
+	public PsiInitBlurredFused( final double sigma )
 	{
 		this.sigma = sigma;
 	}
 
-	public PsiInitializationBlurredFused()
+	public PsiInitBlurredFused()
 	{
 		this( 5.0 );
 	}

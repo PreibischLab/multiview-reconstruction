@@ -22,8 +22,8 @@
  */
 package net.preibisch.mvrecon.process.deconvolution.iteration;
 
-public interface ComputeBlockThreadFactory
+public interface ComputeBlockThreadFactory< C extends ComputeBlockThread >
 {
-	public ComputeBlockThread create( final int id );
+	public C create( final int id );
 	public int numParallelBlocks();
 }

@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.init;
 
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
@@ -34,6 +34,7 @@ import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Triple;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValueTriple;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
 /**
@@ -41,7 +42,7 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
  *
  * @author Stephan Preibisch (stephan.preibisch@gmx.de)
  */
-public class PsiInitializationAvgPreciseThread implements Callable< Triple< RealSum, Long, float[] > >
+public class PsiInitBlurredFusedThread implements Callable< Triple< RealSum, Long, float[] > >
 {
 	final ImagePortion portion;
 	final RandomAccessibleInterval< FloatType > psi;
@@ -54,7 +55,7 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 
 	boolean compatibleIteration;
 
-	public PsiInitializationAvgPreciseThread(
+	public PsiInitBlurredFusedThread(
 			final ImagePortion portion,
 			final RandomAccessibleInterval< FloatType > psi,
 			final ArrayList< RandomAccessibleInterval< FloatType > > imgs )
@@ -84,6 +85,9 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 	@Override
 	public Triple< RealSum, Long, float[] > call()
 	{
+		final Cursor< FloatType > psiCursor = psiIterable.localizingCursor();
+		psiCursor.jumpFwd( portion.getStartPosition() );
+
 		final int m = iterableImgs.size();
 		long count = 0;
 
@@ -103,14 +107,11 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 			}
 
 			for ( int j = 0; j < portion.getLoopSize(); ++j )
-				if ( compatibleLoop( cursorImgs, max, realSum, m ) > 0 )
+				if ( compatibleLoop( psiCursor, cursorImgs, max, realSum, m ) > 0 )
 					++count;
 		}
 		else
 		{
-			final Cursor< FloatType > psiCursor = psiIterable.localizingCursor();
-			psiCursor.jumpFwd( portion.getStartPosition() );
-
 			final ArrayList< RandomAccess< FloatType > > randomAccessImgs = new ArrayList< RandomAccess< FloatType > >();
 
 			for ( final RandomAccessibleInterval< FloatType > img : imgs )
@@ -125,6 +126,7 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 	}
 
 	private static final int compatibleLoop(
+			final Cursor< FloatType > psiCursor,
 			final ArrayList< Cursor< FloatType > > cursorImgs,
 			final float[] max,
 			final RealSum realSum,
@@ -149,6 +151,11 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 		{
 			final double i = sum / count;
 			realSum.add( i );
+			psiCursor.next().set( (float)i ); // has fused data from n views
+		}
+		else
+		{
+			psiCursor.next().set( MultiViewDeconvolution.minValue ); // minimal deconvolution value
 		}
 
 		return count;
@@ -161,7 +168,7 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 			final RealSum realSum,
 			final int m )
 	{
-		psiCursor.fwd();
+		final FloatType p = psiCursor.next();
 		double sum = 0;
 		int count = 0;
 
@@ -184,6 +191,11 @@ public class PsiInitializationAvgPreciseThread implements Callable< Triple< Real
 		{
 			final double i = sum / count;
 			realSum.add( i );
+			p.set( (float)i ); // has fused data from n views
+		}
+		else
+		{
+			p.set( 0 ); // minimal deconvolution value
 		}
 
 		return count;

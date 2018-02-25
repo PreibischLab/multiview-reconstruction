@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.fusion;
 import java.awt.Choice;
 import java.awt.Label;
 import java.awt.TextField;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -59,12 +61,18 @@ import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDAFourierConvolution;
 import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
-import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadCPUFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadCUDAFactory;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApproxFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPreciseFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFusedFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFromFileFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCUDAFactory;
 import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
@@ -125,7 +133,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static String[] psiInitChoice = new String[]{
 			"Blurred, fused image (suggested, higher compute effort)",
 			"Average intensity (higer compute effort)",
-			"Approximated average intensity (fast option)", };
+			"Approximated average intensity (fast option)",
+			"From TIFF file (dimensions must match bounding box)" };
 
 	public static String[] splittingTypes = new String[]{
 			"Each timepoint & channel",
@@ -137,6 +146,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static int defaultInputImgCacheType = 1;
 	public static int defaultWeightCacheType = 1;
 	public static double defaultDownsampling = 1.0;
+	public static boolean defaultMul = false;
 	public static int defaultPSFType = 1;
 	public static int defaultPsiInit = 0;
 	public static double defaultOsemSpeedup = 1;
@@ -160,10 +170,13 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static boolean defaultGroupIllums = true;
 	public static int defaultSplittingType = 0;
 	public static int defaultImgExportAlgorithm = 0;
+	public static String defaultPsiStartFile = "";
+	public static boolean defaultPreciseAvgMax = true;
 
 
 	protected int boundingBox = defaultBB;
 	protected double downsampling = defaultDownsampling;
+	protected boolean mul = defaultMul;
 	protected int cacheTypeInputImg = defaultInputImgCacheType;
 	protected int cacheTypeWeights = defaultWeightCacheType;
 	protected int psfType = defaultPSFType;
@@ -184,7 +197,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	protected ImgFactory< FloatType > psiFactory = null;
 	protected ImgFactory< FloatType > copyFactory = null;
 	protected ImgFactory< FloatType > blockFactory = new ArrayImgFactory<>();
-	protected ComputeBlockThreadFactory computeFactory = null;
+	protected ComputeBlockThreadFactory< ? > computeFactory = null;
 	protected boolean adjustBlending = defaultAdjustBlending;
 	protected float blendingRange = defaultBlendingRange;
 	protected float blendingBorder = defaultBlendingBorder;
@@ -194,7 +207,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	protected int splittingType = defaultSplittingType;
 	protected int imgExport = defaultImgExportAlgorithm;
 	protected long[] maxBlock = null;
-	
+	protected String psiStartFile = "";
+	protected boolean preciseAvgMax = true;
+
 	final protected SpimData2 spimData;
 	final List< ViewId > views;
 	final List< BoundingBox > allBoxes;
@@ -267,7 +282,6 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public ImgDataType getInputImgCacheType() { return ImgDataType.values()[ cacheTypeInputImg ]; }
 	public ImgDataType getWeightCacheType() { return ImgDataType.values()[ cacheTypeWeights ]; }
 	public PSFTYPE getPSFType() { return PSFTYPE.values()[ psfType ]; }
-	public PsiInit getPsiInitType() { return PsiInit.values()[ psiInit ]; }
 	public double getOSEMSpeedUp() { return osemSpeedup; }
 	public int getNumIterations() { return numIterations; }
 	public boolean getDebugMode() { return debugMode; }
@@ -282,12 +296,26 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public ImgFactory< FloatType > getBlockFactory() { return blockFactory; }
 	public ImgFactory< FloatType > getPsiFactory() { return psiFactory; }
 	public ImgFactory< FloatType > getCopyFactory() { return copyFactory; }
-	public ComputeBlockThreadFactory getComputeBlockThreadFactory() { return computeFactory; }
+	public ComputeBlockThreadFactory< ? > getComputeBlockThreadFactory() { return computeFactory; }
+	public boolean isMultiplicative() { return mul; } //TODO: maybe this actually multiplicative (cannot remove remove blocks, psf must be the same size)
 	public float getBlendingRange() { return blendingRange; }
 	public float getBlendingBorder() { return blendingBorder; }
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
 	public boolean groupTiles() { return groupTiles; }
 	public boolean groupIllums() { return groupIllums; }
+	public PsiInitFactory getPsiInitFactory()
+	{
+		final PsiInitType psiInitType = PsiInitType.values()[ psiInit ];
+
+		if ( psiInitType == PsiInitType.FUSED_BLURRED )
+			return new PsiInitBlurredFusedFactory();
+		else if ( psiInitType == PsiInitType.AVG )
+			return new PsiInitAvgPreciseFactory();
+		else if ( psiInitType == PsiInitType.APPROX_AVG )
+			return new PsiInitAvgApproxFactory();
+		else
+			return new PsiInitFromFileFactory( new File( psiStartFile ), preciseAvgMax );
+	}
 
 	@Override
 	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
@@ -321,8 +349,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		gd.addMessage( "" );
 
-		gd.addChoice( "Type_of_iteration", psfTypeChoice, psfTypeChoice[ defaultPSFType ] );
 		gd.addChoice( "Initialize_with", psiInitChoice, psiInitChoice[ defaultPsiInit ] );
+		gd.addChoice( "Type_of_iteration", psfTypeChoice, psfTypeChoice[ defaultPSFType ] );
+		gd.addCheckbox( "Fast_sequential_iterations (OSEM)", !defaultMul );
 		gd.addNumericField( "OSEM_acceleration", defaultOsemSpeedup, 1 );
 		gd.addNumericField( "Number_of_iterations", defaultNumIterations, 0 );
 		gd.addCheckbox( "Debug_mode", defaultDebugMode );
@@ -379,8 +408,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		cacheTypeInputImg = defaultInputImgCacheType = gd.getNextChoiceIndex();
 		cacheTypeWeights = defaultWeightCacheType = gd.getNextChoiceIndex();
-		psfType = defaultPSFType = gd.getNextChoiceIndex();
+		mul = defaultMul = !gd.getNextBoolean();
 		psiInit = defaultPsiInit = gd.getNextChoiceIndex();
+		psfType = defaultPSFType = gd.getNextChoiceIndex();
 		osemSpeedup = defaultOsemSpeedup = gd.getNextNumber();
 		numIterations = defaultNumIterations = (int)Math.round( gd.getNextNumber() );
 		debugMode = defaultDebugMode = gd.getNextBoolean();
@@ -391,6 +421,22 @@ public class DeconvolutionGUI implements FusionExportInterface
 		adjustBlending = defaultAdjustBlending = gd.getNextBoolean();
 		splittingType = defaultSplittingType = gd.getNextChoiceIndex();
 		imgExport = defaultImgExportAlgorithm = gd.getNextChoiceIndex();
+
+		if ( mul )
+		{
+			testEmptyBlocks = false;
+			osemSpeedup = 1.0;
+		}
+		else
+		{
+			testEmptyBlocks = defaultTestEmptyBlocks;
+		}
+
+		if ( PsiInitType.values()[ psiInit ] == PsiInitType.FROM_FILE )
+		{
+			if ( !getPsiFile() )
+				return false;
+		}
 
 		if ( !getDebug() )
 			return false;
@@ -413,8 +459,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 		IOFunctions.println( "Downsampled Bounding Box: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "Input Image Cache Type: " + FusionTools.imgDataTypeChoice[ getInputImgCacheType().ordinal() ] );
 		IOFunctions.println( "Weight Cache Type: " + FusionTools.imgDataTypeChoice[ getWeightCacheType().ordinal() ] );
+		IOFunctions.println( "Multiplicative iterations: " + mul );
 		IOFunctions.println( "PSF Type: " + psfTypeChoice[ getPSFType().ordinal() ] );
-		IOFunctions.println( "Psi Init: " + psiInitChoice[ getPsiInitType().ordinal() ] );
+		IOFunctions.println( "Psi Init: " + psiInitChoice[ psiInit ] );
 		IOFunctions.println( "OSEMSpeedup: " + osemSpeedup );
 		IOFunctions.println( "Num Iterations: " + numIterations );
 		IOFunctions.println( "Debug Mode: " + debugMode );
@@ -485,6 +532,23 @@ public class DeconvolutionGUI implements FusionExportInterface
 		return psfs;
 	}
 
+	protected boolean getPsiFile()
+	{
+		GenericDialogPlus gd = new GenericDialogPlus( "Select PSI init file" );
+		gd.addFileField( "PSI_file", defaultPsiStartFile, 80 );
+		gd.addCheckbox( "Precise avg & max computation from input", defaultPreciseAvgMax );
+
+		gd.showDialog();
+
+		if ( gd.wasCanceled() )
+			return false;
+
+		defaultPsiStartFile = psiStartFile = gd.getNextString();
+		defaultPreciseAvgMax = preciseAvgMax = gd.getNextBoolean();
+
+		return true;
+	}
+
 	protected boolean getDebug()
 	{
 		if ( debugMode )
@@ -532,10 +596,13 @@ public class DeconvolutionGUI implements FusionExportInterface
 					+ "too small or even negative effective blocksize (blocksize-2*kernelsize)", GUIHelper.smallStatusFont );
 			gd.addMessage( "" );
 
-			gd.addCheckbox( "Remove_empty_blocks", defaultTestEmptyBlocks );
-			gd.addMessage( "Note: if selected, all blocks of each virtual input view are scanned to test\n"
-					+ "if some of them are entirely empty. This takes some time, but if some are, it saves a lot.", GUIHelper.smallStatusFont );
-			gd.addMessage( "" );
+			if ( !mul )
+			{
+				gd.addCheckbox( "Remove_empty_blocks", defaultTestEmptyBlocks );
+				gd.addMessage( "Note: if selected, all blocks of each virtual input view are scanned to test\n"
+						+ "if some of them are entirely empty. This takes some time, but if some are, it saves a lot.", GUIHelper.smallStatusFont );
+				gd.addMessage( "" );
+			}
 
 			gd.addNumericField( "Deconvolved_image_block_size", defaultPsiCopyBlockSize, 0 );
 			gd.addMessage( "Note: this values defines the block size for the deconvolved & copied images", GUIHelper.smallStatusFont );
@@ -558,7 +625,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 					defaultBlockSizeY = Math.max( 1, (int)Math.round( gd.getNextNumber() ) ),
 					defaultBlockSizeZ = Math.max( 1, (int)Math.round( gd.getNextNumber() ) ) };
 
-			this.testEmptyBlocks = defaultTestEmptyBlocks = gd.getNextBoolean();
+			if ( !mul )
+				this.testEmptyBlocks = defaultTestEmptyBlocks = gd.getNextBoolean();
 
 			this.psiCopyBlockSize = defaultPsiCopyBlockSize = Math.max( 1, (int)Math.round( gd.getNextNumber() ) );
 
@@ -578,9 +646,14 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 	protected boolean getComputeDevice()
 	{
-		if ( computeOnIndex == 0 )
+		if ( mul )
 		{
-			this.computeFactory = new ComputeBlockThreadCPUFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
+			// numViews is set later in Image_Deconvolution
+			this.computeFactory = new ComputeBlockMulThreadCPUFactory( service, -1, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
+		}
+		else if ( computeOnIndex == 0 )
+		{
+			this.computeFactory = new ComputeBlockSeqThreadCPUFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, blockFactory );
 		}
 		else if ( computeOnIndex == 1 )
 		{
@@ -606,7 +679,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 			for ( int devId = 0; devId < selectedDevices.size(); ++devId )
 				idToCudaDevice.put( devId, selectedDevices.get( devId ) );
 
-			this.computeFactory = new ComputeBlockThreadCUDAFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, cuda, idToCudaDevice );
+			this.computeFactory = new ComputeBlockSeqThreadCUDAFactory( service, MultiViewDeconvolution.minValue, getLambda(), blockSize, cuda, idToCudaDevice );
 		}
 		else
 		{

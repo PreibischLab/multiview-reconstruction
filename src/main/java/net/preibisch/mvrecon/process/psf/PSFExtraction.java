@@ -189,6 +189,11 @@ public class PSFExtraction< T extends RealType< T > & NativeType< T > >
 
 	public void removeMinProjections()
 	{
+		removeMinProjections( psf );
+	}
+
+	public static < T extends RealType< T > > void removeMinProjections( final Img< T > psf )
+	{
 		for ( int d = 0; d < psf.numDimensions(); ++d )
 		{
 			final Img< T > minProjection = PSFCombination.computeProjection( psf, d, false );

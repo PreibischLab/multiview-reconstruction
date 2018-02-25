@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.iteration.sequential;
 
 import java.util.ArrayList;
 import java.util.List;

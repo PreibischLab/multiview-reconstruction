@@ -43,15 +43,15 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
+import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
-import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionMul;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
+import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationAvgApprox;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationAvgPrecise;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitializationBlurredFused;
-import net.preibisch.mvrecon.process.deconvolution.iteration.PsiInitialization.PsiInit;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.ImgExport;
@@ -163,32 +163,28 @@ public class Image_Deconvolution implements PlugIn
 				fusion.copyNormalizedWeights( decon.getCopyFactory() );
 			}
 
-			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Grouping, and transforming PSF's " );
-
-			final HashMap< Group< ViewDescription >, ArrayImg< FloatType, ? > > psfs =
-					PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion );
-
 			final ImgFactory< FloatType > psiFactory = decon.getPsiFactory();
 			final int[] blockSize = decon.getComputeBlockSize();
 			final int numIterations = decon.getNumIterations();
 			final PSFTYPE psfType = decon.getPSFType();
-			final PsiInit psiInitType = decon.getPsiInitType();
 			final boolean filterBlocksForContent = decon.testEmptyBlocks();
 			final boolean debug = decon.getDebugMode();
 			final int debugInterval = decon.getDebugInterval();
-			final ComputeBlockThreadFactory cptf = decon.getComputeBlockThreadFactory();
+			final ComputeBlockThreadFactory< ? > cptf = decon.getComputeBlockThreadFactory();
+			final boolean mul = decon.isMultiplicative();
+			final PsiInitFactory psiInitFactory = decon.getPsiInitFactory();
+
+
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Grouping, and transforming PSF's " );
+
+			if ( mul )
+				IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Making all PSF's the same size to support multiplicative updates." );
+
+			final HashMap< Group< ViewDescription >, ArrayImg< FloatType, ? > > psfs =
+					PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion, mul );
 
 			try
 			{
-				final PsiInitialization psiInit;
-
-				if ( psiInitType == PsiInit.FUSED_BLURRED )
-					psiInit = new PsiInitializationBlurredFused();
-				else if ( psiInitType == PsiInit.AVG )
-					psiInit = new PsiInitializationAvgPrecise();
-				else
-					psiInit = new PsiInitializationAvgApprox();
-
 				if ( filterBlocksForContent )
 					IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting up blocks for deconvolution and testing for empty ones that can be dropped." );
 				else
@@ -219,7 +215,18 @@ public class Image_Deconvolution implements PlugIn
 
 				final DeconViews views = new DeconViews( deconViews, service );
 
-				final MultiViewDeconvolution mvDecon = new MultiViewDeconvolution( views, numIterations, psiInit, cptf, psiFactory );
+				final MultiViewDeconvolution< ? > mvDecon;
+
+				if ( mul )
+				{
+					((ComputeBlockMulThreadCPUFactory)cptf).setNumViews( deconVirtualViews.size() );
+					mvDecon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
+				}
+				else
+				{
+					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+				}
+
 				if ( !mvDecon.initWasSuccessful() )
 					return false;
 				mvDecon.setDebug( debug );

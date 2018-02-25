@@ -40,7 +40,8 @@ public class PSFPreparation
 {
 	public static < V extends ViewId > HashMap< Group< V >, ArrayImg< FloatType, ? > > loadGroupTransformPSFs(
 			final PointSpreadFunctions pointSpreadFunctions,
-			final ProcessInputImages< V > fusion )
+			final ProcessInputImages< V > fusion,
+			final boolean sameSizeForAll )
 	{
 		final HashMap< ViewId, PointSpreadFunction > rawPSFs = pointSpreadFunctions.getPointSpreadFunctions();
 		final HashMap< Group< V >, ArrayImg< FloatType, ? > > psfs = new HashMap<>();
@@ -67,6 +68,21 @@ public class PSFPreparation
 			psfs.put( virtualView, (ArrayImg< FloatType, ? >)PSFCombination.computeAverageImage( viewPsfs, new ArrayImgFactory< FloatType >(), false ) );
 
 			//DisplayImage.getImagePlusInstance( psfs.get( virtualView ), false, "psf " + virtualView, 0, 1 ).show();
+		}
+
+		if ( sameSizeForAll )
+		{
+			final long[] maxDim = new long[ psfs.values().iterator().next().numDimensions() ];
+
+			for ( final ArrayImg< FloatType, ? > psf : psfs.values() )
+				for ( int d = 0; d < maxDim.length; ++d )
+					maxDim[ d ] = Math.max( maxDim[ d ], psf.dimension( d ) );
+
+			for ( final Group< V > virtualView : psfs.keySet() )
+			{
+				final ArrayImg< FloatType, ? > psf = psfs.get( virtualView );
+				psfs.put( virtualView, (ArrayImg< FloatType, ? >)PSFCombination.makeSameSize( psf, maxDim ) );
+			}
 		}
 
 		return psfs;

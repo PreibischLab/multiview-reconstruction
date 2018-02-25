@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.init;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -29,9 +29,9 @@ import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 
-public interface PsiInitialization
+public interface PsiInit
 {
-	public enum PsiInit { FUSED_BLURRED, AVG, APPROX_AVG };
+	public enum PsiInitType { FUSED_BLURRED, AVG, APPROX_AVG, FROM_FILE, FROM_RAI };
 
 	public boolean runInitialization( final Img< FloatType > psi, final List< DeconView > views, final ExecutorService service );
 

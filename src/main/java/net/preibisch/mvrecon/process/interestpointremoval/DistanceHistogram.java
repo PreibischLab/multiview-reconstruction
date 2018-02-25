@@ -101,6 +101,9 @@ public class DistanceHistogram
 						ip.getL()[ 2 ] * voxelSize.dimension( 2 ) ) );
 			}
 
+			if ( list.size() < 2 )
+				continue;
+
 			// make the KDTree
 			final KDTree< RealPoint > tree = new KDTree< RealPoint >( list, list );
 

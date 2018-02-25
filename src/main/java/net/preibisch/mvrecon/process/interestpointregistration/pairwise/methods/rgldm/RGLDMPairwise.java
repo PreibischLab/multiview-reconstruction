@@ -38,6 +38,7 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 {
 	final RANSACParameters rp;
 	final RGLDMParameters dp;
+	boolean printResult = true;
 
 	public RGLDMPairwise(
 			final RANSACParameters rp,
@@ -47,10 +48,14 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 		this.dp = dp;
 	}
 
+	public void setPrintResult( final boolean printResult ) { this.printResult = printResult; }
+	public boolean printResult() { return printResult; }
+
 	@Override
 	public PairwiseResult< I > match( final List< I > listAIn, final List< I > listBIn )
 	{
 		final PairwiseResult< I > result = new PairwiseResult< I >( true );
+		result.setPrintOut( printResult );
 
 		final ArrayList< I > listA = new ArrayList< I >();
 		final ArrayList< I > listB = new ArrayList< I >();
@@ -61,7 +66,9 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 		for ( final I i : listBIn )
 			listB.add( i );
 
-		if ( listA.size() < 4 || listB.size() < 4 )
+		final int minPoints = dp.getNumNeighbors() + dp.getRedundancy() + 1;
+
+		if ( listA.size() < minPoints || listB.size() < minPoints )
 		{
 			result.setResult( System.currentTimeMillis(), "Not enough detections to match" );
 			result.setCandidates( new ArrayList< PointMatchGeneric< I > >() );

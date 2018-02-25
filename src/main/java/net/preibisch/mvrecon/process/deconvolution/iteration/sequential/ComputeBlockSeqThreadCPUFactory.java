@@ -20,15 +20,16 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.iteration.sequential;
 
 import java.util.concurrent.ExecutorService;
 
 import net.imglib2.img.ImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
+import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 
-public class ComputeBlockThreadCPUFactory implements ComputeBlockThreadFactory
+public class ComputeBlockSeqThreadCPUFactory implements ComputeBlockThreadFactory< ComputeBlockSeqThread >
 {
 	final ExecutorService service;
 	final float minValue;
@@ -36,7 +37,7 @@ public class ComputeBlockThreadCPUFactory implements ComputeBlockThreadFactory
 	final int[] blockSize;
 	final ImgFactory< FloatType > blockFactory;
 
-	public ComputeBlockThreadCPUFactory(
+	public ComputeBlockSeqThreadCPUFactory(
 			final ExecutorService service,
 			final float minValue,
 			final float lambda,
@@ -50,7 +51,7 @@ public class ComputeBlockThreadCPUFactory implements ComputeBlockThreadFactory
 		this.blockFactory = blockFactory;
 	}
 
-	public ComputeBlockThreadCPUFactory(
+	public ComputeBlockSeqThreadCPUFactory(
 			final ExecutorService service,
 			final float lambda,
 			final int[] blockSize,
@@ -64,9 +65,9 @@ public class ComputeBlockThreadCPUFactory implements ComputeBlockThreadFactory
 	}
 
 	@Override
-	public ComputeBlockThread create( final int id )
+	public ComputeBlockSeqThread create( final int id )
 	{
-		return new ComputeBlockThreadCPU( service, minValue, lambda, id, blockSize, blockFactory );
+		return new ComputeBlockSeqThreadCPU( service, minValue, lambda, id, blockSize, blockFactory );
 	}
 
 	@Override

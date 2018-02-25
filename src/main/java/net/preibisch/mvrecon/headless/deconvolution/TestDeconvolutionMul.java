@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
+import ij.CompositeImage;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -45,10 +46,12 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
+import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.DeconViewPSF.PSFTYPE;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
+import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionMul;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInit.PsiInitType;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgApproxFactory;
@@ -56,73 +59,57 @@ import net.preibisch.mvrecon.process.deconvolution.init.PsiInitAvgPreciseFactory
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInitBlurredFusedFactory;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
-import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThread;
+import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
-import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
-public class TestDeconvolution
+public class TestDeconvolutionMul
 {
 	public static void main( String[] args ) throws SpimDataException
 	{
 		new ImageJ();
 
-		SpimData2 spimData;
-		Collection< Group< ViewDescription > > groups = new ArrayList<>();
-
-		// generate 4 views with 1000 corresponding beads, single timepoint
-		spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
-		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
-
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		groups = selectViews( spimData.getSequenceDescription().getViewDescriptions().values() );
-		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
+		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "Z:/Betzig/dataset.xml" );
+		Collection< Group< ViewDescription > >groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		/*
-		final ArrayList< ViewDescription > two = new ArrayList<>();
-		two.add( spimData.getSequenceDescription().getViewDescriptions().get( new ViewId( 0,0 ) ) );
-		two.add( spimData.getSequenceDescription().getViewDescriptions().get( new ViewId( 0,1 ) ) );
-		groups = oneGroupPerView( two );
-		*/
-		testDeconvolution( spimData, groups, "My Bounding Box111" );
-		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges
-		// 
+		BoundingBox bb = BoundingBoxTools.maximalBoundingBox( spimData, new ArrayList<>( spimData.getSequenceDescription().getViewDescriptions().values() ), "All Views" );
+
+		testDeconvolution( spimData, groups, bb, true );
 	}
 
 	public static < V extends ViewId > void testDeconvolution(
 			final SpimData2 spimData,
-			final Collection< Group< V > > groups,
-			final String bbTitle )
+			final Collection< Group< V > > deconVirtualViews,
+			final BoundingBox boundingBox,
+			final boolean mul )
 	{
-		BoundingBox boundingBox = null;
-
-		for ( final BoundingBox bb : spimData.getBoundingBoxes().getBoundingBoxes() )
-			if ( bb.getTitle().equals( bbTitle ) )
-				boundingBox = bb;
-
 		if ( boundingBox == null )
 		{
-			System.out.println( "Bounding box '" + bbTitle + "' not found." );
+			System.out.println( "Bounding box null." );
 			return;
 		}
 
 		IOFunctions.println( BoundingBox.getBoundingBoxDescription( boundingBox ) );
 
+		for ( final Group< V > virtualView : deconVirtualViews )
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): " + Group.gvids( Group.getViewsSorted( virtualView.getViews() ) ) );
+
 		final double osemSpeedUp = 1.0;
-		final double downsampling = 3.0;
+		final double downsampling = 1.0;
 
 		final ProcessInputImages< V > fusion = new ProcessInputImages<>(
 				spimData,
-				groups,
+				deconVirtualViews,
 				boundingBox,
 				downsampling,
 				true,
@@ -132,7 +119,7 @@ public class TestDeconvolution
 				MultiViewDeconvolution.defaultBlendingRange,
 				MultiViewDeconvolution.defaultBlendingBorder / ( Double.isNaN( downsampling ) ? 1.0f : (float)downsampling ) );
 
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Virtual Fusion of groups " );
+		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Virtual Fusion of 'virtual views' " );
 		fusion.fuseGroups();
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Normalizing weights ... " );
@@ -150,7 +137,7 @@ public class TestDeconvolution
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Loading, grouping, and transforming PSF's " );
 
 		final HashMap< Group< V >, ArrayImg< FloatType, ? > > psfs =
-				PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion, false );
+				PSFPreparation.loadGroupTransformPSFs( spimData.getPointSpreadFunctions(), fusion, mul );
 
 		//final Img< FloatType > avgPSF = PSFCombination.computeAverageImage( psfs.values(), new ArrayImgFactory< FloatType >(), true );
 		//DisplayImage.getImagePlusInstance( Views.rotate( avgPSF, 0, 2 ), false, "avgPSF", 0, 1 ).show();
@@ -160,25 +147,39 @@ public class TestDeconvolution
 
 		final ImgFactory< FloatType > blockFactory = new ArrayImgFactory<>();
 		final ImgFactory< FloatType > psiFactory = new ArrayImgFactory<>();
-		final int[] blockSize = new int[]{ 128, 256, 256 };
-		final int numIterations = 1;
+		final int[] blockSize = new int[]{ 1024, 1024, 512 };
+		final int numIterations = 1000;
 		final float lambda = 0.0006f;
 		final PSFTYPE psfType = PSFTYPE.INDEPENDENT;
-		final boolean filterBlocksForContent = true;
+		final boolean filterBlocksForContent = false;
 		final PsiInitType psiInitType = PsiInitType.FUSED_BLURRED;
 		final boolean debug = true;
-		final int debugInterval = 1;
+		final int debugInterval = 10;
 
 		// one common ExecutorService for all
 		final ExecutorService service = DeconViews.createExecutorService();
 
 		try
 		{
-			final ComputeBlockThreadFactory< ComputeBlockSeqThread > cptf = new ComputeBlockSeqThreadCPUFactory(
-					service,
-					lambda,
-					blockSize,
-					blockFactory );
+			final ComputeBlockThreadFactory< ? > cptf;
+
+			if ( mul )
+			{
+				cptf = new ComputeBlockMulThreadCPUFactory(
+						service,
+						deconVirtualViews.size(),
+						lambda,
+						blockSize,
+						blockFactory );
+			}
+			else
+			{
+				cptf = new ComputeBlockSeqThreadCPUFactory(
+						service,
+						lambda,
+						blockSize,
+						blockFactory );
+			}
 
 			final PsiInitFactory psiInitFactory;
 
@@ -220,16 +221,24 @@ public class TestDeconvolution
 			}
 
 			final DeconViews views = new DeconViews( deconViews, service );
+			final Img< FloatType > psi;
+			final CompositeImage debugImp;
+			final MultiViewDeconvolution< ? > decon;
 
-			final MultiViewDeconvolution< ? > decon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, cptf, psiFactory );
+			if ( mul )
+				decon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
+			else
+				decon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+
 			if ( !decon.initWasSuccessful() )
 				return;
 			decon.setDebug( debug );
 			decon.setDebugInterval( debugInterval );
 			decon.runIterations();
-			
+			psi = decon.getPSI();
+			debugImp = decon.getDebugImage();
 
-			ImagePlus imp = DisplayImage.getImagePlusInstance( decon.getPSI(), false, "Deconvolved", Double.NaN, Double.NaN );
+			ImagePlus imp = DisplayImage.getImagePlusInstance( psi, false, "Deconvolved", Double.NaN, Double.NaN );
 			imp.getCalibration().xOrigin = -(boundingBox.min( 0 ) / downsampling);
 			imp.getCalibration().yOrigin = -(boundingBox.min( 1 ) / downsampling);
 			imp.getCalibration().zOrigin = -(boundingBox.min( 2 ) / downsampling);
@@ -237,6 +246,10 @@ public class TestDeconvolution
 			imp.show();
 
 			service.shutdown();
+
+			Save3dTIFF.saveTiffStack(imp, "Z:/Betzig/psi.tiff" );
+			if ( debugImp != null )
+				Save3dTIFF.saveTiffStack(debugImp, "Z:/Betzig/psi_debug.tiff" );
 		}
 		catch ( OutOfMemoryError oome )
 		{
@@ -298,38 +311,5 @@ public class TestDeconvolution
 				true,
 				"sum of all normed weights",
 				0, 1 ).show();
-	}
-
-	public static ArrayList< Group< ViewDescription > > selectViews( final Collection< ViewDescription > views )
-	{
-		final ArrayList< Group< ViewDescription > > groups = new ArrayList<>();
-
-		final Group< ViewDescription > angle0and180 = new Group<>();
-		final Group< ViewDescription > angle45and225 = new Group<>();
-		final Group< ViewDescription > angle90and270 = new Group<>();
-
-		for ( final ViewDescription vd : views )
-		{
-			final int angle = Integer.parseInt( vd.getViewSetup().getAngle().getName() );
-
-			if ( angle == 0 || angle == 180 )
-				angle0and180.getViews().add( vd );
-
-			if ( angle == 45 || angle == 225 )
-				angle45and225.getViews().add( vd );
-
-			if ( angle == 90 || angle == 270 )
-				angle90and270.getViews().add( vd );
-		}
-
-		groups.add( angle0and180 );
-		groups.add( angle45and225 );
-		groups.add( angle90and270 );
-
-		System.out.println( "Views remaining:" );
-		for ( final Group< ViewDescription > group : groups )
-			System.out.println( group );
-
-		return groups;
 	}
 }
