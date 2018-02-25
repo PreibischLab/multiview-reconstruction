@@ -48,7 +48,7 @@ public class BoundingBoxMaximal implements BoundingBoxEstimation
 
 	public BoundingBoxMaximal(
 			final Collection< ? extends ViewId > views,
-			final AbstractSpimData< ? extends AbstractSequenceDescription<?,? extends BasicViewDescription< ? >, ? extends ImgLoader > > data )
+			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > data )
 	{
 		this.views = new ArrayList<>();
 		this.dimensions = new HashMap<>();
