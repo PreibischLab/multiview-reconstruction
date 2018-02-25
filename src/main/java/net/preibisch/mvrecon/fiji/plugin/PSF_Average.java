@@ -48,8 +48,11 @@ public class PSF_Average implements PlugIn
 {
 	public static String[] averagingChoices = new String[] {
 			"Display only",
+			"Display only (remove Min Projections)",
 			"Assign to all input views",
-			"Display & assign to all input views"};
+			"Assign to all input views (remove Min Projections)",
+			"Display & assign to all input views",
+			"Display & assign to all input views (remove Min Projections)"};
 
 	public static int defaultAveraging = 0;
 
@@ -79,21 +82,26 @@ public class PSF_Average implements PlugIn
 		final GenericDialog gd = new GenericDialog( "Average PSF's" );
 
 		gd.addChoice( "Averaged PSF", averagingChoices, averagingChoices[ defaultAveraging ] );
+		gd.addCheckbox( "Remove_min_intensity_projections_from_PSF", PSF_Extract.defaultRemoveMinIntensity );
 		gd.addMessage( "Note: Assigning to all input views will overwrite previous PSF", GUIHelper.smallStatusFont );
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return false;
 
-		return average( spimData, viewIds, defaultAveraging = gd.getNextChoiceIndex() );
+		return average( spimData, viewIds, defaultAveraging = gd.getNextChoiceIndex(), PSF_Extract.defaultRemoveMinIntensity = gd.getNextBoolean() );
 	}
 
 	public static boolean average(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewIds,
-			final int choice )
+			final int choice,
+			final boolean subtractMinProjections )
 	{
 		final Img< FloatType > avgPSF = averagePSF( spimData, viewIds );
+
+		if ( subtractMinProjections )
+			PSFExtraction.removeMinProjections( avgPSF );
 
 		if ( choice == 0 || choice == 2 )
 			DisplayImage.getImagePlusInstance( avgPSF, false, "Averaged PSF", 0, 1 ).show();
