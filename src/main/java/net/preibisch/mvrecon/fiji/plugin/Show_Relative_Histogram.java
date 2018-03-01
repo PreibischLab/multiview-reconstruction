@@ -34,14 +34,11 @@ import mpicbg.spim.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointremoval.CreateFromCorrespondencesParameters;
-import net.preibisch.mvrecon.process.interestpointremoval.CreateInterestPointsFromCorrespondences;
+import net.preibisch.mvrecon.process.interestpointremoval.DistanceHistogram;
+import net.preibisch.mvrecon.process.interestpointremoval.RelativeDistanceHistogram;
 
-public class CreateFromCorresponding_Detections implements PlugIn
+public class Show_Relative_Histogram implements PlugIn
 {
-	public static int defaultLabel = -1;
-	public static String defaultNewLabel = "corresponding";
-
 	@Override
 	public void run( final String arg )
 	{
@@ -52,78 +49,83 @@ public class CreateFromCorresponding_Detections implements PlugIn
 
 		final SpimData2 data = xml.getData();
 
-		if ( !create( data, SpimData2.getAllViewIdsSorted( data, xml.getViewSetupsToProcess(), xml.getTimePointsToProcess() ) ) )
-			return;
-
-		// write new xml
-		SpimData2.saveXML( data, xml.getXMLFileName(), xml.getClusterExtension() );
+		plotHistogram( data, SpimData2.getAllViewIdsSorted( data, xml.getViewSetupsToProcess(), xml.getTimePointsToProcess() ) );
 	}
 
-	public static boolean create( final SpimData2 data, final Collection< ? extends ViewId > viewCollection )
+	public static boolean plotHistogram( final SpimData2 spimData, final Collection< ? extends ViewId > viewCollection )
 	{
 		// filter not present ViewIds
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 		viewIds.addAll( viewCollection );
 
-		final List< ViewId > removed  = SpimData2.filterMissingViews( data, viewIds );
+		final List< ViewId > removed  = SpimData2.filterMissingViews( spimData, viewIds );
 		if ( removed.size() > 0 ) IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final CreateFromCorrespondencesParameters params = getParameters( data, viewIds );
+		final String[] labels = getLabels( spimData, viewIds );
 
-		if ( params == null )
+		if ( labels == null )
 			return false;
 
-		// thin out detections and save the new interestpoint files
-		if ( !CreateInterestPointsFromCorrespondences.createFor( data, viewIds, params ) )
-			return false;
+		RelativeDistanceHistogram.plotHistogram( spimData, viewIds, labels[ 0 ], labels[ 1 ], DistanceHistogram.getHistogramTitle( viewIds ) );
 
-		return true;
+		return false;
 	}
 
-	public static CreateFromCorrespondencesParameters getParameters(
+	public static String[] getLabels(
 			final SpimData2 spimData,
 			final List< ViewId > viewIds )
 	{
 		// build up the dialog
-		final GenericDialog gd = new GenericDialog( "Choose corresponding interest points to redefine" );
+		final GenericDialog gd = new GenericDialog( "Choose interest point labels" );
 
 		final String[] labels = InterestPointTools.getAllInterestPointLabels( spimData, viewIds );
 
 		// choose the first label that is complete if possible
-		if ( defaultLabel < 0 || defaultLabel >= labels.length )
+		if ( ThinOut_Detections.defaultLabel < 0 || ThinOut_Detections.defaultLabel >= labels.length )
 		{
-			defaultLabel = -1;
+			ThinOut_Detections.defaultLabel = -1;
 
 			for ( int i = 0; i < labels.length; ++i )
 				if ( !labels[ i ].contains( InterestPointTools.warningLabel ) )
 				{
-					defaultLabel = i;
+					ThinOut_Detections.defaultLabel = i;
 					break;
 				}
 
-			if ( defaultLabel == -1 )
-				defaultLabel = 0;
+			if ( ThinOut_Detections.defaultLabel == -1 )
+				ThinOut_Detections.defaultLabel = 0;
 		}
 
-		gd.addChoice( "Corresponding_interest_points", labels, labels[ defaultLabel ] );
-		gd.addStringField( "New_label", defaultNewLabel, 20 );
+		// choose the first label that is complete if possible
+		if ( RelativeThinOut_Detections.defaultRelativeLabel < 0 || RelativeThinOut_Detections.defaultRelativeLabel >= labels.length )
+		{
+			RelativeThinOut_Detections.defaultRelativeLabel = -1;
+
+			for ( int i = 0; i < labels.length; ++i )
+				if ( !labels[ i ].contains( InterestPointTools.warningLabel ) )
+				{
+					RelativeThinOut_Detections.defaultRelativeLabel = i;
+					break;
+				}
+
+			if ( RelativeThinOut_Detections.defaultRelativeLabel == -1 )
+				RelativeThinOut_Detections.defaultRelativeLabel = 0;
+		}
+
+		gd.addChoice( "Interest_points", labels, labels[ ThinOut_Detections.defaultLabel ] );
+		gd.addChoice( "Relative_to", labels, labels[ RelativeThinOut_Detections.defaultRelativeLabel ] );
 
 		gd.showDialog();
 
 		if ( gd.wasCanceled() )
 			return null;
 
-		final CreateFromCorrespondencesParameters params = new CreateFromCorrespondencesParameters();
-
 		// assemble which label has been selected
-		params.correspondingLabel = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
-		params.newLabel = defaultNewLabel = gd.getNextString();
+		final String[] labelSelection = new String[ 2 ];
 
-		return params;
-	}
+		labelSelection[ 0 ] = InterestPointTools.getSelectedLabel( labels, ThinOut_Detections.defaultLabel = gd.getNextChoiceIndex() );
+		labelSelection[ 1 ] = InterestPointTools.getSelectedLabel( labels, RelativeThinOut_Detections.defaultRelativeLabel = gd.getNextChoiceIndex() );
 
-	public static void main( final String[] args )
-	{
-		new CreateFromCorresponding_Detections().run( null );
+		return labelSelection;
 	}
 }

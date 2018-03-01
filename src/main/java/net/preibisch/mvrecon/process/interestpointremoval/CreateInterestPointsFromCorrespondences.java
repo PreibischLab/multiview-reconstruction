@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -41,12 +42,20 @@ public class CreateInterestPointsFromCorrespondences
 			
 			for ( final InterestPoint oldIP : oldIpl.getInterestPointsCopy() )
 				oldIPs.put( oldIP.getId(), oldIP );
-			
+
+			final HashSet< Integer > existingPoints = new HashSet<>();
+
 			int id = 0;
 			for ( final CorrespondingInterestPoints cp : oldIpl.getCorrespondingInterestPointsCopy() )
 			{
-				final InterestPoint ip = oldIPs.get( cp.getDetectionId() );
-				newIPs.add( new InterestPoint( id++, ip.getL() ) );
+				final int oldId = cp.getDetectionId();
+
+				if ( !existingPoints.contains( oldId ) )
+				{
+					existingPoints.add( oldId );
+					final InterestPoint ip = oldIPs.get( oldId );
+					newIPs.add( new InterestPoint( id++, ip.getL() ) );
+				}
 			}
 
 			final InterestPointList newIpl = new InterestPointList(

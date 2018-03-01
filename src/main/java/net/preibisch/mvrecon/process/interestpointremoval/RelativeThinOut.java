@@ -22,12 +22,11 @@
  */
 package net.preibisch.mvrecon.process.interestpointremoval;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,83 +41,53 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import net.preibisch.mvrecon.process.interestpointremoval.histogram.Histogram;
 
-public class RelativeDistanceHistogram
+public class RelativeThinOut
 {
-	public static int subsampling = 1;
-
-	public static Histogram plotHistogram(
-			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewIds,
-			final String label,
-			final String relativeLabel,
-			final String title )
-	{
-		final HashMap< ViewId, String > labelMap = new HashMap<>();
-
-		for ( final ViewId view : viewIds )
-			labelMap.put( view, label );
-
-		final HashMap< ViewId, String > labelMapRelative = new HashMap<>();
-
-		for ( final ViewId view : viewIds )
-			labelMapRelative.put( view, relativeLabel );
-
-		return plotHistogram( spimData, viewIds, labelMap, labelMapRelative, title );
-	}
-
-	public static Histogram plotHistogram(
-			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewIds,
-			final HashMap< ? extends ViewId, String > labelMap,
-			final HashMap< ? extends ViewId, String > labelMapRelative,
-			final String title )
+	public static boolean thinOut( final SpimData2 spimData, final Collection< ? extends ViewId > viewIds, final RelativeThinOutParameters rtop )
 	{
 		final ViewInterestPoints vip = spimData.getViewInterestPoints();
 
-		// list of all distances
-		final ArrayList< Double > distances = new ArrayList< Double >();
-		final Random rnd = new Random( System.currentTimeMillis() );
-		String unit = null;
+		final double minDistance = rtop.getMin();
+		final double maxDistance = rtop.getMax();
+		final boolean keepRange = rtop.keepRange();
 
 		for ( final ViewId viewId : viewIds )
 		{
 			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( viewId );
 
 			final ViewInterestPointLists vipl = vip.getViewInterestPointLists( viewId );
-			final InterestPointList ipl = vipl.getInterestPointList( labelMap.get( viewId ) );
+			final InterestPointList oldIpl = vipl.getInterestPointList( rtop.getLabel() );
 
-			if ( ipl == null )
+			if ( oldIpl == null )
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): "
-						+ "No interestpoints for " + Group.pvid( viewId ) + " label '" + labelMap.get( viewId ) + "'" );
+						+ "No interestpoints for " + Group.pvid( viewId ) + " label '" + rtop.getLabel() + "'" );
 				continue;
 			}
 
-			final InterestPointList iplRelative = vipl.getInterestPointList( labelMapRelative.get( viewId ) );
+			final InterestPointList iplRelative = vipl.getInterestPointList( rtop.getRelativeLabel() );
 
 			if ( iplRelative == null )
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): "
-						+ "No interestpoints for " + Group.pvid( viewId ) + " label '" + labelMapRelative.get( viewId ) + "'" );
+						+ "No interestpoints for " + Group.pvid( viewId ) + " label '" + rtop.getRelativeLabel() + "'" );
 				continue;
 			}
 
 			final VoxelDimensions voxelSize = vd.getViewSetup().getVoxelSize();
 
-			if ( unit == null )
-				unit = vd.getViewSetup().getVoxelSize().unit();
-
-			// assemble the list of points
 			final List< RealPoint > list = new ArrayList< RealPoint >();
+			final List< double[] > points = new ArrayList< double[] >();
 
-			for ( final InterestPoint ip : ipl.getInterestPointsCopy() )
+			for ( final InterestPoint ip : oldIpl.getInterestPointsCopy() )
 			{
 				list.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),
 						ip.getL()[ 1 ] * voxelSize.dimension( 1 ),
 						ip.getL()[ 2 ] * voxelSize.dimension( 2 ) ) );
+
+				points.add( ip.getL() );
 			}
 
 			// assemble the list of relative
@@ -140,28 +109,46 @@ public class RelativeDistanceHistogram
 				continue;
 			}
 
-			// make the KDTree of the relative interest point list, we need to iterate over all other points
+			// make the KDTree
 			final KDTree< RealPoint > tree = new KDTree< RealPoint >( listRelative, listRelative );
 
-			// Nearest neighbor for each point
+			// Nearest neighbor for each point, populate the new list
 			final NearestNeighborSearchOnKDTree< RealPoint > nn = new NearestNeighborSearchOnKDTree< RealPoint >( tree );
+			final InterestPointList newIpl = new InterestPointList(
+					oldIpl.getBaseDir(),
+					new File(
+							oldIpl.getFile().getParentFile(),
+							"tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "." + rtop.getNewLabel() ) );
 
-			for ( final RealPoint p : list )
+			final ArrayList< InterestPoint > newIPs = new ArrayList<>();
+
+			int id = 0;
+			for ( int j = 0; j < list.size(); ++j )
 			{
-				// every n'th point only
-				if ( subsampling == 1 || rnd.nextDouble() < 1.0 / subsampling )
-				{
-					nn.search( p );
-
-					distances.add( nn.getDistance() );
-				}
+				final RealPoint p = list.get( j );
+				nn.search( p );
+				
+				// first nearest neighbor is the point itself, we need the second nearest
+				final double d = nn.getDistance();
+				
+				if ( ( keepRange && d >= minDistance && d <= maxDistance ) || ( !keepRange && ( d < minDistance || d > maxDistance ) ) )
+					newIPs.add( new InterestPoint( id++, points.get( j ).clone() ) );
 			}
+
+			newIpl.setInterestPoints( newIPs );
+			newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
+
+			if ( keepRange )
+				newIpl.setParameters( "thinned-out '" + rtop.getLabel() + "', kept range from " + minDistance + " to " + maxDistance );
+			else
+				newIpl.setParameters( "thinned-out '" + rtop.getLabel() + "', removed range from " + minDistance + " to " + maxDistance );
+
+			vipl.addInterestPointList( rtop.getNewLabel(), newIpl );
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": TP=" + vd.getTimePointId() + " ViewSetup=" + vd.getViewSetupId() + 
+					", Detections: " + oldIpl.getInterestPointsCopy().size() + " >>> " + newIpl.getInterestPointsCopy().size() );
 		}
 
-		final Histogram h = new Histogram( distances, 100, "Relative Distance Histogram [" + title + "]", unit  );
-		h.showHistogram();
-		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): min distance=" + h.getMin() + ", max distance=" + h.getMax() );
-
-		return h;
+			return true;
 	}
 }
