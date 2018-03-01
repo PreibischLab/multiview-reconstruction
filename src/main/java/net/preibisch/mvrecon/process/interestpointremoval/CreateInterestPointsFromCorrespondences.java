@@ -21,7 +21,7 @@ public class CreateInterestPointsFromCorrespondences
 	public static boolean createFor(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewIds,
-			final CreateFromCorrespondingParameters params )
+			final CreateFromCorrespondencesParameters params )
 	{
 		final ViewInterestPoints vip = spimData.getViewInterestPoints();
 

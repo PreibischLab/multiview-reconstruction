@@ -27,21 +27,20 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointremoval.ThinOut;
-import net.preibisch.mvrecon.process.interestpointremoval.ThinOutParameters;
-
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
+import net.preibisch.mvrecon.process.interestpointremoval.CreateFromCorrespondencesParameters;
+import net.preibisch.mvrecon.process.interestpointremoval.CreateInterestPointsFromCorrespondences;
 
 public class CreateFromCorresponding_Detections implements PlugIn
 {
 	public static int defaultLabel = -1;
-	public static String defaultNewLabel = "corresponding from ";
+	public static String defaultNewLabel = "corresp from ";
 
 	@Override
 	public void run( final String arg )
@@ -69,24 +68,24 @@ public class CreateFromCorresponding_Detections implements PlugIn
 		final List< ViewId > removed  = SpimData2.filterMissingViews( data, viewIds );
 		if ( removed.size() > 0 ) IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final ThinOutParameters top = getParameters( data, viewIds );
+		final CreateFromCorrespondencesParameters params = getParameters( data, viewIds );
 
-		if ( top == null )
+		if ( params == null )
 			return false;
 
 		// thin out detections and save the new interestpoint files
-		if ( !ThinOut.thinOut( data, viewIds, top ) )
+		if ( !CreateInterestPointsFromCorrespondences.createFor( data, viewIds, params ) )
 			return false;
 
 		return true;
 	}
 
-	public static ThinOutParameters getParameters(
+	public static CreateFromCorrespondencesParameters getParameters(
 			final SpimData2 spimData,
 			final List< ViewId > viewIds )
 	{
 		// build up the dialog
-		final GenericDialog gd = new GenericDialog( "Choose interest point label to thin out" );
+		final GenericDialog gd = new GenericDialog( "Choose corresponding interest points to redefine" );
 
 		final String[] labels = InterestPointTools.getAllInterestPointLabels( spimData, viewIds );
 
@@ -106,51 +105,21 @@ public class CreateFromCorresponding_Detections implements PlugIn
 				defaultLabel = 0;
 		}
 
-		gd.addChoice( "Interest_points", labels, labels[ defaultLabel ] );
+		gd.addChoice( "Corresponding_interest_points", labels, labels[ defaultLabel ] );
 		gd.addStringField( "New_label", defaultNewLabel, 20 );
 
-		gd.addMessage( "" );
-
-		gd.addNumericField( "Lower_threshold", defaultCutoffThresholdMin, 2 );
-		gd.addNumericField( "Upper_threshold", defaultCutoffThresholdMax, 2 );
-		gd.addChoice( "Defined_range", removeKeepChoice, removeKeepChoice[ defaultRemoveKeep ] );
-
-		
 		gd.showDialog();
 
 		if ( gd.wasCanceled() )
 			return null;
 
-		final ThinOutParameters top = new ThinOutParameters();
+		final CreateFromCorrespondencesParameters params = new CreateFromCorrespondencesParameters();
 
 		// assemble which label has been selected
-		top.label = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
-		top.newLabel = defaultNewLabel = gd.getNextString();
+		params.correspondingLabel = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
+		params.newLabel = defaultNewLabel = gd.getNextString();
 
-		top.lowerThreshold = defaultCutoffThresholdMin = gd.getNextNumber();
-		top.upperThreshold = defaultCutoffThresholdMax = gd.getNextNumber();
-
-		final int removeKeep = defaultRemoveKeep = gd.getNextChoiceIndex();
-		if ( removeKeep == 1 )
-			top.keep = true;
-		else
-			top.keep = false;
-
-		if ( top.getMin() >= top.getMax() )
-		{
-			IOFunctions.println( "You selected the minimal threshold larger than the maximal threshold." );
-			IOFunctions.println( "Stopping." );
-			return null;
-		}
-		else
-		{
-			if ( top.keepRange() )
-				IOFunctions.println( "Keeping interest points with distances from " + top.getMin() + " >>> " + top.getMax() );
-			else
-				IOFunctions.println( "Removing interest points with distances from " + top.getMin() + " >>> " + top.getMax() );
-		}
-
-		return top;
+		return params;
 	}
 
 	public static void main( final String[] args )

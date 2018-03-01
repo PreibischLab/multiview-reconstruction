@@ -1,6 +1,6 @@
 package net.preibisch.mvrecon.process.interestpointremoval;
 
-public class CreateFromCorrespondingParameters
+public class CreateFromCorrespondencesParameters
 {
 	public String correspondingLabel;
 	public String newLabel;
