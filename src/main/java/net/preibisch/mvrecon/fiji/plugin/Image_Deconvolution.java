@@ -241,6 +241,8 @@ public class Image_Deconvolution implements PlugIn
 			}
 			catch ( OutOfMemoryError oome )
 			{
+				oome.printStackTrace();
+
 				IOFunctions.println( "Out of memory.  Use smaller blocks, virtual/cached inputs, and check \"Edit > Options > Memory & Threads\"" );
 				IOFunctions.println( "Your java instance has access to a total amount of RAM of: " + Runtime.getRuntime().maxMemory() / (1024*1024) );
 
