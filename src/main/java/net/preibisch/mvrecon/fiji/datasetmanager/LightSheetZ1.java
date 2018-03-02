@@ -85,7 +85,7 @@ public class LightSheetZ1 implements MultiViewDatasetDefinition
 	private boolean fixBioformats = false;
 
 	@Override
-	public String getTitle() { return "Zeiss Lightsheet Z.1 Dataset (Bioformats)"; }
+	public String getTitle() { return "Zeiss Lightsheet Z.1 Dataset Loader (Bioformats)"; }
 
 	@Override
 	public String getExtendedDescription()
@@ -139,8 +139,8 @@ public class LightSheetZ1 implements MultiViewDatasetDefinition
 		IOFunctions.println( "Minimal resolution in all dimensions is: " + minResolution );
 		IOFunctions.println( "(The smallest resolution in any dimension; the distance between two pixels in the output image will be that wide)" );
 		
-		// create the initial view registrations (they are all the identity transform)
-		final ViewRegistrations viewRegistrations = createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
+		// create calibration + translation view registrations
+		final ViewRegistrations viewRegistrations = DatasetCreationUtils.createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
 		
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
@@ -158,56 +158,7 @@ public class LightSheetZ1 implements MultiViewDatasetDefinition
 
 		return spimData;
 	}
-	
-	/*
-	 * Assembles the {@link ViewRegistration} object consisting of a list of {@link ViewRegistration}s for all {@link ViewDescription}s that are present
-	 * 
-	 * @param viewDescriptionList
-	 * @param minResolution - the smallest resolution in any dimension (distance between two pixels in the output image will be that wide)
-	 * @return the viewregistrations
-	 */
-	protected static ViewRegistrations createViewRegistrations( final Map< ViewId, ViewDescription > viewDescriptionList, final double minResolution )
-	{
-		final HashMap< ViewId, ViewRegistration > viewRegistrationList = new HashMap< ViewId, ViewRegistration >();
-		
-		for ( final ViewDescription viewDescription : viewDescriptionList.values() )
-			if ( viewDescription.isPresent() )
-			{
-				final ViewRegistration viewRegistration = new ViewRegistration( viewDescription.getTimePointId(), viewDescription.getViewSetupId() );
-				
-				final VoxelDimensions voxelSize = viewDescription.getViewSetup().getVoxelSize(); 
 
-				final double calX = voxelSize.dimension( 0 ) / minResolution;
-				final double calY = voxelSize.dimension( 1 ) / minResolution;
-				final double calZ = voxelSize.dimension( 2 ) / minResolution;
-				
-				final AffineTransform3D m = new AffineTransform3D();
-				m.set( calX, 0.0f, 0.0f, 0.0f, 
-					   0.0f, calY, 0.0f, 0.0f,
-					   0.0f, 0.0f, calZ, 0.0f );
-				final ViewTransform vt = new ViewTransformAffine( "calibration", m );
-				viewRegistration.preconcatenateTransform( vt );
-				
-				final Tile tile = viewDescription.getViewSetup().getAttribute( Tile.class );
-
-				if (tile.hasLocation()){
-					final double shiftX = tile.getLocation()[0] / voxelSize.dimension( 0 ) * calX;
-					final double shiftY = tile.getLocation()[1] / voxelSize.dimension( 1 ) * calY;
-					final double shiftZ = tile.getLocation()[2] / voxelSize.dimension( 2 ) * calZ;
-					
-					final AffineTransform3D m2 = new AffineTransform3D();
-					m2.set( 1.0f, 0.0f, 0.0f, shiftX, 
-						   0.0f, 1.0f, 0.0f, shiftY,
-						   0.0f, 0.0f, 1.0f, shiftZ );
-					final ViewTransform vt2 = new ViewTransformAffine( "Translation", m2 );
-					viewRegistration.preconcatenateTransform( vt2 );
-				}
-
-				viewRegistrationList.put( viewRegistration, viewRegistration );
-			}
-		
-		return new ViewRegistrations( viewRegistrationList );
-	}
 
 	/*
 	 * Creates the List of {@link ViewSetup} for the {@link SpimData} object.

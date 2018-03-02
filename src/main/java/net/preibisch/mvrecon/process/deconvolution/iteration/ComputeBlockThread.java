@@ -61,49 +61,6 @@ public interface ComputeBlockThread
 	 */
 	public Img< FloatType > getPsiBlockTmp();
 
-	/**
-	 * run an iteration on the block
-	 *
-	 * @param view - the input view
-	 * @param block - the Block instance
-	 * @param imgBlock - the input image as block (virtual, outofbounds is zero)
-	 * @param weightBlock - the weights for this image (virtual, outofbounds is zero)
-	 * @param maxIntensityView - the maximum intensity of the view
-	 * @param kernel1 - psf1
-	 * @param kernel2 - psf2
-	 * @return - statistics of this block
-	 */
-	public IterationStatistics runIteration(
-			final DeconView view,
-			final Block block,
-			final RandomAccessibleInterval< FloatType > imgBlock, // out of bounds is ZERO
-			final RandomAccessibleInterval< FloatType > weightBlock,
-			final float maxIntensityView,
-			final ArrayImg< FloatType, ? > kernel1,
-			final ArrayImg< FloatType, ? > kernel2 );
-	//
-	// convolve psi (current guess of the image) with the PSF of the current view
-	// [psi >> tmp1]
-	//
-
-	//
-	// compute quotient img/psiBlurred
-	// [tmp1, img >> tmp1]
-	//
-
-	//
-	// blur the residuals image with the kernel
-	// (this cannot be don in-place as it might be computed in blocks sequentially,
-	// and the input for the n+1'th block cannot be formed by the written back output
-	// of the n'th block)
-	// [tmp1 >> tmp2]
-	//
-
-	//
-	// compute final values
-	// [psi, weights, tmp2 >> psi]
-	//
-
 	public class IterationStatistics
 	{
 		public double sumChange = 0;

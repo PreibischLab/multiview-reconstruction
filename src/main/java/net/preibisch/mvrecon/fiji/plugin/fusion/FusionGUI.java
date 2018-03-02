@@ -46,6 +46,7 @@ import net.imglib2.Interval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -190,6 +191,7 @@ public class FusionGUI implements FusionExportInterface
 			defaultBB = 0;
 
 		final GenericDialog gd = new GenericDialog( "Image Fusion" );
+		Label label1 = null, label2 = null;
 
 		gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
 
@@ -221,24 +223,27 @@ public class FusionGUI implements FusionExportInterface
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
 
 		gd.addMessage( "Estimated size: ", GUIHelper.largestatusfont, GUIHelper.good );
-		Label label1 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label1 = (Label)gd.getMessage();
 		gd.addMessage( "???x???x??? pixels", GUIHelper.smallStatusFont, GUIHelper.good );
-		Label label2 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label2 = (Label)gd.getMessage();
 
-		final ManageFusionDialogListeners m = new ManageFusionDialogListeners(
-				gd,
-				(Choice)gd.getChoices().get( 0 ),
-				(TextField)gd.getNumericFields().get( 0 ),
-				(Choice)gd.getChoices().get( 1 ),
-				(Choice)gd.getChoices().get( 3 ),
-				(Checkbox)gd.getCheckboxes().get( 1 ),
-				avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
-				(Choice)gd.getChoices().get( 4 ),
-				label1,
-				label2,
-				this );
-
-		m.update();
+		if ( !PluginHelper.isHeadless() )
+		{
+			final ManageFusionDialogListeners m = new ManageFusionDialogListeners(
+					gd,
+					(Choice)gd.getChoices().get( 0 ),
+					(TextField)gd.getNumericFields().get( 0 ),
+					(Choice)gd.getChoices().get( 1 ),
+					(Choice)gd.getChoices().get( 3 ),
+					(Checkbox)gd.getCheckboxes().get( 1 ),
+					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
+					(Choice)gd.getChoices().get( 4 ),
+					label1,
+					label2,
+					this );
+	
+			m.update();
+		}
 
 		gd.showDialog();
 

@@ -392,9 +392,11 @@ public class FileListDatasetDefinitionUtil
 				
 				channelandIllumInfos.add( infoI );
 			}
-			
-			//channelandIllumInfos.forEach( System.out::println );
-			result.add( new ValuePair<>( r.getSizeT(), channelandIllumInfos ));
+
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			final int numTPs = (!r.isOrderCertain() && r.getSizeZ() <= 1 && r.getSizeT() > 1 ) ? r.getSizeZ() : r.getSizeT();
+			result.add( new ValuePair<>( numTPs, channelandIllumInfos ));
 			
 			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Channels and Illuminations in Series " + (i+1) + " of " + nSeries );
 		}
@@ -561,7 +563,7 @@ public class FileListDatasetDefinitionUtil
 			state.getIdMap().get( cl ).clear();
 			state.getDetailMap().get( cl ).clear();
 			Boolean singleEntityPerFile = state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE;
-			
+
 			if ( singleEntityPerFile && fileVariableToUse.get( cl ).size() > 0 )
 			{
 				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > expandedMap;
@@ -581,11 +583,21 @@ public class FileListDatasetDefinitionUtil
 				state.getIdMap().get( cl ).putAll( expandedMap.getB() );
 				state.getDetailMap().get( cl ).putAll( expandedMap.getA() );
 			}
-			
+
 			else if ( singleEntityPerFile )
 			{
-				state.getIdMap().get( cl ).put( 0, state.getAccumulateMap( cl ).values().iterator().next() );
+				// FIXME: this is a hacky fix for the case of single, instances of attribute PER FILE
+				// in this case, multiplicity will be SINGLE (even though it should be MULTIPLE_NAMED )
+				// TODO: this should probably be fixed upstream
+				// At the moment, all instances of this attribute will get id 0
+				// NB: this throws away metadata
+				final ArrayList< Pair< File, Pair< Integer, Integer > > > allViews = state.getAccumulateMap( cl ).values().stream().collect(
+						ArrayList<Pair<File, Pair<Integer, Integer>>>::new,
+						(a,b) -> a.addAll(b),
+						(a,b) -> a.addAll(b) );
+				state.getIdMap().get( cl ).put( 0, allViews );
 			}
+
 			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MULTIPLE_INDEXED )
 			{
 				if (cl.equals( TimePoint.class ))
@@ -593,6 +605,7 @@ public class FileListDatasetDefinitionUtil
 				else
 					state.getIdMap().get( cl ).putAll( expandMapIndexed( state.getAccumulateMap( cl ), cl.equals( Angle.class ) || cl.equals( Tile.class) ) );
 			}
+
 			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MUlTIPLE_NAMED )
 			{
 				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > resortMapNamed = resortMapNamed(
@@ -839,42 +852,74 @@ public class FileListDatasetDefinitionUtil
 				reader.setId( file.getAbsolutePath() );
 			}
 
-			// only use the 'master' file of a group in grouped data
-			final File currentFile = new File( reader.getCurrentFile() );
+		// only use the 'master' file of a group in grouped data
+		final File currentFile = new File( reader.getCurrentFile() );
 
-			for (int i = 0 ; i < reader.getSeriesCount(); i++)
-			{
-				reader.setSeries( i );
-				MetadataRetrieve meta = (MetadataRetrieve)reader.getMetadataStore();
+		for (int i = 0 ; i < reader.getSeriesCount(); i++)
+		{
+			reader.setSeries( i );
+			MetadataRetrieve meta = (MetadataRetrieve)reader.getMetadataStore();
 
-				Length pszX = null;
-				try { pszX = meta.getPixelsPhysicalSizeX( i ); } catch (IndexOutOfBoundsException e){}
-				double sizeX = pszX != null ? pszX.value().doubleValue() : 1 ;
-
-				Length pszY = null;
-				try { pszY = meta.getPixelsPhysicalSizeY( i );} catch (IndexOutOfBoundsException e){}
-				double sizeY = pszY != null ? pszY.value().doubleValue() : 1 ;
-
-				Length pszZ = null;
-				try {pszZ = meta.getPixelsPhysicalSizeZ( i );} catch (IndexOutOfBoundsException e){}
-				double sizeZ = pszZ != null ? pszZ.value().doubleValue() : 1 ;
-
-				int dimX = reader.getSizeX();
-				int dimY = reader.getSizeY();
-				int dimZ = reader.getSizeZ();
-
-				// get pixel units from size
-				String unit = pszX != null ? pszX.unit().getSymbol() : "pixels";
-
-				FinalVoxelDimensions finalVoxelDimensions = new FinalVoxelDimensions( unit, sizeX, sizeY, sizeZ );
-				FinalDimensions finalDimensions = new FinalDimensions( dimX, dimY, dimZ );
-
-				for (int j = 0; j < reader.getSizeC(); j++)
-				{
-					Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( currentFile, new ValuePair< Integer, Integer >( i, j ) );
-					dimensionMaps.put( key, new ValuePair< Dimensions, VoxelDimensions >( finalDimensions, finalVoxelDimensions ) );
-				}
+			if (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ){
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": WARNING: Uncertain XZY/XZT order in File " + file.getAbsolutePath() + 
+						", Image " + i);
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": Assuming XYZ. For XYT, please resave the data as "
+						+ "separate 2D images for each time point or set the metadata for the third dimesion." );
 			}
+
+			double sizeX = 1;
+			double sizeY = 1;
+			double sizeZ = 1;
+			
+			Length pszX = null;
+			try {
+				pszX = meta.getPixelsPhysicalSizeX( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+
+			//System.out.println( pszX );
+			sizeX = pszX != null ? pszX.value().doubleValue() : 1 ;
+			
+			Length pszY = null;
+			try {
+				pszY = meta.getPixelsPhysicalSizeY( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			sizeY = pszY != null ? pszY.value().doubleValue() : 1 ;
+			
+			Length pszZ = null;
+			try {
+				pszZ = meta.getPixelsPhysicalSizeZ( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			sizeZ = pszZ != null ? pszZ.value().doubleValue() : 1 ;
+
+			// get view dimensions
+			int dimX = reader.getSizeX();
+			int dimY = reader.getSizeY();
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			int dimZ  = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? reader.getSizeT() : reader.getSizeZ();
+
+			// get pixel units from size
+			String unit = pszX != null ? pszX.unit().getSymbol() : "pixels";
+			
+			FinalVoxelDimensions finalVoxelDimensions = new FinalVoxelDimensions( unit, sizeX, sizeY, sizeZ );
+			FinalDimensions finalDimensions = new FinalDimensions( dimX, dimY, dimZ );
+			
+			for (int j = 0; j < reader.getSizeC(); j++)
+			{			
+				Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( currentFile, new ValuePair< Integer, Integer >( i, j ) );
+				dimensionMaps.put( key, new ValuePair< Dimensions, VoxelDimensions >( finalDimensions, finalVoxelDimensions ) );
+			}
+			
+		}
 
 		reader.close();
 		}

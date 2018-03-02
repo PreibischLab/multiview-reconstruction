@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.init;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,10 +40,13 @@ import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
-public class PsiInitializationAvgPrecise implements PsiInitialization
+public class PsiInitAvgPrecise implements PsiInit
 {
 	double avg = -1;
 	float[] max = null;
+	boolean setImgToAvg = true;
+
+	public void setImgToAvg( final boolean setImgToAvg ) { this.setImgToAvg = setImgToAvg; }
 
 	@Override
 	public boolean runInitialization( final Img< FloatType > psi, final List< DeconView > views, final ExecutorService service )
@@ -60,7 +63,7 @@ public class PsiInitializationAvgPrecise implements PsiInitialization
 			imgs.add( mvdecon.getImage() );
 
 		for ( final ImagePortion portion : portions )
-			tasks.add( new PsiInitializationAvgPreciseThread( portion, psi, imgs ) );
+			tasks.add( new PsiInitAvgPreciseThread( portion, psi, imgs ) );
 
 		final RealSum s = new RealSum();
 		long count = 0;
@@ -97,10 +100,13 @@ public class PsiInitializationAvgPrecise implements PsiInitialization
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Average intensity in overlapping area: " + avg );
 
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting image to average intensity: " + avg );
-
-		for ( final FloatType t : psi )
-			t.set( (float)avg );
+		if ( setImgToAvg )
+		{
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Setting image to average intensity: " + avg );
+	
+			for ( final FloatType t : psi )
+				t.set( (float)avg );
+		}
 
 		return true;
 	}

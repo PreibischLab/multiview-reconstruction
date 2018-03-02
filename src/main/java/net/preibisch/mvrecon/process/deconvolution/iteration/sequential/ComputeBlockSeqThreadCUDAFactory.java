@@ -20,15 +20,16 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.deconvolution.iteration;
+package net.preibisch.mvrecon.process.deconvolution.iteration.sequential;
 
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDAFourierConvolution;
+import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 
-public class ComputeBlockThreadCUDAFactory implements ComputeBlockThreadFactory
+public class ComputeBlockSeqThreadCUDAFactory implements ComputeBlockThreadFactory< ComputeBlockSeqThread >
 {
 	final ExecutorService service;
 	final float minValue;
@@ -37,7 +38,7 @@ public class ComputeBlockThreadCUDAFactory implements ComputeBlockThreadFactory
 	final CUDAFourierConvolution cuda;
 	final HashMap< Integer, CUDADevice > idToCudaDevice;
 
-	public ComputeBlockThreadCUDAFactory(
+	public ComputeBlockSeqThreadCUDAFactory(
 			final ExecutorService service,
 			final float minValue,
 			final float lambda,
@@ -54,9 +55,9 @@ public class ComputeBlockThreadCUDAFactory implements ComputeBlockThreadFactory
 	}
 
 	@Override
-	public ComputeBlockThread create( final int id )
+	public ComputeBlockSeqThread create( final int id )
 	{
-		return new ComputeBlockThreadCUDA( service, minValue, lambda, id, blockSize, cuda, idToCudaDevice.get( id ) );
+		return new ComputeBlockSeqThreadCUDA( service, minValue, lambda, id, blockSize, cuda, idToCudaDevice.get( id ) );
 	}
 
 	@Override

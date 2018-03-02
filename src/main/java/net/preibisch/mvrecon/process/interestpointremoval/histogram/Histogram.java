@@ -26,6 +26,8 @@ import ij.ImageJ;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +43,10 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
+import org.jfree.chart.ui.ApplicationFrame;
 import org.jfree.data.xy.IntervalXYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 
 public class Histogram extends ApplicationFrame
 {
@@ -68,7 +69,7 @@ public class Histogram extends ApplicationFrame
 	public void showHistogram()
 	{
 		this.pack();
-		RefineryUtilities.centerFrameOnScreen( this );
+		centerWindow( this );
 		this.setVisible( true );
 	}
 
@@ -176,7 +177,15 @@ public class Histogram extends ApplicationFrame
 
 		final Histogram demo = new Histogram( values, 100, "Histogram for ...", "pixels" );
 		demo.pack();
-		RefineryUtilities.centerFrameOnScreen(demo);
+		centerWindow(demo);
 		demo.setVisible( true );
+	}
+
+	public static void centerWindow(final Window w) {
+		final Dimension ss = Toolkit.getDefaultToolkit().getScreenSize();
+		final Dimension ws = w.getSize();
+		final int x = (ss.width - ws.width) / 2;
+		final int y = (ss.height - ws.height) / 2;
+		w.setLocation(x < 0 ? 0 : x, y < 0 ? 0 : y);
 	}
 }

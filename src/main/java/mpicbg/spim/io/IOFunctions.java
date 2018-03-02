@@ -125,6 +125,8 @@ public class IOFunctions
 			}
 		}
 
+		imp.close();
+
 		return img;
 	}
 

@@ -114,7 +114,7 @@ public class Image_Fusion implements PlugIn
 		if ( !exporter.queryParameters( fusion ) )
 			return false;
 
-		for ( final Group< ViewDescription > group : groups )
+		for ( final Group< ViewDescription > group : Group.getGroupsSorted( groups ) )
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusing group " + (++i) + "/" + groups.size() + " (group=" + group + ")" );
 

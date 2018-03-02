@@ -31,6 +31,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Vector;
 
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -94,16 +95,24 @@ public abstract class BoundingBoxGUI extends BoundingBox
 	{
 		final GenericDialog gd = getSimpleDialog( allowModifyDimensions() );
 
+		if ( gd == null )
+			return false;
+
+		Label label1 = null, label2 = null;
+
 		gd.addMessage( "" );
 
 		gd.addMessage( "Estimated size: ", GUIHelper.largestatusfont, GUIHelper.good );
-		Label l1 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label1 = (Label)gd.getMessage();
 		gd.addMessage( "???x???x??? pixels", GUIHelper.smallStatusFont, GUIHelper.good );
-		Label l2 = (Label)gd.getMessage();
+		if ( !PluginHelper.isHeadless() )  label2 = (Label)gd.getMessage();
 
-		final ManageListeners m = new ManageListeners( gd, gd.getNumericFields(), gd.getChoices(), l1, l2 );
-
-		m.update();
+		if ( !PluginHelper.isHeadless() )
+		{
+			final ManageListeners m = new ManageListeners( gd, gd.getNumericFields(), gd.getChoices(), label1, label2 );
+	
+			m.update();
+		}
 
 		gd.showDialog();
 

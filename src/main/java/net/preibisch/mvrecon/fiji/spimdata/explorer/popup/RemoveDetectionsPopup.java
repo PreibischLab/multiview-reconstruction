@@ -36,6 +36,9 @@ import javax.swing.event.MenuListener;
 
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
+import net.preibisch.mvrecon.fiji.plugin.CreateFromCorresponding_Detections;
+import net.preibisch.mvrecon.fiji.plugin.RelativeThinOut_Detections;
+import net.preibisch.mvrecon.fiji.plugin.Show_Relative_Histogram;
 import net.preibisch.mvrecon.fiji.plugin.ThinOut_Detections;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
@@ -61,13 +64,21 @@ public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetabl
 
 	public RemoveDetectionsPopup()
 	{
-		super( "Remove Interest Points" );
+		super( "Manage Interest Points" );
 
+		final JMenuItem createFromCorr = new JMenuItem( "New interest points from correspondences ..." );
 		final JMenu showDistanceHist = new JMenu( "Show Distance Histogram" );
-		final JMenuItem byDistance = new JMenuItem( "By Distance ..." );
-		final JMenuItem interactivelyXY = new JMenuItem( "Interactively (XY Projection) ..." );
-		final JMenuItem interactivelyXZ = new JMenuItem( "Interactively (XZ Projection) ..." );
-		final JMenuItem interactivelyYZ = new JMenuItem( "Interactively (YZ Projection) ..." );
+		final JMenuItem showRelativeDistanceHist = new JMenuItem( "Show Relative Distance Histogram ... " );
+		final JMenuItem byDistance = new JMenuItem( "Remove by Distance ..." );
+		final JMenuItem byRelativeDistance = new JMenuItem( "Remove by relative Distance ..." );
+		final JMenuItem interactivelyXY = new JMenuItem( "Remove Interactively (XY Projection) ..." );
+		final JMenuItem interactivelyXZ = new JMenuItem( "Remove Interactively (XZ Projection) ..." );
+		final JMenuItem interactivelyYZ = new JMenuItem( "Remove Interactively (YZ Projection) ..." );
+
+		createFromCorr.addActionListener( new CreateFromCorrespondencesListener() );
+		this.add( createFromCorr );
+
+		this.add( new Separator() );
 
 		showDistanceHist.addMenuListener( new MenuListener()
 		{
@@ -109,11 +120,17 @@ public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetabl
 			@Override
 			public void menuCanceled( MenuEvent e ) {}
 		} );
-
 		this.add( showDistanceHist );
+
+		showRelativeDistanceHist.addActionListener( new RelativeDistanceHistogramListener() );
+		this.add( showRelativeDistanceHist );
+
+		this.add( new Separator() );
 
 		byDistance.addActionListener( new ThinOutListener() );
 		this.add( byDistance );
+		byRelativeDistance.addActionListener( new RelativeThinOutListener() );
+		this.add( byRelativeDistance );
 
 		interactivelyXY.addActionListener( new InteractiveListener( 1 ) );
 		interactivelyXZ.addActionListener( new InteractiveListener( 2 ) );
@@ -188,6 +205,102 @@ public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetabl
 				public void run()
 				{
 					if ( ThinOut_Detections.thinOut( spimData, views ) )
+						panel.updateContent(); // update interestpoint panel if available
+				}
+			} ).start();
+
+		}
+	}
+
+	public class RelativeThinOutListener implements ActionListener
+	{
+		@Override
+		public void actionPerformed( final ActionEvent e )
+		{
+			if ( panel == null )
+			{
+				IOFunctions.println( "Panel not set for " + this.getClass().getSimpleName() );
+				return;
+			}
+
+			final SpimData2 spimData = (SpimData2)panel.getSpimData();
+
+			final ArrayList< ViewId > views = new ArrayList<>();
+			views.addAll( ApplyTransformationPopup.getSelectedViews( panel ) );
+
+			// filter not present ViewIds
+			SpimData2.filterMissingViews( spimData, views );
+
+			new Thread( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					if ( RelativeThinOut_Detections.thinOut( spimData, views ) )
+						panel.updateContent(); // update interestpoint panel if available
+				}
+			} ).start();
+
+		}
+	}
+
+	public class RelativeDistanceHistogramListener implements ActionListener
+	{
+		@Override
+		public void actionPerformed( final ActionEvent e )
+		{
+			if ( panel == null )
+			{
+				IOFunctions.println( "Panel not set for " + this.getClass().getSimpleName() );
+				return;
+			}
+
+			final SpimData2 spimData = (SpimData2)panel.getSpimData();
+
+			final ArrayList< ViewId > views = new ArrayList<>();
+			views.addAll( ApplyTransformationPopup.getSelectedViews( panel ) );
+
+			// filter not present ViewIds
+			SpimData2.filterMissingViews( spimData, views );
+
+			new Thread( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					if ( Show_Relative_Histogram.plotHistogram( spimData, views ) )
+						panel.updateContent(); // update interestpoint panel if available
+				}
+			} ).start();
+
+		}
+	}
+
+	public class CreateFromCorrespondencesListener implements ActionListener
+	{
+		@Override
+		public void actionPerformed( final ActionEvent e )
+		{
+			if ( panel == null )
+			{
+				IOFunctions.println( "Panel not set for " + this.getClass().getSimpleName() );
+				return;
+			}
+
+			final SpimData2 spimData = (SpimData2)panel.getSpimData();
+
+			final ArrayList< ViewId > views = new ArrayList<>();
+			views.addAll( ApplyTransformationPopup.getSelectedViews( panel ) );
+
+			// filter not present ViewIds
+			SpimData2.filterMissingViews( spimData, views );
+
+			new Thread( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					if ( CreateFromCorresponding_Detections.create( spimData, views ) )
 						panel.updateContent(); // update interestpoint panel if available
 				}
 			} ).start();

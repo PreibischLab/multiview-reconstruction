@@ -120,16 +120,25 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 
 		// average
 		final JMenuItem averageDisplay = new JMenuItem( PSF_Average.averagingChoices[ 0 ] ); //"Display"
-		final JMenuItem averageAssign = new JMenuItem( PSF_Average.averagingChoices[ 1 ] ); //Assign to input views"
-		final JMenuItem averageAssignAndDisplay = new JMenuItem( PSF_Average.averagingChoices[ 2 ] ); //Display & assign to input views"
+		final JMenuItem averageDisplayRemove = new JMenuItem( PSF_Average.averagingChoices[ 1 ] ); //"Display (remove Min Projections)"
+		final JMenuItem averageAssign = new JMenuItem( PSF_Average.averagingChoices[ 2 ] ); //Assign to input views"
+		final JMenuItem averageAssignRemove = new JMenuItem( PSF_Average.averagingChoices[ 3 ] ); //Assign to input views (remove Min Projections)"
+		final JMenuItem averageAssignAndDisplay = new JMenuItem( PSF_Average.averagingChoices[ 4 ] ); //Display & assign to input views"
+		final JMenuItem averageAssignAndDisplayRemove = new JMenuItem( PSF_Average.averagingChoices[ 5 ] ); //Display & assign to input views (remove Min Projections)"
 
-		averageDisplay.addActionListener( new AveragePSF( 0 ) );
-		averageAssign.addActionListener( new AveragePSF( 1 ) );
-		averageAssignAndDisplay.addActionListener( new AveragePSF( 2 ) );
+		averageDisplay.addActionListener( new AveragePSF( 0, false ) );
+		averageDisplayRemove.addActionListener( new AveragePSF( 0, true ) );
+		averageAssign.addActionListener( new AveragePSF( 1, false ) );
+		averageAssignRemove.addActionListener( new AveragePSF( 1, true ) );
+		averageAssignAndDisplay.addActionListener( new AveragePSF( 2, false ) );
+		averageAssignAndDisplayRemove.addActionListener( new AveragePSF( 2, true ) );
 
 		average.add( averageDisplay );
+		average.add( averageDisplayRemove );
 		average.add( averageAssign );
+		average.add( averageAssignRemove );
 		average.add( averageAssignAndDisplay );
+		average.add( averageAssignAndDisplayRemove );
 
 		this.add( average );
 
@@ -207,8 +216,13 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 	private class AveragePSF implements ActionListener
 	{
 		final int choice;
+		final boolean removeMinProjections;
 
-		public AveragePSF( final int choice ) { this.choice = choice; }
+		public AveragePSF( final int choice, final boolean removeMinProjections )
+		{
+			this.choice = choice;
+			this.removeMinProjections = removeMinProjections;
+		}
 
 		@Override
 		public void actionPerformed( ActionEvent e )
@@ -232,7 +246,7 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 					// filter not present ViewIds
 					SpimData2.filterMissingViews( spimData, views );
 
-					if ( PSF_Average.average( spimData, views, choice ) )
+					if ( PSF_Average.average( spimData, views, choice, removeMinProjections ) )
 						panel.updateContent(); // update panel
 				}
 			} ).start();

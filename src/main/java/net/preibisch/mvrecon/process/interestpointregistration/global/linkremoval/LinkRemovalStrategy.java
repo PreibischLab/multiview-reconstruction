@@ -27,8 +27,10 @@ import java.util.HashMap;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.util.Pair;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public interface LinkRemovalStrategy
 {
-	public boolean removeLink( TileConfiguration tc, HashMap< ViewId, ? extends Tile< ? > > map );
+	public Pair< Group< ViewId >, Group< ViewId > > removeLink( TileConfiguration tc, HashMap< ViewId, ? extends Tile< ? > > map );
 }
