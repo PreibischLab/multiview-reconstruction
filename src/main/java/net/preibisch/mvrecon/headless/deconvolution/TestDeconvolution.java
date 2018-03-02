@@ -103,6 +103,9 @@ public class TestDeconvolution
 			final Collection< Group< V > > groups,
 			final String bbTitle )
 	{
+		// one common ExecutorService for all
+		final ExecutorService service = DeconViews.createExecutorService();
+
 		BoundingBox boundingBox = null;
 
 		for ( final BoundingBox bb : spimData.getBoundingBoxes().getBoundingBoxes() )
@@ -123,6 +126,7 @@ public class TestDeconvolution
 		final ProcessInputImages< V > fusion = new ProcessInputImages<>(
 				spimData,
 				groups,
+				service,
 				boundingBox,
 				downsampling,
 				true,
@@ -168,9 +172,6 @@ public class TestDeconvolution
 		final PsiInitType psiInitType = PsiInitType.FUSED_BLURRED;
 		final boolean debug = true;
 		final int debugInterval = 1;
-
-		// one common ExecutorService for all
-		final ExecutorService service = DeconViews.createExecutorService();
 
 		try
 		{

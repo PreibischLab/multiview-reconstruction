@@ -200,6 +200,7 @@ public class DeconView
 		else
 			return getTitle();
 	}
+
 	public static Pair< Integer, Integer > filterBlocksForContent( final List< List< Block > > blocksList, final RandomAccessibleInterval< FloatType > weight, final ExecutorService service )
 	{
 		int removeBlocks = 0;

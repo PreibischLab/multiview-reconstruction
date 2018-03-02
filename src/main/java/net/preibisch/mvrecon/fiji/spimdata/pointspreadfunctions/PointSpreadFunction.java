@@ -106,7 +106,7 @@ public class PointSpreadFunction
 
 			arrayImg = new ArrayImgFactory< FloatType >().create( size, new FloatType() );
 
-			FusionTools.copyImg( img, arrayImg );
+			FusionTools.copyImg( img, arrayImg, null );
 		}
 
 		return arrayImg;

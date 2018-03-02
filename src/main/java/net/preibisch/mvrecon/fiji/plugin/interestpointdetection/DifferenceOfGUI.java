@@ -671,7 +671,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Fusing temporary image ... " );
 
-		img = FusionTools.copyImg( img, new ImagePlusImgFactory< FloatType >(), new FloatType(), true );
+		img = FusionTools.copyImg( img, new ImagePlusImgFactory< FloatType >(), new FloatType(), null, true );
 
 		// we set the min & max intensity for all individual views
 		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )

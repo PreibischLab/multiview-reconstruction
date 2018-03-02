@@ -2,5 +2,5 @@ package net.preibisch.mvrecon.process.deconvolution.init;
 
 public interface PsiInitFactory
 {
-	public PsiInit createPsiInitialization();
+	public abstract PsiInit createPsiInitialization();
 }

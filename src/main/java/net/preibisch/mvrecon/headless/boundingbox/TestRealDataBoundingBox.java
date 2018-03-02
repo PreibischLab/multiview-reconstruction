@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.headless.boundingbox;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
@@ -36,6 +37,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMinFilterThreshold;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 public class TestRealDataBoundingBox
@@ -43,6 +45,9 @@ public class TestRealDataBoundingBox
 	public static void main( String[] args ) throws SpimDataException
 	{
 		new ImageJ();
+
+		// one common ExecutorService for all
+		final ExecutorService service = DeconViews.createExecutorService();
 
 		// test a real scenario
 		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );;
@@ -58,6 +63,7 @@ public class TestRealDataBoundingBox
 
 		final BoundingBoxMinFilterThreshold estimation = new BoundingBoxMinFilterThreshold(
 				spimData,
+				service,
 				viewIds,
 				new ArrayImgFactory<>(),
 				MinFilterThresholdBoundingBoxGUI.defaultBackgroundIntensity,

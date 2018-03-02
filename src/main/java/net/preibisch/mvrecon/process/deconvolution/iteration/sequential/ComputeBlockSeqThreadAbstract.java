@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.deconvolution.iteration.sequential;
 
-import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;

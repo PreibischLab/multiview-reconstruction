@@ -87,7 +87,7 @@ public class TestFusion
 
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Reserving memory for fused image and copying, size = " + Util.printCoordinates( size ) );
 
-		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>(), new FloatType(), true );
+		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>(), new FloatType(), null, true );
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Finished fusion process." );
 

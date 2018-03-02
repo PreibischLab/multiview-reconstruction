@@ -106,6 +106,7 @@ public class MinFilterThresholdBoundingBoxGUI extends BoundingBoxGUI
 		// compute approx bounding box
 		final BoundingBox bbEstimate = new BoundingBoxMinFilterThreshold(
 				spimData,
+				null,
 				viewIdsToProcess,
 				new CellImgFactory<>(),
 				background,

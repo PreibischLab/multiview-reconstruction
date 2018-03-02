@@ -451,7 +451,7 @@ public class FusionTools
 		if ( imgType == ImgDataType.CACHED )
 			img = cacheRandomAccessibleInterval( input, maxCacheSize, new FloatType(), cellDim );
 		else if ( imgType == ImgDataType.PRECOMPUTED )
-			img = copyImg( input, new ImagePlusImgFactory<>(), new FloatType(), true );
+			img = copyImg( input, new ImagePlusImgFactory<>(), new FloatType(), null, true );
 		else
 			img = input;
 
@@ -603,29 +603,31 @@ public class FusionTools
 		return translateIfNecessary( input, factory.create( dim, type, loader ) );
 	}
 
-	public static < T extends Type< T > > RandomAccessibleInterval< T > copyImg( final RandomAccessibleInterval< T > input, final ImgFactory< T > factory, final T type  )
+	public static < T extends Type< T > > RandomAccessibleInterval< T > copyImg( final RandomAccessibleInterval< T > input, final ImgFactory< T > factory, final T type, final ExecutorService service  )
 	{
-		return copyImg( input, factory, type, false );
+		return copyImg( input, factory, type, service, false );
 	}
 
 	public static < T extends Type< T > > RandomAccessibleInterval< T > copyImg(
 			final RandomAccessibleInterval< T > input,
 			final ImgFactory< T > factory,
 			final T type,
+			final ExecutorService service,
 			final boolean showProgress  )
 	{
-		return translateIfNecessary( input, copyImgNoTranslation( input, factory, type, showProgress ) );
+		return translateIfNecessary( input, copyImgNoTranslation( input, factory, type, service, showProgress ) );
 	}
 
-	public static < T extends Type< T > > Img< T > copyImgNoTranslation( final RandomAccessibleInterval< T > input, final ImgFactory< T > factory, final T type )
+	public static < T extends Type< T > > Img< T > copyImgNoTranslation( final RandomAccessibleInterval< T > input, final ImgFactory< T > factory, final T type, final ExecutorService service )
 	{
-		return copyImgNoTranslation( input, factory, type, false );
+		return copyImgNoTranslation( input, factory, type, service, false );
 	}
 
 	public static < T extends Type< T > > Img< T > copyImgNoTranslation(
 			final RandomAccessibleInterval< T > input,
 			final ImgFactory< T > factory,
 			final T type,
+			final ExecutorService service,
 			final boolean showProgress  )
 	{
 		final RandomAccessibleInterval< T > in;
@@ -641,7 +643,7 @@ public class FusionTools
 		final Img< T > tImg = factory.create( dim, type );
 
 		// copy the virtual construct into an actual image
-		copyImg( in, tImg, showProgress );
+		copyImg( in, tImg, service, showProgress );
 
 		return tImg;
 	}
@@ -661,17 +663,12 @@ public class FusionTools
 		}
 	}
 
-	public static void copyImg( final RandomAccessibleInterval< FloatType > input, final RandomAccessibleInterval< FloatType > output )
+	public static void copyImg( final RandomAccessibleInterval< FloatType > input, final RandomAccessibleInterval< FloatType > output, final ExecutorService service )
 	{
-		copyImg( input, output, false );
+		copyImg( input, output, service, false );
 	}
 
-	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final boolean showProgress )
-	{
-		copyImg( input, output, showProgress, null );
-	}
-
-	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final boolean showProgress, final ExecutorService service )
+	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service, final boolean showProgress )
 	{
 		final long numPixels = Views.iterable( input ).size();
 		final int nThreads = Threads.numThreads();
