@@ -106,7 +106,7 @@ public class Image_Deconvolution implements PlugIn
 		final List< Group< ViewDescription > > deconGroupBatches = decon.getFusionGroups();
 		int i = 0;
 
-		for ( final Group< ViewDescription > deconGroup : deconGroupBatches )
+		for ( final Group< ViewDescription > deconGroup : Group.getGroupsSorted( deconGroupBatches ) )
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Deconvolving group " + (++i) + "/" + deconGroupBatches.size() + " (group=" + deconGroup + ")" );
 
