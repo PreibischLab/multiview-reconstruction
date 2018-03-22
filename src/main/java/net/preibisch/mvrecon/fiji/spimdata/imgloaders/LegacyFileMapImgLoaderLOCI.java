@@ -39,6 +39,7 @@ import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
+import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -166,22 +167,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	protected void loadMetaData(ViewId view)
 	{
 		BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
-		try
-		{
-//			System.out.println( fileMap.get( vd ).getA().getAbsolutePath() );
-			if (reader.getCurrentFile() == null || !reader.getCurrentFile().equals( fileMap.get( vd ).getA().getAbsolutePath()))
-				reader.setId( fileMap.get( vd ).getA().getAbsolutePath() );
-		
-			
-		}
-		catch ( FormatException | IOException e )
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		reader.setSeries( fileMap.get( vd ).getB().getA() );
-		
-		
+
 		// we already read view sizes and voxel dimensions when setting up sd
 		// here, we pass them to the ImgLoaders metaDataCache, so that that knows the sizes as well		
 		int d0 = (int) vd.getViewSetup().getSize().dimension( 0 );
@@ -192,13 +178,21 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		double vox1 = vd.getViewSetup().getVoxelSize().dimension( 1 );
 		double vox2 = vd.getViewSetup().getVoxelSize().dimension( 2 );
 		updateMetaDataCache( view, d0, d1, d2, vox0, vox1, vox2 );
-
 	}
-	
+
 	protected < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > openImg( final T type, final ViewId view ) throws Exception
 	{
-		// sets reader to correct File and series
+		// load dimensions
 		loadMetaData( view );
+
+		final File fileForVId = fileMap.get( view ).getA();
+
+		// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+		// use Memoizer to cache ReaderState for each File on disk
+		// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+		IFormatReader reader = new Memoizer( new ImageReader() );
+		reader.setId( fileForVId.getAbsolutePath() );
+		reader.setSeries( fileMap.get( view ).getB().getA() );
 
 		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
 		final BasicViewSetup vs = vd.getViewSetup();		

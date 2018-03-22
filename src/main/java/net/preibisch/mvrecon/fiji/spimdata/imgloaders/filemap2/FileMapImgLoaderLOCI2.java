@@ -28,12 +28,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
+import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHints;
 import mpicbg.spim.data.sequence.ImgLoader;
@@ -134,9 +133,10 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 
 			final Dimensions size = vd.getViewSetup().getSize();
 
-			if (!readers.containsKey( imageSource.getA() ))
-				readers.put( imageSource.getA(), new ImageReader() );
-			IFormatReader reader = readers.get( imageSource.getA() );
+			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+			// use Memoizer to cache ReaderState for each File on disk
+			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+			IFormatReader reader = new Memoizer( new ImageReader() );
 
 			RandomAccessibleInterval< T > img = null;
 			try
@@ -205,7 +205,6 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, boolean normalize,
 				ImgLoaderHint... hints)
 		{
-
 			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
 			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
 
@@ -213,10 +212,11 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 
 			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
 
-			if (!readers.containsKey( imageSource.getA() ))
-				readers.put( imageSource.getA(), new ImageReader() );
-			IFormatReader reader = readers.get( imageSource.getA() );
-			
+			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+			// use Memoizer to cache ReaderState for each File on disk
+			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+			IFormatReader reader = new Memoizer( new ImageReader() );
+
 			RandomAccessibleInterval< FloatType > img = null;
 			try
 			{
