@@ -56,6 +56,7 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
 public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 {
 	final SpimData2 spimData;
+	final ExecutorService service;
 	final Collection< ViewId > views;
 	final ImgFactory< FloatType > imgFactory;
 
@@ -69,6 +70,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 
 	public BoundingBoxMinFilterThreshold(
 			final SpimData2 spimData,
+			final ExecutorService service,
 			final Collection< ? extends ViewId > views,
 			final ImgFactory< FloatType > imgFactory,
 			final double background,
@@ -77,6 +79,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 			final int downsampling )
 	{
 		this.spimData = spimData;
+		this.service = service;
 		this.views = new ArrayList<>();
 		this.imgFactory = imgFactory;
 
@@ -101,7 +104,8 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 				FusionTools.copyImgNoTranslation(
 						FusionTools.fuseVirtual( spimData, views, true, false, 1, maxBB, downsampling ),
 						new ArrayImgFactory<>(),
-						new FloatType() );
+						new FloatType(),
+						service );
 
 		final float[] minmax = FusionTools.minMax( img );
 		final int effR = Math.max( radiusMin / downsampling, 1 );

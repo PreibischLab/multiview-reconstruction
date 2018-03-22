@@ -113,7 +113,13 @@ public class AppendSpimData2HDF5 implements ImgExport
 		this.newTimepoints = newStructure.getA();
 		this.newViewSetups = newStructure.getB();
 
-		Hdf5ImageLoader il = ( Hdf5ImageLoader ) spimData.getSequenceDescription().getImgLoader();
+		this.spimData = (SpimData2) fusion.getSpimData();
+
+		Hdf5ImageLoader il;
+		if (Hdf5ImageLoader.class.isInstance( spimData.getSequenceDescription().getImgLoader() ))
+			il = ( Hdf5ImageLoader ) spimData.getSequenceDescription().getImgLoader();
+		else
+			return false;
 
 		perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( newViewSetups );
 

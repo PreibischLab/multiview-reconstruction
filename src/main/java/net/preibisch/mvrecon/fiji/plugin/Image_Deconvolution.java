@@ -123,6 +123,7 @@ public class Image_Deconvolution implements PlugIn
 			final ProcessInputImages< ViewDescription > fusion = new ProcessInputImages<>(
 					spimData,
 					deconVirtualViews,
+					service,
 					bb,
 					downsampling,
 					true,
@@ -173,7 +174,6 @@ public class Image_Deconvolution implements PlugIn
 			final ComputeBlockThreadFactory< ? > cptf = decon.getComputeBlockThreadFactory();
 			final boolean mul = decon.isMultiplicative();
 			final PsiInitFactory psiInitFactory = decon.getPsiInitFactory();
-
 
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Grouping, and transforming PSF's " );
 

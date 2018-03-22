@@ -39,6 +39,7 @@ import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
+import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -48,6 +49,7 @@ import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.io.IOFunctions;
@@ -73,20 +75,21 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 {
 	
-	private HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap;
+	private HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
 	private AbstractSequenceDescription< ?, ?, ? > sd;
-	private IFormatReader reader;
 	private boolean allTimepointsInSingleFiles;
 
 	public LegacyFileMapImgLoaderLOCI(
-			HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap,
+			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription )
 	{
 		super();
-		this.fileMap = fileMap;
+
+		this.fileMap = new HashMap<>();
+		this.fileMap.putAll( fileMap );
+
 		this.sd = sequenceDescription;
-		this.reader = new ImageReader();
 
 		setImgFactory( imgFactory );
 
@@ -94,14 +97,14 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
-		for ( BasicViewDescription< ? > vd : fileMap.keySet() )
+		for ( ViewId vId : fileMap.keySet() )
 		{
 
-			final File fileForVd = fileMap.get( vd ).getA();
+			final File fileForVd = fileMap.get( vId ).getA();
 			if ( !tpsPerFile.containsKey( fileForVd ) )
 				tpsPerFile.put( fileForVd, new HashSet<>() );
 
-			tpsPerFile.get( fileForVd ).add( vd.getTimePointId() );
+			tpsPerFile.get( fileForVd ).add( vId.getTimePointId() );
 
 			// the current file has more than one time point
 			if ( tpsPerFile.get( fileForVd ).size() > 1 )
@@ -164,22 +167,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	protected void loadMetaData(ViewId view)
 	{
 		BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
-		try
-		{
-//			System.out.println( fileMap.get( vd ).getA().getAbsolutePath() );
-			if (reader.getCurrentFile() == null || !reader.getCurrentFile().equals( fileMap.get( vd ).getA().getAbsolutePath()))
-				reader.setId( fileMap.get( vd ).getA().getAbsolutePath() );
-		
-			
-		}
-		catch ( FormatException | IOException e )
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		reader.setSeries( fileMap.get( vd ).getB().getA() );
-		
-		
+
 		// we already read view sizes and voxel dimensions when setting up sd
 		// here, we pass them to the ImgLoaders metaDataCache, so that that knows the sizes as well		
 		int d0 = (int) vd.getViewSetup().getSize().dimension( 0 );
@@ -190,13 +178,21 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		double vox1 = vd.getViewSetup().getVoxelSize().dimension( 1 );
 		double vox2 = vd.getViewSetup().getVoxelSize().dimension( 2 );
 		updateMetaDataCache( view, d0, d1, d2, vox0, vox1, vox2 );
-
 	}
-	
+
 	protected < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > openImg( final T type, final ViewId view ) throws Exception
 	{
-		// sets reader to correct File and series
+		// load dimensions
 		loadMetaData( view );
+
+		final File fileForVId = fileMap.get( view ).getA();
+
+		// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+		// use Memoizer to cache ReaderState for each File on disk
+		// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+		IFormatReader reader = new Memoizer( new ImageReader() );
+		reader.setId( fileForVId.getAbsolutePath() );
+		reader.setSeries( fileMap.get( view ).getB().getA() );
 
 		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
 		final BasicViewSetup vs = vd.getViewSetup();		
@@ -359,7 +355,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	}
 
 
-	public HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
 	{
 		return fileMap;
 	}
@@ -373,11 +369,12 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	public static boolean isZSizeEqualInEveryFile(final SpimData2 spimData, final FileMapGettable loader)
 	{
 		// for every file: collect a vd for every series
-		final Map< File, Map< Integer, BasicViewDescription< ? > > > invertedMap = new HashMap<>();
+		final Map< File, Map< Integer, ViewId > > invertedMap = new HashMap<>();
 		loader.getFileMap().entrySet().forEach( e -> {
 
+			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( e.getKey() );
 			// ignore missing views
-			if (!e.getKey().isPresent())
+			if (!vd.isPresent())
 				return;
 
 			final File invKey = e.getValue().getA();
@@ -385,21 +382,21 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 				invertedMap.put( invKey, new HashMap<>() );
 
 			final Integer series = e.getValue().getB().getA();
-			final BasicViewDescription< ? > vd = e.getKey();
 
 			invertedMap.get( invKey ).put( series, vd );
 		});
 
 		// filter all files that do no have equal z-size for all series
-		final List< Entry< File, Map< Integer, BasicViewDescription< ? > > > > mapFiltered = invertedMap.entrySet().stream().filter( e -> {
-			final Map< Integer, BasicViewDescription< ? > > seriesMap = e.getValue();
+		final List< Entry< File, Map< Integer, ViewId > > > mapFiltered = invertedMap.entrySet().stream().filter( e -> {
+			final Map< Integer, ViewId > seriesMap = e.getValue();
 
 			Long zSize = null;
 			for (Integer series : seriesMap.keySet())
 			{
+				final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( seriesMap.get( series ) );
 				if (zSize == null)
-					zSize = seriesMap.get( series ).getViewSetup().getSize().dimension( 2 );
-				if (zSize != seriesMap.get( series ).getViewSetup().getSize().dimension( 2 ))
+					zSize = vd.getViewSetup().getSize().dimension( 2 );
+				if (zSize != vd.getViewSetup().getSize().dimension( 2 ))
 					return false;
 			}
 			return true;
@@ -424,20 +421,20 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		final Map< Pair< File, Integer >, List< BasicViewDescription< ViewSetup > > > invertedMap = new HashMap<>();
 		loader.getFileMap().entrySet().forEach( e -> {
 
+			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( e.getKey() );
+
 			// ignore if we cannot cast to ViewSetup
-			if (!ViewSetup.class.isInstance( e.getKey().getViewSetup() ) )
+			if (!ViewSetup.class.isInstance( vd.getViewSetup() ) )
 				return;
 
 			// ignore missing views
-			if (!e.getKey().isPresent())
+			if (vd.isPresent())
 				return;
 
 			final Pair< File, Integer > invKey = new ValuePair<>( e.getValue().getA(), e.getValue().getB().getA() );
 			if (!invertedMap.containsKey( invKey ))
 				invertedMap.put( invKey, new ArrayList<>() );
 
-			@SuppressWarnings("unchecked")
-			final BasicViewDescription< ViewSetup > vd = (BasicViewDescription< ViewSetup >) e.getKey();
 			invertedMap.get( invKey ).add( vd );
 		});
 

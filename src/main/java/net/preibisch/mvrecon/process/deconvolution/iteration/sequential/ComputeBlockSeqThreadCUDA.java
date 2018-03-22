@@ -174,7 +174,7 @@ public class ComputeBlockSeqThreadCUDA extends ComputeBlockSeqThreadAbstract
 			final ArrayImg< FloatType, ? > tmp1 )
 	{
 		// copy psi onto tmp1
-		FusionTools.copyImg( psi, tmp1, false, service );
+		FusionTools.copyImg( psi, tmp1, service, false );
 
 		final float[] blockF = ((FloatArray)(tmp1).update( null ) ).getCurrentStorageArray();
 		final float[] kernel1F = ((FloatArray)(kernel1).update( null ) ).getCurrentStorageArray();
@@ -195,7 +195,7 @@ public class ComputeBlockSeqThreadCUDA extends ComputeBlockSeqThreadAbstract
 			final ArrayImg< FloatType, ? > tmp2 )
 	{
 		// copy tmp1 onto tmp2
-		FusionTools.copyImg( tmp1, tmp2, false, service );
+		FusionTools.copyImg( tmp1, tmp2, service, false );
 
 		final float[] blockF = ((FloatArray)(tmp2).update( null ) ).getCurrentStorageArray();
 		final float[] kernel2F = ((FloatArray)(kernel2).update( null ) ).getCurrentStorageArray();

@@ -206,7 +206,7 @@ public class MultiViewDeconvolutionMul extends MultiViewDeconvolution< ComputeBl
 							{
 								// copy to the writequeue
 								final Img< FloatType > tmp = blockThread.getPsiBlockTmp().factory().create( blockThread.getPsiBlockTmp(), new FloatType() );
-								FusionTools.copyImg( blockThread.getPsiBlockTmp(), tmp, false, views.getExecutorService() );
+								FusionTools.copyImg( blockThread.getPsiBlockTmp(), tmp, views.getExecutorService(), false );
 								currentBlockWritebackQueue.add( new ValuePair<>( new ValuePair<>( blockIdOut, blockStruct ), tmp ) );
 
 								System.out.println( " block " + blockIdOut + ", thread (" + (threadId+1) + "/" + threads.length + "), (CPU): saving for later pasting " + (System.currentTimeMillis() - time) );

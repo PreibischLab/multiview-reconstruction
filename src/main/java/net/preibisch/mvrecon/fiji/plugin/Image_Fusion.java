@@ -26,6 +26,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ij.ImageJ;
 import ij.plugin.PlugIn;
@@ -47,6 +49,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -114,6 +117,9 @@ public class Image_Fusion implements PlugIn
 		if ( !exporter.queryParameters( fusion ) )
 			return false;
 
+		// one common executerservice
+		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+
 		for ( final Group< ViewDescription > group : Group.getGroupsSorted( groups ) )
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusing group " + (++i) + "/" + groups.size() + " (group=" + group + ")" );
@@ -177,12 +183,12 @@ public class Image_Fusion implements PlugIn
 				if ( !cacheAndExport(
 						new ConvertedRandomAccessibleInterval< FloatType, UnsignedShortType >(
 								virtual, new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] ), new UnsignedShortType() ),
-						new UnsignedShortType(), fusion, exporter, group, minmax ) )
+						taskExecutor, new UnsignedShortType(), fusion, exporter, group, minmax ) )
 					return false;
 			}
 			else
 			{
-				if ( !cacheAndExport( virtual, new FloatType(), fusion, exporter, group, null ) )
+				if ( !cacheAndExport( virtual, taskExecutor, new FloatType(), fusion, exporter, group, null ) )
 					return false;
 			}
 		}
@@ -214,6 +220,7 @@ public class Image_Fusion implements PlugIn
 
 	protected static < T extends RealType< T > & NativeType< T > > boolean cacheAndExport(
 			final RandomAccessibleInterval< T > output,
+			final ExecutorService taskExecutor,
 			final T type,
 			final FusionGUI fusion,
 			final ImgExport exporter,
@@ -227,7 +234,7 @@ public class Image_Fusion implements PlugIn
 		else if ( fusion.getCacheType() == 1 ) // Cached
 			processedOutput = FusionTools.cacheRandomAccessibleInterval( output, FusionGUI.maxCacheSize, type, FusionGUI.cellDim );
 		else // Precomputed
-			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, true );
+			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
 
 		final String title = getTitle( fusion.getSplittingType(), group );
 

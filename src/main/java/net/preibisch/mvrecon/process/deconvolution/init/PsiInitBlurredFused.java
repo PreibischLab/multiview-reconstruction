@@ -77,7 +77,7 @@ public class PsiInitBlurredFused implements PsiInit
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusing estimate of deconvolved image ..." );
 
-		FusionTools.copyImg( fused, psi, true, service );
+		FusionTools.copyImg( fused, psi, service, true );
 
 		final RealSum s = new RealSum();
 		long count = 0;

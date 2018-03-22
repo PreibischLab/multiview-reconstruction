@@ -28,12 +28,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
+import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHints;
 import mpicbg.spim.data.sequence.ImgLoader;
@@ -52,44 +51,39 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.ShortType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyFileMapImgLoaderLOCI;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 {
-	private final HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap;
+	private final HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
 	private final AbstractSequenceDescription<?, ?, ?> sd;
 	private boolean allTimepointsInSingleFiles;
-	private final Map< File, IFormatReader > readers;
 	
-	public FileMapImgLoaderLOCI2(HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap,
+	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
 	{
-		this.fileMap = fileMap;
+		this.fileMap = new HashMap<>();
+		this.fileMap.putAll( fileMap );
+
 		this.sd = sequenceDescription;
-		
-		this.readers = new HashMap<>();
-		
+
 		allTimepointsInSingleFiles = true;
 		
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
-		for ( BasicViewDescription< ? > vd : fileMap.keySet() )
+		for ( ViewId vid : fileMap.keySet() )
 		{
 
-			final File fileForVd = fileMap.get( vd ).getA();
+			final File fileForVd = fileMap.get( vid ).getA();
 			if ( !tpsPerFile.containsKey( fileForVd ) )
 				tpsPerFile.put( fileForVd, new HashSet<>() );
 
-			tpsPerFile.get( fileForVd ).add( vd.getTimePointId() );
+			tpsPerFile.get( fileForVd ).add( vid.getTimePointId() );
 
 			// the current file has more than one time point
 			if ( tpsPerFile.get( fileForVd ).size() > 1 )
@@ -115,7 +109,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 	 * @see spim.fiji.spimdata.imgloaders.filemap2.FileMapGettable#getFileMap()
 	 */
 	@Override
-	public HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
 	{
 		 return fileMap;
 	}
@@ -139,9 +133,10 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 
 			final Dimensions size = vd.getViewSetup().getSize();
 
-			if (!readers.containsKey( imageSource.getA() ))
-				readers.put( imageSource.getA(), new ImageReader() );
-			IFormatReader reader = readers.get( imageSource.getA() );
+			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+			// use Memoizer to cache ReaderState for each File on disk
+			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+			IFormatReader reader = new Memoizer( new ImageReader() );
 
 			RandomAccessibleInterval< T > img = null;
 			try
@@ -210,7 +205,6 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, boolean normalize,
 				ImgLoaderHint... hints)
 		{
-
 			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
 			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
 
@@ -218,10 +212,11 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 
 			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
 
-			if (!readers.containsKey( imageSource.getA() ))
-				readers.put( imageSource.getA(), new ImageReader() );
-			IFormatReader reader = readers.get( imageSource.getA() );
-			
+			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
+			// use Memoizer to cache ReaderState for each File on disk
+			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
+			IFormatReader reader = new Memoizer( new ImageReader() );
+
 			RandomAccessibleInterval< FloatType > img = null;
 			try
 			{

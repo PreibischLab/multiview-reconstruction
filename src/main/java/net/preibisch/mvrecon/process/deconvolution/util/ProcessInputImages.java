@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import bdv.util.ConstantRandomAccessible;
 import mpicbg.spim.data.generic.AbstractSpimData;
@@ -65,6 +66,7 @@ public class ProcessInputImages< V extends ViewId >
 	final ArrayList< Group< V > > groups;
 	final Interval bb;
 	Interval downsampledBB;
+	final ExecutorService service;
 	final double downsampling;
 	final boolean useWeightsFusion, useWeightsDecon;
 	final float blendingRangeFusion, blendingBorderFusion, blendingRangeDeconvolution, blendingBorderDeconvolution;
@@ -76,6 +78,7 @@ public class ProcessInputImages< V extends ViewId >
 	public ProcessInputImages(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
 			final Collection< Group< V > > groups,
+			final ExecutorService service,
 			final Interval bb,
 			final double downsampling,
 			final boolean useWeightsFusion,
@@ -87,6 +90,7 @@ public class ProcessInputImages< V extends ViewId >
 	{
 		this.spimData = spimData;
 		this.groups = SpimData2.filterGroupsForMissingViews( spimData, groups );
+		this.service = service;
 		this.bb = bb;
 		this.downsampling = downsampling;
 		this.useWeightsFusion = useWeightsFusion;
@@ -107,11 +111,12 @@ public class ProcessInputImages< V extends ViewId >
 	public ProcessInputImages(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
 			final Collection< Group< V > > groups,
+			final ExecutorService service,
 			final Interval bb,
 			final double downsampling )
 	{
 		this(
-				spimData, groups, bb, downsampling,
+				spimData, groups, service, bb, downsampling,
 				true, FusionTools.defaultBlendingRange, FusionTools.defaultBlendingBorder,
 				true, MultiViewDeconvolution.defaultBlendingRange, MultiViewDeconvolution.defaultBlendingBorder );
 	}
@@ -119,9 +124,10 @@ public class ProcessInputImages< V extends ViewId >
 	public ProcessInputImages(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
 			final Collection< Group< V > > groups,
+			final ExecutorService service,
 			final Interval bb )
 	{
-		this( spimData, groups, bb, Double.NaN );
+		this( spimData, groups, service, bb, Double.NaN );
 	}
 
 	public ArrayList< Group< V > > getGroups() { return groups; }
@@ -151,19 +157,19 @@ public class ProcessInputImages< V extends ViewId >
 	public void cacheImages( final int cellDim, final int maxCacheSize ) { cacheRandomAccessibleInterval( groups, cellDim, maxCacheSize, images ); }
 	public void cacheImages() { cacheImages( MultiViewDeconvolution.cellDim, MultiViewDeconvolution.maxCacheSize ); }
 
-	public void copyImages( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, imgFactory, images ); }
+	public void copyImages( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, service, imgFactory, images ); }
 	public void copyImages() { copyImages( new CellImgFactory<>( MultiViewDeconvolution.cellDim ) ); }
 
 	public void cacheUnnormalizedWeights( final int cellDim, final int maxCacheSize ) { cacheRandomAccessibleInterval( groups, cellDim, maxCacheSize, unnormalizedWeights ); }
 	public void cacheUnnormalizedWeights() { cacheUnnormalizedWeights( MultiViewDeconvolution.cellDim, MultiViewDeconvolution.maxCacheSize ); }
 
-	public void copyUnnormalizedWeights( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, imgFactory, unnormalizedWeights ); }
+	public void copyUnnormalizedWeights( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, service, imgFactory, unnormalizedWeights ); }
 	public void copyUnnormalizedWeights() { copyUnnormalizedWeights( new CellImgFactory<>( MultiViewDeconvolution.cellDim ) ); }
 
 	public void cacheNormalizedWeights( final int cellDim, final int maxCacheSize ) { cacheRandomAccessibleInterval( groups, cellDim, maxCacheSize, normalizedWeights ); }
 	public void cacheNormalizedWeights() { cacheNormalizedWeights( MultiViewDeconvolution.cellDim, MultiViewDeconvolution.maxCacheSize ); }
 
-	public void copyNormalizedWeights( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, imgFactory, normalizedWeights ); }
+	public void copyNormalizedWeights( final ImgFactory< FloatType > imgFactory ) { copyRandomAccessibleInterval( groups, service, imgFactory, normalizedWeights ); }
 	public void copyNormalizedWeights() { copyNormalizedWeights( new CellImgFactory<>( MultiViewDeconvolution.cellDim ) ); }
 
 	public void normalizeWeights() { normalizeWeights( 1.0 ); }
@@ -244,6 +250,7 @@ public class ProcessInputImages< V extends ViewId >
 
 	public static < V extends ViewId > void copyRandomAccessibleInterval(
 			final Collection< Group< V > > groups,
+			final ExecutorService service,
 			final ImgFactory< FloatType > factory,
 			final HashMap< Group< V >, RandomAccessibleInterval< FloatType > > images )
 	{
@@ -252,7 +259,7 @@ public class ProcessInputImages< V extends ViewId >
 			if ( !images.containsKey( group ) )
 				continue;
 
-			images.put( group, FusionTools.copyImg( images.get( group ), factory, new FloatType() ) );
+			images.put( group, FusionTools.copyImg( images.get( group ), factory, new FloatType(), service ) );
 		}
 	}
 

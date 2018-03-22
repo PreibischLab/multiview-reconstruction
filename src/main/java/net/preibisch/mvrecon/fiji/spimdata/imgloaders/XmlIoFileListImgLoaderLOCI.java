@@ -27,6 +27,7 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.jdom2.Element;
 
@@ -61,7 +62,7 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 	@Override
 	public Element toXml(FileMapImgLoaderLOCI imgLoader, File basePath)
 	{
-		HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > fileMap = imgLoader.getFileMap();
+		Map< ViewId, Pair< File, Pair< Integer, Integer > > > fileMap = imgLoader.getFileMap();
 		
 		final Element wholeElem = new Element( "ImageLoader" );
 		wholeElem.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, this.getClass().getAnnotation( ImgLoaderIo.class ).format() );
@@ -69,12 +70,12 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 		
 		final Element filesElement = new Element( FILES_TAG );
 		
-		for (BasicViewDescription< ? > vs : fileMap.keySet())
+		for (ViewId vid : fileMap.keySet())
 		{
-			final Pair< File, Pair< Integer, Integer > > pair = fileMap.get( vs );
+			final Pair< File, Pair< Integer, Integer > > pair = fileMap.get( vid );
 			final Element fileMappingElement = new Element( FILE_MAPPING_TAG );
-			fileMappingElement.setAttribute( MAPPING_VS_TAG, Integer.toString( vs.getViewSetupId()) );
-			fileMappingElement.setAttribute( MAPPING_TP_TAG, Integer.toString( vs.getTimePointId()) );
+			fileMappingElement.setAttribute( MAPPING_VS_TAG, Integer.toString( vid.getViewSetupId()) );
+			fileMappingElement.setAttribute( MAPPING_TP_TAG, Integer.toString( vid.getTimePointId()) );
 			fileMappingElement.addContent( XmlHelpers.pathElement( MAPPING_FILE_TAG, pair.getA(), basePath ) );
 			fileMappingElement.setAttribute( MAPPING_SERIES_TAG, Integer.toString(pair.getB().getA()) );
 			fileMappingElement.setAttribute( MAPPING_C_TAG, Integer.toString(pair.getB().getB()) );

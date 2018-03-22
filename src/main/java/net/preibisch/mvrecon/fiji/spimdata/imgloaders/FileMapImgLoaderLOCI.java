@@ -23,11 +23,11 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.Map;
 
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.legacy.LegacyImgLoaderWrapper;
+import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -38,7 +38,7 @@ public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortT
 {
 
 	public FileMapImgLoaderLOCI(
-			HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap,
+			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription )
 	{
@@ -54,7 +54,7 @@ public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortT
 	}
 	
 	@Override
-	public HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
 	{
 		 return ( (LegacyFileMapImgLoaderLOCI) legacyImgLoader ).getFileMap();
 	}

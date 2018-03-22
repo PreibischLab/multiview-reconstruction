@@ -93,6 +93,9 @@ public class TestDeconvolutionMul
 			final BoundingBox boundingBox,
 			final boolean mul )
 	{
+		// one common ExecutorService for all
+		final ExecutorService service = DeconViews.createExecutorService();
+
 		if ( boundingBox == null )
 		{
 			System.out.println( "Bounding box null." );
@@ -110,6 +113,7 @@ public class TestDeconvolutionMul
 		final ProcessInputImages< V > fusion = new ProcessInputImages<>(
 				spimData,
 				deconVirtualViews,
+				service,
 				boundingBox,
 				downsampling,
 				true,
@@ -155,9 +159,6 @@ public class TestDeconvolutionMul
 		final PsiInitType psiInitType = PsiInitType.FUSED_BLURRED;
 		final boolean debug = true;
 		final int debugInterval = 10;
-
-		// one common ExecutorService for all
-		final ExecutorService service = DeconViews.createExecutorService();
 
 		try
 		{

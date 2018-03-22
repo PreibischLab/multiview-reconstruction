@@ -114,7 +114,7 @@ public class ExportSpimData2TIFF implements ImgExport
 		final ViewDescription newVD = newSpimData.getSequenceDescription().getViewDescription( newViewId );
 
 		// populate HashMap for the ImgLoader
-		fileMap.put( newVD, new ValuePair< File, Pair<Integer,Integer> >( new File( saver.getFileName( title ) ), new ValuePair<>( newViewId.getTimePointId(), newViewId.getViewSetupId() ) ) );
+		fileMap.put( newVD, new ValuePair< File, Pair<Integer,Integer> >( new File( saver.getFileName( title ) ), new ValuePair<>( 0, 0 ) ) );
 
 		// update the registrations
 		final ViewRegistration vr = newSpimData.getViewRegistrations().getViewRegistration( newViewId );

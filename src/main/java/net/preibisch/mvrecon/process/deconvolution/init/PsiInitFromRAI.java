@@ -52,7 +52,7 @@ public class PsiInitFromRAI implements PsiInit
 				return false;
 			}
 
-		FusionTools.copyImg( Views.zeroMin( input ), Views.zeroMin( psi ) );
+		FusionTools.copyImg( Views.zeroMin( input ), Views.zeroMin( psi ), service );
 
 		IOFunctions.println( "RandomAccessibleInterval copied onto PSI for init, now approx computing of avg & max." );
 
