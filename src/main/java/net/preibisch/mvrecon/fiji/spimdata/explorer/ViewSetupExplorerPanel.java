@@ -74,6 +74,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.type.numeric.ARGBType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ApplyTransformationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BakeManualTransformationPopup;
@@ -438,7 +439,6 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 					active[ getBDVSourceIndex( vd.getViewSetup(), data ) ] = true;
 		}
 
-		
 		if ( selectedRows.size() > 1 && colorMode )
 		{
 			// we have grouped views
@@ -456,6 +456,8 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 			whiteSources( bdv.getSetupAssignments().getConverterSetups() );
 
 		setVisibleSources( bdv.getViewer().getVisibilityAndGrouping(), active );
+
+		ScrollableBrightnessDialog.updateBrightnessPanels( bdv );
 	}
 
 	/**

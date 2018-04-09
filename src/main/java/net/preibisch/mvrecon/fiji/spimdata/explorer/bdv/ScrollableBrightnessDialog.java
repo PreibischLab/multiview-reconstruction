@@ -33,6 +33,7 @@ import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Frame;
 
+import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -41,7 +42,6 @@ import org.scijava.ui.behaviour.util.InputActionBindings;
 
 import bdv.BigDataViewer;
 import bdv.BigDataViewerActions;
-import bdv.tools.ToggleDialogAction;
 import bdv.tools.brightness.BrightnessDialog;
 import bdv.tools.brightness.SetupAssignments;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -64,10 +64,38 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 
 		am.getParent().put(
 				BigDataViewerActions.BRIGHTNESS_SETTINGS,
-				new ToggleDialogAction(
+				new ToggleDialogActionBrightness(
 						BigDataViewerActions.BRIGHTNESS_SETTINGS,
 						new ScrollableBrightnessDialog( bdv.getViewerFrame(), bdv.getSetupAssignments() ) ) );
 	}
+
+	public static boolean updateBrightnessPanels( final BigDataViewer bdv )
+	{
+		if ( bdv == null )
+			return false;
+
+		final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
+
+		if ( inputActionBindings == null )
+			return false;
+
+		final ActionMap am = inputActionBindings.getConcatenatedActionMap();
+
+		if ( am == null )
+			return false;
+
+		final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
+
+		if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
+			return false;
+
+		((ToggleDialogActionBrightness)dialog).updatePanels();
+
+		return true;
+	}
+
+	final MinMaxPanels minMaxPanels;
+	final ColorsPanel colorsPanel;
 
 	public ScrollableBrightnessDialog( final Frame owner, final SetupAssignments setupAssignments )
 	{
@@ -77,8 +105,8 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 
 		final Container content = getContentPane();
 
-		final MinMaxPanels minMaxPanels = (MinMaxPanels)content.getComponent( 0 );
-		final ColorsPanel colorsPanel = (ColorsPanel)content.getComponent( 1 );
+		this.minMaxPanels = (MinMaxPanels)content.getComponent( 0 );
+		this.colorsPanel = (ColorsPanel)content.getComponent( 1 );
 
 		content.removeAll();
 
@@ -96,7 +124,11 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 
 		content.add( jspane );
 		this.validate();
+	}
 
-
+	public void updatePanels()
+	{
+		colorsPanel.recreateContent();
+		minMaxPanels.recreateContent();
 	}
 }
