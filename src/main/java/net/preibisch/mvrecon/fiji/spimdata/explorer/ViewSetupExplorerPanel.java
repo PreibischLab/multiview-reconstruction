@@ -58,10 +58,8 @@ import javax.swing.table.TableCellRenderer;
 
 import bdv.BigDataViewer;
 import bdv.img.hdf5.Hdf5ImageLoader;
-import bdv.tools.InitializeViewerState;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.DisplayMode;
-import bdv.viewer.ViewerOptions;
 import bdv.viewer.VisibilityAndGrouping;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
@@ -109,6 +107,8 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > extends FilteredAndGroupedExplorerPanel< AS, X > implements ExplorerWindow< AS, X >
 {
+	private static final long serialVersionUID = -2512096359830259015L;
+
 	static
 	{
 		IOFunctions.printIJLog = true;
@@ -159,18 +159,10 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 			
 			if ( bdvpopup != null )
 			{
-
 				if (!bdvPopup().bdvRunning())
-					bdvpopup.bdv = BigDataViewer.open( getSpimData(), xml(), IOFunctions.getProgressWriter(), ViewerOptions.options() );
-
-//				if ( !bdv.tryLoadSettings( panel.xml() ) ) TODO: this should work, but currently tryLoadSettings is protected. fix that.
-				InitializeViewerState.initBrightness( 0.001, 0.999, bdvpopup.bdv.getViewer(), bdvpopup.bdv.getSetupAssignments() );
-
-				// do not rotate BDV view by default
-				BDVPopup.initTransform( bdvpopup.bdv.getViewer() );
+					bdvpopup.bdv = BDVPopup.createBDV( getSpimData(), xml() );
 
 				setFusedModeSimple( bdvpopup.bdv, data );
-
 			}
 		}
 
