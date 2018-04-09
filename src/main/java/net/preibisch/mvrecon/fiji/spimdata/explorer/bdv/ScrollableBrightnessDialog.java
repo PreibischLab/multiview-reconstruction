@@ -1,0 +1,102 @@
+/*
+ * #%L
+ * BigDataViewer core classes with minimal dependencies
+ * %%
+ * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
+ * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * %%
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ * #L%
+ */
+package net.preibisch.mvrecon.fiji.spimdata.explorer.bdv;
+
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Frame;
+
+import javax.swing.ActionMap;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+
+import org.scijava.ui.behaviour.util.InputActionBindings;
+
+import bdv.BigDataViewer;
+import bdv.BigDataViewerActions;
+import bdv.tools.ToggleDialogAction;
+import bdv.tools.brightness.BrightnessDialog;
+import bdv.tools.brightness.SetupAssignments;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+
+
+/**
+ * Adjust brightness and colors for individual (or groups of) {@link BasicViewSetup setups} and having a scrollpane if necessary
+ *
+ * @author Stephan Preibisch
+ */
+public class ScrollableBrightnessDialog extends BrightnessDialog
+{
+	private static final long serialVersionUID = -2021647829067995526L;
+
+	public static void setAsBrightnessDialog( final BigDataViewer bdv )
+	{
+		final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
+		final ActionMap am = inputActionBindings.getConcatenatedActionMap();
+		//final ToggleDialogAction tda = (ToggleDialogAction)am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS ); // the old one
+
+		am.getParent().put(
+				BigDataViewerActions.BRIGHTNESS_SETTINGS,
+				new ToggleDialogAction(
+						BigDataViewerActions.BRIGHTNESS_SETTINGS,
+						new ScrollableBrightnessDialog( bdv.getViewerFrame(), bdv.getSetupAssignments() ) ) );
+	}
+
+	public ScrollableBrightnessDialog( final Frame owner, final SetupAssignments setupAssignments )
+	{
+		super( owner, setupAssignments );
+
+		this.setSize( this.getSize().width + 5, this.getHeight() + 20 );
+
+		final Container content = getContentPane();
+
+		final MinMaxPanels minMaxPanels = (MinMaxPanels)content.getComponent( 0 );
+		final ColorsPanel colorsPanel = (ColorsPanel)content.getComponent( 1 );
+
+		content.removeAll();
+
+		JPanel panel = new JPanel( new BorderLayout() );
+
+		panel.add( minMaxPanels, BorderLayout.NORTH );
+		panel.add( colorsPanel, BorderLayout.SOUTH );
+
+		JScrollPane jspane = new JScrollPane( panel,
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+				jspane.getVerticalScrollBar().setBlockIncrement(5);
+				jspane.getVerticalScrollBar().setAutoscrolls(true);
+				jspane.getHorizontalScrollBar().setAutoscrolls(true);
+
+		content.add( jspane );
+		this.validate();
+
+
+	}
+}
