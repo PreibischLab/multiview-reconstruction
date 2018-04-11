@@ -55,6 +55,7 @@ import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
 
 public class GUIHelper
 {
@@ -231,9 +232,19 @@ public class GUIHelper
 //        * </dependency>
 
 		if (!(obj instanceof Container))
-				return;
+		{
+			IOFunctions.println( "Cannot add scrollbars, it's not a Container but a " + obj.getClass().getSimpleName() );
+			return;
+		}
 
 		final Container pane = (Container) obj;
+
+		if (!(pane.getLayout() instanceof GridBagLayout))
+		{
+			IOFunctions.println( "Cannot add scrollbars, it's not a GridBagLayout but a " + pane.getLayout().getClass().getSimpleName() );
+			return;
+		}
+
 		GridBagLayout layout = (GridBagLayout) pane.getLayout();
 
 		// extract components

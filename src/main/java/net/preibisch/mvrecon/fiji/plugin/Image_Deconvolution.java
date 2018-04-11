@@ -51,6 +51,7 @@ import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolutionSeq;
 import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
+import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThread;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
@@ -219,12 +220,19 @@ public class Image_Deconvolution implements PlugIn
 
 				if ( mul )
 				{
+					if ( !ComputeBlockMulThreadCPUFactory.class.isInstance( cptf ) )
+					{
+						IOFunctions.println( "For multiplicative deconvolution only CPU is supported so far, sorry. Please open a github issue and I'll implement it." );
+						IOFunctions.println( "GITHUB page: https://github.com/PreibischLab/multiview-reconstruction/issues" );
+						return false;
+					}
+
 					((ComputeBlockMulThreadCPUFactory)cptf).setNumViews( deconVirtualViews.size() );
 					mvDecon = new MultiViewDeconvolutionMul( views, numIterations, psiInitFactory, (ComputeBlockMulThreadCPUFactory)cptf, psiFactory );
 				}
 				else
 				{
-					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockSeqThreadCPUFactory)cptf, psiFactory );
+					mvDecon = new MultiViewDeconvolutionSeq( views, numIterations, psiInitFactory, (ComputeBlockThreadFactory< ComputeBlockSeqThread >)cptf, psiFactory );
 				}
 
 				if ( !mvDecon.initWasSuccessful() )

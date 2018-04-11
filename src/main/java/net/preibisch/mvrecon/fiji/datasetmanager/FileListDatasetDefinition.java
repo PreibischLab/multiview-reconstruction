@@ -97,6 +97,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -164,57 +165,60 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			gdp.addDirectoryOrFileField( "path", "/", 65);
 			gdp.addNumericField( "exclude files smaller than (KB)", 10, 0 );
 
-			// add empty preview
-			addMessageAsJLabel(previewFiles( new ArrayList<>()), gdp,  GUIHelper.smallStatusFont);
-
-			JLabel lab = (JLabel)gdp.getComponent( 5 );
-			TextField num = (TextField)gdp.getComponent( 4 ); 
-			Panel pan = (Panel)gdp.getComponent( 2 );
-
-
-			num.addTextListener( new TextListener()
-			{
-
-				@Override
-				public void textValueChanged(TextEvent e)
+			// preview selected files - not possible in headless
+			if (!PluginHelper.isHeadless())
 				{
-					String path = ((TextField)pan.getComponent( 0 )).getText();
+				// add empty preview
+				addMessageAsJLabel(previewFiles( new ArrayList<>()), gdp,  GUIHelper.smallStatusFont);
 
-					System.out.println(path);
-					if (path.endsWith( File.separator ))
-						path = path.substring( 0, path.length() - File.separator.length() );
+				JLabel lab = (JLabel)gdp.getComponent( 5 );
+				TextField num = (TextField)gdp.getComponent( 4 ); 
+				Panel pan = (Panel)gdp.getComponent( 2 );
 
-					if(new File(path).isDirectory())
-						path = String.join( File.separator, path, "*" );
-
-					lab.setText( previewFiles( getFilesFromPattern(path , Long.parseLong( num.getText() ) * KB_FACTOR)));
-					lab.setSize( lab.getPreferredSize() );
-					gdp.setSize( gdp.getPreferredSize() );
-					gdp.validate();
-				}
-			} );
-
-			((TextField)pan.getComponent( 0 )).addTextListener( new TextListener()
-			{
-
-				@Override
-				public void textValueChanged(TextEvent e)
+				num.addTextListener( new TextListener()
 				{
-					String path = ((TextField)pan.getComponent( 0 )).getText();
-					if (path.endsWith( File.separator ))
-						path = path.substring( 0, path.length() - File.separator.length() );
 
-					if(new File(path).isDirectory())
-						path = String.join( File.separator, path, "*" );
+					@Override
+					public void textValueChanged(TextEvent e)
+					{
+						String path = ((TextField)pan.getComponent( 0 )).getText();
 
-					lab.setText( previewFiles( getFilesFromPattern(path , Long.parseLong( num.getText() ) * KB_FACTOR)));
-					lab.setSize( lab.getPreferredSize() );
-					gdp.setSize( gdp.getPreferredSize() );
-					gdp.validate();
-				}
-			} );
-			
-			GUIHelper.addScrollBars( gdp );			
+						System.out.println(path);
+						if (path.endsWith( File.separator ))
+							path = path.substring( 0, path.length() - File.separator.length() );
+
+						if(new File(path).isDirectory())
+							path = String.join( File.separator, path, "*" );
+
+						lab.setText( previewFiles( getFilesFromPattern(path , Long.parseLong( num.getText() ) * KB_FACTOR)));
+						lab.setSize( lab.getPreferredSize() );
+						gdp.setSize( gdp.getPreferredSize() );
+						gdp.validate();
+					}
+				} );
+
+				((TextField)pan.getComponent( 0 )).addTextListener( new TextListener()
+				{
+
+					@Override
+					public void textValueChanged(TextEvent e)
+					{
+						String path = ((TextField)pan.getComponent( 0 )).getText();
+						if (path.endsWith( File.separator ))
+							path = path.substring( 0, path.length() - File.separator.length() );
+
+						if(new File(path).isDirectory())
+							path = String.join( File.separator, path, "*" );
+
+						lab.setText( previewFiles( getFilesFromPattern(path , Long.parseLong( num.getText() ) * KB_FACTOR)));
+						lab.setSize( lab.getPreferredSize() );
+						gdp.setSize( gdp.getPreferredSize() );
+						gdp.validate();
+					}
+				} );
+			}
+
+			GUIHelper.addScrollBars( gdp );
 			gdp.showDialog();
 
 			if (gdp.wasCanceled())
@@ -311,25 +315,26 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 	{
 		addMessageAsJLabel(msg, gd, font, null);
 	}
-	
+
 	public static void addMessageAsJLabel(String msg, GenericDialog gd, Font font, Color color)
 	{
 		gd.addMessage( msg );
-		Component msgC = gd.getComponent(gd.getComponentCount() - 1 );
-					
-		JLabel msgLabel = new JLabel(msg);
-		
-		if (font!=null)
-			msgLabel.setFont(font);
-		if (color!=null)
-			msgLabel.setForeground(color);
-		
-		gd.add(msgLabel);
-		GridBagConstraints constraints = ((GridBagLayout)gd.getLayout()).getConstraints(msgC);
-		
-		((GridBagLayout)gd.getLayout()).setConstraints(msgLabel, constraints);
-		
-		gd.remove(msgC);
+		if (!PluginHelper.isHeadless())
+		{
+			final Component msgC = gd.getComponent(gd.getComponentCount() - 1 );
+			final JLabel msgLabel = new JLabel(msg);
+
+			if (font!=null)
+				msgLabel.setFont(font);
+			if (color!=null)
+				msgLabel.setForeground(color);
+
+			gd.add(msgLabel);
+			GridBagConstraints constraints = ((GridBagLayout)gd.getLayout()).getConstraints(msgC);
+			((GridBagLayout)gd.getLayout()).setConstraints(msgLabel, constraints);
+
+			gd.remove(msgC);
+		}
 	}
 	
 		

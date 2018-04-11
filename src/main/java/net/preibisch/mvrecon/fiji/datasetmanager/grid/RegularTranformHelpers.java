@@ -50,6 +50,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Translation3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 
@@ -361,16 +362,19 @@ public class RegularTranformHelpers
 	public static RegularTranslationParameters queryParameters(String dialogTitle, int nTiles)
 	{
 		final GenericDialogPlus gd = new GenericDialogPlus( dialogTitle );
-
-		final ImageIcon display = new ImageIcon( images[ lastPresetIndex ].getImage() );//.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
-		final JLabel label = gd.addImage( display );
 		gd.addChoice( "Grid_type", presetNames, presetNames[lastPresetIndex] );
 
-		( (Choice) gd.getChoices().get( 0 )).addItemListener( e -> {
-			int selected = ( (Choice) gd.getChoices().get( 0 )).getSelectedIndex();
-			display.setImage( images[ selected ].getImage() ); //.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
-			label.update( label.getGraphics() );
-		});
+		if (!PluginHelper.isHeadless())
+		{
+			final ImageIcon display = new ImageIcon( images[ lastPresetIndex ].getImage() );//.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
+			final JLabel label = gd.addImage( display );
+
+			( (Choice) gd.getChoices().get( 0 )).addItemListener( e -> {
+				int selected = ( (Choice) gd.getChoices().get( 0 )).getSelectedIndex();
+				display.setImage( images[ selected ].getImage() ); //.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
+				label.update( label.getGraphics() );
+			});
+		}
 
 		gd.addNumericField( "Tiles_X", suggestTiles( nTiles ).getA(), 0 );
 		gd.addNumericField( "Tiles_Y", suggestTiles( nTiles ).getB(), 0 );

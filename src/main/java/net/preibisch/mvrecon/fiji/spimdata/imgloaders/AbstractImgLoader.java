@@ -85,7 +85,9 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 			else
 				return imageMetaDataCache.get( viewIdLookUp.get( view.getViewSetupId() ) ).getA();
 		}
-		return imageMetaDataCache.get( view ).getA();
+
+		final Pair< Dimensions, VoxelDimensions > dims = imageMetaDataCache.get( view );
+		return dims == null ? null : dims.getA();
 	}
 
 	@Override

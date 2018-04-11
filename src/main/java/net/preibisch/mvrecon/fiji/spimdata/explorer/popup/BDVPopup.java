@@ -32,37 +32,35 @@ import java.util.List;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
-import mpicbg.spim.data.registration.ViewRegistration;
-import mpicbg.spim.io.IOFunctions;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.histogram.DiscreteFrequencyDistribution;
-import net.imglib2.histogram.Histogram1d;
-import net.imglib2.histogram.Real1dBinMapper;
-import net.imglib2.type.numeric.NumericType;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.plugin.apply.BigDataViewerTransformationWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.GroupedRowWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerPanel;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
-import net.imglib2.Interval;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.util.LinAlgHelpers;
-
 import bdv.AbstractSpimSource;
 import bdv.BigDataViewer;
 import bdv.tools.InitializeViewerState;
 import bdv.tools.brightness.MinMaxGroup;
 import bdv.tools.brightness.SetupAssignments;
 import bdv.tools.transformation.TransformedSource;
-import bdv.util.Affine3DHelpers;
 import bdv.viewer.Source;
 import bdv.viewer.ViewerOptions;
 import bdv.viewer.ViewerPanel;
 import bdv.viewer.state.SourceState;
 import bdv.viewer.state.ViewerState;
+import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.io.IOFunctions;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.histogram.DiscreteFrequencyDistribution;
+import net.imglib2.histogram.Histogram1d;
+import net.imglib2.histogram.Real1dBinMapper;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.LinAlgHelpers;
+import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.plugin.apply.BigDataViewerTransformationWindow;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.GroupedRowWindow;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerPanel;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 
 
 public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicBDVPopup
@@ -267,7 +265,21 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 	public static BigDataViewer createBDV( final ExplorerWindow< ?, ? > panel )
 	{
-		if ( AbstractImgLoader.class.isInstance( panel.getSpimData().getSequenceDescription().getImgLoader() ) )
+		final BigDataViewer bdv = createBDV( panel.getSpimData(), panel.xml() );
+
+		if ( bdv == null )
+			return null;
+
+		ViewSetupExplorerPanel.updateBDV( bdv, panel.colorMode(), panel.getSpimData(), panel.firstSelectedVD(), ((GroupedRowWindow)panel).selectedRowsGroups() );
+
+		return bdv;
+	}
+	
+	public static BigDataViewer createBDV(
+			final AbstractSpimData< ? > spimData,
+			final String xml )
+	{
+		if ( AbstractImgLoader.class.isInstance( spimData.getSequenceDescription().getImgLoader() ) )
 		{
 			if ( JOptionPane.showConfirmDialog( null,
 					"Opening <SpimData> dataset that is not suited for interactive browsing.\n" +
@@ -278,12 +290,17 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 				return null;
 		}
 
-		BigDataViewer bdv = BigDataViewer.open( panel.getSpimData(), panel.xml(), IOFunctions.getProgressWriter(), ViewerOptions.options() );
+		BigDataViewer bdv = BigDataViewer.open( spimData, xml, IOFunctions.getProgressWriter(), ViewerOptions.options() );
+
 //		if ( !bdv.tryLoadSettings( panel.xml() ) ) TODO: this should work, but currently tryLoadSettings is protected. fix that.
-		//	InitializeViewerState.initBrightness( 0.001, 0.999, bdv.getViewer(), bdv.getSetupAssignments() );
-		initBrightness( 0.001, 0.999, bdv.getViewer().getState(), bdv.getSetupAssignments() );
-		
-		ViewSetupExplorerPanel.updateBDV( bdv, panel.colorMode(), panel.getSpimData(), panel.firstSelectedVD(), ((GroupedRowWindow)panel).selectedRowsGroups() );
+
+		InitializeViewerState.initBrightness( 0.001, 0.999, bdv.getViewer(), bdv.getSetupAssignments() );
+		//initBrightness( 0.001, 0.999, bdv.getViewer().getState(), bdv.getSetupAssignments() );
+
+		// do not rotate BDV view by default
+		BDVPopup.initTransform( bdv.getViewer() );
+
+		ScrollableBrightnessDialog.setAsBrightnessDialog( bdv );
 
 //		final ArrayList< InterestPointSource > interestPointSources = new ArrayList< InterestPointSource >();
 //		interestPointSources.add( new InterestPointSource()
