@@ -136,7 +136,7 @@ public class PSF_Assign implements PlugIn
 		{
 			final GenericDialogPlus gd1 = new GenericDialogPlus( "Assign new PSF to views" );
 
-			gd1.addFileField( "Specify PSF file", defaultPSFPath, 200 );
+			gd1.addFileField( "Specify PSF file", defaultPSFPath, 80 );
 			gd1.addMessage( "Note: File dimensions must be odd, with the center of the PSF in the middle", GUIHelper.mediumstatusfont );
 
 			gd1.showDialog();
