@@ -1,18 +1,26 @@
+/*-
+ * #%L
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
+ * %%
+ * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
 package mpicbg.spim.segmentation;
-
-import fiji.tool.SliceListener;
-import fiji.tool.SliceObserver;
-import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.WindowManager;
-import ij.gui.OvalRoi;
-import ij.gui.Overlay;
-import ij.plugin.PlugIn;
-import ij.process.ByteProcessor;
-import ij.process.FloatProcessor;
-import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 
 import java.awt.Button;
 import java.awt.Checkbox;
@@ -35,9 +43,29 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import spim.Threads;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.ImagePortion;
+
+import fiji.tool.SliceListener;
+import fiji.tool.SliceObserver;
+import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
+import ij.WindowManager;
+import ij.gui.OvalRoi;
+import ij.gui.Overlay;
+import ij.plugin.PlugIn;
+import ij.process.ByteProcessor;
+import ij.process.FloatProcessor;
+import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import mpicbg.imglib.algorithm.integral.IntegralImageLong;
 import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
 import mpicbg.imglib.container.array.ArrayContainerFactory;
@@ -359,25 +387,24 @@ public class InteractiveIntegral implements PlugIn
 	
 	public static ArrayList<SimplePeak> findPeaks( final Image<FloatType> laPlace, final float minValue )
 	{
-	    final AtomicInteger ai = new AtomicInteger( 0 );
-	    final Thread[] threads = SimpleMultiThreading.newThreads( Threads.numThreads() );
-	    final int nThreads = threads.length;
-	    final int numDimensions = laPlace.getNumDimensions();
-	    
-	    final Vector< ArrayList<SimplePeak> > threadPeaksList = new Vector< ArrayList<SimplePeak> >();
-	    
-	    for ( int i = 0; i < nThreads; ++i )
-	    	threadPeaksList.add( new ArrayList<SimplePeak>() );
+		long numPixels = 1;
 
-		for (int ithread = 0; ithread < threads.length; ++ithread)
-	        threads[ithread] = new Thread(new Runnable()
-	        {
-	            public void run()
-	            {
-	            	final int myNumber = ai.getAndIncrement();
-            	
-	            	final ArrayList<SimplePeak> myPeaks = threadPeaksList.get( myNumber );	
-	            	final LocalizableByDimCursor<FloatType> cursor = laPlace.createLocalizableByDimCursor();	            	
+		for ( int d = 0; d < laPlace.getNumDimensions(); ++d )
+			numPixels *= laPlace.getDimension( d );
+
+		final int numDimensions = laPlace.getNumDimensions();
+		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numPixels );
+		final ArrayList< Callable< ArrayList< SimplePeak > > > tasks = new ArrayList<>();
+
+		for ( final ImagePortion portion : portions )
+		{
+			tasks.add( new Callable< ArrayList< SimplePeak > >()
+			{
+				@Override
+				public ArrayList< SimplePeak > call() throws Exception
+				{
+	            	final ArrayList<SimplePeak> myPeaks = new ArrayList<>();
+	            	final LocalizableByDimCursor<FloatType> cursor = laPlace.createLocalizableByDimCursor();
 	            	final LocalNeighborhoodCursor<FloatType> neighborhoodCursor = LocalNeighborhoodCursorFactory.createLocalNeighborhoodCursor( cursor );
 	            	
 	            	final int[] position = new int[ numDimensions ];
@@ -385,58 +412,67 @@ public class InteractiveIntegral implements PlugIn
 
             		for ( int d = 0; d < numDimensions; ++d )
             			dimensionsMinus2[ d ] -= 2;
-	            	
-MainLoop:           while ( cursor.hasNext() )
+
+            		cursor.fwd( portion.getStartPosition() );
+
+MainLoop:           for ( int l = 0; l < portion.getLoopSize(); ++l )
 	                {
 	                	cursor.fwd();
 	                	cursor.getPosition( position );
 	                	
-	                	if ( position[ 0 ] % nThreads == myNumber )
-	                	{
-	                		for ( int d = 0; d < numDimensions; ++d )
-	                		{
-	                			final int pos = position[ d ];
-	                			
-	                			if ( pos < 1 || pos > dimensionsMinus2[ d ] )
-	                				continue MainLoop;
-	                		}
-
-	                		// if we do not clone it here, it might be moved along with the cursor
-	                		// depending on the container type used
-	                		final float currentValue = cursor.getType().get();
-	                		
-	                		// it can never be a desired peak as it is too low
-	                		if ( Math.abs( currentValue ) < minValue )
-                				continue;
-
-                			// update to the current position
-                			neighborhoodCursor.update();
-
-                			// we have to compare for example 26 neighbors in the 3d case (3^3 - 1) relative to the current position
-                			final SpecialPoint specialPoint = isSpecialPoint( neighborhoodCursor, currentValue ); 
+                		for ( int d = 0; d < numDimensions; ++d )
+                		{
+                			final int pos = position[ d ];
                 			
-                			if ( specialPoint == SpecialPoint.MIN )
-                				myPeaks.add( new SimplePeak( position, Math.abs( currentValue ), true, false ) ); //( position, currentValue, specialPoint ) );
-                			else if ( specialPoint == SpecialPoint.MAX )
-                				myPeaks.add( new SimplePeak( position, Math.abs( currentValue ), false, true ) ); //( position, currentValue, specialPoint ) );
-                			
-                			// reset the position of the parent cursor
-                			neighborhoodCursor.reset();	                				                		
-	                	}
+                			if ( pos < 1 || pos > dimensionsMinus2[ d ] )
+                				continue MainLoop;
+                		}
+
+                		// if we do not clone it here, it might be moved along with the cursor
+                		// depending on the container type used
+                		final float currentValue = cursor.getType().get();
+                		
+                		// it can never be a desired peak as it is too low
+                		if ( Math.abs( currentValue ) < minValue )
+            				continue;
+
+            			// update to the current position
+            			neighborhoodCursor.update();
+
+            			// we have to compare for example 26 neighbors in the 3d case (3^3 - 1) relative to the current position
+            			final SpecialPoint specialPoint = isSpecialPoint( neighborhoodCursor, currentValue ); 
+            			
+            			if ( specialPoint == SpecialPoint.MIN )
+            				myPeaks.add( new SimplePeak( position, Math.abs( currentValue ), true, false ) ); //( position, currentValue, specialPoint ) );
+            			else if ( specialPoint == SpecialPoint.MAX )
+            				myPeaks.add( new SimplePeak( position, Math.abs( currentValue ), false, true ) ); //( position, currentValue, specialPoint ) );
+            			
+            			// reset the position of the parent cursor
+            			neighborhoodCursor.reset();
 	                }
-                
-	                cursor.close();
-            }
-        });
-	
-		SimpleMultiThreading.startAndJoin( threads );		
+
+            		return myPeaks;
+	    		}
+			} );
+		}
 
 		// put together the list from the various threads	
 		final ArrayList<SimplePeak> dogPeaks = new ArrayList<SimplePeak>();
-		
-		for ( final ArrayList<SimplePeak> peakList : threadPeaksList )
-			dogPeaks.addAll( peakList );		
-		
+
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
+		try
+		{
+			for ( final Future< ArrayList< SimplePeak > > future : taskExecutor.invokeAll( tasks ) )
+				dogPeaks.addAll( future.get() );
+		}
+		catch ( InterruptedException | ExecutionException e )
+		{
+			e.printStackTrace();
+		}
+
+		taskExecutor.shutdown();
+
 		return dogPeaks;
 	}
 

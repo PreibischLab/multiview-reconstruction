@@ -1,72 +1,37 @@
+/*-
+ * #%L
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
+ * %%
+ * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
 package mpicbg.util;
 
-import spim.vecmath.Transform3D;
-import spim.vecmath.Matrix4d;
-import spim.vecmath.Vector3d;
+import net.preibisch.mvrecon.vecmath.Matrix4d;
+import net.preibisch.mvrecon.vecmath.Transform3D;
+import net.preibisch.mvrecon.vecmath.Vector3d;
 
-import mpicbg.imglib.util.Util;
 import mpicbg.models.AbstractAffineModel3D;
 import mpicbg.models.AffineModel3D;
-import mpicbg.models.CoordinateTransform;
 import mpicbg.models.RigidModel3D;
 
 public class TransformUtils
 {
-	/**
-	 * Return the min and max coordinate of the transformed image in each dimension
-	 * relative to the dimensions of the image it is based on. This is important
-	 * for computing bounding boxes.
-	 *
-	 * @param dimensions - the dimensions of the image
-	 * @param transform - the transformation
-	 *
-	 * @return - double[ numDimensions ][ 2 ], in the respective dimension d
-	 * double[ d ][ 0 ] is min, double[ d ][ 1 ] is max
-	 */
-	public static double[][] getMinMaxDim( final int[] dimensions, final CoordinateTransform transform )
-	{
-		final int numDimensions = dimensions.length;
-
-		final double[] tmp = new double[ numDimensions ];
-		final double[][] minMaxDim = new double[ numDimensions ][ 2 ];
-
-		for ( int d = 0; d < numDimensions; ++d )
-		{
-			minMaxDim[ d ][ 0 ] = Double.MAX_VALUE;
-			minMaxDim[ d ][ 1 ] = -Double.MAX_VALUE;
-		}
-
-		// recursively get all corner points of the image, assuming they will still be the extremum points
-		// in the transformed image
-		final boolean[][] positions = new boolean[ Util.pow( 2, numDimensions ) ][ numDimensions ];
-		Util.setCoordinateRecursive( numDimensions - 1, numDimensions, new int[ numDimensions ], positions );
-
-		// get the min and max location for each dimension independently
-		for ( int i = 0; i < positions.length; ++i )
-		{
-			for ( int d = 0; d < numDimensions; ++d )
-			{
-				if ( positions[ i ][ d ])
-					tmp[ d ] = dimensions[ d ];
-				else
-					tmp[ d ] = 0;
-			}
-
-			transform.applyInPlace( tmp );
-
-			for ( int d = 0; d < numDimensions; ++d )
-			{
-				if ( tmp[ d ] < minMaxDim[ d ][ 0 ])
-					minMaxDim[ d ][ 0 ] = tmp[ d ];
-
-				if ( tmp[ d ] > minMaxDim[ d ][ 1 ])
-					minMaxDim[ d ][ 1 ] = tmp[ d ];
-			}
-		}
-
-		return minMaxDim;
-	}
-	
 	public static Matrix4d getMatrix4d( final AffineModel3D model )
 	{
 		final Matrix4d matrix = new Matrix4d();

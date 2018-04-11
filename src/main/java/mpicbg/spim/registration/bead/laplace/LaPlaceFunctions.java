@@ -1,34 +1,49 @@
+/*-
+ * #%L
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
+ * %%
+ * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
 package mpicbg.spim.registration.bead.laplace;
-
-import Jama.EigenvalueDecomposition;
-import Jama.Matrix;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import mpicbg.imglib.cursor.Cursor;
-import mpicbg.imglib.cursor.LocalizableByDimCursor;
-import mpicbg.imglib.cursor.LocalizableByDimCursor3D;
-import mpicbg.imglib.cursor.LocalizableCursor;
-import mpicbg.imglib.cursor.special.LocalNeighborhoodCursor3D;
-import mpicbg.imglib.image.Image;
-import mpicbg.imglib.type.numeric.real.FloatType;
+import Jama.EigenvalueDecomposition;
+import Jama.Matrix;
 import mpicbg.models.NoninvertibleModelException;
-import mpicbg.spim.io.IOFunctions;
+import net.imglib2.RandomAccess;
+import net.imglib2.type.numeric.real.FloatType;
 
 final public class LaPlaceFunctions 
 {
-	public static void analyzeMaximum( final LocalizableByDimCursor3D<FloatType> cursor, final float minPeakValue, final int width, final int height, final int depth, 
+	public static void analyzeMaximum( final RandomAccess<FloatType> cursor, final float minPeakValue, final int width, final int height, final int depth, 
 									   final float sigma, final float identityRadius, final float maximaTolerance, final RejectStatistics rs,
 									   final ArrayList<DoGMaximum> localMaxima)
 	{
-		final int x = cursor.getX();
-		final int y = cursor.getY();
-		final int z = cursor.getZ();
+		final int x = cursor.getIntPosition( 0 );
+		final int y = cursor.getIntPosition( 1 );
+		final int z = cursor.getIntPosition( 2 );
 
-		int xs = cursor.getX();
-		int ys = cursor.getY();
-		int zs = cursor.getZ();
+		int xs = x;
+		int ys = y;
+		int zs = z;
 
 		boolean foundStableMaxima = true, pointsValid = false;
 		int count = 0;
@@ -121,7 +136,11 @@ final public class LaPlaceFunctions
 			}
 			
 			if ( !foundStableMaxima )
-				cursor.setPosition(xs, ys, zs);
+			{
+				cursor.setPosition( xs, 0 );
+				cursor.setPosition( ys, 1 );
+				cursor.setPosition( zs, 2 );
+			}
 
 			//
 			// check validity of new point
@@ -138,7 +157,9 @@ final public class LaPlaceFunctions
 		// could not invert hessian matrix properly
 		if (resultVoxel == null || resultVoxel.A == null)
 		{
-			cursor.setPosition(x, y, z);
+			cursor.setPosition( x, 0 );
+			cursor.setPosition( y, 1 );
+			cursor.setPosition( z, 2 );
 			return;
 		}
 
@@ -147,7 +168,9 @@ final public class LaPlaceFunctions
 		{
 			rs.noStableMaxima++;
 			
-			cursor.setPosition(x, y, z);			
+			cursor.setPosition( x, 0 );
+			cursor.setPosition( y, 1 );
+			cursor.setPosition( z, 2 );
 			return;
 		}
 
@@ -157,7 +180,7 @@ final public class LaPlaceFunctions
 			resultVoxel.quadrFuncValue += resultVoxel.X.get(j, 0) * resultVoxel.derivativeVector[j];
 		resultVoxel.quadrFuncValue /= 2d;
 
-		resultVoxel.laPlaceValue = cursor.getType().get();
+		resultVoxel.laPlaceValue = cursor.get().get();
 		resultVoxel.sumValue = resultVoxel.quadrFuncValue + resultVoxel.laPlaceValue;
 		
 		if (Math.abs(resultVoxel.sumValue) < minPeakValue)
@@ -165,7 +188,9 @@ final public class LaPlaceFunctions
 			rs.peakTooLow++;
 			resultVoxel = null;
 			
-			cursor.setPosition(x, y, z);			
+			cursor.setPosition( x, 0 );
+			cursor.setPosition( y, 1 );
+			cursor.setPosition( z, 2 );
 			return;
 		}
 		
@@ -221,7 +246,9 @@ final public class LaPlaceFunctions
 		
 		localMaxima.add(resultVoxel);
 		
-		cursor.setPosition(x, y, z);		
+		cursor.setPosition( x, 0 );
+		cursor.setPosition( y, 1 );
+		cursor.setPosition( z, 2 );
 	}
 
 	final public static EigenvalueDecomposition computeEigenDecomposition( final double[] matrix )
@@ -285,7 +312,7 @@ final public class LaPlaceFunctions
 		a[ 8 ] = i22;
 	}
 	
-	final public static double[] computeDerivativeVector3( final LocalizableByDimCursor<FloatType> cursor )
+	final public static double[] computeDerivativeVector3( final RandomAccess<FloatType> cursor )
 	{
 		final double[] derivativeVector = new double[3];
 
@@ -294,11 +321,11 @@ final public class LaPlaceFunctions
 		//
 		cursor.fwd( 0 );
 		// we are now at (1, 0, 0)
-		derivativeVector[0] = cursor.getType().get();
+		derivativeVector[0] = cursor.get().get();
 		cursor.bck( 0 );
 		cursor.bck( 0 );
 		// we are now at (-1, 0, 0)
-		derivativeVector[0] -= cursor.getType().get();
+		derivativeVector[0] -= cursor.get().get();
 		derivativeVector[0] /= 2.0f;
 		
 		// y
@@ -307,11 +334,11 @@ final public class LaPlaceFunctions
 		cursor.fwd( 0 );
 		cursor.fwd( 1 );
 		// we are now at (0, 1, 0)
-		derivativeVector[1] = cursor.getType().get();
+		derivativeVector[1] = cursor.get().get();
 		cursor.bck( 1 );
 		cursor.bck( 1 );
 		// we are now at (0, -1, 0)
-		derivativeVector[1] -= cursor.getType().get();
+		derivativeVector[1] -= cursor.get().get();
 		derivativeVector[1] /= 2.0f;
 
 		// z
@@ -320,11 +347,11 @@ final public class LaPlaceFunctions
 		cursor.fwd( 1 );
 		cursor.fwd( 2 );
 		// we are now at (0, 0, 1)
-		derivativeVector[2] = cursor.getType().get();
+		derivativeVector[2] = cursor.get().get();
 		cursor.bck( 2 );
 		cursor.bck( 2 );
 		// we are now at (0, 0, -1)
-		derivativeVector[2] -= cursor.getType().get();
+		derivativeVector[2] -= cursor.get().get();
 		derivativeVector[2] /= 2.0f;
 		
 		// we are now at (0, 0, 0)
@@ -334,11 +361,11 @@ final public class LaPlaceFunctions
 
 	}
 	
-	final public static double[] computeHessianMatrix3x3( final LocalizableByDimCursor<FloatType> cursor )
+	final public static double[] computeHessianMatrix3x3( final RandomAccess<FloatType> cursor )
 	{
 		final double[] hessianMatrix = new double[9];
 
-		final float temp = 2 * cursor.getType().get();
+		final float temp = 2 * cursor.get().get();
 
 		//
 		// xx
@@ -346,12 +373,12 @@ final public class LaPlaceFunctions
 		//hessianMatrix[0] = (1, 0, 0) - temp + (-1, 0, 0);
 		cursor.fwd( 0 );
 		// we are now at (1, 0, 0)
-		hessianMatrix[ 0 ] = cursor.getType().get() - temp;
+		hessianMatrix[ 0 ] = cursor.get().get() - temp;
 		
 		cursor.bck( 0 );
 		cursor.bck( 0 );
 		// we are now at (-1, 0, 0)
-		hessianMatrix[ 0 ] += cursor.getType().get();
+		hessianMatrix[ 0 ] += cursor.get().get();
 		
 		//
 		// yy
@@ -360,12 +387,12 @@ final public class LaPlaceFunctions
 		cursor.fwd( 0 );
 		cursor.fwd( 1 );
 		// we are now at (0, 1, 0)
-		hessianMatrix[ 4 ] = cursor.getType().get() - temp;
+		hessianMatrix[ 4 ] = cursor.get().get() - temp;
 		
 		cursor.bck( 1 );
 		cursor.bck( 1 );
 		// we are now at (0, -1, 0)
-		hessianMatrix[ 4 ] += cursor.getType().get();
+		hessianMatrix[ 4 ] += cursor.get().get();
 		
 		//
 		// zz
@@ -374,12 +401,12 @@ final public class LaPlaceFunctions
 		cursor.fwd( 1 );
 		cursor.fwd( 2 );
 		// we are now at (0, 0, 1)
-		hessianMatrix[ 8 ] = cursor.getType().get() - temp;
+		hessianMatrix[ 8 ] = cursor.get().get() - temp;
 		
 		cursor.bck( 2 );
 		cursor.bck( 2 );
 		// we are now at (0, 0, -1)
-		hessianMatrix[ 8 ] += cursor.getType().get();
+		hessianMatrix[ 8 ] += cursor.get().get();
 
 		// yz
 		// hessianMatrix[5] = hessianMatrix[7] = (((0, 1, 1) - (0, -1, 1)) / 2 - ((0, 1, -1) - (0, -1, -1)) / 2) / 2;
@@ -388,22 +415,22 @@ final public class LaPlaceFunctions
 		
 		cursor.bck( 1 );		
 		// we are now at (0, -1, -1)
-		d = cursor.getType().get();
+		d = cursor.get().get();
 
 		cursor.fwd( 1 );		
 		cursor.fwd( 1 );		
 		// we are now at (0, 1, -1)
-		c = cursor.getType().get();
+		c = cursor.get().get();
 
 		cursor.fwd( 2 );		
 		cursor.fwd( 2 );		
 		// we are now at (0, 1, 1)
-		a = cursor.getType().get();
+		a = cursor.get().get();
 		
 		cursor.bck( 1 );
 		cursor.bck( 1 );
 		// we are now at (0, -1, 1)
-		b = cursor.getType().get();
+		b = cursor.get().get();
 		
 		hessianMatrix[5] = hessianMatrix[7] = ((a - b) / 2 - (c - d) / 2) / 2;
 
@@ -415,22 +442,22 @@ final public class LaPlaceFunctions
 		cursor.fwd( 1 );
 		cursor.fwd( 0 );
 		// we are now at (1, 0, 1)		
-		e = cursor.getType().get();
+		e = cursor.get().get();
 		
 		cursor.bck( 0 );
 		cursor.bck( 0 );
 		// we are now at (-1, 0, 1)		
-		f = cursor.getType().get();
+		f = cursor.get().get();
 		
 		cursor.bck( 2 );
 		cursor.bck( 2 );
 		// we are now at (-1, 0, -1)
-		h = cursor.getType().get();
+		h = cursor.get().get();
 		
 		cursor.fwd( 0 );
 		cursor.fwd( 0 );
 		// we are now at (1, 0, -1)
-		g = cursor.getType().get();
+		g = cursor.get().get();
 		
 		hessianMatrix[2] = hessianMatrix[6] = ((e - f) / 2 - (g - h) / 2) / 2;
 		
@@ -442,22 +469,22 @@ final public class LaPlaceFunctions
 		cursor.fwd( 2 );
 		cursor.fwd( 1 ); 
 		// we are now at (1, 1, 0)
-		i = cursor.getType().get();
+		i = cursor.get().get();
 		
 		cursor.bck( 0 );
 		cursor.bck( 0 );
 		// we are now at (-1, 1, 0)
-		j = cursor.getType().get();
+		j = cursor.get().get();
 		
 		cursor.bck( 1 );
 		cursor.bck( 1 );
 		// we are now at (-1, -1, 0)
-		l = cursor.getType().get();
+		l = cursor.get().get();
 		
 		cursor.fwd( 0 );		
 		cursor.fwd( 0 );
 		// we are now at (1, -1, 0)
-		k = cursor.getType().get();
+		k = cursor.get().get();
 		
 		hessianMatrix[1] = hessianMatrix[3] = ((i - j) / 2 - (k - l) / 2) / 2;
 		
@@ -467,14 +494,20 @@ final public class LaPlaceFunctions
 		
 		return hessianMatrix;
 	}
-	
-	public static boolean isSpecialPointMin( final LocalizableByDimCursor3D<FloatType> cursor, final float minInitialPeakValue )
+	/*
+	public static boolean isSpecialPointMin( final RandomAccess<FloatType> cursor, final float minInitialPeakValue )
 	{
-		final float value = cursor.getType().get();
+		final float value = cursor.get().get();
 
 		if ( Math.abs(value) < minInitialPeakValue ) 
 			return false;
 
+		// instantiate a RectangleShape to access rectangular local neighborhoods
+		// of radius 1 (that is 3x3x...x3 neighborhoods), skipping the center pixel
+		// (this corresponds to an 8-neighborhood in 2d or 26-neighborhood in 3d, ...)
+		final RectangleShape shape = new RectangleShape( 1, true );
+
+		shape.neighborhoods( source )
 		// we have to compare 26 neighbors relative to the current position
 		final LocalNeighborhoodCursor3D<FloatType> neighborhoodCursor = new LocalNeighborhoodCursor3D<FloatType>( cursor );
 
@@ -483,7 +516,7 @@ final public class LaPlaceFunctions
 		while ( isMin && neighborhoodCursor.hasNext() )
 		{
 			neighborhoodCursor.fwd();
-			isMin = (cursor.getType().get() >= value);			
+			isMin = (cursor.get().get() >= value);			
 			//if ( cursor.getType().get() < value) isMin = false;
 		}
 
@@ -495,7 +528,7 @@ final public class LaPlaceFunctions
 		return isMin;
 	}
 
-	public static void subtractImagesInPlace( final Image<FloatType> img1, final Image<FloatType> img2, final float norm )
+	public static void subtractImagesInPlace( final Img<FloatType> img1, final Img<FloatType> img2, final float norm )
 	{
 		if ( !img1.getContainer().compareStorageContainerDimensions( img2.getContainer() ))
 		{
@@ -538,7 +571,7 @@ final public class LaPlaceFunctions
 			c2.close();
 		}
 	}
-	
+	*/
 	public static float[] computeSigma(final int steps, final float k, final float initialSigma)
 	{
 		final float[] sigma = new float[steps + 1];

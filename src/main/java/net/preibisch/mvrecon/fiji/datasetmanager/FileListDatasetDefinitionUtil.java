@@ -1,0 +1,1186 @@
+/*-
+ * #%L
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
+ * %%
+ * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+package net.preibisch.mvrecon.fiji.datasetmanager;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import ij.IJ;
+import ij.io.OpenDialog;
+import loci.formats.FormatException;
+import loci.formats.IFormatReader;
+import loci.formats.ImageReader;
+import loci.formats.Modulo;
+import loci.formats.in.ND2Reader;
+import loci.formats.in.ZeissCZIReader;
+import loci.formats.meta.MetadataRetrieve;
+import loci.formats.ome.OMEXMLMetadataImpl;
+import mpicbg.spim.data.generic.base.Entity;
+import mpicbg.spim.data.sequence.Angle;
+import mpicbg.spim.data.sequence.Channel;
+import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+import mpicbg.spim.data.sequence.Illumination;
+import mpicbg.spim.data.sequence.Tile;
+import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.VoxelDimensions;
+import mpicbg.spim.io.IOFunctions;
+import net.imglib2.Dimensions;
+import net.imglib2.FinalDimensions;
+import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.CZITileOrAngleRefiner;
+import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.NikonND2TileOrAngleRefiner;
+import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.TileOrAngleRefiner;
+import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
+
+import ome.units.quantity.Length;
+
+
+public class FileListDatasetDefinitionUtil
+{
+	
+	private static final Map<Class<? extends IFormatReader>, TileOrAngleRefiner> tileOrAngleRefiners = new HashMap<>();	
+	static {
+		tileOrAngleRefiners.put(ZeissCZIReader.class , new CZITileOrAngleRefiner() );
+		tileOrAngleRefiners.put( ND2Reader.class, new NikonND2TileOrAngleRefiner() );
+	}
+	
+	
+	public static class ChannelInfo
+	{
+		
+		public String name;
+		public String fluorophore;
+		public Double wavelength;
+		@Override
+		public int hashCode()
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ( ( fluorophore == null ) ? 0 : fluorophore.hashCode() );
+			result = prime * result + ( ( name == null ) ? 0 : name.hashCode() );
+			result = prime * result + ( ( wavelength == null ) ? 0 : wavelength.hashCode() );
+			return result;
+		}
+		
+		@Override
+		public boolean equals(Object obj)
+		{
+			if ( this == obj )
+				return true;
+			if ( obj == null )
+				return false;
+			if ( getClass() != obj.getClass() )
+				return false;
+			ChannelInfo other = (ChannelInfo) obj;
+			if ( fluorophore == null )
+			{
+				if ( other.fluorophore != null )
+					return false;
+			}
+			else if ( !fluorophore.equals( other.fluorophore ) )
+				return false;
+			if ( name == null )
+			{
+				if ( other.name != null )
+					return false;
+			}
+			else if ( !name.equals( other.name ) )
+				return false;
+			if ( wavelength == null )
+			{
+				if ( other.wavelength != null )
+					return false;
+			}
+			else if ( !wavelength.equals( other.wavelength ) )
+				return false;
+			return true;
+		}
+		
+		public String toString()
+		{
+			return "Channel name:" + name + " fluorophore:" + fluorophore + " wavelength:" + wavelength;
+		}
+				
+	}
+	
+	public static class TileInfo
+	{
+		public Double locationX;
+		public Double locationY;
+		public Double locationZ;
+		
+		public String toString()
+		{
+			return locationX + "," + locationY + "," + locationZ;
+		}
+		
+		@Override
+		public int hashCode()
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ( ( locationX == null ) ? 0 : locationX.hashCode() );
+			result = prime * result + ( ( locationY == null ) ? 0 : locationY.hashCode() );
+			result = prime * result + ( ( locationZ == null ) ? 0 : locationZ.hashCode() );
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj)
+		{
+			if ( this == obj )
+				return true;
+			if ( obj == null )
+				return false;
+			if ( getClass() != obj.getClass() )
+				return false;
+			TileInfo other = (TileInfo) obj;
+			if ( locationX == null )
+			{
+				if ( other.locationX != null )
+					return false;
+			}
+			else if ( !locationX.equals( other.locationX ) )
+				return false;
+			if ( locationY == null )
+			{
+				if ( other.locationY != null )
+					return false;
+			}
+			else if ( !locationY.equals( other.locationY ) )
+				return false;
+			if ( locationZ == null )
+			{
+				if ( other.locationZ != null )
+					return false;
+			}
+			else if ( !locationZ.equals( other.locationZ ) )
+				return false;
+			return true;
+		}
+	}
+	
+	public static class AngleInfo
+	{
+		public Double angle;
+		public Integer axis;
+		
+		@Override
+		public int hashCode()
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ( ( angle == null ) ? 0 : angle.hashCode() );
+			result = prime * result + ( ( axis == null ) ? 0 : axis.hashCode() );
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj)
+		{
+			if ( this == obj )
+				return true;
+			if ( obj == null )
+				return false;
+			if ( getClass() != obj.getClass() )
+				return false;
+			AngleInfo other = (AngleInfo) obj;
+			if ( angle == null )
+			{
+				if ( other.angle != null )
+					return false;
+			}
+			else if ( !angle.equals( other.angle ) )
+				return false;
+			if ( axis == null )
+			{
+				if ( other.axis != null )
+					return false;
+			}
+			else if ( !axis.equals( other.axis ) )
+				return false;
+			return true;
+		}
+	}
+	
+	public static class TileOrAngleInfo
+	{
+		public Double locationX;
+		public Double locationY;
+		public Double locationZ;
+		public Double angle;
+		public Integer axis;
+		public Integer index;
+		public Integer channelCount;
+				
+		public String toString()
+		{
+			return "TileOrAngleInfo idx:" + index + ", x:" + locationX + ", y:" + locationY + ", z:" + locationZ
+					+ ", angle:" + angle + ", axis:" + axis;
+		}
+	}
+	
+	
+	public static class ChannelOrIlluminationInfo
+	{
+		public Integer index;
+		public Integer modStep;
+		public String name;
+		public String fluorophore;
+		public Double wavelength;
+		
+		public String toString()
+		{
+			return "ChannelOrIlluminationInfo idx:" + index + ", modStep:" + modStep + ", name:" + name + ", fluo:" + fluorophore
+					+ ", wavelength:" + wavelength;
+		}
+	}
+	
+	public enum CheckResult{
+		SINGLE,
+		MUlTIPLE_NAMED,
+		MULTIPLE_INDEXED
+	}
+	
+	public static CheckResult checkMultipleTimepoints(Map<Integer, List<Pair< Integer, Integer >>> tpMap)
+	{
+		if (tpMap.size() > 1)
+			System.out.println( "WARNING: inconsistent timepoint number within file " );
+		
+		for (Integer tps: tpMap.keySet())
+			if (tps > 1)
+				return CheckResult.MULTIPLE_INDEXED;
+		return CheckResult.SINGLE;
+	}
+	
+	public static < T, S> CheckResult checkMultiplicity (Map<T,List<S>> map)
+	{
+		if (map.size() > 1)
+			return CheckResult.MUlTIPLE_NAMED;
+		else if (map.values().iterator().next().size() > 1)			
+			return CheckResult.MULTIPLE_INDEXED;
+		else
+			return CheckResult.SINGLE;
+	}
+	
+	public static List<TileOrAngleInfo> predictTilesAndAngles( IFormatReader r )
+	{
+		final int nSeries = r.getSeriesCount();
+		final MetadataRetrieve mr = (MetadataRetrieve) r.getMetadataStore();
+		
+		final List<TileOrAngleInfo> result = new ArrayList<>();
+		
+		for (int i = 0; i < nSeries; i++)
+		{
+			r.setSeries( i );
+			final TileOrAngleInfo infoI = new TileOrAngleInfo();
+			infoI.index = i;
+			
+			
+			// query x position
+			Length posX = null;
+			try {
+				posX = mr.getPlanePositionX( i, 0);
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			infoI.locationX = posX != null ? posX.value().doubleValue() : null ;
+			
+			// query y position
+			Length posY = null;
+			try {
+				posY = mr.getPlanePositionY( i, 0);
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			infoI.locationY = posY != null ? posY.value().doubleValue() : null;
+			
+			// query z position
+			Length posZ = null;
+			try {
+				posZ = mr.getPlanePositionZ( i, 0);
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			infoI.locationZ = posZ != null ? posZ.value().doubleValue() : null;
+			
+			// keep track of "channel" number in series, makes stuff easier elswhere
+			infoI.channelCount = r.getSizeC();
+			
+			result.add( infoI );
+			
+			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Tiles and Angles in Series " + (i+1) + " of " + nSeries );
+		}
+		
+		return result;
+	}
+	
+	
+	public static List<Pair<Integer, List<ChannelOrIlluminationInfo>>> predictTimepointsChannelsAndIllums( IFormatReader r )
+	{
+		final int nSeries = r.getSeriesCount();
+		
+		final Modulo cMod = r.getModuloC();			
+		final boolean hasModulo = cMod != null && (cMod.start != cMod.end);
+		final int cModStep = hasModulo ? (int) cMod.step : r.getSizeC();
+		
+		final MetadataRetrieve mr = (MetadataRetrieve) r.getMetadataStore();
+		
+		final List<Pair<Integer, List<ChannelOrIlluminationInfo>>>result = new ArrayList<>();
+		
+		for (int i = 0; i < nSeries; i++)
+		{
+			r.setSeries( i );
+			final List<ChannelOrIlluminationInfo> channelandIllumInfos = new ArrayList<>();
+			for (int c = 0; c < r.getSizeC(); c++)
+			{
+				final ChannelOrIlluminationInfo infoI = new ChannelOrIlluminationInfo();
+				infoI.index = c;
+				infoI.modStep = cModStep;
+				
+				// query channel Name
+				infoI.name =  mr.getChannelName( i, c % cModStep );
+					
+				// query channel fluor
+				infoI.fluorophore =  mr.getChannelFluor( i, c % cModStep );
+					
+				// query channel emission
+				Length channelEmissionWavelength = mr.getChannelEmissionWavelength( i, c % cModStep);
+				infoI.wavelength = channelEmissionWavelength != null ? channelEmissionWavelength.value().doubleValue() : null ;
+				
+				channelandIllumInfos.add( infoI );
+			}
+
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			final int numTPs = (!r.isOrderCertain() && r.getSizeZ() <= 1 && r.getSizeT() > 1 ) ? r.getSizeZ() : r.getSizeT();
+			result.add( new ValuePair<>( numTPs, channelandIllumInfos ));
+			
+			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Channels and Illuminations in Series " + (i+1) + " of " + nSeries );
+		}
+		
+		return result;
+	}
+	
+	public static Pair<Map<TileInfo, List<Pair<Integer, Integer>>>, Map<AngleInfo, List<Pair<Integer, Integer>>>> mapTilesAndAnglesToSeries(List<TileOrAngleInfo> infos)
+	{
+		final Map<TileInfo, List<Pair<Integer, Integer>>> tileMap = new HashMap<>();
+		final Map<AngleInfo, List<Pair<Integer, Integer>>> angleMap = new HashMap<>();
+		for (int i = 0; i < infos.size(); i++)
+		{
+			final TileOrAngleInfo info = infos.get( i );
+			
+			final TileInfo tI = new TileInfo();
+			tI.locationX = info.locationX;
+			tI.locationY = info.locationY;
+			tI.locationZ = info.locationZ;
+			
+			if (!tileMap.containsKey( tI ))
+				tileMap.put( tI, new ArrayList<>() );
+			for (int j = 0; j < info.channelCount; j++)
+				tileMap.get( tI ).add( new ValuePair< Integer, Integer >( i, j ) );
+			
+			final AngleInfo aI = new AngleInfo();
+			aI.angle = info.angle;
+			aI.axis = info.axis;
+			
+			if (!angleMap.containsKey( aI ))
+				angleMap.put( aI, new ArrayList<>() );
+			for (int j = 0; j < info.channelCount; j++)
+				angleMap.get( aI ).add( new ValuePair< Integer, Integer >( i, j ) );
+		}
+		
+		return new ValuePair< Map<TileInfo,List<Pair<Integer, Integer>>>, Map<AngleInfo,List<Pair<Integer, Integer>>> >( tileMap, angleMap );
+	}
+	
+	public static Pair<Map<Integer, List<Pair<Integer, Integer>>>, Pair<Map<ChannelInfo, List<Pair<Integer, Integer>>>, Map<Integer, List<Pair<Integer, Integer>>>>> mapTimepointsChannelsAndIlluminations(List<Pair<Integer, List<ChannelOrIlluminationInfo>>> infos)
+	{
+		// map the number of timepoints to series
+		// we know nothing about timepoints a.t.m.
+		final Map<Integer, List<Pair<Integer, Integer>>> timepointNumberMap = new HashMap<>();
+		
+		// map ChannelInfos to series,channel indices
+		final Map<ChannelInfo, List<Pair<Integer, Integer>>> channelMap = new HashMap<>();
+		
+		// map Illumination index to series,channel indices
+		final Map<Integer, List<Pair<Integer, Integer>>> illumMap = new HashMap<>();
+		
+		for (int i = 0 ; i < infos.size(); i++)
+		{
+			Pair< Integer, List< ChannelOrIlluminationInfo > > seriesInfo = infos.get( i );
+			
+				
+			for (int j = 0 ; j < seriesInfo.getB().size(); j++)
+			{
+				ChannelOrIlluminationInfo chAndIInfo = seriesInfo.getB().get( j );
+				
+				final ChannelInfo chI = new ChannelInfo();
+				chI.fluorophore = chAndIInfo.fluorophore;
+				chI.name = chAndIInfo.name;
+				chI.wavelength = chAndIInfo.wavelength;
+				
+				final Integer illIdx = chAndIInfo.index / chAndIInfo.modStep;
+				
+				// map channel info
+				if (!channelMap.containsKey( chI ))
+					channelMap.put( chI, new ArrayList<>() );
+				channelMap.get( chI ).add( new ValuePair< Integer, Integer >( i, j ) );
+				
+				// map illumIdx
+				if (!illumMap.containsKey( illIdx ))
+					illumMap.put( illIdx, new ArrayList<>() );
+				illumMap.get( illIdx ).add( new ValuePair< Integer, Integer >( i, j ) );
+				
+				// map timepoint number
+				final Integer tpCount = seriesInfo.getA();
+				if (!timepointNumberMap.containsKey( tpCount ))
+					timepointNumberMap.put( tpCount, new ArrayList<>() );
+				timepointNumberMap.get( tpCount ).add( new ValuePair< Integer, Integer >(i,j ) );
+			}			
+		}
+		
+		return new ValuePair< Map<Integer,List<Pair<Integer, Integer>>>, Pair<Map<ChannelInfo,List<Pair<Integer,Integer>>>,Map<Integer,List<Pair<Integer,Integer>>>> >
+					( timepointNumberMap, new ValuePair<Map<ChannelInfo,List<Pair<Integer,Integer>>>,Map<Integer,List<Pair<Integer,Integer>>>> ( channelMap, illumMap ) );
+		
+	}
+	
+	protected static ImgFactory< ? extends NativeType< ? > > selectImgFactory( final Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMap )
+	{
+		long maxNumPixels = 0L;
+
+		for (Pair<Dimensions, VoxelDimensions> p : dimensionMap.values())
+		{	
+			Dimensions dims = p.getA();
+			long n = 1;
+			for ( int i = 0; i < dims.numDimensions(); ++i )
+				n *= dims.dimension( i );
+
+			maxNumPixels = Math.max( n, maxNumPixels );
+			
+		}
+		
+		int smallerLog2 = (int)Math.ceil( Math.log( maxNumPixels ) / Math.log( 2 ) );
+
+		String s = "Maximum number of pixels in any view: n=" + maxNumPixels + 
+				" (2^" + (smallerLog2-1) + " < n < 2^" + smallerLog2 + " px), ";
+
+		if ( smallerLog2 <= 31 )
+		{
+			IOFunctions.println( s + "using ArrayImg." );
+			return new ArrayImgFactory< FloatType >();
+		}
+		else
+		{
+			IOFunctions.println( s + "using CellImg(256)." );
+			return new CellImgFactory< FloatType >( 256 );
+		}
+	}
+	
+	public static <T> List<T> listIntersect(List<T> a, List<T> b)
+	{
+		List<T> result = new ArrayList<>();
+		for (T t : a)
+			if (b.contains( t ))
+				result.add( t );
+		return result;
+	}
+	
+	
+	public static void resolveAmbiguity(Map<Class<? extends Entity>, CheckResult> checkResults,
+													boolean channelIllumAmbiguous,
+													boolean preferChannel,
+													boolean angleTileAmbiguous,
+													boolean preferTile)
+	{
+		if (channelIllumAmbiguous){
+			if (preferChannel)
+				checkResults.put( Channel.class, CheckResult.MULTIPLE_INDEXED );
+			else
+				checkResults.put( Illumination.class, CheckResult.MULTIPLE_INDEXED );			
+		}
+		
+		if (angleTileAmbiguous){
+			if (preferTile)
+				checkResults.put( Tile.class, CheckResult.MULTIPLE_INDEXED );
+			else
+				checkResults.put( Angle.class, CheckResult.MULTIPLE_INDEXED );
+		}
+	}
+	
+	public static void expandAccumulatedViewInfos
+	(
+			final Map<Class<? extends Entity>, List<Integer>> fileVariableToUse,
+			final FilenamePatternDetector patternDetector,
+			FileListViewDetectionState state			
+	)
+	{
+				
+		
+		for (Class<? extends Entity> cl: state.getIdMap().keySet())
+		{
+			state.getIdMap().get( cl ).clear();
+			state.getDetailMap().get( cl ).clear();
+			Boolean singleEntityPerFile = state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE;
+
+			if ( singleEntityPerFile && fileVariableToUse.get( cl ).size() > 0 )
+			{
+				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > expandedMap;
+				
+				if (state.getGroupedFormat())
+				{
+					Map< String, Pair< File, Integer > > groupUsageMap = state.getGroupUsageMap();
+					expandedMap = expandMapSingleFromFileGroupedFormat( 
+							state.getAccumulateMap( cl ), patternDetector, fileVariableToUse.get( cl ), groupUsageMap );
+				}
+				
+				else
+				{
+					expandedMap = expandMapSingleFromFile(
+						state.getAccumulateMap( cl ), patternDetector, fileVariableToUse.get( cl ) );
+				}
+				state.getIdMap().get( cl ).putAll( expandedMap.getB() );
+				state.getDetailMap().get( cl ).putAll( expandedMap.getA() );
+			}
+
+			else if ( singleEntityPerFile )
+			{
+				// FIXME: this is a hacky fix for the case of single, instances of attribute PER FILE
+				// in this case, multiplicity will be SINGLE (even though it should be MULTIPLE_NAMED )
+				// TODO: this should probably be fixed upstream
+				// At the moment, all instances of this attribute will get id 0
+				// NB: this throws away metadata
+				final ArrayList< Pair< File, Pair< Integer, Integer > > > allViews = state.getAccumulateMap( cl ).values().stream().collect(
+						ArrayList<Pair<File, Pair<Integer, Integer>>>::new,
+						(a,b) -> a.addAll(b),
+						(a,b) -> a.addAll(b) );
+				state.getIdMap().get( cl ).put( 0, allViews );
+			}
+
+			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MULTIPLE_INDEXED )
+			{
+				if (cl.equals( TimePoint.class ))
+					state.getIdMap().get( cl ).putAll( expandTimePointMapIndexed( state.getAccumulateMap( cl )) );
+				else
+					state.getIdMap().get( cl ).putAll( expandMapIndexed( state.getAccumulateMap( cl ), cl.equals( Angle.class ) || cl.equals( Tile.class) ) );
+			}
+
+			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MUlTIPLE_NAMED )
+			{
+				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > resortMapNamed = resortMapNamed(
+						state.getAccumulateMap( cl ) );
+				state.getDetailMap().get( cl ).putAll( resortMapNamed.getA() );
+				state.getIdMap().get( cl ).putAll( resortMapNamed.getB() );
+			}
+			
+		}
+		
+	}
+	
+	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> expandMapSingleFromFile(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map, FilenamePatternDetector det, List<Integer> patternIdx)
+	{
+		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		Map<Integer, T> res2 = new HashMap<>();
+		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+		
+		// 
+		Map<List<Integer>, Integer> multiIdxMap = new HashMap<>();
+		
+		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		{
+			int id = -1;
+			T attribute = invertedMap.get( fileInfo );
+			//System.out.println( fileInfo.getA().getAbsolutePath() );
+			
+			Matcher m = det.getPatternAsRegex().matcher( fileInfo.getA().getAbsolutePath() );
+			
+			// we have one numerical group describing this attribute -> use it as id
+			if (patternIdx.size() == 1)
+			{
+				if (m.matches())
+					id = Integer.parseInt( m.group( patternIdx.get( 0 ) + 1 ));
+				else
+					System.out.println( "WARNING: something went wrong while matching filenames" );
+			}
+			// we have more than one group describing attribute -> use increasing indices
+			else
+			{
+				if(!m.matches() || m.groupCount() < patternIdx.stream().reduce( Integer.MIN_VALUE, Math::max ))
+					System.out.println( "WARNING: something went wrong while matching filenames" );
+				else
+				{
+					List< Integer > multiIdx = patternIdx.stream().map( idx -> Integer.parseInt( m.group( idx + 1 )  ) ).collect( Collectors.toList() );
+					if (!multiIdxMap.containsKey( multiIdx ))
+						multiIdxMap.put( multiIdx, multiIdxMap.size() );
+					id = multiIdxMap.get( multiIdx );
+				}
+				
+			}
+			
+			res2.put( id, attribute );
+			
+			if (!res.containsKey( id ))
+				res.put( id, new ArrayList<>() );
+			res.get( id ).add( fileInfo );
+			
+		}
+		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
+			
+	}
+	
+	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> expandMapSingleFromFileGroupedFormat(
+			Map<T, List<Pair<File, Pair< Integer, Integer >>>> map,
+			FilenamePatternDetector det, 
+			List<Integer> patternIdx,
+			Map< String, Pair< File, Integer > > groupUsageMap)
+	{
+		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		Map<Integer, T> res2 = new HashMap<>();
+		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+		
+		// 
+		Map<List<Integer>, Integer> multiIdxMap = new HashMap<>();
+		
+		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		{
+			int id = -1;
+			T attribute = invertedMap.get( fileInfo );
+			//System.out.println( fileInfo.getA().getAbsolutePath() );
+			
+			
+			// find the actual used file
+			String seriesFile = null;
+			for (Entry< String, Pair< File, Integer > > e : groupUsageMap.entrySet())
+			{
+				if (new ValuePair<>( fileInfo.getA(), fileInfo.getB().getA() ).equals( e.getValue() ))
+					seriesFile = e.getKey();
+			}
+			
+			Matcher m = det.getPatternAsRegex().matcher( seriesFile );
+			
+			// we have one numerical group describing this attribute -> use it as id
+			if ( patternIdx.size() == 1 )
+			{
+				if ( m.matches() )
+					id = Integer.parseInt( m.group( patternIdx.get( 0 ) + 1 ) );
+				else
+					System.out.println( "WARNING: something went wrong while matching filenames" );
+			}
+			// we have more than one group describing attribute -> use
+			// increasing indices
+			else
+			{
+				if ( !m.matches() || m.groupCount() < patternIdx.stream().reduce( Integer.MIN_VALUE, Math::max ) )
+					System.out.println( "WARNING: something went wrong while matching filenames" );
+				else
+				{
+					List< Integer > multiIdx = patternIdx.stream().map( idx -> Integer.parseInt( m.group( idx + 1 ) ) )
+							.collect( Collectors.toList() );
+					if ( !multiIdxMap.containsKey( multiIdx ) )
+						multiIdxMap.put( multiIdx, multiIdxMap.size() );
+					id = multiIdxMap.get( multiIdx );
+				}
+
+			}
+
+			res2.put( id, attribute );
+
+			if ( !res.containsKey( id ) )
+				res.put( id, new ArrayList< >() );
+			res.get( id ).add( fileInfo );
+		}
+		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
+			
+	}
+	
+	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> resortMapNamed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map)
+	{
+		
+		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		Map<Integer, T> res2 = new HashMap<>();
+		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+		int maxId = 0;
+		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		{
+			int id= 0;
+			T attribute = invertedMap.get( fileInfo );
+			if (!res2.values().contains( attribute ))
+			{
+				res2.put( maxId, attribute );
+				id = maxId;
+				maxId++;
+			}
+			else
+			{
+				for (Integer i : res2.keySet())
+					if (res2.get( i ).equals( attribute ))
+						id = i;
+			}
+			
+			if (!res.containsKey( id ))
+				res.put( id, new ArrayList<>() );
+			res.get( id ).add( fileInfo );
+		}
+		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
+	}
+	
+	
+	public static <T> Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> expandMapIndexed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map, boolean useSeries)
+	{
+		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		{
+			int id = useSeries ? fileInfo.getB().getA() : fileInfo.getB().getB();
+			if (!res.containsKey( id ))
+				res.put( id, new ArrayList<>() );
+			res.get( id ).add( fileInfo );
+		}
+		return res;
+	}
+	
+	public static <T> Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> expandTimePointMapIndexed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map)
+	{
+		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		{
+			// TODO: can we get around this dirty cast?
+			Integer numTP = (Integer) invertedMap.get( fileInfo );
+			for (int i = 0; i < numTP; i++)
+			{
+				if (!res.containsKey( i ))
+					res.put( i, new ArrayList<>() );
+				res.get( i ).add( fileInfo );
+			}
+		}
+		return res;
+	}
+	
+	
+	public static <T> SortedMap<Pair<File, Pair< Integer, Integer >>, T> invertMapSortValue(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map )
+	{
+			 
+		SortedMap<Pair<File, Pair< Integer, Integer >>, T> res = new TreeMap<Pair<File, Pair< Integer, Integer >>, T>( new Comparator< Pair<File, Pair< Integer, Integer >> >()
+		{
+
+			@Override
+			public int compare(Pair< File, Pair< Integer, Integer > > o1, Pair< File, Pair< Integer, Integer > > o2)
+			{
+				int filecompare = o1.getA().getAbsolutePath().compareTo( o2.getA().getAbsolutePath() ) ;
+				if (filecompare != 0)
+					return filecompare;
+				
+				int seriescompare = o1.getB().getA().compareTo( o2.getB().getA() ); 
+				if (seriescompare != 0)
+					return seriescompare;
+				
+				return o1.getB().getB().compareTo( o2.getB().getB() );
+			}
+		} );
+		
+		for (T key : map.keySet())
+		{
+			for (Pair<File, Pair< Integer, Integer >> vI : map.get( key ))
+			{
+				//System.out.println( vI.getB().getA() + "" + vI.getB().getB() );
+				//System.out.println( key );
+				res.put( vI, key );
+			}
+		}
+		//System.out.println( res.size() );
+		return res;		 
+	}
+	
+	public static void detectDimensionsInFile(File file, Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMaps, ImageReader reader)
+	{
+		System.out.println( file );
+		
+		if (reader == null)
+		{
+			reader = new ImageReader();
+			reader.setMetadataStore( new OMEXMLMetadataImpl());
+		}
+		try
+		{
+			if (reader.getCurrentFile() != file.getAbsolutePath())
+				reader.setId( file.getAbsolutePath() );
+
+		for (int i = 0 ; i < reader.getSeriesCount(); i++)
+		{
+			reader.setSeries( i );
+			MetadataRetrieve meta = (MetadataRetrieve)reader.getMetadataStore();
+
+			if (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ){
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": WARNING: Uncertain XZY/XZT order in File " + file.getAbsolutePath() + 
+						", Image " + i);
+				IOFunctions.println( new Date(System.currentTimeMillis()) + ": Assuming XYZ. For XYT, please resave the data as "
+						+ "separate 2D images for each time point or set the metadata for the third dimesion." );
+			}
+
+			double sizeX = 1;
+			double sizeY = 1;
+			double sizeZ = 1;
+			
+			Length pszX = null;
+			try {
+				pszX = meta.getPixelsPhysicalSizeX( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{
+			}
+			//System.out.println( pszX );
+			sizeX = pszX != null ? pszX.value().doubleValue() : 1 ;
+			
+			Length pszY = null;
+			try {
+				pszY = meta.getPixelsPhysicalSizeY( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			sizeY = pszY != null ? pszY.value().doubleValue() : 1 ;
+			
+			Length pszZ = null;
+			try {
+				pszZ = meta.getPixelsPhysicalSizeZ( i );
+			}
+			catch (IndexOutOfBoundsException e)
+			{				
+			}
+			sizeZ = pszZ != null ? pszZ.value().doubleValue() : 1 ;
+
+			// get view dimensions
+			int dimX = reader.getSizeX();
+			int dimY = reader.getSizeY();
+			// FIX for XYT stacks that should be XYZ (default if order is not certain)
+			// assume time points are actually z planes
+			int dimZ  = (!reader.isOrderCertain() && reader.getSizeZ() <= 1 && reader.getSizeT() > 1 ) ? reader.getSizeT() : reader.getSizeZ();
+
+			// get pixel units from size
+			String unit = pszX != null ? pszX.unit().getSymbol() : "pixels";
+			
+			FinalVoxelDimensions finalVoxelDimensions = new FinalVoxelDimensions( unit, sizeX, sizeY, sizeZ );
+			FinalDimensions finalDimensions = new FinalDimensions( dimX, dimY, dimZ );
+			
+			for (int j = 0; j < reader.getSizeC(); j++)
+			{			
+				Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( file, new ValuePair< Integer, Integer >( i, j ) );
+				dimensionMaps.put( key, new ValuePair< Dimensions, VoxelDimensions >( finalDimensions, finalVoxelDimensions ) );
+			}
+			
+		}
+			
+		reader.close();
+		}
+
+		catch ( FormatException | IOException e1 )
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+	public static void detectViewsInFiles(List<File> files,
+										 FileListViewDetectionState state)
+	{
+		Map<File, Map<Class<? extends Entity>, CheckResult>> multiplicityMapInner = new HashMap<>();
+		List<String> usedFiles = new ArrayList<>();
+		
+		
+		for (File file : files)
+			if (!usedFiles.contains( file.getAbsolutePath() ))
+			{
+				ImageReader reader = new ImageReader();
+				reader.setMetadataStore( new OMEXMLMetadataImpl() );
+				detectViewsInFile( 	file,
+									multiplicityMapInner,
+									state,
+									usedFiles,
+									reader);
+				
+				detectDimensionsInFile (file, state.getDimensionMap(), reader);
+				
+				try
+				{
+					reader.close();
+				}
+				catch ( IOException e )
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		
+		
+		for (Map<Class<? extends Entity>, CheckResult> cr : multiplicityMapInner.values())
+		{
+			for (Class<? extends Entity> cl : cr.keySet() )
+			{
+				if (state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE && cr.get( cl ) == CheckResult.MULTIPLE_INDEXED)
+					state.getMultiplicityMap().put( cl, CheckResult.MULTIPLE_INDEXED );
+				else if (state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE && cr.get( cl ) == CheckResult.MUlTIPLE_NAMED)
+					state.getMultiplicityMap().put( cl, CheckResult.MUlTIPLE_NAMED );
+				// TODO: Error here if we have mixed indexed and named
+			}
+		}
+		
+	}
+	
+	
+	
+	
+	public static void detectViewsInFile(final File file,
+										 Map<File, Map<Class<? extends Entity>, CheckResult>> multiplicityMap,
+										 FileListViewDetectionState state,
+										 List<String> usedFiles,
+										 ImageReader reader)
+	{
+		
+		if (reader == null)
+		{
+			reader = new ImageReader();
+			reader.setMetadataStore( new OMEXMLMetadataImpl());
+		}
+
+		IJ.log("" + new Date(System.currentTimeMillis()) + ": Investigating file " + file.getAbsolutePath() );
+
+		try
+		{
+			if (reader.getCurrentFile() != file.getAbsolutePath())
+				reader.setId( file.getAbsolutePath() );
+		}
+		catch ( FormatException | IOException e )
+		{
+			e.printStackTrace();
+		}
+
+		if (reader.getRGBChannelCount() > 1)
+		{
+			IOFunctions.println("RGB images are not supported at the moment. Please re-save as Composite (Open in Fiji > Image > Color > Make Composite > Save ). Quitting.");
+			throw new IllegalArgumentException("RGB images are not supported at the moment. Please re-save as Composite. Quitting.");
+		}
+
+		usedFiles.addAll( Arrays.asList( reader.getUsedFiles() ));
+
+		// the format we use employs grouped files
+		if (reader.getUsedFiles().length > 1)
+			state.setGroupedFormat( true );
+
+		// populate grouped format file usage map
+		for (int i = 0; i < reader.getSeriesCount(); i ++)
+		{
+			reader.setSeries( i );
+			for (String usedFileI : reader.getSeriesUsedFiles())
+				state.getGroupUsageMap().put( usedFileI , new ValuePair< File, Integer >( file, i ));
+		}
+
+		// for each entity class, create a map from identifying object to series
+		Map<Class<? extends Entity>, Map< ? extends Object, List< Pair< Integer, Integer > > >> infoMap = new HashMap<>();
+
+		// predict tiles and angles, refine info with format specific refiner
+		List< TileOrAngleInfo > predictTilesAndAngles = predictTilesAndAngles( reader);
+		TileOrAngleRefiner refiner = tileOrAngleRefiners.get( ((ImageReader)reader).getReader().getClass() );
+		if (refiner != null)
+			refiner.refineTileOrAngleInfo( reader, predictTilesAndAngles );
+
+		// map to tileMap and angleMap
+		Pair< Map< TileInfo, List< Pair< Integer, Integer > > >, Map< AngleInfo, List< Pair< Integer, Integer > > > > mapTilesAngles = mapTilesAndAnglesToSeries( predictTilesAndAngles );
+		infoMap.put( Tile.class, mapTilesAngles.getA());
+		infoMap.put( Angle.class, mapTilesAngles.getB());
+
+		// predict and map timepoints, channels, illuminations
+		List< Pair< Integer, List< ChannelOrIlluminationInfo > > > predictTPChannelsIllum = predictTimepointsChannelsAndIllums( reader );
+		Pair< Map< Integer, List< Pair< Integer, Integer > > >, Pair< Map< ChannelInfo, List< Pair< Integer, Integer > > >, Map< Integer, List< Pair< Integer, Integer > > > > > mapTimepointsChannelsIlluminations = mapTimepointsChannelsAndIlluminations(predictTPChannelsIllum);
+		infoMap.put(TimePoint.class, mapTimepointsChannelsIlluminations.getA());
+		infoMap.put(Channel.class, mapTimepointsChannelsIlluminations.getB().getA());
+		infoMap.put(Illumination.class, mapTimepointsChannelsIlluminations.getB().getB());
+
+		// check multiplicity of maps
+		Map<Class<? extends Entity>, CheckResult> multiplicity = new HashMap<>();
+
+		multiplicity.put( TimePoint.class, checkMultipleTimepoints( (Map< Integer, List< Pair< Integer, Integer > > >) infoMap.get( TimePoint.class ) ));
+		multiplicity.put( Channel.class, checkMultiplicity( infoMap.get( Channel.class ) ));
+		multiplicity.put( Illumination.class, checkMultiplicity( infoMap.get( Illumination.class ) ));
+
+		// make Maps TileInfo -> Series (is TileInfo -> (Series, Channel) before)
+		Map< ? extends Object, List< Integer > > tileSeriesMap = infoMap.get( Tile.class ).entrySet().stream().collect(
+				Collectors.toMap(
+						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) -> e.getKey(),
+						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) ->
+							new ArrayList<>(e.getValue().stream().map(p -> p.getA()).collect(Collectors.toSet()))) );
+
+		// same but for Angles
+		Map< ? extends Object, List< Integer > > angleSeriesMap = infoMap.get( Angle.class ).entrySet().stream().collect(
+				Collectors.toMap(
+						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) -> e.getKey(),
+						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) ->
+							new ArrayList<>(e.getValue().stream().map(p -> p.getA()).collect(Collectors.toSet()))) );
+
+		multiplicity.put( Angle.class, checkMultiplicity( angleSeriesMap ));
+		multiplicity.put( Tile.class, checkMultiplicity( tileSeriesMap));
+
+		boolean channelIllumAmbiguous = false;
+		// we found multiple illums/channels with metadata for illums -> consider only illums
+		if (multiplicity.get( Channel.class ) == CheckResult.MULTIPLE_INDEXED && multiplicity.get( Illumination.class ) == CheckResult.MUlTIPLE_NAMED)
+			multiplicity.put( Channel.class, CheckResult.SINGLE );
+		// we found multiple illums/channels with metadata for channels -> consider only channels
+		else if (multiplicity.get( Channel.class ) == CheckResult.MUlTIPLE_NAMED && multiplicity.get( Illumination.class ) == CheckResult.MULTIPLE_INDEXED)
+			multiplicity.put( Illumination.class, CheckResult.SINGLE);
+		// we found multiple illums/channels, but no metadata -> ask user to resolve ambiguity later
+		else if (multiplicity.get( Channel.class ) == CheckResult.MULTIPLE_INDEXED && multiplicity.get( Illumination.class ) == CheckResult.MULTIPLE_INDEXED)
+		{
+			multiplicity.put( Channel.class, CheckResult.SINGLE);
+			multiplicity.put( Illumination.class, CheckResult.SINGLE);
+			channelIllumAmbiguous = true;
+		}
+
+		// same as above, but for tiles/angles
+		boolean angleTileAmbiguous = false;
+		if (multiplicity.get( Tile.class ) == CheckResult.MULTIPLE_INDEXED && multiplicity.get( Angle.class ) == CheckResult.MUlTIPLE_NAMED)
+			multiplicity.put( Tile.class, CheckResult.SINGLE);
+		else if (multiplicity.get( Tile.class ) == CheckResult.MUlTIPLE_NAMED && multiplicity.get( Angle.class ) == CheckResult.MULTIPLE_INDEXED)
+			multiplicity.put( Angle.class, CheckResult.SINGLE);
+		else if (multiplicity.get( Tile.class ) == CheckResult.MULTIPLE_INDEXED && multiplicity.get( Angle.class ) == CheckResult.MULTIPLE_INDEXED)
+		{
+			multiplicity.put( Tile.class, CheckResult.SINGLE);
+			multiplicity.put( Angle.class, CheckResult.SINGLE);
+			angleTileAmbiguous = true;
+		}
+
+		// TODO: handle tiles cleanly
+		/*
+		else if (tileMultiplicity == CheckResult.MUlTIPLE_NAMED && angleMultiplicity == CheckResult.MUlTIPLE_NAMED && tileMap.size() == angleMap.size())
+			tileMultiplicity = CheckResult.SINGLE;
+		*/
+
+		// multiplicity of the different entities
+		multiplicityMap.put( file, multiplicity );
+
+		for (Class<? extends Entity> cl : infoMap.keySet())
+		{
+			for (Object id : infoMap.get( cl ).keySet())
+			{
+				if (!state.getAccumulateMap(cl).containsKey( id ))
+					state.getAccumulateMap(cl).put( id, new ArrayList<>() );
+				infoMap.get( cl ).get( id ).forEach( series -> state.getAccumulateMap(cl).get( id ).add( new ValuePair< File, Pair< Integer, Integer > >( file, series ) ) );
+			}
+		}
+
+//			for (Integer tp : timepointMap.keySet())
+//			{
+//				if (!state.getAccumulateMap(TimePoint.class).containsKey( tp ))
+//					state.getAccumulateMap(TimePoint.class).put( tp, new ArrayList<>() );
+//				timepointMap.get( tp ).forEach( series -> state.getAccumulateTPMap().get( tp ).add( new ValuePair< File, Pair< Integer, Integer > >( file, series ) ) );
+//			}
+//			
+//			for (ChannelInfo ch : channelMap.keySet())
+//			{
+//				//System.out.println( "DEBUG: Processing channel " + ch );
+//				//System.out.println( "DEBUG: in file " + file.getAbsolutePath() );
+//				if (!state.getAccumulateChannelMap().containsKey( ch ))
+//				{
+//					//System.out.println( "DEBUG: did not find channel, adding new" );
+//					state.getAccumulateChannelMap().put( ch, new ArrayList<>() );
+//				}
+//				channelMap.get( ch ).forEach( seriesAndIdx -> state.getAccumulateChannelMap().get( ch ).add( new ValuePair< File, Pair<Integer,Integer> >( file, seriesAndIdx) ) );
+//			}
+//			
+//			for (Integer il : illumMap.keySet())
+//			{
+//				if (!state.getAccumulateIllumMap().containsKey( il ))
+//					state.getAccumulateIllumMap().put( il, new ArrayList<>() );
+//				illumMap.get( il ).forEach( seriesAndIdx -> state.getAccumulateIllumMap().get( il ).add( new ValuePair< File, Pair<Integer,Integer> >( file, seriesAndIdx) ));
+//			}
+//			
+//			for (TileInfo t : tileMap.keySet())
+//			{
+//				if(!state.getAccumulateTileMap().containsKey( t ))
+//					state.getAccumulateTileMap().put( t, new ArrayList<>() );
+//				tileMap.get( t ).forEach( seriesAndIdx -> state.getAccumulateTileMap().get( t ).add( new ValuePair< File, Pair<Integer,Integer> >( file, seriesAndIdx) ) );
+//			}
+//			
+//			for (AngleInfo a : angleMap.keySet())
+//			{
+//				if(!state.getAccumulateAngleMap().containsKey( a ))
+//					state.getAccumulateAngleMap().put( a, new ArrayList<>() );
+//				angleMap.get( a ).forEach( seriesAndIdx -> state.getAccumulateAngleMap().get( a ).add( new ValuePair< File, Pair<Integer,Integer> >( file, seriesAndIdx) ) );
+//			}
+		
+		if (!state.getAmbiguousAngleTile() && angleTileAmbiguous)
+			state.setAmbiguousAngleTile(true);
+
+		if(!state.getAmbiguousIllumChannel() && channelIllumAmbiguous)
+			state.setAmbiguousIllumChannel(true);
+
+		//reader.close();
+
+	}
+	
+	public static void main(String[] args)
+	{
+		ImageReader reader = new ImageReader();
+		reader.setMetadataStore( new OMEXMLMetadataImpl());
+		
+		try
+		{
+			reader.setId( new OpenDialog("pick file").getPath() );		
+		
+			for (int i = 0; i < reader.getSeriesCount(); i++)
+			{
+				reader.setSeries( i );
+				Arrays.asList( reader.getSeriesUsedFiles() ).forEach( s -> System.out.println( s ) );
+				
+				System.out.println( ((OMEXMLMetadataImpl)reader.getMetadataStore()).dumpXML());
+			}
+
+			reader.close();
+		}
+		catch ( FormatException | IOException e )
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}
