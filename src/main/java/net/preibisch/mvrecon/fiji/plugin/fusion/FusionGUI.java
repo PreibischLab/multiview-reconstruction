@@ -186,6 +186,7 @@ public class FusionGUI implements FusionExportInterface
 	public boolean queryDetails()
 	{
 		final String[] choices = FusionGUI.getBoundingBoxChoices( allBoxes );
+		final String[] choicesForMacro = FusionGUI.getBoundingBoxChoices( allBoxes, false );
 
 		if ( defaultBB >= choices.length )
 			defaultBB = 0;
@@ -193,7 +194,11 @@ public class FusionGUI implements FusionExportInterface
 		final GenericDialog gd = new GenericDialog( "Image Fusion" );
 		Label label1 = null, label2 = null;
 
-		gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
+		// use macro-compatible choice names in headless mode
+		if ( !PluginHelper.isHeadless() )
+			gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
+		else
+			gd.addChoice( "Bounding_Box", choicesForMacro, choicesForMacro[ defaultBB ] );
 
 		gd.addMessage( "" );
 
@@ -249,6 +254,20 @@ public class FusionGUI implements FusionExportInterface
 
 		if ( gd.wasCanceled() )
 			return false;
+
+		// Hacky: replace the bounding box choices with a macro-compatible version
+		// i.e. choices that do not contain the dimensions (AxBxC px), which we do not know in advance
+		if ( !PluginHelper.isHeadless() )
+		{
+			final Choice bboxChoice = (Choice) gd.getChoices().get( 0 );
+			final int selectedBbox = bboxChoice.getSelectedIndex();
+			for (int i = 0; i<choices.length; i++)
+			{
+				bboxChoice.remove( 0 );
+				bboxChoice.addItem( choicesForMacro[i] );
+			}
+			bboxChoice.select( selectedBbox );
+		}
 
 		boundingBox = defaultBB = gd.getNextChoiceIndex();
 		downsampling = defaultDownsampling = gd.getNextNumber();
@@ -311,13 +330,20 @@ public class FusionGUI implements FusionExportInterface
 			return false;
 	}
 
-	public static String[] getBoundingBoxChoices( final List< BoundingBox > allBoxes )
+	public static String[] getBoundingBoxChoices( final List< BoundingBox > allBoxes)
+	{
+		return getBoundingBoxChoices( allBoxes, true );
+	}
+
+	public static String[] getBoundingBoxChoices( final List< BoundingBox > allBoxes, boolean showDimensions )
 	{
 		final String[] choices = new String[ allBoxes.size() ];
 
 		int i = 0;
 		for ( final BoundingBox b : allBoxes )
-			choices[ i++ ] = b.getTitle() + " (" + b.dimension( 0 ) + "x" + b.dimension( 1 ) + "x" + b.dimension( 2 ) + "px)";
+			choices[ i++ ] = showDimensions 
+								? b.getTitle() + " (" + b.dimension( 0 ) + "x" + b.dimension( 1 ) + "x" + b.dimension( 2 ) + "px)"
+								: b.getTitle();
 
 		return choices;
 	}
