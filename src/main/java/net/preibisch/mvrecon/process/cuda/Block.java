@@ -84,7 +84,7 @@ public class Block extends AbstractInterval
 	 */
 	final boolean isPrecise;
 
-	final Vector< ImagePortion > portions;
+	final Vector< ImagePortion > portionsCopy, portionsPaste;
 	final ExecutorService taskExecutor;
 	final boolean executorServiceProvided;
 
@@ -111,7 +111,14 @@ public class Block extends AbstractInterval
 			n *= blockSize[ d ];
 
 		// split up into many parts for multithreading
-		this.portions = FusionTools.divideIntoPortions( n );
+		this.portionsCopy = FusionTools.divideIntoPortions( n );
+
+		n = effectiveSize[ 0 ];
+		for ( int d = 1; d < numDimensions; ++d )
+			n *= effectiveSize[ d ];
+
+		// split up into many parts for multithreading
+		this.portionsPaste = FusionTools.divideIntoPortions( n );
 
 		if ( service == null )
 		{
@@ -149,7 +156,7 @@ public class Block extends AbstractInterval
 		// set up threads
 		final ArrayList< Callable< Boolean > > tasks = new ArrayList< Callable< Boolean > >();
 
-		for ( int i = 0; i < portions.size(); ++i )
+		for ( int i = 0; i < portionsCopy.size(); ++i )
 		{
 			final int threadIdx = i;
 
@@ -160,10 +167,10 @@ public class Block extends AbstractInterval
 				public Boolean call() throws Exception
 				{
 					if ( source.numDimensions() == 3 && ArrayImg.class.isInstance( block ) )
-						copy3dArray( threadIdx, portions.size(), source, (ArrayImg< FloatType, ?>)block, offset );
+						copy3dArray( threadIdx, portionsCopy.size(), source, (ArrayImg< FloatType, ?>)block, offset );
 					else
 					{
-						final ImagePortion portion = portions.get( threadIdx );
+						final ImagePortion portion = portionsCopy.get( threadIdx );
 						copy( portion.getStartPosition(), portion.getLoopSize(), source, block, offset);
 					}
 					
@@ -190,7 +197,7 @@ public class Block extends AbstractInterval
 		// set up threads
 		final ArrayList< Callable< Boolean > > tasks = new ArrayList< Callable< Boolean > >();
 
-		for ( int i = 0; i < portions.size(); ++i )
+		for ( int i = 0; i < portionsPaste.size(); ++i )
 		{
 			final int threadIdx = i;
 			
@@ -201,10 +208,10 @@ public class Block extends AbstractInterval
 				public Boolean call() throws Exception
 				{
 					if ( target.numDimensions() == 3 && ArrayImg.class.isInstance( target ) && ArrayImg.class.isInstance( block ) )
-						paste3d( threadIdx, portions.size(), (ArrayImg< FloatType, ?>)target, (ArrayImg< FloatType, ?>)block, effectiveOffset, effectiveSize, effectiveLocalOffset );
+						paste3d( threadIdx, portionsPaste.size(), (ArrayImg< FloatType, ?>)target, (ArrayImg< FloatType, ?>)block, effectiveOffset, effectiveSize, effectiveLocalOffset );
 					else
 					{
-						final ImagePortion portion = portions.get( threadIdx );
+						final ImagePortion portion = portionsPaste.get( threadIdx );
 						paste( portion.getStartPosition(), portion.getLoopSize(), target, block, effectiveOffset, effectiveSize, effectiveLocalOffset );
 					}
 					
