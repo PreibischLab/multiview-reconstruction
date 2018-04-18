@@ -22,10 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
-import ij.ImageJ;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -35,6 +31,12 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import ij.ImageJ;
+import ij.gui.GenericDialog;
+import ij.plugin.PlugIn;
+import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfGaussianGUI;
@@ -46,12 +48,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-
-import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 /**
  * Plugin to detect interest points, store them on disk, and link them into the XML
@@ -91,7 +88,7 @@ public class Interest_Point_Detection implements PlugIn
 		if ( !result.queryXML( "perfoming interest point detection", true, true, true, true, true ) )
 			return;
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor = Threads.createFlexibleExecutorService();
 
 		detectInterestPoints(
 				result.getData(),
@@ -206,7 +203,7 @@ public class Interest_Point_Detection implements PlugIn
 		final ExecutorService taskExecutor;
 		
 		if ( service == null )
-			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+			taskExecutor = Threads.createFixedExecutorService();
 		else
 			taskExecutor = service;
 

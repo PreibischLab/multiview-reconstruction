@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import ij.ImageJ;
 import ij.plugin.PlugIn;
@@ -76,7 +75,7 @@ public class Image_Fusion implements PlugIn
 			return;
 
 		// one common executerservice
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		final ExecutorService taskExecutor = Threads.createFixedExecutorService();
 
 		fuse( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), taskExecutor );
 

@@ -32,12 +32,12 @@ import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.MinFilterThresholdBoundingBoxGUI;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMinFilterThreshold;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 public class TestRealDataBoundingBox
@@ -47,7 +47,7 @@ public class TestRealDataBoundingBox
 		new ImageJ();
 
 		// one common ExecutorService for all
-		final ExecutorService service = DeconViews.createExecutorService();
+		final ExecutorService service =  Threads.createFlexibleExecutorService();
 
 		// test a real scenario
 		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );;

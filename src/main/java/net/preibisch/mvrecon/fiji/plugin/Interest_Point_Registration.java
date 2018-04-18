@@ -148,7 +148,7 @@ public class Interest_Point_Registration implements PlugIn
 		if ( !result.queryXML( "for performing interest point registration", true, true, true, true, true ) )
 			return;
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor = Threads.createFixedExecutorService();
 
 		register(
 			result.getData(),
@@ -246,7 +246,7 @@ public class Interest_Point_Registration implements PlugIn
 		final ExecutorService taskExecutor;
 		
 		if ( service == null )
-			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+			taskExecutor = Threads.createFixedExecutorService();
 		else
 			taskExecutor = service;
 
@@ -1148,103 +1148,4 @@ public class Interest_Point_Registration implements PlugIn
 	{
 		return statistics;
 	}
-
-	/*
-	 * Registers all timepoints. No matter which matching is done it is always the same principle.
-	 * 
-	 * First all pairwise correspondences are established, and then a global optimization is computed.
-	 * The global optimization can is done in subsets, where the number of subsets &gt;= 1.
-	 * 
-	 * @param registrationType - which kind of registration
-	 * @param save - if you want to save the correspondence files
-	 * @return
-	public boolean register( final GlobalOptimizationType registrationType, final boolean save, final boolean collectStatistics )
-	{
-		final SpimData2 spimData = getSpimData();
-
-		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Starting registration" );
-
-		if ( collectStatistics )
-			this.statistics = new ArrayList<>();
-
-		// get a list of all pairs for this specific GlobalOptimizationType
-		final List< GlobalOptimizationSubset > list = registrationType.getAllViewPairs();
-
-		int successfulRuns = 0;
-
-		for ( final GlobalOptimizationSubset subset : list )
-		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Finding correspondences for subset: " + subset.getDescription() );
-
-			final List< PairwiseMatch > pairs = subset.getViewPairs();
-
-			final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
-			final ArrayList< Callable< PairwiseMatch > > tasks = new ArrayList< Callable< PairwiseMatch > >(); // your tasks
-
-			for ( final PairwiseMatch pair : pairs )
-			{
-				// just for logging the names and results of pairwise comparison
-				final ViewDescription viewA = spimData.getSequenceDescription().getViewDescription( pair.getViewIdA() );
-				final ViewDescription viewB = spimData.getSequenceDescription().getViewDescription( pair.getViewIdB() );
-
-				final String description = "[TP=" + viewA.getTimePoint().getName() + 
-						" angle=" + viewA.getViewSetup().getAngle().getName() + ", ch=" + viewA.getViewSetup().getChannel().getName() +
-						", illum=" + viewA.getViewSetup().getIllumination().getName() + " >>> TP=" + viewB.getTimePoint().getName() +
-						" angle=" + viewB.getViewSetup().getAngle().getName() + ", ch=" + viewB.getViewSetup().getChannel().getName() +
-						", illum=" + viewB.getViewSetup().getIllumination().getName() + "]";
-				
-				tasks.add( pairwiseMatchingInstance( pair, description ) );
-			}
-			try
-			{
-				// invokeAll() returns when all tasks are complete
-				taskExecutor.invokeAll( tasks );
-			}
-			catch ( final InterruptedException e )
-			{
-				IOFunctions.println( "Failed to compute registrations for " + subset.getDescription() );
-				e.printStackTrace();
-			}
-			
-			
-			// some statistics
-			int sumCandidates = 0;
-			int sumInliers = 0;
-			for ( final PairwiseMatch pair : pairs )
-			{
-				sumCandidates += pair.getCandidates().size();
-				sumInliers += pair.getInliers().size();
-			}
-			
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Number of Candidates: " + sumCandidates );
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Number of Inliers: " + sumInliers );
-
-			if ( collectStatistics )
-				statistics.add( pairs );
-
-			//
-			// set and store correspondences
-			//
-			
-			// first remove existing correspondences
-			registrationType.clearExistingCorrespondences( subset );
-
-			// now add all corresponding interest points
-			registrationType.addCorrespondences( pairs );
-
-			// save the files
-			if ( save )
-				registrationType.saveCorrespondences( subset );
-
-			if ( runGlobalOpt( subset, registrationType ) )
-				++successfulRuns;
-		}
-		
-		if ( successfulRuns > 0 )
-			return true;
-		else
-			return false;
-	}
-}
-	 */
 }

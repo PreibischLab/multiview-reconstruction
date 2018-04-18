@@ -42,6 +42,7 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -104,7 +105,7 @@ public class TestDeconvolution
 			final String bbTitle )
 	{
 		// one common ExecutorService for all
-		final ExecutorService service = DeconViews.createExecutorService();
+		final ExecutorService service = Threads.createFlexibleExecutorService();
 
 		BoundingBox boundingBox = null;
 

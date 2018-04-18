@@ -62,6 +62,7 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -70,7 +71,6 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 
 public class Resave_TIFF implements PlugIn
@@ -114,7 +114,7 @@ public class Resave_TIFF implements PlugIn
 		final SpimData2 data = lpq.getData();
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( data, lpq.getViewSetupsToProcess(), lpq.getTimePointsToProcess() );
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor =  Threads.createFixedExecutorService();
 
 		// write the TIFF's
 		writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter, taskExecutor );

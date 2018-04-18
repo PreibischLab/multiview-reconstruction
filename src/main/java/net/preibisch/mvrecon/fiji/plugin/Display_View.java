@@ -44,10 +44,10 @@ import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -146,7 +146,7 @@ public class Display_View implements PlugIn
 			return;
 		}
 		
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor = Threads.createFixedExecutorService();
 
 		// display it
 		display( result.getData(), viewId, pixelType, name, taskExecutor );

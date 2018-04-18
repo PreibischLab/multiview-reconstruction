@@ -38,6 +38,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.DeconvolutionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -52,7 +53,6 @@ import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThread;
-import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.ImgExport;
@@ -77,7 +77,7 @@ public class Image_Deconvolution implements PlugIn
 		if ( !result.queryXML( "Dataset (Multiview) Deconvolution", true, true, true, true, true ) )
 			return;
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor = Threads.createFlexibleExecutorService();
 
 		deconvolve( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), taskExecutor );
 	}

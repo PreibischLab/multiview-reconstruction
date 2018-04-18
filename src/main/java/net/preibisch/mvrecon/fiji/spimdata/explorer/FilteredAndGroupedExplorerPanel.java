@@ -37,6 +37,14 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+
+import bdv.BigDataViewer;
+import bdv.tools.HelpDialog;
+import bdv.tools.brightness.ConverterSetup;
+import bdv.tools.transformation.TransformedSource;
+import bdv.viewer.DisplayMode;
+import bdv.viewer.VisibilityAndGrouping;
+import bdv.viewer.state.SourceState;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
@@ -51,26 +59,16 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.GroupedViews;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerInfoBox;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
-import bdv.BigDataViewer;
-import bdv.tools.HelpDialog;
-import bdv.tools.brightness.ConverterSetup;
-import bdv.tools.transformation.TransformedSource;
-
-import bdv.viewer.DisplayMode;
-import bdv.viewer.VisibilityAndGrouping;
-import bdv.viewer.state.SourceState;
 
 public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS >>
 		extends JPanel implements ExplorerWindow< AS, X >, GroupedRowWindow
@@ -107,7 +105,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			final String xml, final X io)
 	{
 		
-		this.taskExecutor = DeconViews.createExecutorService();
+		this.taskExecutor = Threads.createFlexibleExecutorService();
 		
 		this.explorer = explorer;
 		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();

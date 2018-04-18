@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
@@ -459,7 +460,7 @@ MainLoop:           for ( int l = 0; l < portion.getLoopSize(); ++l )
 		// put together the list from the various threads	
 		final ArrayList<SimplePeak> dogPeaks = new ArrayList<SimplePeak>();
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor =  Threads.createFixedExecutorService();
 
 		try
 		{

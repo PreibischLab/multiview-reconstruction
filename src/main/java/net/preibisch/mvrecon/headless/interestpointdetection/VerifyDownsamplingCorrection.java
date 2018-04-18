@@ -36,6 +36,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -61,7 +62,7 @@ public class VerifyDownsamplingCorrection
 
 	public static void testFresh( final SpimData2 sdTiff, final SpimData2 sdHdf5 )
 	{
-		final DoGParameters dog = new DoGParameters( DeconViews.createExecutorService() );
+		final DoGParameters dog = new DoGParameters( Threads.createFlexibleExecutorService() );
 
 		/*
 		dog.downsampleXY = 2;

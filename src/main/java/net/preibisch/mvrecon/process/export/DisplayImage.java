@@ -35,6 +35,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -170,9 +171,9 @@ public class DisplayImage implements ImgExport
 		if ( imp == null )
 		{
 			if ( virtualDisplay )
-				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? DeconViews.createExecutorService() : taskExecutor );
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFlexibleExecutorService() : taskExecutor );
 			else
-				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? DeconViews.createExecutorService() : taskExecutor ).duplicate();
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFlexibleExecutorService() : taskExecutor ).duplicate();
 		}
 
 		final double[] minmax = getFusionMinMax( img, min, max );

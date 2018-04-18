@@ -41,6 +41,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -86,7 +87,7 @@ public class Visualize_Detections implements PlugIn
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() );
 		final Params params = queryDetails( result.getData(), viewIds );
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		final ExecutorService taskExecutor =  Threads.createFlexibleExecutorService();
 
 		if ( params != null )
 			visualize( result.getData(), viewIds, params.label,params.detections, params.downsample, params.displayInput, taskExecutor );

@@ -26,32 +26,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.algorithm.fft2.FFTConvolution;
-import net.preibisch.mvrecon.Threads;
 
 public class DeconViews
 {
 	final private Dimensions dimensions;
 	final private ArrayList< DeconView > views;
 	final private ExecutorService service;
-	final private int numThreads;
 
 	public DeconViews( final Collection< DeconView > input, final ExecutorService service )
 	{
 		this.views = new ArrayList<>();
 		this.views.addAll( input );
-
-		this.service = FFTConvolution.createExecutorService( Threads.numThreads() );
-
-		if ( ThreadPoolExecutor.class.isInstance( service ) )
-			this.numThreads = ((ThreadPoolExecutor)service).getMaximumPoolSize();
-		else
-			this.numThreads = Threads.numThreads();
+		this.service = service;
 
 		final RandomAccessibleInterval< ? > firstImg = input.iterator().next().getImage();
 
@@ -73,10 +63,4 @@ public class DeconViews
 	public Dimensions getPSIDimensions() { return dimensions; }
 	public List< DeconView > getViews() { return views; }
 	public ExecutorService getExecutorService() { return service; }
-	public int getNumThreads() { return numThreads; }
-
-	public static ExecutorService createExecutorService()
-	{
-		return FFTConvolution.createExecutorService( Threads.numThreads() );
-	}
 }
