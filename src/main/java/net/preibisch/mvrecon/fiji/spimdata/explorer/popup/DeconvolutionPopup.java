@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenuItem;
 
@@ -40,11 +41,13 @@ public class DeconvolutionPopup extends JMenuItem implements ExplorerWindowSetab
 	private static final long serialVersionUID = 5234649267634013390L;
 
 	ExplorerWindow< ?, ? > panel;
+	final ExecutorService taskExecutor;
 
-	public DeconvolutionPopup()
+	public DeconvolutionPopup( final ExecutorService taskExecutor )
 	{
 		super( "(MultiView) Deconvolution ..." );
 
+		this.taskExecutor = taskExecutor;
 		this.addActionListener( new MyActionListener() );
 	}
 
@@ -79,7 +82,7 @@ public class DeconvolutionPopup extends JMenuItem implements ExplorerWindowSetab
 				{
 					final List< ViewId > viewIds = ApplyTransformationPopup.getSelectedViews( panel );
 
-					if ( Image_Deconvolution.deconvolve( (SpimData2)panel.getSpimData(), viewIds ) )
+					if ( Image_Deconvolution.deconvolve( (SpimData2)panel.getSpimData(), viewIds, taskExecutor ) )
 					{
 						panel.updateContent(); // update interestpoint and registration panel if available
 						panel.bdvPopup().updateBDV();

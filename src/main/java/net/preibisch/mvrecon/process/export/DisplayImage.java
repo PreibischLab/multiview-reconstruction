@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.export;
 
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,9 +43,14 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class DisplayImage implements ImgExport
 {
 	final boolean virtualDisplay;
+	final ExecutorService taskExecutor;
 
-	public DisplayImage() { this( true ); }
-	public DisplayImage( final boolean virtualDisplay ) { this.virtualDisplay = virtualDisplay; }
+	public DisplayImage( final ExecutorService taskExecutor ) { this( true, taskExecutor ); }
+	public DisplayImage( final boolean virtualDisplay, final ExecutorService taskExecutor )
+	{
+		this.virtualDisplay = virtualDisplay;
+		this.taskExecutor = taskExecutor;
+	}
 
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img )
 	{
@@ -87,7 +93,7 @@ public class DisplayImage implements ImgExport
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Approximate min=" + minmax[ 0 ] + ", max=" + minmax[ 1 ] );
 
-		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minmax[ 0 ], minmax[ 1 ] );
+		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minmax[ 0 ], minmax[ 1 ], taskExecutor );
 
 		setCalibration( imp, bb, downsampling, anisoF );
 
@@ -137,13 +143,24 @@ public class DisplayImage implements ImgExport
 		return minmax;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
 			final RandomAccessibleInterval< T > img,
 			final boolean virtualDisplay,
 			final String title,
 			final double min,
 			final double max )
+	{
+		return getImagePlusInstance( img, virtualDisplay, title, min, max, null );
+	}
+
+	@SuppressWarnings("unchecked")
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final RandomAccessibleInterval< T > img,
+			final boolean virtualDisplay,
+			final String title,
+			final double min,
+			final double max,
+			final ExecutorService taskExecutor )
 	{
 		ImagePlus imp = null;
 
@@ -153,9 +170,9 @@ public class DisplayImage implements ImgExport
 		if ( imp == null )
 		{
 			if ( virtualDisplay )
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() );
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? DeconViews.createExecutorService() : taskExecutor );
 			else
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() ).duplicate();
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? DeconViews.createExecutorService() : taskExecutor ).duplicate();
 		}
 
 		final double[] minmax = getFusionMinMax( img, min, max );
@@ -171,7 +188,7 @@ public class DisplayImage implements ImgExport
 	public boolean queryParameters( final FusionExportInterface fusion ) { return true; }
 
 	@Override
-	public ImgExport newInstance() { return new DisplayImage(); }
+	public ImgExport newInstance() { return new DisplayImage( taskExecutor ); }
 
 	@Override
 	public String getDescription() { return "Display using ImageJ"; }

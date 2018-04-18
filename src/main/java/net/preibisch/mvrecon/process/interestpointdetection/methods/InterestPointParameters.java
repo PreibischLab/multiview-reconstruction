@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointdetection.methods;
 
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
@@ -50,14 +51,18 @@ public class InterestPointParameters
 	public double showProgressMin = Double.NaN;
 	public double showProgressMax = Double.NaN;
 
-	public InterestPointParameters() {}
+	public final ExecutorService taskExecutor;
+
+	public InterestPointParameters( final ExecutorService taskExecutor ) { this.taskExecutor = taskExecutor; }
 
 	public InterestPointParameters(
 			final Collection< ViewDescription > toProcess,
-			final ImgLoader imgloader )
+			final ImgLoader imgloader,
+			final ExecutorService taskExecutor )
 	{
 		this.toProcess = toProcess;
 		this.imgloader = imgloader;
+		this.taskExecutor = taskExecutor;
 	}
 
 	public boolean showProgress() { return !Double.isNaN( showProgressMin ) && !Double.isNaN( showProgressMax ); }

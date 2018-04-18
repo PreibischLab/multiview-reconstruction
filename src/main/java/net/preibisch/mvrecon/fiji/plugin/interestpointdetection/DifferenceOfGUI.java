@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -114,9 +115,9 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 	public static boolean defaultUseMinMaxForAll = false;
 	boolean useMinMaxForAll = false;
 
-	public DifferenceOfGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess )
+	public DifferenceOfGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess, final ExecutorService taskExecutor )
 	{
-		super( spimData, viewIdsToProcess );
+		super( spimData, viewIdsToProcess, taskExecutor );
 	}
 
 	protected abstract void addAddtionalParameters( final GenericDialog gd );
@@ -477,7 +478,8 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			new AffineTransform3D(),
 			downsampleXY,
 			downsampleZ,
-			true );
+			true,
+			getExecutorService() );
 
 		if ( img == null )
 		{
@@ -494,9 +496,9 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Wrapping ImagePlus around input image ... " );
 
 		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )
-			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), Double.NaN, Double.NaN );
+			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), Double.NaN, Double.NaN, getExecutorService() );
 		else
-			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), minIntensity, maxIntensity );
+			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), minIntensity, maxIntensity, getExecutorService() );
 	}
 
 	protected ImagePlus getGroupedImagePlusForInteractive( final String dialogHeader )
@@ -696,6 +698,6 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Wrapping ImagePlus around fused image ... " );
 
-		return DisplayImage.getImagePlusInstance( img, true, nameForGroup( group ), this.minIntensity, this.maxIntensity );
+		return DisplayImage.getImagePlusInstance( img, true, nameForGroup( group ), this.minIntensity, this.maxIntensity, getExecutorService() );
 	}
 }

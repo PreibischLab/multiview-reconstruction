@@ -94,9 +94,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 	{
 		IOFunctions.printIJLog = true;
 
-		staticImgExportAlgorithms.add( new DisplayImage() );
-		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
-		staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
+		staticImgExportAlgorithms.add( new DisplayImage( null ) );
+		staticImgExportAlgorithms.add( new Save3dTIFF( null, null ) );
+		staticImgExportAlgorithms.add( new ExportSpimData2TIFF( null ) );
 		staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
 		staticImgExportAlgorithms.add( new AppendSpimData2HDF5() );
 

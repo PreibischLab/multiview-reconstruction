@@ -77,14 +77,9 @@ public class Image_Deconvolution implements PlugIn
 		if ( !result.queryXML( "Dataset (Multiview) Deconvolution", true, true, true, true, true ) )
 			return;
 
-		deconvolve( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
-	}
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
 
-	public static boolean deconvolve(
-			final SpimData2 spimData,
-			final List< ViewId > views )
-	{
-		return deconvolve( spimData, views, DeconViews.createExecutorService() );
+		deconvolve( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), taskExecutor );
 	}
 
 	public static boolean deconvolve(

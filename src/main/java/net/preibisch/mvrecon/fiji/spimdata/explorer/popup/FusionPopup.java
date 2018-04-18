@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenuItem;
 
@@ -40,11 +41,13 @@ public class FusionPopup extends JMenuItem implements ExplorerWindowSetable
 	private static final long serialVersionUID = 5234649267634013390L;
 
 	ExplorerWindow< ?, ? > panel;
+	final ExecutorService taskExecutor;
 
-	public FusionPopup()
+	public FusionPopup( final ExecutorService taskExecutor )
 	{
 		super( "Image Fusion ..." );
 
+		this.taskExecutor = taskExecutor;
 		this.addActionListener( new MyActionListener() );
 	}
 
@@ -79,7 +82,7 @@ public class FusionPopup extends JMenuItem implements ExplorerWindowSetable
 				{
 					final List< ViewId > viewIds = ApplyTransformationPopup.getSelectedViews( panel );
 
-					if ( Image_Fusion.fuse( (SpimData2)panel.getSpimData(), viewIds ) )
+					if ( Image_Fusion.fuse( (SpimData2)panel.getSpimData(), viewIds, taskExecutor ) )
 					{
 						panel.updateContent(); // update interestpoint and registration panel if available
 						panel.bdvPopup().updateBDV();

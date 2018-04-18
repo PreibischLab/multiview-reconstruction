@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -82,6 +83,9 @@ public class ExportSpimData2TIFF implements ImgExport
 	Parameters params;
 	Save3dTIFF saver;
 	SpimData2 newSpimData;
+	final ExecutorService taskExecutor;
+
+	public ExportSpimData2TIFF( final ExecutorService taskExecutor ) { this.taskExecutor = taskExecutor; }
 
 	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
@@ -173,7 +177,7 @@ public class ExportSpimData2TIFF implements ImgExport
 			return false;
 
 		this.path = new File( new File( this.params.getXMLFile() ).getParent() );
-		this.saver = new Save3dTIFF( this.path.toString(), this.params.compress() );
+		this.saver = new Save3dTIFF( this.path.toString(), this.params.compress(), taskExecutor );
 
 		// define new timepoints and viewsetups
 		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = defineNewViewSetups( fusion, fusion.getDownsampling(), fusion.getAnisotropyFactor() );
@@ -187,7 +191,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	}
 
 	@Override
-	public ImgExport newInstance() { return new ExportSpimData2TIFF(); }
+	public ImgExport newInstance() { return new ExportSpimData2TIFF( taskExecutor ); }
 
 	@Override
 	public String getDescription() { return "Save as new XML Project (TIFF)"; }

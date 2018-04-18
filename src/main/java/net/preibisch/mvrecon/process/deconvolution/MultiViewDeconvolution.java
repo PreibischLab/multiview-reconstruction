@@ -153,7 +153,7 @@ public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
 			{
 				// if it is slices, wrap & copy otherwise virtual & copy - never use the actual image
 				// as it is being updated in the process
-				final ImagePlus tmp = DisplayImage.getImagePlusInstance( psi, true, "Psi", 0, avgMax ).duplicate();
+				final ImagePlus tmp = DisplayImage.getImagePlusInstance( psi, true, "Psi", 0, avgMax, views.getExecutorService() ).duplicate();
 
 				if ( this.stack == null )
 				{

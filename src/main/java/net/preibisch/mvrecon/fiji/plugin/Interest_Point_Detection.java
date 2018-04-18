@@ -32,7 +32,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfGaussianGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfMeanGUI;
@@ -43,6 +46,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
 import mpicbg.spim.data.sequence.TimePoint;
@@ -74,8 +78,8 @@ public class Interest_Point_Detection implements PlugIn
 	static
 	{
 		IOFunctions.printIJLog = true;
-		staticAlgorithms.add( new DifferenceOfMeanGUI( null, null ) );
-		staticAlgorithms.add( new DifferenceOfGaussianGUI( null, null ) );
+		staticAlgorithms.add( new DifferenceOfMeanGUI( null, null, null ) );
+		staticAlgorithms.add( new DifferenceOfGaussianGUI( null, null, null ) );
 	}
 	
 	@Override
@@ -87,35 +91,34 @@ public class Interest_Point_Detection implements PlugIn
 		if ( !result.queryXML( "perfoming interest point detection", true, true, true, true, true ) )
 			return;
 
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
 		detectInterestPoints(
 				result.getData(),
 				SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
 				result.getClusterExtension(),
 				result.getXMLFileName(),
-				true );
-	}
-
-	/*
-	 * Does just the detection, no saving
-	 * 
-	 * @param data
-	 * @param viewIds
-	 * @return
-	 */
-	public boolean detectInterestPoints(
-			final SpimData2 data,
-			final Collection< ? extends ViewId > viewCollection )
-	{
-		return detectInterestPoints( data, viewCollection, "", null, false );
+				true,
+				taskExecutor );
 	}
 
 	public boolean detectInterestPoints(
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection,
-			final String xmlFileName,
-			final boolean saveXML )
+			final ExecutorService taskExecutor )
 	{
-		return detectInterestPoints( data, viewCollection, "", xmlFileName, saveXML );
+		return detectInterestPoints( data, viewCollection, "", null, false, taskExecutor );
+	}
+
+	
+	public boolean detectInterestPoints(
+			final SpimData2 data,
+			final Collection< ? extends ViewId > viewCollection,
+			final String xmlFileName,
+			final boolean saveXML,
+			final ExecutorService taskExecutor )
+	{
+		return detectInterestPoints( data, viewCollection, "", xmlFileName, saveXML, taskExecutor );
 	}
 
 	public boolean detectInterestPoints(
@@ -123,7 +126,8 @@ public class Interest_Point_Detection implements PlugIn
 			final Collection< ? extends ViewId > viewCollection,
 			final String clusterExtension,
 			final String xmlFileName,
-			final boolean saveXML )
+			final boolean saveXML,
+			final ExecutorService service )
 	{
 		// filter not present ViewIds
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
@@ -198,9 +202,18 @@ public class Interest_Point_Detection implements PlugIn
 		if ( illums.size() > 1 )
 			groupIllums = defaultGroupIllums = gd.getNextBoolean();
 
+		// one common executerservice
+		final ExecutorService taskExecutor;
+		
+		if ( service == null )
+			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		else
+			taskExecutor = service;
+
 		final InterestPointDetectionGUI ipd = staticAlgorithms.get( algorithm ).newInstance(
 				data,
-				viewIds );
+				viewIds,
+				taskExecutor );
 
 		// the interest point detection should query its parameters
 		if ( !ipd.queryParameters( defineAnisotropy, setMinMax, limitDetections, groupTiles, groupIllums ) )

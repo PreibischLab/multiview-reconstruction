@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImageJ;
 import ij.gui.GenericDialog;
@@ -46,6 +47,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -144,11 +146,13 @@ public class Display_View implements PlugIn
 			return;
 		}
 		
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
 		// display it
-		display( result.getData(), viewId, pixelType, name );
+		display( result.getData(), viewId, pixelType, name, taskExecutor );
 	}
 
-	public static void display( final AbstractSpimData< ? > spimData, final ViewId viewId, final int pixelType, final String name )
+	public static void display( final AbstractSpimData< ? > spimData, final ViewId viewId, final int pixelType, final String name, final ExecutorService taskExecutor )
 	{
 		final ImgLoader imgLoader = (ImgLoader)spimData.getSequenceDescription().getImgLoader();
 		final ImgFactory< ? extends NativeType< ? > > factory;
@@ -168,7 +172,7 @@ public class Display_View implements PlugIn
 		}
 
 		// display it
-		DisplayImage export = new DisplayImage();
+		DisplayImage export = new DisplayImage( taskExecutor );
 		
 		if ( pixelType == 0 )
 			export.exportImage( ((ImgLoader)spimData.getSequenceDescription().getImgLoader()).getSetupImgLoader( viewId.getViewSetupId() ).getFloatImage( viewId.getTimePointId(), false ), name );

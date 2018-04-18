@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import bdv.export.ProgressWriter;
 import fiji.util.gui.GenericDialogPlus;
@@ -69,6 +70,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 
 public class Resave_TIFF implements PlugIn
@@ -112,8 +114,10 @@ public class Resave_TIFF implements PlugIn
 		final SpimData2 data = lpq.getData();
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( data, lpq.getViewSetupsToProcess(), lpq.getTimePointsToProcess() );
 
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
 		// write the TIFF's
-		writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter );
+		writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter, taskExecutor );
 
 		// write the XML
 		try
@@ -211,14 +215,14 @@ public class Resave_TIFF implements PlugIn
 		return params;
 	}
 
-	public static void writeTIFF( final SpimData spimData, final List< ViewId > viewIds, final String path, final boolean compress, final ProgressWriter progressWriter )
+	public static void writeTIFF( final SpimData spimData, final List< ViewId > viewIds, final String path, final boolean compress, final ProgressWriter progressWriter, final ExecutorService taskExecutor )
 	{
 		if ( compress )
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saving compressed TIFFS to directory '" + path + "'" );
 		else
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saving TIFFS to directory '" + path + "'" );
 		
-		final Save3dTIFF save = new Save3dTIFF( path, compress );
+		final Save3dTIFF save = new Save3dTIFF( path, compress, taskExecutor );
 		
 		final int numAngles = SpimData2.getAllAnglesSorted( spimData, viewIds ).size();
 		final int numChannels = SpimData2.getAllChannelsSorted( spimData, viewIds ).size();

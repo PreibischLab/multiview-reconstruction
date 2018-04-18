@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointdetection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -75,24 +76,24 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 	CUDASeparableConvolution cuda = null;
 	boolean accurateCUDA = false;
 
-	public DifferenceOfGaussianGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess )
+	public DifferenceOfGaussianGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess, final ExecutorService taskExecutor )
 	{
-		super( spimData, viewIdsToProcess );
+		super( spimData, viewIdsToProcess, taskExecutor );
 	}
 
 	@Override
 	public String getDescription() { return "Difference-of-Gaussian"; }
 
 	@Override
-	public DifferenceOfGaussianGUI newInstance( final SpimData2 spimData, final List< ViewId > viewIdsToProcess )
+	public DifferenceOfGaussianGUI newInstance( final SpimData2 spimData, final List< ViewId > viewIdsToProcess, final ExecutorService taskExecutor )
 	{
-		return new DifferenceOfGaussianGUI( spimData, viewIdsToProcess );
+		return new DifferenceOfGaussianGUI( spimData, viewIdsToProcess, taskExecutor );
 	}
 
 	@Override
 	public HashMap< ViewId, List< InterestPoint > > findInterestPoints( final TimePoint t )
 	{
-		final DoGParameters dog = new DoGParameters();
+		final DoGParameters dog = new DoGParameters( getExecutorService() );
 
 		dog.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dog.toProcess = new ArrayList< ViewDescription >();

@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointdetection;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -40,19 +41,25 @@ public abstract class InterestPointDetectionGUI
 
 	final SpimData2 spimData;
 
+	final ExecutorService taskExecutor;
+
 	/**
 	 * @param spimData - the SpimData
 	 * @param viewIdsToProcess - which view id's to segment
 	 */
 	public InterestPointDetectionGUI(
 			final SpimData2 spimData,
-			final List< ViewId > viewIdsToProcess )
+			final List< ViewId > viewIdsToProcess,
+			final ExecutorService taskExecutor )
 	{
 		this.spimData = spimData;
 		this.viewIdsToProcess = viewIdsToProcess;
+		this.taskExecutor = taskExecutor;
 	}
 
 	public List< ViewId > getViewIdsToProcess() { return viewIdsToProcess; }
+
+	public ExecutorService getExecutorService() { return taskExecutor; }
 
 	/**
 	 * if any preprocessing is necessary
@@ -90,7 +97,8 @@ public abstract class InterestPointDetectionGUI
 	 */
 	public abstract InterestPointDetectionGUI newInstance(
 			final SpimData2 spimData,
-			final List< ViewId > viewIdsToProcess );
+			final List< ViewId > viewIdsToProcess,
+			final ExecutorService taskExecutor );
 	
 	/*
 	 * @return - to be displayed in the generic dialog

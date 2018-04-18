@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dog;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
@@ -50,15 +51,16 @@ public class DoGParameters extends InterestPointParameters
 	public CUDASeparableConvolution cuda = null;
 	public boolean accurateCUDA = false;
 
-	public DoGParameters() { super(); }
+	public DoGParameters( final ExecutorService taskExecutor ) { super( taskExecutor ); }
 
 	public DoGParameters(
 			final Collection<ViewDescription> toProcess,
 			final ImgLoader imgloader,
 			final double sigma,
-			final double threshold )
+			final double threshold,
+			final ExecutorService taskExecutor )
 	{
-		super( toProcess, imgloader );
+		super( toProcess, imgloader, taskExecutor );
 		this.sigma = sigma;
 		this.threshold = threshold;
 	}
@@ -66,9 +68,10 @@ public class DoGParameters extends InterestPointParameters
 	public DoGParameters(
 			final Collection<ViewDescription> toProcess,
 			final ImgLoader imgloader,
-			final double sigma, final int downsampleXY )
+			final double sigma, final int downsampleXY,
+			final ExecutorService taskExecutor )
 	{
-		super( toProcess, imgloader );
+		super( toProcess, imgloader, taskExecutor );
 		this.sigma = sigma;
 		this.downsampleXY = downsampleXY;
 	}

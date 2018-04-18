@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -104,6 +105,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderL
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > extends FilteredAndGroupedExplorerPanel< AS, X > implements ExplorerWindow< AS, X >
@@ -148,7 +150,9 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		if ( data instanceof SpimData2 )
 			((SpimData2)data).gridMoveRequested = false;
 
-		popups = initPopups();
+		// called in super()
+		//popups = initPopups();
+
 		initComponent();
 
 		if ( requestStartBDV && 
@@ -691,24 +695,24 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		}
 	}
 
-	public ArrayList< ExplorerWindowSetable > initPopups()
+	public ArrayList< ExplorerWindowSetable > initPopups( final ExecutorService taskExecutor )
 	{
 		final ArrayList< ExplorerWindowSetable > popups = new ArrayList< ExplorerWindowSetable >();
 
 		popups.add( new LabelPopUp( " Displaying" ) );
 		popups.add( new BDVPopup() );
-		popups.add( new DisplayRawImagesPopup() );
+		popups.add( new DisplayRawImagesPopup( taskExecutor ) );
 		popups.add( new BoundingBoxPopup() );
-		popups.add( new DisplayFusedImagesPopup() );
+		popups.add( new DisplayFusedImagesPopup( taskExecutor ) );
 		popups.add( new MaxProjectPopup() );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Processing" ) );
-		popups.add( new DetectInterestPointsPopup() );
-		popups.add( new RegisterInterestPointsPopup() );
-		popups.add( new FusionPopup() );
+		popups.add( new DetectInterestPointsPopup( taskExecutor ) );
+		popups.add( new RegisterInterestPointsPopup( taskExecutor ) );
+		popups.add( new FusionPopup( taskExecutor ) );
 		popups.add( new PointSpreadFunctionsPopup() );
-		popups.add( new DeconvolutionPopup() );
+		popups.add( new DeconvolutionPopup( taskExecutor ) );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Calibration/Transformations" ) );
@@ -723,11 +727,11 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new LabelPopUp( " Interest Points" ) );
 		popups.add( new InterestPointsExplorerPopup() );
 		popups.add( new RemoveDetectionsPopup() );
-		popups.add( new VisualizeDetectionsPopup() );
+		popups.add( new VisualizeDetectionsPopup( taskExecutor ) );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Modifications" ) );
-		popups.add( new ResavePopup() );
+		popups.add( new ResavePopup( taskExecutor ) );
 		popups.add( new Separator() );
 
 		// add link to wiki

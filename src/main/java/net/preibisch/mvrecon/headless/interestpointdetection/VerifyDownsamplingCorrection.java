@@ -39,6 +39,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -60,7 +61,7 @@ public class VerifyDownsamplingCorrection
 
 	public static void testFresh( final SpimData2 sdTiff, final SpimData2 sdHdf5 )
 	{
-		final DoGParameters dog = new DoGParameters();
+		final DoGParameters dog = new DoGParameters( DeconViews.createExecutorService() );
 
 		/*
 		dog.downsampleXY = 2;

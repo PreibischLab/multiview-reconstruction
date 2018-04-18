@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
@@ -53,12 +54,14 @@ public class Save3dTIFF implements ImgExport
 	
 	String path;
 	boolean compress;
+	final ExecutorService taskExecutor;
 
-	public Save3dTIFF( final String path ) { this( path, false ); }
-	public Save3dTIFF( final String path, final boolean compress )
+	public Save3dTIFF( final String path, final ExecutorService taskExecutor ) { this( path, false, taskExecutor ); }
+	public Save3dTIFF( final String path, final boolean compress, final ExecutorService taskExecutor )
 	{ 
 		this.path = path;
 		this.compress = compress;
+		this.taskExecutor = taskExecutor;
 	}
 	
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
@@ -110,7 +113,7 @@ public class Save3dTIFF implements ImgExport
 		// determine min and max
 		final double[] minmax = DisplayImage.getFusionMinMax( img, min, max );
 
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
+		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ], taskExecutor );
 
 		DisplayImage.setCalibration( imp, bb, downsampling, anisoF );
 
@@ -193,7 +196,7 @@ public class Save3dTIFF implements ImgExport
 	}
 
 	@Override
-	public ImgExport newInstance() { return new Save3dTIFF( path ); }
+	public ImgExport newInstance() { return new Save3dTIFF( path, compress, taskExecutor ); }
 
 	@Override
 	public String getDescription() { return "Save as (compressed) TIFF stacks"; }

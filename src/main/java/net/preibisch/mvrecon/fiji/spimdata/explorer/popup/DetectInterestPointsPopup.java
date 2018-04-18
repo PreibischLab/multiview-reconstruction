@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenuItem;
 
@@ -40,11 +41,13 @@ public class DetectInterestPointsPopup extends JMenuItem implements ExplorerWind
 	private static final long serialVersionUID = 5234649267634013390L;
 
 	ExplorerWindow< ?, ? > panel;
+	final ExecutorService taskExecutor;
 
-	public DetectInterestPointsPopup()
+	public DetectInterestPointsPopup( final ExecutorService taskExecutor )
 	{
 		super( "Detect Interest Points ..." );
 
+		this.taskExecutor = taskExecutor;
 		this.addActionListener( new MyActionListener() );
 	}
 
@@ -84,7 +87,7 @@ public class DetectInterestPointsPopup extends JMenuItem implements ExplorerWind
 					Interest_Point_Detection.defaultGroupIllums = panel.illumsGrouped();
 					Interest_Point_Detection.currentPanel = panel;
 
-					if ( new Interest_Point_Detection().detectInterestPoints( (SpimData2)panel.getSpimData(), viewIds ) )
+					if ( new Interest_Point_Detection().detectInterestPoints( (SpimData2)panel.getSpimData(), viewIds, taskExecutor ) )
 						panel.updateContent(); // update interestpoint panel if available
 
 					Interest_Point_Detection.currentPanel = null;

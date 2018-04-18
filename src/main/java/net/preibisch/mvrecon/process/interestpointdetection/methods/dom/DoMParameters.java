@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -39,6 +40,8 @@ import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
  */
 public class DoMParameters extends InterestPointParameters
 {
+	public DoMParameters(ExecutorService taskExecutor) { super(taskExecutor); }
+
 	/**
 	 * 0 = no subpixel localization
 	 * 1 = quadratic fit

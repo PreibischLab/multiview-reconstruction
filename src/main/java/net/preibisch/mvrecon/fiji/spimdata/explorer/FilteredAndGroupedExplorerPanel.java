@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
@@ -59,6 +61,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import bdv.BigDataViewer;
 import bdv.tools.HelpDialog;
@@ -95,6 +98,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	protected final boolean isMac;
 	protected boolean colorMode = false;
 	
+	final ExecutorService taskExecutor;
 
 	final protected HashSet< List<BasicViewDescription< ? extends BasicViewSetup >> > selectedRows;
 	protected BasicViewDescription< ? extends BasicViewSetup > firstSelectedVD;
@@ -103,7 +107,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			final String xml, final X io)
 	{
 		
-		
+		this.taskExecutor = DeconViews.createExecutorService();
 		
 		this.explorer = explorer;
 		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();
@@ -114,13 +118,14 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		this.selectedRows = new HashSet<>();
 		this.firstSelectedVD = null;
 
-		
-		popups = initPopups();
+		popups = initPopups( taskExecutor );
 		
 		// for access to the current BDV
 		currentInstance = this;
 	}
 
+	public ExecutorService getExecutorService() { return taskExecutor; }
+	
 	@Override
 	public BDVPopup bdvPopup()
 	{
@@ -627,7 +632,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		} );
 	}
 
-	public abstract ArrayList< ExplorerWindowSetable > initPopups();
+	public abstract ArrayList< ExplorerWindowSetable > initPopups( final ExecutorService taskExecutor );
 
 	@Override
 	public Collection< List< BasicViewDescription< ? extends BasicViewSetup > > > selectedRowsGroups()

@@ -234,14 +234,6 @@ public class MatcherPairwiseTools
 
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
-			final Map< V, List< I > > interestpoints,
-			final MatcherPairwise< I > matcher )
-	{
-		return computePairs( pairs, interestpoints, matcher, null );
-	}
-
-	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
-			final List< Pair< V, V > > pairs,
 			final Map< V, ? extends List< I > > interestpoints,
 			final MatcherPairwise< I > matcher,
 			final ExecutorService exec )

@@ -75,12 +75,18 @@ public class Image_Fusion implements PlugIn
 		if ( !result.queryXML( "Dataset Fusion", true, true, true, true, true ) )
 			return;
 
-		fuse( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
+		// one common executerservice
+		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+
+		fuse( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), taskExecutor );
+
+		taskExecutor.shutdown();
 	}
 
 	public static boolean fuse(
 			final SpimData2 spimData,
-			final List< ViewId > viewsToProcess )
+			final List< ViewId > viewsToProcess,
+			final ExecutorService service )
 	{
 		final FusionGUI fusion = new FusionGUI( spimData, viewsToProcess );
 
@@ -116,9 +122,6 @@ public class Image_Fusion implements PlugIn
 		// query exporter parameters
 		if ( !exporter.queryParameters( fusion ) )
 			return false;
-
-		// one common executerservice
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
 
 		for ( final Group< ViewDescription > group : Group.getGroupsSorted( groups ) )
 		{
@@ -183,12 +186,12 @@ public class Image_Fusion implements PlugIn
 				if ( !cacheAndExport(
 						new ConvertedRandomAccessibleInterval< FloatType, UnsignedShortType >(
 								virtual, new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] ), new UnsignedShortType() ),
-						taskExecutor, new UnsignedShortType(), fusion, exporter, group, minmax ) )
+						service, new UnsignedShortType(), fusion, exporter, group, minmax ) )
 					return false;
 			}
 			else
 			{
-				if ( !cacheAndExport( virtual, taskExecutor, new FloatType(), fusion, exporter, group, null ) )
+				if ( !cacheAndExport( virtual, service, new FloatType(), fusion, exporter, group, null ) )
 					return false;
 			}
 		}

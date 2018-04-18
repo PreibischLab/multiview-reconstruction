@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -63,10 +64,13 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 	private static final long serialVersionUID = -4895470813542722644L;
 
 	ExplorerWindow< ?, ? > panel = null;
+	final ExecutorService taskExecutor;
 
-	public DisplayFusedImagesPopup()
+	public DisplayFusedImagesPopup( final ExecutorService taskExecutor )
 	{
 		super( "Quick Display Transformed/Fused Image(s)" );
+
+		this.taskExecutor = taskExecutor;
 
 		final JMenu boundingBoxes = this;
 
@@ -191,7 +195,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 				public void run()
 				{
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Fusing " + views.size() + ", downsampling=" + DownsampleTools.printDownsampling( downsampling ) + ", caching strategy=" + imgType );
-					final ImagePlus imp = FusionTools.display( FusionTools.fuseVirtual( spimData, views, defaultUseBlending, false, defaultInterpolation, bb, downsampling ), imgType );
+					final ImagePlus imp = FusionTools.display( FusionTools.fuseVirtual( spimData, views, defaultUseBlending, false, defaultInterpolation, bb, downsampling ), imgType, taskExecutor );
 
 					if ( imp.getStack().getSize() > 1 )
 					{

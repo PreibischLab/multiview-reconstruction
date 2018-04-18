@@ -101,7 +101,7 @@ public class DetectChromaticAbberation
 
 			final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > > result =
 					//MatcherPairwiseTools.computePairs( viewPairs, interestpoints, new IterativeClosestPointPairwise< InterestPoint >( ip ) );
-					MatcherPairwiseTools.computePairs( viewPairs, interestpoints, new RGLDMPairwise< InterestPoint >( rp, dp ) );
+					MatcherPairwiseTools.computePairs( viewPairs, interestpoints, new RGLDMPairwise< InterestPoint >( rp, dp ), null );
 
 			for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > p : result )
 			{

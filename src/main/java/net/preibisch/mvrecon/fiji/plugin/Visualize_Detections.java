@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImageJ;
 import ij.gui.GenericDialog;
@@ -46,6 +47,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
@@ -84,8 +86,10 @@ public class Visualize_Detections implements PlugIn
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() );
 		final Params params = queryDetails( result.getData(), viewIds );
 
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
 		if ( params != null )
-			visualize( result.getData(), viewIds, params.label,params.detections, params.downsample, params.displayInput );
+			visualize( result.getData(), viewIds, params.label,params.detections, params.downsample, params.displayInput, taskExecutor );
 	}
 
 	public static Params queryDetails( final SpimData2 spimData, final List< ViewId > viewIds )
@@ -147,12 +151,13 @@ public class Visualize_Detections implements PlugIn
 			final String label,
 			final int detections,
 			final double downsample,
-			final boolean displayInput )
+			final boolean displayInput,
+			final ExecutorService taskExecutor )
 	{
 		//
 		// load the images and render the segmentations
 		//
-		final DisplayImage di = new DisplayImage();
+		final DisplayImage di = new DisplayImage( taskExecutor );
 
 		for ( final ViewId viewId : viewIds )
 		{

@@ -32,6 +32,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
@@ -51,6 +53,7 @@ import net.imglib2.Dimensions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.CenterOfMassGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.FRGLDMGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.GeometricHashingGUI;
@@ -73,6 +76,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestP
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOpt;
@@ -144,28 +148,33 @@ public class Interest_Point_Registration implements PlugIn
 		if ( !result.queryXML( "for performing interest point registration", true, true, true, true, true ) )
 			return;
 
+		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+
 		register(
 			result.getData(),
 			SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
 			result.getClusterExtension(),
 			result.getXMLFileName(),
-			true );
+			true,
+			taskExecutor );
 	}
 
 	public boolean register(
 			final SpimData2 data,
-			final Collection< ? extends ViewId > viewCollection )
+			final Collection< ? extends ViewId > viewCollection,
+			final ExecutorService taskExecutor )
 	{
-		return register( data, viewCollection, "", null, false );
+		return register( data, viewCollection, "", null, false, taskExecutor );
 	}
 
 	public boolean register(
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection,
 			final String xmlFileName,
-			final boolean saveXML )
+			final boolean saveXML,
+			final ExecutorService taskExecutor )
 	{
-		return register( data, viewCollection, "", xmlFileName, saveXML );
+		return register( data, viewCollection, "", xmlFileName, saveXML, taskExecutor );
 	}
 
 	public boolean register(
@@ -173,9 +182,10 @@ public class Interest_Point_Registration implements PlugIn
 			final Collection< ? extends ViewId > viewCollection,
 			final String clusterExtension,
 			final String xmlFileName,
-			final boolean saveXML )
+			final boolean saveXML,
+			final ExecutorService taskExecutor )
 	{
-		return register( data, viewCollection, false, "", xmlFileName, saveXML );
+		return register( data, viewCollection, false, "", xmlFileName, saveXML, taskExecutor );
 	}
 
 	public boolean register(
@@ -184,7 +194,8 @@ public class Interest_Point_Registration implements PlugIn
 			final boolean onlyShowGoodMethods,
 			final String clusterExtension,
 			final String xmlFileName,
-			final boolean saveXML )
+			final boolean saveXML,
+			final ExecutorService service )
 	{
 		// filter not present ViewIds
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
@@ -231,6 +242,14 @@ public class Interest_Point_Registration implements PlugIn
 		if ( gp == null )
 			return false;
 
+		// one common executerservice
+		final ExecutorService taskExecutor;
+		
+		if ( service == null )
+			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		else
+			taskExecutor = service;
+
 		// run the registration
 		if ( !processRegistration(
 				setup,
@@ -243,7 +262,8 @@ public class Interest_Point_Registration implements PlugIn
 				data.getViewRegistrations().getViewRegistrations(),
 				data.getViewInterestPoints().getViewInterestPoints(),
 				brp.labelMap,
-				arp.showStatistics ) )
+				arp.showStatistics,
+				taskExecutor ) )
 			return false;
 
 		// save the XML including transforms and correspondences
@@ -272,7 +292,8 @@ public class Interest_Point_Registration implements PlugIn
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewInterestPointLists > interestpointLists,
 			final Map< ViewId, String > labelMap,
-			final boolean collectStatistics )
+			final boolean collectStatistics,
+			final ExecutorService taskExecutor )
 	{
 		final List< ViewId > viewIds = setup.getViews();
 		final ArrayList< Subset< ViewId > > subsets = setup.getSubsets();
@@ -309,7 +330,7 @@ public class Interest_Point_Registration implements PlugIn
 
 				// compute all pairwise matchings
 				final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > > result =
-						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance() );
+						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance(), taskExecutor );
 
 				// clear correspondences
 				MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
@@ -373,7 +394,7 @@ public class Interest_Point_Registration implements PlugIn
 				}
 
 				final List< Pair< Pair< Group< ViewId >, Group< ViewId > >, PairwiseResult< GroupedInterestPoint< ViewId > > > > resultGroup =
-						MatcherPairwiseTools.computePairs( groupedPairs, groupedInterestpoints, pairwiseMatching.pairwiseGroupedMatchingInstance() );
+						MatcherPairwiseTools.computePairs( groupedPairs, groupedInterestpoints, pairwiseMatching.pairwiseGroupedMatchingInstance(), taskExecutor );
 
 				// clear correspondences and get a map linking ViewIds to the correspondence lists
 				final Map< ViewId, List< CorrespondingInterestPoints > > cMap = MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );

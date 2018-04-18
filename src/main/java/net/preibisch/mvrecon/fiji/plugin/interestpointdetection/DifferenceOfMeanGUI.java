@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointdetection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -55,24 +56,24 @@ public class DifferenceOfMeanGUI extends DifferenceOfGUI
 	boolean findMin;
 	boolean findMax;
 	
-	public DifferenceOfMeanGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess )
+	public DifferenceOfMeanGUI( final SpimData2 spimData, final List< ViewId > viewIdsToProcess, final ExecutorService taskExecutor )
 	{
-		super( spimData, viewIdsToProcess );
+		super( spimData, viewIdsToProcess, taskExecutor );
 	}
 
 	@Override
 	public String getDescription() { return "Difference-of-Mean (Integral image based)"; }
 
 	@Override
-	public DifferenceOfMeanGUI newInstance( final SpimData2 spimData, final List< ViewId > viewIdsToProcess )
+	public DifferenceOfMeanGUI newInstance( final SpimData2 spimData, final List< ViewId > viewIdsToProcess, final ExecutorService taskExecutor )
 	{ 
-		return new DifferenceOfMeanGUI( spimData, viewIdsToProcess );
+		return new DifferenceOfMeanGUI( spimData, viewIdsToProcess, taskExecutor );
 	}
 
 	@Override
 	public HashMap< ViewId, List< InterestPoint > > findInterestPoints( final TimePoint t )
 	{
-		final DoMParameters dom = new DoMParameters();
+		final DoMParameters dom = new DoMParameters( getExecutorService() );
 
 		dom.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dom.toProcess = new ArrayList< ViewDescription >();

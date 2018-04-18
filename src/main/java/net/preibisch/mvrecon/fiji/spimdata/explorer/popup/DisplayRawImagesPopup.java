@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -43,10 +44,13 @@ public class DisplayRawImagesPopup extends JMenu implements ExplorerWindowSetabl
 	private static final long serialVersionUID = 5234649262342301390L;
 
 	ExplorerWindow< ?, ? > panel = null;
+	final ExecutorService taskExecutor;
 
-	public DisplayRawImagesPopup()
+	public DisplayRawImagesPopup( final ExecutorService taskExecutor)
 	{
 		super( "Display Raw Image(s)" );
+
+		this.taskExecutor = taskExecutor;
 
 		final JMenuItem as32bit = new JMenuItem( "As 32-Bit ImageJ Stack" );
 		final JMenuItem as16bit = new JMenuItem( "As 16-Bit ImageJ Stack" );
@@ -116,9 +120,9 @@ public class DisplayRawImagesPopup extends JMenu implements ExplorerWindowSetabl
 						final String name = "Timepoint: " + view.getTimePointId() + " ViewSetup: " + view.getViewSetupId();
 			
 						if ( as16bit )
-							Display_View.display( panel.getSpimData(), view, 1, name );
+							Display_View.display( panel.getSpimData(), view, 1, name, taskExecutor );
 						else
-							Display_View.display( panel.getSpimData(), view, 0, name );
+							Display_View.display( panel.getSpimData(), view, 0, name, taskExecutor );
 					}
 				}
 			} ).start();

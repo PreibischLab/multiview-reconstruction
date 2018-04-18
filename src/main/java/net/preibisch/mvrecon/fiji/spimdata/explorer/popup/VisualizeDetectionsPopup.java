@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JMenuItem;
 
@@ -43,11 +44,13 @@ public class VisualizeDetectionsPopup extends JMenuItem implements ExplorerWindo
 	private static final long serialVersionUID = 5234649267634013390L;
 
 	ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel;
+	final ExecutorService taskExecutor;
 
-	public VisualizeDetectionsPopup()
+	public VisualizeDetectionsPopup( final ExecutorService taskExecutor )
 	{
 		super( "Visualize Interest Points ..." );
 
+		this.taskExecutor = taskExecutor;
 		this.addActionListener( new MyActionListener() );
 	}
 
@@ -88,7 +91,7 @@ public class VisualizeDetectionsPopup extends JMenuItem implements ExplorerWindo
 					if ( params == null )
 						return;
 					
-					Visualize_Detections.visualize( data, viewIds, params.label, params.detections, params.downsample, params.displayInput );
+					Visualize_Detections.visualize( data, viewIds, params.label, params.detections, params.downsample, params.displayInput, taskExecutor );
 				}
 			} ).start();
 		}

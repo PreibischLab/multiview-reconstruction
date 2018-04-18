@@ -48,17 +48,17 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
 public class Downsample
 {
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory )
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final ExecutorService taskExecutor )
 	{
 		final boolean[] downsampleInDim = new boolean[ input.numDimensions() ];
 
 		for ( int d = 0; d < downsampleInDim.length; ++d )
 			downsampleInDim[ d ] = true;
 
-		return simple2x( input, imgFactory, downsampleInDim );
+		return simple2x( input, imgFactory, downsampleInDim, taskExecutor );
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final boolean[] downsampleInDim )
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final boolean[] downsampleInDim, final ExecutorService taskExecutor )
 	{
 		RandomAccessibleInterval< T > src = input;
 
@@ -76,14 +76,14 @@ public class Downsample
 				}
 
 				final Img< T > img = imgFactory.create( dim, Views.iterable( input ).firstElement() );
-				simple2x( src, img, d );
+				simple2x( src, img, d, taskExecutor );
 				src = img;
 			}
 
 		return src;
 	}
 
-	public static < T extends RealType< T > > void simple2x( final RandomAccessibleInterval<T> input, final RandomAccessibleInterval<T> output, final int d )
+	public static < T extends RealType< T > > void simple2x( final RandomAccessibleInterval<T> input, final RandomAccessibleInterval<T> output, final int d, final ExecutorService service )
 	{
 		final int n = input.numDimensions();
 
@@ -108,7 +108,12 @@ public class Downsample
 		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numLines );
 
 		// set up executor service
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		final ExecutorService taskExecutor;
+		if ( service == null )
+			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		else
+			taskExecutor = service;
+
 		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
 
 		for ( final ImagePortion portion : portions )
@@ -198,6 +203,6 @@ public class Downsample
 		
 		new ImageJ();
 		ImageJFunctions.show( img );
-		ImageJFunctions.show( simple2x( img, img.factory(), new boolean[]{ true, true, true } ) );
+		ImageJFunctions.show( simple2x( img, img.factory(), new boolean[]{ true, true, true }, null ) );
 	}
 }

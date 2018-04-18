@@ -33,6 +33,7 @@ import mpicbg.spim.io.IOFunctions;
 
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
@@ -44,7 +45,7 @@ public class TestSegmentation
 {
 	public static void testDoG( SpimData2 spimData )
 	{
-		DoGParameters dog = new DoGParameters();
+		DoGParameters dog = new DoGParameters( DeconViews.createExecutorService() );
 
 		dog.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dog.toProcess = new ArrayList< ViewDescription >();
@@ -73,7 +74,7 @@ public class TestSegmentation
 
 	public static void testDoM( final SpimData2 spimData )
 	{
-		DoMParameters dom = new DoMParameters();
+		DoMParameters dom = new DoMParameters( DeconViews.createExecutorService() );
 		
 		dom.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dom.toProcess = new ArrayList< ViewDescription >();

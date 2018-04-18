@@ -26,6 +26,7 @@ import static mpicbg.spim.data.generic.sequence.ImgLoaderHints.LOAD_COMPLETELY;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -396,7 +397,8 @@ public class DownsampleTools
 			final AffineTransform3D mipMapTransform,
 			final int downsampleXY,
 			final int downsampleZ,
-			final boolean openCompletely )
+			final boolean openCompletely,
+			final ExecutorService taskExecutor )
 	{
 		IOFunctions.println(
 				"(" + new Date(System.currentTimeMillis()) + "): "
@@ -480,13 +482,13 @@ public class DownsampleTools
 		mipMapTransform.concatenate( additonalDS );
 
 		for ( ;dsx > 1; dsx /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false }, taskExecutor );
 
 		for ( ;dsy > 1; dsy /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false }, taskExecutor );
 
 		for ( ;dsz > 1; dsz /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true }, taskExecutor );
 
 		return input;
 	}

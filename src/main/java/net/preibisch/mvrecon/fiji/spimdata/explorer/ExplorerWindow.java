@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.explorer;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
 
@@ -44,6 +45,8 @@ public interface ExplorerWindow< AS extends AbstractSpimData< ? >, X extends Xml
 	public boolean tilesGrouped();
 	public boolean illumsGrouped();
 	public boolean channelsGrouped();
+
+	public ExecutorService getExecutorService();
 
 	// BDV-specific
 	public BasicBDVPopup bdvPopup();
