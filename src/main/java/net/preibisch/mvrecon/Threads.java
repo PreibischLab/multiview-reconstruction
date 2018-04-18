@@ -22,9 +22,76 @@
  */
 package net.preibisch.mvrecon;
 
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import ij.Prefs;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 public class Threads
 {
 	public static int numThreads() { return Math.max( 1, Prefs.getThreads() ); }
+
+	public static ExecutorService createFlexibleExecutorService( final int nThreads ) { return Executors.newWorkStealingPool( nThreads ); }
+	public static ExecutorService createFlexibleExecutorService() { return createFlexibleExecutorService( numThreads() ); }
+
+	public static ExecutorService createFixedExecutorService( final int nThreads ) { return Executors.newFixedThreadPool( nThreads ); }
+	public static ExecutorService createFixedExecutorService() { return createFixedExecutorService( numThreads() ); }
+
+	public static void main( String[] args )
+	{
+		// test if it fails on nested tasks
+		final ExecutorService service = createFlexibleExecutorService();
+
+		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+
+		for ( int i = 0; i < 50; ++i )
+		{
+			final int j = i;
+
+			tasks.add( new Callable< Void >()
+			{
+				@Override
+				public Void call() throws Exception
+				{
+					System.out.println( "Computing Thread (running local tasks): " + j );
+
+					Thread.sleep( 1000 );
+
+					final ArrayList< Callable< Void > > localtasks = new ArrayList< Callable< Void > >();
+
+					for ( int k = 0; k < 3; ++k )
+					{
+						final int l = k;
+
+						localtasks.add( new Callable< Void >()
+						{
+							@Override
+							public Void call() throws Exception
+							{
+								System.out.println( "Computing local Thread: " + l + "(" + j + ")" );
+
+								Thread.sleep( 500 );
+
+								System.out.println( "Finished local Thread: " + l + "(" + j + ")" );
+
+								return null;
+							}
+						});
+					}
+
+					FusionTools.execTasks( localtasks, service, "small thread loop " + j );
+
+					System.out.println( "Finish Thread: " + j );
+
+					return null;
+				}
+			});
+		}
+
+		FusionTools.execTasks( tasks, service, "big loop" );
+	}
+
 }
