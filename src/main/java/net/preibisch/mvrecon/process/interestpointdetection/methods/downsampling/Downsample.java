@@ -182,7 +182,8 @@ public class Downsample
 			return;
 		}
 
-		taskExecutor.shutdown();
+		if ( service == null )
+			taskExecutor.shutdown();
 		
 		return;
 	}
