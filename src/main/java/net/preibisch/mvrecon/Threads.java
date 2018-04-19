@@ -35,7 +35,7 @@ public class Threads
 {
 	/**
 	 * @return num threads for the executorService, we need at least 4 because we have hierarchical 
-	 * multithreading that would stall otherwise (e.g. Stitching > FFTConvolution)
+	 * multithreading that would stall otherwise (e.g. Stitching -- FFTConvolution)
 	 */
 	public static int numThreads() { return Math.max( 4, Prefs.getThreads() ); }
 
