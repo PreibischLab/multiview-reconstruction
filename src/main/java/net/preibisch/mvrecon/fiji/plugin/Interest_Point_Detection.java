@@ -88,7 +88,7 @@ public class Interest_Point_Detection implements PlugIn
 		if ( !result.queryXML( "perfoming interest point detection", true, true, true, true, true ) )
 			return;
 
-		final ExecutorService taskExecutor = Threads.createFlexibleExecutorService();
+		final ExecutorService taskExecutor = Threads.createFixedExecutorService();
 
 		detectInterestPoints(
 				result.getData(),

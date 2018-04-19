@@ -47,7 +47,7 @@ public class TestRealDataBoundingBox
 		new ImageJ();
 
 		// one common ExecutorService for all
-		final ExecutorService service =  Threads.createFlexibleExecutorService();
+		final ExecutorService service =  Threads.createFixedExecutorService();
 
 		// test a real scenario
 		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );;

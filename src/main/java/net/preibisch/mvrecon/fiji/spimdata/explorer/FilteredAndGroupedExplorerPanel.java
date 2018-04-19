@@ -105,7 +105,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			final String xml, final X io)
 	{
 		
-		this.taskExecutor = Threads.createFlexibleExecutorService();
+		this.taskExecutor = Threads.createFixedExecutorService();
 		
 		this.explorer = explorer;
 		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();

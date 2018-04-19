@@ -77,7 +77,7 @@ public class Image_Deconvolution implements PlugIn
 		if ( !result.queryXML( "Dataset (Multiview) Deconvolution", true, true, true, true, true ) )
 			return;
 
-		final ExecutorService taskExecutor = Threads.createFlexibleExecutorService();
+		final ExecutorService taskExecutor = Threads.createFixedExecutorService();
 
 		deconvolve( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), taskExecutor );
 	}

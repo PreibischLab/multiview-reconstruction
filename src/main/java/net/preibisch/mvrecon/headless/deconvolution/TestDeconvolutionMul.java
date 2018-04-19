@@ -95,7 +95,7 @@ public class TestDeconvolutionMul
 			final boolean mul )
 	{
 		// one common ExecutorService for all
-		final ExecutorService service = Threads.createFlexibleExecutorService();
+		final ExecutorService service = Threads.createFixedExecutorService();
 
 		if ( boundingBox == null )
 		{

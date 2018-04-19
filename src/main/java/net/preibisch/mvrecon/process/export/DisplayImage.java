@@ -171,9 +171,9 @@ public class DisplayImage implements ImgExport
 		if ( imp == null )
 		{
 			if ( virtualDisplay )
-				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFlexibleExecutorService() : taskExecutor );
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFixedExecutorService() : taskExecutor );
 			else
-				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFlexibleExecutorService() : taskExecutor ).duplicate();
+				imp = ImageJFunctions.wrap( img, title, taskExecutor == null ? Threads.createFixedExecutorService() : taskExecutor ).duplicate();
 		}
 
 		final double[] minmax = getFusionMinMax( img, min, max );

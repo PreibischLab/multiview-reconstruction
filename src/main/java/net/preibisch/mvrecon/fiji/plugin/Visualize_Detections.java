@@ -87,7 +87,7 @@ public class Visualize_Detections implements PlugIn
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() );
 		final Params params = queryDetails( result.getData(), viewIds );
 
-		final ExecutorService taskExecutor =  Threads.createFlexibleExecutorService();
+		final ExecutorService taskExecutor =  Threads.createFixedExecutorService();
 
 		if ( params != null )
 			visualize( result.getData(), viewIds, params.label,params.detections, params.downsample, params.displayInput, taskExecutor );

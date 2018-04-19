@@ -44,7 +44,7 @@ public class TestSegmentation
 {
 	public static void testDoG( SpimData2 spimData )
 	{
-		DoGParameters dog = new DoGParameters( Threads.createFlexibleExecutorService() );
+		DoGParameters dog = new DoGParameters( Threads.createFixedExecutorService() );
 
 		dog.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dog.toProcess = new ArrayList< ViewDescription >();
@@ -73,7 +73,7 @@ public class TestSegmentation
 
 	public static void testDoM( final SpimData2 spimData )
 	{
-		DoMParameters dom = new DoMParameters( Threads.createFlexibleExecutorService() );
+		DoMParameters dom = new DoMParameters( Threads.createFixedExecutorService() );
 		
 		dom.imgloader = spimData.getSequenceDescription().getImgLoader();
 		dom.toProcess = new ArrayList< ViewDescription >();

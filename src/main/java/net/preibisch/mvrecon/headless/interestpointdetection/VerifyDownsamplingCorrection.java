@@ -62,7 +62,7 @@ public class VerifyDownsamplingCorrection
 
 	public static void testFresh( final SpimData2 sdTiff, final SpimData2 sdHdf5 )
 	{
-		final DoGParameters dog = new DoGParameters( Threads.createFlexibleExecutorService() );
+		final DoGParameters dog = new DoGParameters( Threads.createFixedExecutorService() );
 
 		/*
 		dog.downsampleXY = 2;

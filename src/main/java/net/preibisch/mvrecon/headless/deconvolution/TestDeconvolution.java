@@ -105,7 +105,7 @@ public class TestDeconvolution
 			final String bbTitle )
 	{
 		// one common ExecutorService for all
-		final ExecutorService service = Threads.createFlexibleExecutorService();
+		final ExecutorService service = Threads.createFixedExecutorService();
 
 		BoundingBox boundingBox = null;
 
