@@ -32,11 +32,13 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.bdv;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Frame;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 
 import org.scijava.ui.behaviour.util.InputActionBindings;
 
@@ -72,32 +74,52 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 	public static void updateBrightnessPanels( final BigDataViewer bdv )
 	{
 		// without running this in a new thread can lead to a deadlock, not sure why
+		
 		new Thread( new Runnable()
 		{
+			
 			@Override
 			public void run()
 			{
-				if ( bdv == null )
-					return;
+				try
+				{
+					SwingUtilities.invokeAndWait( new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							if ( bdv == null )
+								return;
 
-				final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
+							final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
 
-				if ( inputActionBindings == null )
-					return;
+							if ( inputActionBindings == null )
+								return;
 
-				final ActionMap am = inputActionBindings.getConcatenatedActionMap();
+							final ActionMap am = inputActionBindings.getConcatenatedActionMap();
 
-				if ( am == null )
-					return;
+							if ( am == null )
+								return;
 
-				final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
+							final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
 
-				if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
-					return;
+							if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
+								return;
 
-				((ToggleDialogActionBrightness)dialog).updatePanels();
+							((ToggleDialogActionBrightness)dialog).updatePanels();
+						}
+					} );
+				} catch ( InvocationTargetException e )
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch ( InterruptedException e )
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
-		} ).start();
+		}).start();
 	}
 
 	final MinMaxPanels minMaxPanels;
