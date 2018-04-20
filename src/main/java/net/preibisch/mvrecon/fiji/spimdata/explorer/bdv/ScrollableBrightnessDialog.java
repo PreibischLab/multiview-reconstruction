@@ -69,29 +69,35 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 						new ScrollableBrightnessDialog( bdv.getViewerFrame(), bdv.getSetupAssignments() ) ) );
 	}
 
-	public static boolean updateBrightnessPanels( final BigDataViewer bdv )
+	public static void updateBrightnessPanels( final BigDataViewer bdv )
 	{
-		if ( bdv == null )
-			return false;
+		// without running this in a new thread can lead to a deadlock, not sure why
+		new Thread( new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if ( bdv == null )
+					return;
 
-		final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
+				final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
 
-		if ( inputActionBindings == null )
-			return false;
+				if ( inputActionBindings == null )
+					return;
 
-		final ActionMap am = inputActionBindings.getConcatenatedActionMap();
+				final ActionMap am = inputActionBindings.getConcatenatedActionMap();
 
-		if ( am == null )
-			return false;
+				if ( am == null )
+					return;
 
-		final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
+				final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
 
-		if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
-			return false;
+				if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
+					return;
 
-		((ToggleDialogActionBrightness)dialog).updatePanels();
-
-		return true;
+				((ToggleDialogActionBrightness)dialog).updatePanels();
+			}
+		} ).start();
 	}
 
 	final MinMaxPanels minMaxPanels;
