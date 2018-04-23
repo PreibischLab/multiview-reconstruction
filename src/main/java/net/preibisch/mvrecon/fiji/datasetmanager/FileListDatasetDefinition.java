@@ -64,7 +64,6 @@ import ij.gui.GenericDialog;
 import ij.io.DirectoryChooser;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
@@ -94,10 +93,10 @@ import net.preibisch.mvrecon.fiji.datasetmanager.grid.RegularTranformHelpers.Reg
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
+import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -957,15 +956,14 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		//gdSave.addMessage("<html><h2> Save path </h2></html>");
 		addMessageAsJLabel("<html><h2> Save path </h2></html>", gdSave);
 
-		Set<String> filenames = new HashSet<>();
+		// get default save path := deepest parent directory of all files in dataset
+		final Set<String> filenames = new HashSet<>();
 		((FileMapGettable)data.getSequenceDescription().getImgLoader() ).getFileMap().values().stream().forEach(
 				p -> 
 				{
 					filenames.add( p.getA().getAbsolutePath());
-					System.out.println( p.getA().getAbsolutePath() );
 				});
-
-		File prefixPath;
+		final File prefixPath;
 		if (filenames.size() > 1)
 			prefixPath = getLongestPathPrefix( filenames );
 		else
@@ -978,7 +976,6 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		// check if all stack sizes are the same (in each file)
 		boolean zSizeEqualInEveryFile = LegacyFileMapImgLoaderLOCI.isZSizeEqualInEveryFile( data, (FileMapGettable)data.getSequenceDescription().getImgLoader() );
-
 		// only consider if there are actually multiple angles/tiles
 		zSizeEqualInEveryFile = zSizeEqualInEveryFile && !(data.getSequenceDescription().getAllAnglesOrdered().size() == 1 && data.getSequenceDescription().getAllTilesOrdered().size() == 1);
 		// notify user if all stacks are equally size (in every file)
@@ -986,10 +983,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		{
 			addMessageAsJLabel( "<html><p style=\"color:orange\">WARNING: all stacks have the same size, this might be caused by a bug"
 					+ " in BioFormats. </br> Please re-check stack sizes if necessary.</p></html>", gdSave );
-
 			// default choice for size re-check: do it if all stacks are the same size
 			gdSave.addCheckbox( "check_stack_sizes", zSizeEqualInEveryFile );
 		}
+
 		gdSave.addCheckbox( "resave_as_HDF5", true );
 
 		gdSave.showDialog();
