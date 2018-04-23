@@ -113,7 +113,8 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
-	
+	public static final String[] loadChoices = new String[] {"Re-save as multiresolution HDF5", "Load raw data virtually (with caching)", "Load raw data"};
+
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
 	{
@@ -929,31 +930,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		GenericDialogPlus gdSave = new GenericDialogPlus( "Save dataset definition" );
 
-		//gdSave.addMessage( "<html> <h1> Saving options </h1> <br /> </html>" );
-		addMessageAsJLabel("<html> <h1> Saving options </h1> <br /> </html>", gdSave);
+		addMessageAsJLabel("<html> <h1> Loading options </h1> <br /> </html>", gdSave);
+		gdSave.addChoice( "how_to_load_images", loadChoices, loadChoices[0] );
 
-		gdSave.addCheckbox( "Use_virtual_images_(cached)", true );
-
-//		if (!useVirtualLoader)
-//		{
-//			Class<?> imgFactoryClass = ((FileMapImgLoaderLOCI)data.getSequenceDescription().getImgLoader() ).getImgFactory().getClass();
-//			if (imgFactoryClass.equals( CellImgFactory.class ))
-//			{
-//				//gdSave.addMessage( "<html> <h2> ImgLib2 container </h2> <br/>"
-//				//		+ "<p style=\"color:orange\"> Some views of the dataset are larger than 2^31 pixels, will use CellImg </p>" );
-//				addMessageAsJLabel("<html> <h2> ImgLib2 container </h2> <br/>"
-//						+ "<p style=\"color:orange\"> Some views of the dataset are larger than 2^31 pixels, will use CellImg </p>", gdSave);
-//			}
-//			else
-//			{
-//				//gdSave.addMessage( "<html> <h2> ImgLib2 container </h2> <br/>");
-//				addMessageAsJLabel("<html> <h2> ImgLib2 container </h2> <br/>", gdSave);
-//				String[] imglibChoice = new String[] {"ArrayImg", "CellImg"};
-//				gdSave.addChoice( "imglib2 container", imglibChoice, imglibChoice[0] );
-//			}
-//		}
-
-		//gdSave.addMessage("<html><h2> Save path </h2></html>");
 		addMessageAsJLabel("<html><h2> Save path </h2></html>", gdSave);
 
 		// get default save path := deepest parent directory of all files in dataset
@@ -987,27 +966,16 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			gdSave.addCheckbox( "check_stack_sizes", zSizeEqualInEveryFile );
 		}
 
-		gdSave.addCheckbox( "resave_as_HDF5", true );
-
 		gdSave.showDialog();
 		
 		if ( gdSave.wasCanceled() )
 			return null;
 
-		final boolean useVirtualLoader = gdSave.getNextBoolean();
+		final int loadChoice = gdSave.getNextChoiceIndex();
+		final boolean useVirtualLoader = loadChoice == 1;
 		// re-build the SpimData if user explicitly doesn't want virtual loading
 		if (!useVirtualLoader)
 			data = buildSpimData( state, useVirtualLoader );
-
-//		if (!useVirtualLoader)
-//		{
-//			Class<?> imgFactoryClass = ((FileMapImgLoaderLOCI)data.getSequenceDescription().getImgLoader() ).getImgFactory().getClass();
-//			if (!imgFactoryClass.equals( CellImgFactory.class ))
-//			{
-//				if (gdSave.getNextChoiceIndex() != 0)
-//					((FileMapImgLoaderLOCI)data.getSequenceDescription().getImgLoader() ).setImgFactory( new CellImgFactory<>(256) );
-//			}
-//		}
 
 		File chosenPath = new File( gdSave.getNextString());
 		data.setBasePath( chosenPath );
@@ -1049,8 +1017,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			}
 		}
 
-		boolean resaveAsHDF5 = gdSave.getNextBoolean();
-
+		boolean resaveAsHDF5 = loadChoice == 0;
 		if (resaveAsHDF5)
 		{
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( data.getSequenceDescription().getViewSetupsOrdered() );
