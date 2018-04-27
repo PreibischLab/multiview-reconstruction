@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -834,17 +835,25 @@ public class FileListDatasetDefinitionUtil
 	
 	public static void detectDimensionsInFile(File file, Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMaps, ImageReader reader)
 	{
-		System.out.println( file );
-		
+
+		//System.out.println( file );
+
 		if (reader == null)
 		{
 			reader = new ImageReader();
 			reader.setMetadataStore( new OMEXMLMetadataImpl());
 		}
+
 		try
 		{
-			if (reader.getCurrentFile() != file.getAbsolutePath())
+			// only switch file if it is not one of the already opened files
+			if (reader.getCurrentFile() == null || !(Arrays.asList( reader.getUsedFiles()).contains( file.getAbsolutePath())))
+			{
 				reader.setId( file.getAbsolutePath() );
+			}
+
+		// only use the 'master' file of a group in grouped data
+		final File currentFile = new File( reader.getCurrentFile() );
 
 		for (int i = 0 ; i < reader.getSeriesCount(); i++)
 		{
@@ -867,8 +876,9 @@ public class FileListDatasetDefinitionUtil
 				pszX = meta.getPixelsPhysicalSizeX( i );
 			}
 			catch (IndexOutOfBoundsException e)
-			{
+			{				
 			}
+
 			//System.out.println( pszX );
 			sizeX = pszX != null ? pszX.value().doubleValue() : 1 ;
 			
@@ -905,28 +915,24 @@ public class FileListDatasetDefinitionUtil
 			
 			for (int j = 0; j < reader.getSizeC(); j++)
 			{			
-				Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( file, new ValuePair< Integer, Integer >( i, j ) );
+				Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( currentFile, new ValuePair< Integer, Integer >( i, j ) );
 				dimensionMaps.put( key, new ValuePair< Dimensions, VoxelDimensions >( finalDimensions, finalVoxelDimensions ) );
 			}
 			
 		}
-			
+
 		reader.close();
 		}
-
-		catch ( FormatException | IOException e1 )
-		{
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		catch ( FormatException | IOException e ){ e.printStackTrace(); }
 	}
-	
+
 	public static void detectViewsInFiles(List<File> files,
 										 FileListViewDetectionState state)
 	{
 		Map<File, Map<Class<? extends Entity>, CheckResult>> multiplicityMapInner = new HashMap<>();
 		List<String> usedFiles = new ArrayList<>();
 		
+		Collections.sort( files );
 		
 		for (File file : files)
 			if (!usedFiles.contains( file.getAbsolutePath() ))
@@ -938,7 +944,7 @@ public class FileListDatasetDefinitionUtil
 									state,
 									usedFiles,
 									reader);
-				
+
 				detectDimensionsInFile (file, state.getDimensionMap(), reader);
 				
 				try
@@ -987,13 +993,16 @@ public class FileListDatasetDefinitionUtil
 
 		try
 		{
-			if (reader.getCurrentFile() != file.getAbsolutePath())
+			if ( reader.getCurrentFile() == null || !Arrays.asList( reader.getUsedFiles() ).contains( file.getAbsolutePath() ))
 				reader.setId( file.getAbsolutePath() );
 		}
 		catch ( FormatException | IOException e )
 		{
 			e.printStackTrace();
 		}
+
+		// use the master file of group from now on (in case we opened another file before)
+		final File currentFile = new File( reader.getCurrentFile() );
 
 		if (reader.getRGBChannelCount() > 1)
 		{
@@ -1012,7 +1021,7 @@ public class FileListDatasetDefinitionUtil
 		{
 			reader.setSeries( i );
 			for (String usedFileI : reader.getSeriesUsedFiles())
-				state.getGroupUsageMap().put( usedFileI , new ValuePair< File, Integer >( file, i ));
+				state.getGroupUsageMap().put( usedFileI , new ValuePair< File, Integer >( currentFile, i ));
 		}
 
 		// for each entity class, create a map from identifying object to series
@@ -1095,7 +1104,7 @@ public class FileListDatasetDefinitionUtil
 		*/
 
 		// multiplicity of the different entities
-		multiplicityMap.put( file, multiplicity );
+		multiplicityMap.put( currentFile, multiplicity );
 
 		for (Class<? extends Entity> cl : infoMap.keySet())
 		{
@@ -1103,7 +1112,7 @@ public class FileListDatasetDefinitionUtil
 			{
 				if (!state.getAccumulateMap(cl).containsKey( id ))
 					state.getAccumulateMap(cl).put( id, new ArrayList<>() );
-				infoMap.get( cl ).get( id ).forEach( series -> state.getAccumulateMap(cl).get( id ).add( new ValuePair< File, Pair< Integer, Integer > >( file, series ) ) );
+				infoMap.get( cl ).get( id ).forEach( series -> state.getAccumulateMap(cl).get( id ).add( new ValuePair< File, Pair< Integer, Integer > >( currentFile, series ) ) );
 			}
 		}
 

@@ -32,11 +32,15 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.bdv;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Frame;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 
 import org.scijava.ui.behaviour.util.InputActionBindings;
 
@@ -69,29 +73,55 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 						new ScrollableBrightnessDialog( bdv.getViewerFrame(), bdv.getSetupAssignments() ) ) );
 	}
 
-	public static boolean updateBrightnessPanels( final BigDataViewer bdv )
+	public static void updateBrightnessPanels( final BigDataViewer bdv )
 	{
-		if ( bdv == null )
-			return false;
+		// without running this in a new thread can lead to a deadlock, not sure why
+		
+		new Thread( new Runnable()
+		{
+			
+			@Override
+			public void run()
+			{
+				try
+				{
+					SwingUtilities.invokeAndWait( new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							if ( bdv == null )
+								return;
 
-		final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
+							final InputActionBindings inputActionBindings = bdv.getViewerFrame().getKeybindings();
 
-		if ( inputActionBindings == null )
-			return false;
+							if ( inputActionBindings == null )
+								return;
 
-		final ActionMap am = inputActionBindings.getConcatenatedActionMap();
+							final ActionMap am = inputActionBindings.getConcatenatedActionMap();
 
-		if ( am == null )
-			return false;
+							if ( am == null )
+								return;
 
-		final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
+							final Action dialog = am.getParent().get( BigDataViewerActions.BRIGHTNESS_SETTINGS );
 
-		if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
-			return false;
+							if ( dialog == null || !ToggleDialogActionBrightness.class.isInstance( dialog ) )
+								return;
 
-		((ToggleDialogActionBrightness)dialog).updatePanels();
-
-		return true;
+							((ToggleDialogActionBrightness)dialog).updatePanels();
+						}
+					} );
+				} catch ( InvocationTargetException e )
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch ( InterruptedException e )
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}).start();
 	}
 
 	final MinMaxPanels minMaxPanels;
@@ -123,6 +153,31 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 				jspane.getHorizontalScrollBar().setAutoscrolls(true);
 
 		content.add( jspane );
+
+		this.addWindowListener( new WindowListener()
+		{
+			@Override
+			public void windowOpened( WindowEvent e ){}
+
+			@Override
+			public void windowIconified( WindowEvent e ){}
+
+			@Override
+			public void windowDeiconified( WindowEvent e ){}
+
+			@Override
+			public void windowDeactivated( WindowEvent e ) {}
+
+			@Override
+			public void windowClosing( WindowEvent e ) {}
+
+			@Override
+			public void windowClosed( WindowEvent e ) {}
+
+			@Override
+			public void windowActivated( WindowEvent e ) { updatePanels(); }
+		} );
+
 		this.validate();
 	}
 
@@ -130,5 +185,7 @@ public class ScrollableBrightnessDialog extends BrightnessDialog
 	{
 		colorsPanel.recreateContent();
 		minMaxPanels.recreateContent();
+
+		validate();
 	}
 }

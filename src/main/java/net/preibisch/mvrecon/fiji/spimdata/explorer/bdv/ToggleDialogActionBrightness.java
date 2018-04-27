@@ -24,8 +24,8 @@ public class ToggleDialogActionBrightness extends ToggleDialogAction
 
 	public void updatePanels()
 	{
-		this.dialog.updatePanels();
-		this.dialog.validate();
+		if ( this.dialog.isVisible() )
+			this.dialog.updatePanels();
 	}
 
 	private static final long serialVersionUID = 1L;

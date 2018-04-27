@@ -26,10 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.scijava.Context;
-import org.scijava.options.OptionsService;
-
-import bdv.util.BdvFunctions;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
@@ -160,7 +156,19 @@ public class VirtualRAIFactoryLOCI
 	 */
 	public static void setReaderFileAndSeriesIfNecessary(final IFormatReader reader, final File file, final int series)
 	{
-		if (reader.getCurrentFile() == null || !reader.getCurrentFile().equals( file.getAbsolutePath() ))
+
+		boolean haveToReadFile = false;
+		// did we setId at all?
+		haveToReadFile |= (reader.getCurrentFile() == null);
+
+		// is the reader set to the right file?
+		// we check the canonical path of the file, otherwise something /./ would lead to setId being called
+		// again even though the correct file is set already
+		if (!haveToReadFile)
+			try { haveToReadFile |= !(new File(reader.getCurrentFile()).getCanonicalPath().equals( file.getCanonicalPath() ) ); }
+			catch (IOException e) { return; }
+
+		if (haveToReadFile)
 		{
 			try
 			{
@@ -169,7 +177,7 @@ public class VirtualRAIFactoryLOCI
 			catch ( FormatException | IOException e )
 			{
 				e.printStackTrace();
-				System.exit( 1 );
+				return;
 			}
 			reader.setSeries( series );
 		}
