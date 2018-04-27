@@ -19,10 +19,11 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
-import spim.fiji.plugin.queryXML.GenericLoadParseQueryXML;
-import spim.fiji.spimdata.SpimData2;
-import spim.fiji.spimdata.XmlIoSpimData2;
-import spim.process.fusion.FusionTools;
+import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
+
 
 public class DefaultFlatfieldCorrectionWrappedImgLoader extends LazyLoadingFlatFieldCorrectionMap< ImgLoader >
 		implements ImgLoader

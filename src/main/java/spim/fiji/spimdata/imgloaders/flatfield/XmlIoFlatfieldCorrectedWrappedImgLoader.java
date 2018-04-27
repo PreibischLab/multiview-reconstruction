@@ -8,7 +8,6 @@ import static mpicbg.spim.data.XmlKeys.VIEWSETUP_TAG;
 import java.io.File;
 import java.util.Map;
 
-import org.jdom2.Attribute;
 import org.jdom2.Element;
 
 import mpicbg.spim.data.SpimDataInstantiationException;
@@ -22,7 +21,7 @@ import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
-import spim.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
+
 
 @ImgLoaderIo(format = "spimreconstruction.wrapped.flatfield.default", type = DefaultFlatfieldCorrectionWrappedImgLoader.class)
 public class XmlIoFlatfieldCorrectedWrappedImgLoader
