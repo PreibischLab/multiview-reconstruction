@@ -8,6 +8,7 @@ import static mpicbg.spim.data.XmlKeys.VIEWSETUP_TAG;
 import java.io.File;
 import java.util.Map;
 
+import org.jdom2.DataConversionException;
 import org.jdom2.Element;
 
 import mpicbg.spim.data.SpimDataInstantiationException;
@@ -20,6 +21,7 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.util.Pair;
 
 
@@ -52,8 +54,17 @@ public class XmlIoFlatfieldCorrectedWrappedImgLoader
 			return null;
 		}
 
-		final boolean cached = elem.getAttribute( CACHED_TAG ).equals( "true" );
-		final boolean active = elem.getAttribute( ACTIVE_TAG ).equals( "true" );
+		boolean cached = false;
+		boolean active = false;
+		try
+		{
+			cached = elem.getAttribute( CACHED_TAG ).getBooleanValue();
+			active = elem.getAttribute( ACTIVE_TAG ).getBooleanValue();
+		}
+		catch ( DataConversionException e )
+		{
+			e.printStackTrace();
+		}
 
 		BasicImgLoader wrappedImgLoader = xmlIoWrapped.fromXml( wrappedImgLoaderEl, basePath, sequenceDescription );
 
