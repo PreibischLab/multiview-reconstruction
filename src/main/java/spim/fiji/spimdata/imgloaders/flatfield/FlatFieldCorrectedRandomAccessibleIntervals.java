@@ -1,6 +1,9 @@
 package spim.fiji.spimdata.imgloaders.flatfield;
 
+import java.util.Arrays;
+
 import bdv.util.ConstantRandomAccessible;
+import bdv.viewer.overlay.SourceInfoOverlayRenderer;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.RealType;
@@ -24,17 +27,37 @@ public class FlatFieldCorrectedRandomAccessibleIntervals
 			O outputType)
 	{
 
-		final long[] minsNMinus1D = new long[sourceImg.numDimensions()];
-		final long[] maxsNMinus1D = new long[sourceImg.numDimensions()];
-
-		for (int d = 0; d < sourceImg.numDimensions() - 1; ++d)
+		// get intervals for bright and/or dark imgs: interval of source img, but only for dimensionality of bright/dark
+		final long[] minsBright;
+		final long[] maxsBright;
+		FinalInterval intervalBright = null;
+		if (brightImg != null)
 		{
-			minsNMinus1D[d] = sourceImg.min( d );
-			maxsNMinus1D[d] = sourceImg.max( d );
+			minsBright = new long[brightImg.numDimensions()];
+			maxsBright = new long[brightImg.numDimensions()];
+			Arrays.fill( maxsBright, 1 );
+			for (int d = 0; d < brightImg.numDimensions(); ++d)
+			{
+				minsBright[d] = sourceImg.min( d );
+				maxsBright[d] = sourceImg.max( d );
+			}
+			intervalBright = new FinalInterval( minsBright, maxsBright );
 		}
-		maxsNMinus1D[sourceImg.numDimensions() - 1] = 1;
-
-		final FinalInterval intervalNMinus1D = new FinalInterval( minsNMinus1D, maxsNMinus1D );
+		final long[] minsDark;
+		final long[] maxsDark;
+		FinalInterval intervalDark = null;
+		if (darkImg != null)
+		{
+			minsDark = new long[darkImg.numDimensions()];
+			maxsDark = new long[darkImg.numDimensions()];
+			Arrays.fill( maxsDark, 1 );
+			for (int d = 0; d < darkImg.numDimensions(); ++d)
+			{
+				minsDark[d] = sourceImg.min( d );
+				maxsDark[d] = sourceImg.max( d );
+			}
+			intervalDark = new FinalInterval( minsDark, maxsDark );
+		}
 
 		if (brightImg == null && darkImg == null)
 		{
@@ -42,21 +65,21 @@ public class FlatFieldCorrectedRandomAccessibleIntervals
 			// TODO: 'optimize' by really returning sourceImg?
 			final ConstantRandomAccessible< FloatType > constantBright = new ConstantRandomAccessible<FloatType>( new FloatType(1.0f), sourceImg.numDimensions() );
 			final ConstantRandomAccessible< FloatType > constantDark = new ConstantRandomAccessible<FloatType>( new FloatType(0.0f), sourceImg.numDimensions() );
-			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( constantBright, intervalNMinus1D ), Views.interval( constantDark, intervalNMinus1D ) );
+			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( constantBright, sourceImg ), Views.interval( constantDark, sourceImg ) );
 		}
 		else if (brightImg == null)
 		{
 			// assume bright image == constant
 			final ConstantRandomAccessible< FloatType > constantBright = new ConstantRandomAccessible<FloatType>( new FloatType(1.0f), sourceImg.numDimensions() );
-			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( constantBright, intervalNMinus1D ), Views.interval( Views.extendBorder(Views.addDimension( darkImg, 0, 1 ) ), intervalNMinus1D ) );
+			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( constantBright, sourceImg ), Views.interval( Views.extendBorder( darkImg ), intervalDark ) );
 		}
 		else if (darkImg == null)
 		{
 			// assume dark image == constant == 0;
 			final ConstantRandomAccessible< FloatType > constantDark = new ConstantRandomAccessible<FloatType>( new FloatType(0.0f), sourceImg.numDimensions() );
-			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( Views.extendBorder( Views.addDimension( brightImg, 0, 1 ) ), intervalNMinus1D ), Views.interval( constantDark, intervalNMinus1D ) );
+			return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( Views.extendBorder( brightImg ), intervalBright ), Views.interval( constantDark, sourceImg ) );
 		}
 			
-		return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( Views.extendBorder( Views.addDimension( brightImg, 0, 1 ) ), intervalNMinus1D ), Views.interval( Views.extendBorder( Views.addDimension( darkImg, 0, 1 ) ), intervalNMinus1D ) );
+		return new FlatFieldCorrectedRandomAccessibleInterval<>(outputType, sourceImg, Views.interval( Views.extendBorder( brightImg ), intervalBright ), Views.interval( Views.extendBorder( darkImg ), intervalDark ) );
 	}
 }
