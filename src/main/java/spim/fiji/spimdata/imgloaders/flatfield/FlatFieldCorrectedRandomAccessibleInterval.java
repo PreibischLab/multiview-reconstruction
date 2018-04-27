@@ -90,7 +90,10 @@ public class FlatFieldCorrectedRandomAccessibleInterval <O extends RealType< O >
 			if (corrBright == 0)
 				value.setReal( 0.0 );
 			else
-				value.setReal( corrImg * meanBrightCorrected / corrBright); 
+			{
+				final double corr = Math.min( Math.max( corrImg * meanBrightCorrected / corrBright, value.getMinValue() ), value.getMaxValue() );
+				value.setReal( corr );
+			}
 
 			return value;
 		}
