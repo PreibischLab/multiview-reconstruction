@@ -38,7 +38,7 @@ public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindo
 
 	public FlatFieldCorrectionPopup()
 	{
-		super( "Flatfield Correction ..." );
+		super( "Flatfield Correction (experimental) ..." );
 		addActionListener( new MyActionListener() );
 	}
 
