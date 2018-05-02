@@ -200,7 +200,7 @@ public class GlobalOpt
 		
 		// now add connected tiles to the tileconfiguration
 		for ( final Tile< M > tile : tiles )
-			if ( tile.getConnectedTiles().size() > 0 )
+			if ( tile.getConnectedTiles().size() > 0 || tc.getFixedTiles().contains( tile ) )
 				tc.addTile( tile );
 		
 		return tc;
