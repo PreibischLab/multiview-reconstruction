@@ -72,7 +72,7 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 				quality = Math.min( 1.0, quality );
 				quality = Math.max( 0.01, quality );
 
-				final double invScore = Math.pow( ( 1.01 - quality ), 2 ) * Math.sqrt( pm.getDistance() ) * Math.log10( connected );
+				final double invScore = ( 1.01 - quality ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
 				System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
