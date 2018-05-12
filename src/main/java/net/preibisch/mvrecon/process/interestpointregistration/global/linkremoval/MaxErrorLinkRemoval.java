@@ -48,7 +48,7 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 		
 		for ( final Tile<?> t : tc.getTiles())
 		{
-			System.out.println( "Inspecting group: " + findGroup( t, map ) );
+			//System.out.println( "Inspecting group: " + findGroup( t, map ) );
 
 			final int connected = t.getConnectedTiles().size();
 
@@ -74,7 +74,7 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 
 				final double invScore = ( 1.01 - quality ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
-				System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
+				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
 				if ( invScore > worstInvScore )
 				{
@@ -83,7 +83,7 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 					worstTile1 = t;
 					worstTile2 = connectedTile;
 
-					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
+					//System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
 				}
 			}
 		}
