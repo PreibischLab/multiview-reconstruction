@@ -1,6 +1,7 @@
 package net.preibisch.mvrecon.process.fusion.intensityadjust;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -39,6 +41,15 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class IntensityAdjustmentTools
 {
+	public static boolean containsAdjustments( final IntensityAdjustments adjustments, final Collection< ? extends ViewId > viewIds )
+	{
+		for ( final ViewId viewId : viewIds )
+			if ( adjustments.getIntensityAdjustments().containsKey( viewId ) )
+				return true;
+
+		return false;
+	}
+
 	public static < M extends Model< M > & Affine1D< M > > HashMap< ViewId, AffineModel1D > computeIntensityAdjustment(
 			final AbstractSpimData< ? > spimData,
 			final List< ? extends ViewId > viewIds,

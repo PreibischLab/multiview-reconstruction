@@ -311,7 +311,8 @@ public class FusionTools
 			final boolean useContentBased,
 			final int interpolation,
 			final Interval boundingBox,
-			final double downsampling )
+			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
 
@@ -326,7 +327,7 @@ public class FusionTools
 
 		final Map< ViewId, ViewDescription > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, downsampling );
+		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, downsampling, intensityAdjustments );
 	}
 
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
@@ -338,7 +339,8 @@ public class FusionTools
 			final boolean useContentBased,
 			final int interpolation,
 			final Interval boundingBox,
-			final double downsampling )
+			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		final Interval bb;
 
@@ -373,10 +375,15 @@ public class FusionTools
 			// input image as reference
 			final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
 
-			images.add( TransformView.transformView( inputImg, model, bb, 0, interpolation ) );
+			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, 0, interpolation );
+
+			if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
+				images.add( new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+						transformedView, new IntensityAdjuster( intensityAdjustments.get( viewId ) ), new FloatType() ) );
+			else
+				images.add( transformedView );
 
 			// add all (or no) weighting schemes
-
 			if ( useBlending || useContentBased )
 			{
 				RandomAccessibleInterval< FloatType > transformedBlending = null, transformedContentBased = null;
