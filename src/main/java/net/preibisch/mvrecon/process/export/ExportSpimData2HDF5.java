@@ -68,6 +68,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -210,7 +211,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		}
 
 		seq.setImgLoader( new Hdf5ImageLoader( params.getHDF5File(), hdf5Partitions, seq, false ) );
-		SpimData2 spimData = new SpimData2( basePath, seq, viewRegistrations, viewsInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults() );
+		SpimData2 spimData = new SpimData2( basePath, seq, viewRegistrations, viewsInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
 		return new ValuePair< SpimData2, HashMap<ViewId,Partition> >( spimData, viewIdToPartition );
 	}

@@ -264,7 +264,8 @@ public class Resave_HDF5 implements PlugIn
 				viewsInterestPoints,
 				oldSpimData.getBoundingBoxes(),
 				oldSpimData.getPointSpreadFunctions(),
-				oldSpimData.getStitchingResults());
+				oldSpimData.getStitchingResults(),
+				oldSpimData.getIntensityAdjustments() );
 
 		return newSpimData;
 	}

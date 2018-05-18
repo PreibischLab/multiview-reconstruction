@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ij.IJ;
 import ij.ImagePlus;
+import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -65,6 +66,7 @@ import net.imglib2.cache.img.CellLoader;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.cache.img.SingleCellArrayImg;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
@@ -84,6 +86,7 @@ import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.balancing.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -163,7 +166,8 @@ public class FusionTools
 				spimData,
 				viewIds,
 				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
-				Double.NaN );
+				Double.NaN,
+				null );
 	}
 
 	/**
@@ -172,6 +176,7 @@ public class FusionTools
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
+	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
 	 *
 	 * @return a virtually fused RandomAccessibleInterval
 	 */
@@ -184,7 +189,32 @@ public class FusionTools
 				spimData,
 				viewIds,
 				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
-				downsampling );
+				downsampling,
+				null );
+	}
+
+	/**
+	 * Virtually fuses views using a maximal bounding box around all views
+	 *
+	 * @param spimData - an AbstractSpimData object
+	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
+	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
+	 *
+	 * @return a virtually fused RandomAccessibleInterval
+	 */
+	public static RandomAccessibleInterval< FloatType > fuseData(
+			final SpimData2 spimData,
+			final List< ? extends ViewId > viewIds,
+			double downsampling,
+			final boolean adjustIntensities )
+	{
+		return fuseData(
+				spimData,
+				viewIds,
+				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
+				downsampling,
+				adjustIntensities ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 	}
 
 	/**
@@ -202,6 +232,27 @@ public class FusionTools
 			final List< ? extends ViewId > viewIds,
 			Interval bb,
 			double downsampling )
+	{
+		return fuseData( spimData, viewIds, bb, downsampling, null );
+	}
+
+	/**
+	 * Virtually fuses views
+	 *
+	 * @param spimData - an AbstractSpimData object
+	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
+	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
+	 * @param intensityAdjustments - the intensityadjustsments or null
+	 *
+	 * @return a virtually fused RandomAccessibleInterval
+	 */
+	public static RandomAccessibleInterval< FloatType > fuseData(
+			final AbstractSpimData< ? > spimData,
+			final List< ? extends ViewId > viewIds,
+			Interval bb,
+			double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		if ( !Double.isNaN( downsampling ) )
 			bb = TransformVirtual.scaleBoundingBox( bb, 1.0 / downsampling );
@@ -236,7 +287,14 @@ public class FusionTools
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 			FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescriptions().get( viewId ), blending, border, model );
 
-			images.add( TransformView.transformView( inputImg, model, bb, 0, 1 ) );
+			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, 0, 1 );
+
+			if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
+				images.add( new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+						transformedView, new IntensityAdjuster( intensityAdjustments.get( viewId ) ), new FloatType() ) );
+			else
+				images.add( transformedView );
+
 			weights.add( TransformWeight.transformBlending( inputImg, border, blending, model, bb ) );
 
 			//images.add( TransformWeight.transformBlending( inputImg, border, blending, vr.getModel(), bb ) );

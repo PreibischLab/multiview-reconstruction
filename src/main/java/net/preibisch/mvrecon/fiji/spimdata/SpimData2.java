@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
@@ -67,8 +68,10 @@ public class SpimData2 extends SpimData
 	private BoundingBoxes boundingBoxes;
 	private PointSpreadFunctions pointSpreadFunctions;
 	private StitchingResults stitchingResults;
+	private IntensityAdjustments intensityAdjustments;
 	public boolean gridMoveRequested = false;
-	
+
+	// TODO: only for compatibility with depending packages, remove at some point
 	public SpimData2(
 			final File basePath,
 			final SequenceDescription sequenceDescription,
@@ -76,7 +79,20 @@ public class SpimData2 extends SpimData
 			final ViewInterestPoints viewsInterestPoints,
 			final BoundingBoxes boundingBoxes,
 			final PointSpreadFunctions pointSpreadFunctions,
-			final StitchingResults stitchingResults)
+			final StitchingResults stitchingResults )
+	{
+		this( basePath, sequenceDescription, viewRegistrations, viewsInterestPoints, boundingBoxes, pointSpreadFunctions, stitchingResults, new IntensityAdjustments() );
+	}
+
+	public SpimData2(
+			final File basePath,
+			final SequenceDescription sequenceDescription,
+			final ViewRegistrations viewRegistrations,
+			final ViewInterestPoints viewsInterestPoints,
+			final BoundingBoxes boundingBoxes,
+			final PointSpreadFunctions pointSpreadFunctions,
+			final StitchingResults stitchingResults,
+			final IntensityAdjustments intensityAdjustments )
 	{
 		super( basePath, sequenceDescription, viewRegistrations );
 
@@ -84,6 +100,7 @@ public class SpimData2 extends SpimData
 		this.boundingBoxes = boundingBoxes;
 		this.pointSpreadFunctions = pointSpreadFunctions;
 		this.stitchingResults = stitchingResults;
+		this.intensityAdjustments = intensityAdjustments;
 	}
 
 	protected SpimData2()
@@ -93,6 +110,7 @@ public class SpimData2 extends SpimData
 	public BoundingBoxes getBoundingBoxes() { return boundingBoxes; }
 	public PointSpreadFunctions getPointSpreadFunctions() { return pointSpreadFunctions; }
 	public StitchingResults getStitchingResults() { return stitchingResults; }
+	public  IntensityAdjustments getIntensityAdjustments() { return intensityAdjustments; }
 
 	protected void setViewsInterestPoints( final ViewInterestPoints viewsInterestPoints )
 	{
@@ -112,6 +130,11 @@ public class SpimData2 extends SpimData
 	protected void setStitchingResults( final StitchingResults sr )
 	{
 		this.stitchingResults = sr;
+	}
+
+	protected void setIntensityAdjustments( final IntensityAdjustments intensityAdjustments )
+	{
+		this.intensityAdjustments = intensityAdjustments;
 	}
 
 	/**
@@ -529,8 +552,9 @@ public class SpimData2 extends SpimData
 		final BoundingBoxes bb = new BoundingBoxes();
 		final PointSpreadFunctions psfs = new PointSpreadFunctions();
 		final StitchingResults sr = new StitchingResults();
+		final IntensityAdjustments ia = new IntensityAdjustments();
 
-		return new SpimData2( data1.getBasePath(), s, vr, vipl, bb, psfs, sr);
+		return new SpimData2( data1.getBasePath(), s, vr, vipl, bb, psfs, sr, ia );
 	}
 
 	/**

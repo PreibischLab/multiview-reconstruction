@@ -31,6 +31,8 @@ import java.io.OutputStream;
 
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.XmlIoBoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.XmlIoIntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlIoViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -53,6 +55,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 	final XmlIoBoundingBoxes xmlBoundingBoxes;
 	final XmlIoPointSpreadFunctions xmlPointSpreadFunctions;
 	final XmlIoStitchingResults xmlStitchingResults;
+	final XmlIoIntensityAdjustments xmlIntensityAdjustments;
 
 	String clusterExt, lastFileName;
 	public static int numBackups = 5;
@@ -72,6 +75,9 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 		this.xmlStitchingResults = new XmlIoStitchingResults();
 		this.handledTags.add( xmlStitchingResults.getTag() );
+
+		this.xmlIntensityAdjustments = new XmlIoIntensityAdjustments();
+		this.handledTags.add( xmlIntensityAdjustments.getTag() );
 
 		this.clusterExt = clusterExt;
 	}
@@ -193,7 +199,15 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 			stitchingResults = new StitchingResults();
 		else
 			stitchingResults = xmlStitchingResults.fromXml( elem );
-		spimData.setStitchingResults(  stitchingResults );
+		spimData.setStitchingResults( stitchingResults );
+
+		final IntensityAdjustments intensityAdjustments;
+		elem = root.getChild( xmlIntensityAdjustments.getTag() );
+		if ( elem == null )
+			intensityAdjustments = new IntensityAdjustments();
+		else
+			intensityAdjustments = xmlIntensityAdjustments.fromXml( elem );
+		spimData.setIntensityAdjustments( intensityAdjustments );
 
 		return spimData;
 	}
