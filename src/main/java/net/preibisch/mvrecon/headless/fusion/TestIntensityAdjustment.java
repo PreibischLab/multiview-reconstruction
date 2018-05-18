@@ -28,56 +28,29 @@ import java.util.HashMap;
 import java.util.List;
 
 import ij.ImageJ;
-import mpicbg.models.Affine1D;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.IdentityModel;
-import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.InterpolatedAffineModel1D;
-import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
-import mpicbg.models.Tile;
-import mpicbg.models.TileConfiguration;
 import mpicbg.models.TranslationModel1D;
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.BasicImgLoader;
-import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
-import net.imglib2.Cursor;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.RealUnsignedShortConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
-import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.balancing.IntensityAdjustmentTools;
-import net.preibisch.mvrecon.process.fusion.balancing.IntensityAdjuster;
-import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
-public class TestBalancing
+public class TestIntensityAdjustment
 {
 	public static void main( String[] args ) throws SpimDataException
 	{
@@ -109,7 +82,7 @@ public class TestBalancing
 		viewMap.put( 1, new ViewId( 0, 2 ) );
 		viewMap.put( 2, new ViewId( 0, 3 ) );
 
-		//runGlobal( intensityMatches, viewMap );
+		IntensityAdjustmentTools.runGlobal( intensityMatches, viewMap, new AffineModel1D() );
 		//System.exit(  0 );
 
 		new ImageJ();
@@ -155,7 +128,7 @@ public class TestBalancing
 						new IdentityModel(), 0.1 );
 
 		final HashMap< ViewId, AffineModel1D > intensityMapping =
-				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation );
+				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, null );
 
 		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseData( spimData, viewIds, bb, downsampling, intensityMapping );
 		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseData( spimData, viewIds, bb, downsampling );

@@ -1,9 +1,10 @@
-package net.preibisch.mvrecon.process.fusion.balancing;
+package net.preibisch.mvrecon.process.fusion.intensityadjust;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import mpicbg.models.Affine1D;
 import mpicbg.models.AffineModel1D;
@@ -23,6 +24,7 @@ import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -42,7 +44,8 @@ public class IntensityAdjustmentTools
 			final List< ? extends ViewId > viewIds,
 			final M intensityModel,
 			Interval bb,
-			double downsampling )
+			double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > existingAdjustments )
 	{
 		if ( !Double.isNaN( downsampling ) )
 			bb = TransformVirtual.scaleBoundingBox( bb, 1.0 / downsampling );
@@ -76,7 +79,14 @@ public class IntensityAdjustmentTools
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 			FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescriptions().get( viewId ), blending, border, model );
 
-			images.add( TransformView.transformView( inputImg, model, bb, -1, 1 ) );
+			// fuse with nearest neighbor and -1 are intensities outside
+			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, -1, 1 );
+
+			if ( existingAdjustments != null && existingAdjustments.containsKey( viewId ) )
+				images.add( new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+						transformedView, new IntensityAdjuster( existingAdjustments.get( viewId ) ), new FloatType() ) );
+			else
+				images.add( transformedView );
 		}
 
 		final int m = images.size();

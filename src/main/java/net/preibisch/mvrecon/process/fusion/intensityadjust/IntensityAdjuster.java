@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.balancing;
+package net.preibisch.mvrecon.process.fusion.intensityadjust;
 
 import mpicbg.models.AffineModel1D;
 import net.imglib2.converter.Converter;

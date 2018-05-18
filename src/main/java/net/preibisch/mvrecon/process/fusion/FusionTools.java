@@ -86,7 +86,7 @@ import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.DisplayImage;
-import net.preibisch.mvrecon.process.fusion.balancing.IntensityAdjuster;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
