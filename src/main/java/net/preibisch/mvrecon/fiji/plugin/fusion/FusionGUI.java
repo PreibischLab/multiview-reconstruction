@@ -251,7 +251,7 @@ public class FusionGUI implements FusionExportInterface
 					(Choice)gd.getChoices().get( 1 ),
 					(Choice)gd.getChoices().get( 3 ),
 					(Checkbox)gd.getCheckboxes().get( 1 ),
-					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
+					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 3 ) : null,
 					(Choice)gd.getChoices().get( 4 ),
 					label1,
 					label2,
