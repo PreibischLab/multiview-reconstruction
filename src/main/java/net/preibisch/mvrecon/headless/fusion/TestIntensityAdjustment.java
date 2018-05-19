@@ -130,8 +130,8 @@ public class TestIntensityAdjustment
 		final HashMap< ViewId, AffineModel1D > intensityMapping =
 				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, null );
 
-		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseData( spimData, viewIds, bb, downsampling, intensityMapping );
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseData( spimData, viewIds, bb, downsampling );
+		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling, intensityMapping );
+		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling );
 
 		//
 		// actually fuse into an image multithreaded
