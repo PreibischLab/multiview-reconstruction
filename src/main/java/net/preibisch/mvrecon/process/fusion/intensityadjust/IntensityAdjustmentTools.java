@@ -220,17 +220,28 @@ public class IntensityAdjustmentTools
 			IOFunctions.println( "Global optimization failed: " + e );
 			e.printStackTrace();
 		}
-		
-		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Transformation Models:" );
 
 		final HashMap< ViewId, AffineModel1D > result = new HashMap<>();
 
 		final double[] array = new double[ 2 ];
+		double minOffset = Double.MAX_VALUE;
 
 		for ( int i = 0; i < m; ++i )
 		{
 			final Tile< M > tile = tiles.get( i );
 			tile.getModel().toArray( array );
+
+			minOffset = Math.min( minOffset, array[ 1 ] );
+		}
+
+		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Min offset (will be corrected to avoid negative intensities: " + minOffset );
+		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Intensity adjustments:" );
+
+		for ( int i = 0; i < m; ++i )
+		{
+			final Tile< M > tile = tiles.get( i );
+			tile.getModel().toArray( array );
+			array[ 1 ] -= minOffset;
 			final AffineModel1D modelView = new AffineModel1D();
 			modelView.set( array[ 0 ], array[ 1 ] );
 			result.put( viewMap.get( i ), modelView );
