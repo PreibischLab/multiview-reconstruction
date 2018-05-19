@@ -33,15 +33,12 @@ import net.imglib2.type.numeric.real.FloatType;
 
 public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implements RandomAccess< FloatType >
 {
-	public static double minIntensity = 0.0;
-
 	final List< ? extends RandomAccessible< FloatType > > images;
 
 	final int numImages;
 	final RandomAccess< ? extends RealType< ? > >[] i;
 
 	final FloatType value = new FloatType();
-	final double min;
 
 	public FusedRandomAccessNoWeights(
 			final int n,
@@ -49,7 +46,6 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 	{
 		super( n );
 
-		this.min = minIntensity;
 		this.images = images;
 
 		this.numImages = images.size();
@@ -64,21 +60,11 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 	public FloatType get()
 	{
 		double sumI = 0;
-		int count = 0;
 
 		for ( int j = 0; j < numImages; ++j )
-		{
-			final double value = i[ j ].get().getRealDouble();
+			sumI +=  i[ j ].get().getRealDouble();
 
-			if ( value > min )
-			{
-				sumI += value;
-				++count;
-			}
-		}
-
-		if ( count > 0 )
-			value.set( (float)( sumI / count ) );
+		value.set( (float) sumI );
 
 		return value;
 	}
