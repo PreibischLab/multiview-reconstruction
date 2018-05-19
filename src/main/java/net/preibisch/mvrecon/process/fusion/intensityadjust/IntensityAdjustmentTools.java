@@ -91,7 +91,7 @@ public class IntensityAdjustmentTools
 						new FloatType() );
 
 			// fuse with nearest neighbor and -1 are intensities outside
-			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, -1, 1 );
+			images.add( TransformView.transformView( inputImg, model, bb, -1, 1 ) );
 		}
 
 		final int m = images.size();

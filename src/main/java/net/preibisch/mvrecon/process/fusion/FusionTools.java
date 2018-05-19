@@ -332,7 +332,7 @@ public class FusionTools
 						new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
 						new FloatType() );
 
-			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, 0, interpolation );
+			images.add( TransformView.transformView( inputImg, model, bb, 0, interpolation ) );
 
 			// add all (or no) weighting schemes
 			if ( useBlending || useContentBased )
