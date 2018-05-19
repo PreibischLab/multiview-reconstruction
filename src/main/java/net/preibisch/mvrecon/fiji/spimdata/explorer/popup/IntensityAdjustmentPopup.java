@@ -57,7 +57,7 @@ public class IntensityAdjustmentPopup extends JMenu implements ExplorerWindowSet
 
 		compute.addActionListener( new MyActionListener( 0 ) );
 		list.addActionListener( new MyActionListener( 1 ) );
-		remove.addActionListener( new MyActionListener( 1 ) );
+		remove.addActionListener( new MyActionListener( 2 ) );
 
 		this.add( compute );
 		this.add( list );
