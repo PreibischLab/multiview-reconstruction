@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
 import ij.ImagePlus;
 import mpicbg.models.AffineModel1D;
@@ -305,12 +306,7 @@ public class FusionTools
 		bb.dimensions( dim );
 
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
-		final ArrayList< RandomAccessibleInterval< FloatType > > weights;
-
-		if ( useBlending || useContentBased )
-			weights = new ArrayList<>();
-		else
-			weights = null;
+		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
 
 		for ( final ViewId viewId : views )
 		{
@@ -371,7 +367,6 @@ public class FusionTools
 									transformedBlending,
 									transformedContentBased,
 									CombineType.MUL ) );
-
 				}
 				else if ( useBlending )
 				{
@@ -381,10 +376,13 @@ public class FusionTools
 				{
 					weights.add( transformedContentBased );
 				}
-				//else // not necessary anymore, can tolerant weights == null
-				//{
-					//weights.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( dim ) ) );
-				//}
+			}
+			else
+			{
+				final RandomAccessibleInterval< FloatType > imageArea =
+						Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
+
+				weights.add( TransformView.transformView( imageArea, model, bb, 0, 0 ) );
 			}
 		}
 
