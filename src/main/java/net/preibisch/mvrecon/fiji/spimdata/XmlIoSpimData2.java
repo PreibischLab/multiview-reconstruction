@@ -221,6 +221,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		root.addContent( xmlBoundingBoxes.toXml( spimData.getBoundingBoxes() ) );
 		root.addContent( xmlPointSpreadFunctions.toXml( spimData.getPointSpreadFunctions() ) );
 		root.addContent( xmlStitchingResults.toXml( spimData.getStitchingResults() ) );
+		root.addContent( xmlIntensityAdjustments.toXml( spimData.getIntensityAdjustments() ) );
 
 		return root;
 	}
