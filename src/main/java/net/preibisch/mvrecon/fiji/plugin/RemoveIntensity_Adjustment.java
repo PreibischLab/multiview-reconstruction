@@ -44,7 +44,7 @@ public class RemoveIntensity_Adjustment implements PlugIn
 		if ( !result.queryXML( "remove intensity adjustment in overlapping areas", true, true, true, true, true ) )
 			return;
 
-		intensityAdjustment(
+		removeAdjustment(
 			result.getData(),
 			SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
 			result.getClusterExtension(),
@@ -53,14 +53,14 @@ public class RemoveIntensity_Adjustment implements PlugIn
 		
 	}
 
-	public boolean intensityAdjustment(
+	public boolean removeAdjustment(
 			final SpimData2 data,
 			final List< ViewId > viewIds )
 	{
-		return intensityAdjustment( data, viewIds, "", null, false );
+		return removeAdjustment( data, viewIds, "", null, false );
 	}
 
-	public boolean intensityAdjustment(
+	public boolean removeAdjustment(
 			final SpimData2 data,
 			final List< ViewId > viewIds,
 			final String clusterExtension,
