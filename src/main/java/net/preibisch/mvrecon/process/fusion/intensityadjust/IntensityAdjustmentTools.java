@@ -82,22 +82,16 @@ public class IntensityAdjustmentTools
 			// this modifies the model so it maps from a smaller image to the global coordinate space,
 			// which applies for the image itself as well as the weights since they also use the smaller
 			// input image as reference
-			final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
+			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
 
-			final float[] blending =  Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
-			final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
-
-			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-			FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescriptions().get( viewId ), blending, border, model );
+			if ( existingAdjustments != null && existingAdjustments.containsKey( viewId ) )
+				inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+						FusionTools.convertInput( inputImg ),
+						new IntensityAdjuster( existingAdjustments.get( viewId ) ),
+						new FloatType() );
 
 			// fuse with nearest neighbor and -1 are intensities outside
 			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, -1, 1 );
-
-			if ( existingAdjustments != null && existingAdjustments.containsKey( viewId ) )
-				images.add( new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
-						transformedView, new IntensityAdjuster( existingAdjustments.get( viewId ) ), new FloatType() ) );
-			else
-				images.add( transformedView );
 		}
 
 		final int m = images.size();

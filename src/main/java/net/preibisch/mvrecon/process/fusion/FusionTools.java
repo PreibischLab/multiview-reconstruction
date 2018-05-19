@@ -66,6 +66,8 @@ import net.imglib2.cache.img.CellLoader;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.cache.img.SingleCellArrayImg;
+import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.read.ConvertedRandomAccessible;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
@@ -91,6 +93,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInt
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformedInputRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
@@ -321,15 +324,15 @@ public class FusionTools
 			// this modifies the model so it maps from a smaller image to the global coordinate space,
 			// which applies for the image itself as well as the weights since they also use the smaller
 			// input image as reference
-			final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
-
-			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, 0, interpolation );
+			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
 
 			if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
-				images.add( new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
-						transformedView, new IntensityAdjuster( intensityAdjustments.get( viewId ) ), new FloatType() ) );
-			else
-				images.add( transformedView );
+				inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+						convertInput( inputImg ),
+						new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
+						new FloatType() );
+
+			final RandomAccessibleInterval< FloatType > transformedView = TransformView.transformView( inputImg, model, bb, 0, interpolation );
 
 			// add all (or no) weighting schemes
 			if ( useBlending || useContentBased )
@@ -387,6 +390,22 @@ public class FusionTools
 		}
 
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+	}
+
+	@SuppressWarnings("unchecked")
+	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > convertInput( final RandomAccessibleInterval< T > img )
+	{
+		if ( FloatType.class.isInstance( Views.iterable( img ).cursor().next() ) )
+		{
+			return (RandomAccessibleInterval< FloatType >)img;
+		}
+		else
+		{
+			return Views.interval( new ConvertedRandomAccessible< T, FloatType >(
+						img,
+						new RealFloatConverter< T >(),
+						new FloatType() ), img );
+		}
 	}
 
 	public static ImagePlus displayVirtually( final RandomAccessibleInterval< FloatType > input )
