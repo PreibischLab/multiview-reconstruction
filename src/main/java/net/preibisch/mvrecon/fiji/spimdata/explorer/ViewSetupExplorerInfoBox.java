@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.base.NamedEntity;
@@ -37,6 +38,7 @@ import net.imglib2.Dimensions;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ViewSetupExplorerInfoBox< AS extends AbstractSpimData< ? > >
 {
@@ -122,6 +124,25 @@ public class ViewSetupExplorerInfoBox< AS extends AbstractSpimData< ? > >
 			{
 				for ( final BoundingBox bb : sd.getBoundingBoxes().getBoundingBoxes() )
 					text += BoundingBox.getBoundingBoxDescription( bb ) + "\n";
+			}
+		}
+
+		text += "\nIntensity Adjustments:\n";
+
+		if ( SpimData2.class.isInstance( data ) )
+		{
+			final SpimData2 sd = (SpimData2)data;
+
+			if ( sd.getIntensityAdjustments().getIntensityAdjustments().size() == 0 )
+			{
+				text += "None defined\n";
+			}
+			else
+			{
+				final ArrayList< ViewId > views = new ArrayList<>( sd.getIntensityAdjustments().getIntensityAdjustments().keySet() );
+				Collections.sort( views );
+				for ( final ViewId v : views )
+					text += Group.pvid( v ) + ": " + sd.getIntensityAdjustments().getIntensityAdjustments().get( v ) + "\n";
 			}
 		}
 
