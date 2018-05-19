@@ -82,7 +82,7 @@ public class TestIntensityAdjustment
 		viewMap.put( 1, new ViewId( 0, 2 ) );
 		viewMap.put( 2, new ViewId( 0, 3 ) );
 
-		IntensityAdjustmentTools.runGlobal( intensityMatches, viewMap, new AffineModel1D() );
+		//IntensityAdjustmentTools.runGlobal( intensityMatches, viewMap, new AffineModel1D() );
 		//System.exit(  0 );
 
 		new ImageJ();
@@ -90,7 +90,8 @@ public class TestIntensityAdjustment
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		// 
 		//SpimData2 spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
-		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" );
+		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "//Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml" );
+		//SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" );
 
 		System.out.println( "Views present:" );
 
@@ -117,7 +118,7 @@ public class TestIntensityAdjustment
 
 		// downsampling
 		double downsampling = 2;
-		double downsamplingEstimation = 8;
+		double downsamplingEstimation = 20;
 
 		//
 		// display virtually fused
@@ -130,8 +131,8 @@ public class TestIntensityAdjustment
 		final HashMap< ViewId, AffineModel1D > intensityMapping =
 				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, null );
 
-		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling, intensityMapping );
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling );
+		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, intensityMapping );
+		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, null );
 
 		//
 		// actually fuse into an image multithreaded
