@@ -6,19 +6,28 @@ import net.imglib2.type.numeric.real.FloatType;
 
 public class IntensityAdjuster implements Converter< FloatType, FloatType >
 {
-	final AffineModel1D intensityTransform;
-	final double[] l = new double[ 1 ];
+	final double m00, m01;
 
 	public IntensityAdjuster( final AffineModel1D intensityTransform )
 	{
-		this.intensityTransform = intensityTransform.copy();
+		final double[] m = new double[ 2 ];
+
+		intensityTransform.getMatrix( m );
+		this.m00 = m[ 0 ];
+		this.m01 = m[ 1 ];
 	}
 
 	@Override
 	public void convert( final FloatType input, final FloatType output )
 	{
-		this.l[ 0 ] = input.get();
-		this.intensityTransform.applyInPlace( this.l );
-		output.set( (float)l[ 0 ] );
+		// cannot use this because the double[] array l cannot be shared
+		//this.intensityTransform.applyInPlace( this.l );
+
+		output.set( (float)apply( input.get() ) );
+	}
+
+	final public double apply( final double l )
+	{
+		return l * m00 + m01;
 	}
 }
