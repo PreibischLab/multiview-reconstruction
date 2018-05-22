@@ -121,7 +121,8 @@ public class TestDeconvolutionMul
 				FusionTools.defaultBlendingBorder,
 				true,
 				MultiViewDeconvolution.defaultBlendingRange,
-				MultiViewDeconvolution.defaultBlendingBorder / ( Double.isNaN( downsampling ) ? 1.0f : (float)downsampling ) );
+				MultiViewDeconvolution.defaultBlendingBorder / ( Double.isNaN( downsampling ) ? 1.0f : (float)downsampling ),
+				spimData.getIntensityAdjustments().getIntensityAdjustments() );
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Virtual Fusion of 'virtual views' " );
 		fusion.fuseGroups();
