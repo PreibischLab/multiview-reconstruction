@@ -174,7 +174,7 @@ public class IntensityAdjustmentTools
 
 				final ArrayList< PointMatch > correspondences = intensityMatches.get( new ValuePair< Integer, Integer >( i, j ) );
 
-				System.out.println( Group.pvid( viewMap.get( i ) )  + " <> " + Group.pvid( viewMap.get( j ) ) + ": " + correspondences.size() );
+				IOFunctions.println( Group.pvid( viewMap.get( i ) )  + " <> " + Group.pvid( viewMap.get( j ) ) + ": " + correspondences.size() );
 	
 				if ( correspondences.size() > 0 )
 					addPointMatches( correspondences, ti, tj );
