@@ -90,8 +90,8 @@ public class TestIntensityAdjustment
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		// 
 		//SpimData2 spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
-		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "//Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml" );
-		//SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" );
+		//SpimData2 spimData = new XmlIoSpimData2( "" ).load( "//Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml" );
+		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" );
 
 		System.out.println( "Views present:" );
 
