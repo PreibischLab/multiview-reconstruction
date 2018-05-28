@@ -29,6 +29,8 @@ import java.util.List;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
+import net.imglib2.Interval;
+import net.imglib2.RealInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -73,6 +75,28 @@ public class BoundingBoxTools
 		}
 
 		return bbs;
+	}
+
+	public static String printInterval( final RealInterval interval )
+	{
+		String out = "(Interval empty)";
+
+		if ( interval == null || interval.numDimensions() == 0 )
+			return out;
+
+		out = "[" + interval.realMin( 0 );
+
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out += ", " + interval.realMin( i );
+
+		out += "] -> [" + interval.realMax( 0 );
+
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out += ", " + interval.realMax( i );
+
+		out += ")";
+
+		return out;
 	}
 
 }

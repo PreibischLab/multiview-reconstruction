@@ -134,12 +134,12 @@ public class BoundingBoxBigDataViewer implements BoundingBoxEstimation
 					public void actionPerformed( final ActionEvent e )
 					{
 						setVisible( false );
-						System.out.println( "bounding box:" + net.imglib2.util.Util.printInterval( boxRealRandomAccessible.getInterval() ) );
+						System.out.println( "bounding box:" + BoundingBoxTools.printInterval( boxRealRandomAccessible.getInterval() ) );
 
 						for ( int d = 0; d < min.length; ++ d )
 						{
-							min[ d ] = (int)boxRealRandomAccessible.getInterval().min( d );
-							max[ d ] = (int)boxRealRandomAccessible.getInterval().max( d );
+							min[ d ] = (int)boxRealRandomAccessible.getInterval().realMin( d );
+							max[ d ] = (int)boxRealRandomAccessible.getInterval().realMax( d );
 						}
 
 						lock.set( true );
