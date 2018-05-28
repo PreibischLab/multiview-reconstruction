@@ -179,7 +179,6 @@ public class FusionTools
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
-	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
 	 *
 	 * @return a virtually fused RandomAccessibleInterval
 	 */

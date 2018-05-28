@@ -148,6 +148,7 @@ public class IntensityAdjustmentTools
 	 * @param intensityMatches - all pointmatches for the pairs of images
 	 * @param viewMap - links images to ViewIds - integers need to be between 0 and viewMap.keySet().size() - 1
 	 * @param model - the model to use
+	 * @param <M> - which model type
 	 * @return the transformations for each image indexed by integer
 	 */
 	public static < M extends Model< M > & Affine1D< M > > HashMap< ViewId, AffineModel1D > runGlobal(
