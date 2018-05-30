@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1012,6 +1013,19 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				final List< Group< ViewDescription > > tilesGrouped = Group.splitBy( new ArrayList<>( vdsAngle.getViews() ), tileClassSet );
 				if (tilesGrouped.size() < 2)
 					continue;
+
+				// sort by tile id of first view in groups
+				Collections.sort( tilesGrouped, new Comparator< Group< ViewDescription > >()
+				{
+					@Override
+					public int compare(Group< ViewDescription > o1, Group< ViewDescription > o2)
+					{
+						if (o1.size() == 0)
+							return -o2.size();
+						return o1.getViews().iterator().next().getViewSetup().getTile().getId() - o2.getViews().iterator().next().getViewSetup().getTile().getId();
+					}
+				} );
+
 				RegularTranslationParameters gridParamsI = gridParams.get( i++ );
 				RegularTranformHelpers.applyToSpimData( data, tilesGrouped, gridParamsI, true );
 			}
