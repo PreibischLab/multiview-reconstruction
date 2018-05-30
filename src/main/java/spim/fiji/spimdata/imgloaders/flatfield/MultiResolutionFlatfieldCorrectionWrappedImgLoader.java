@@ -386,6 +386,8 @@ public class MultiResolutionFlatfieldCorrectionWrappedImgLoader
 	 *            image to downsample
 	 * @param dsFactor
 	 *            factors to downsample by
+	 * @param <T>
+	 *            the image type
 	 * @return downsampled image
 	 */
 	public static <T extends RealType< T > & NativeType< T >> RandomAccessibleInterval< T > downsampleHDF5(

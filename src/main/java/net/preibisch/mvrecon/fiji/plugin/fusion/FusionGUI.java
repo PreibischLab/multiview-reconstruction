@@ -58,6 +58,7 @@ import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
@@ -88,6 +89,7 @@ public class FusionGUI implements FusionExportInterface
 
 	public static boolean defaultUseBlending = true;
 	public static boolean defaultUseContentBased = false;
+	public static boolean defaultAdjustIntensities = false;
 	public static boolean defaultPreserveAnisotropy = false;
 
 	public final static ArrayList< ImgExport > staticImgExportAlgorithms = new ArrayList< ImgExport >();
@@ -102,6 +104,7 @@ public class FusionGUI implements FusionExportInterface
 	protected double downsampling = defaultDownsampling;
 	protected boolean useBlending = defaultUseBlending;
 	protected boolean useContentBased = defaultUseContentBased;
+	protected boolean adjustIntensities = defaultAdjustIntensities;
 	protected boolean preserveAnisotropy = defaultPreserveAnisotropy;
 	protected double avgAnisoF;
 	protected int imgExport = defaultImgExportAlgorithm;
@@ -174,6 +177,8 @@ public class FusionGUI implements FusionExportInterface
 
 	public boolean useContentBased() { return useContentBased; }
 
+	public boolean adjustIntensities() { return adjustIntensities; }
+
 	@Override
 	public double getAnisotropyFactor() { return avgAnisoF; }
 
@@ -190,6 +195,8 @@ public class FusionGUI implements FusionExportInterface
 
 		if ( defaultBB >= choices.length )
 			defaultBB = 0;
+
+		final boolean hasIntensityAdjustments = IntensityAdjustmentTools.containsAdjustments( spimData.getIntensityAdjustments(), views );
 
 		final GenericDialog gd = new GenericDialog( "Image Fusion" );
 		Label label1 = null, label2 = null;
@@ -211,6 +218,9 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
 		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
+
+		if ( hasIntensityAdjustments )
+			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
 
 		gd.addMessage( "" );
 
@@ -241,7 +251,7 @@ public class FusionGUI implements FusionExportInterface
 					(Choice)gd.getChoices().get( 1 ),
 					(Choice)gd.getChoices().get( 3 ),
 					(Checkbox)gd.getCheckboxes().get( 1 ),
-					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().get( 2 ) : null,
+					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().lastElement() : null,
 					(Choice)gd.getChoices().get( 4 ),
 					label1,
 					label2,
@@ -280,6 +290,10 @@ public class FusionGUI implements FusionExportInterface
 		cacheType = defaultCache = gd.getNextChoiceIndex();
 		useBlending = defaultUseBlending = gd.getNextBoolean();
 		useContentBased = defaultUseContentBased = gd.getNextBoolean();
+		if ( hasIntensityAdjustments )
+			adjustIntensities = defaultAdjustIntensities = gd.getNextBoolean();
+		else
+			adjustIntensities = false;
 		if ( avgAnisoF > 1.01 )
 			preserveAnisotropy = defaultPreserveAnisotropy = gd.getNextBoolean();
 		else
@@ -299,6 +313,7 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.println( "Interpolation: " + interpolationTypes[ getInterpolation() ] );
 		IOFunctions.println( "CacheType: " + FusionTools.imgDataTypeChoice[ getCacheType() ] );
 		IOFunctions.println( "Blending: " + useBlending );
+		IOFunctions.println( "Adjust intensities: " + adjustIntensities );
 		IOFunctions.println( "Content-based: " + useContentBased );
 		IOFunctions.println( "AnisotropyFactor: " + avgAnisoF );
 		IOFunctions.println( "Split by: " + splittingTypes[ getSplittingType() ] );

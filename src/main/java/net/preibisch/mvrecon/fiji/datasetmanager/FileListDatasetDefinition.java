@@ -106,6 +106,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyFileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
@@ -603,7 +604,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
 		viewInterestPoints.createViewInterestPoints( sd.getViewDescriptions() );
 
-		SpimData2 data = new SpimData2( new File("/"), sd, vrs, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults() );
+		SpimData2 data = new SpimData2( new File("/"), sd, vrs, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 		return data;
 	}
 

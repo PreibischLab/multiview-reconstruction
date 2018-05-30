@@ -139,7 +139,8 @@ public class Image_Fusion implements PlugIn
 					fusion.useContentBased(),
 					fusion.getInterpolation(),
 					boundingBox,
-					fusion.getDownsampling() );
+					fusion.getDownsampling(),
+					fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 			}
 			else
 			{
@@ -172,7 +173,8 @@ public class Image_Fusion implements PlugIn
 						fusion.useContentBased(),
 						fusion.getInterpolation(),
 						boundingBox,
-						fusion.getDownsampling() );
+						fusion.getDownsampling(),
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit

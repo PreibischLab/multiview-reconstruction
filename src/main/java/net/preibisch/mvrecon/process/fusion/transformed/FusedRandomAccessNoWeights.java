@@ -62,9 +62,9 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		double sumI = 0;
 
 		for ( int j = 0; j < numImages; ++j )
-			sumI += i[ j ].get().getRealDouble();
+			sumI +=  i[ j ].get().getRealDouble();
 
-		value.set( (float)( sumI ) );
+		value.set( (float) sumI );
 
 		return value;
 	}

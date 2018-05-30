@@ -86,6 +86,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopu
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayRawImagesPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.FusionPopup;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.IntensityAdjustmentPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.InterestPointsExplorerPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.LabelPopUp;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.MaxProjectPopup;
@@ -709,6 +710,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new LabelPopUp( " Processing" ) );
 		popups.add( new DetectInterestPointsPopup() );
 		popups.add( new RegisterInterestPointsPopup() );
+		popups.add( new IntensityAdjustmentPopup() );
 		popups.add( new FusionPopup() );
 		popups.add( new PointSpreadFunctionsPopup() );
 		popups.add( new DeconvolutionPopup() );

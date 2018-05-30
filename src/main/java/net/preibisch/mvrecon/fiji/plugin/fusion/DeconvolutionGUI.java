@@ -81,6 +81,7 @@ import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools.ImgDataType;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -146,6 +147,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public static int defaultInputImgCacheType = 1;
 	public static int defaultWeightCacheType = 1;
 	public static double defaultDownsampling = 1.0;
+	public static boolean defaultAdjustIntensities = false;
 	public static boolean defaultMul = false;
 	public static int defaultPSFType = 1;
 	public static int defaultPsiInit = 0;
@@ -176,6 +178,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 	protected int boundingBox = defaultBB;
 	protected double downsampling = defaultDownsampling;
+	protected boolean adjustIntensities = defaultAdjustIntensities;
 	protected boolean mul = defaultMul;
 	protected int cacheTypeInputImg = defaultInputImgCacheType;
 	protected int cacheTypeWeights = defaultWeightCacheType;
@@ -276,6 +279,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	@Override
 	public double getAnisotropyFactor() { return Double.NaN; }
 
+	public boolean adjustIntensities() { return adjustIntensities; }
+
 	@Override
 	public int getSplittingType() { return splittingType; }
 
@@ -325,6 +330,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 		if ( maxDimPSF == null )
 			return false;
 
+		final boolean hasIntensityAdjustments = IntensityAdjustmentTools.containsAdjustments( spimData.getIntensityAdjustments(), views );
+
 		final String[] choices = FusionGUI.getBoundingBoxChoices( allBoxes );
 
 		if ( defaultBB >= choices.length )
@@ -346,6 +353,9 @@ public class DeconvolutionGUI implements FusionExportInterface
 		if ( !PluginHelper.isHeadless() ) inputCacheChoice = (Choice)gd.getChoices().lastElement();
 		gd.addChoice( "Weight image(s)", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultWeightCacheType ] );
 		if ( !PluginHelper.isHeadless() ) weightCacheChoice = (Choice)gd.getChoices().lastElement();
+
+		if ( hasIntensityAdjustments )
+			gd.addCheckbox( "Adjust_image_intensities", defaultAdjustIntensities );
 
 		gd.addMessage( "" );
 
@@ -408,9 +418,15 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		cacheTypeInputImg = defaultInputImgCacheType = gd.getNextChoiceIndex();
 		cacheTypeWeights = defaultWeightCacheType = gd.getNextChoiceIndex();
-		mul = defaultMul = !gd.getNextBoolean();
+
+		if ( hasIntensityAdjustments )
+			adjustIntensities = defaultAdjustIntensities = gd.getNextBoolean();
+		else
+			adjustIntensities = false;
+
 		psiInit = defaultPsiInit = gd.getNextChoiceIndex();
 		psfType = defaultPSFType = gd.getNextChoiceIndex();
+		mul = defaultMul = !gd.getNextBoolean();
 		osemSpeedup = defaultOsemSpeedup = gd.getNextNumber();
 		numIterations = defaultNumIterations = (int)Math.round( gd.getNextNumber() );
 		debugMode = defaultDebugMode = gd.getNextBoolean();
@@ -459,6 +475,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 		IOFunctions.println( "Downsampled Bounding Box: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "Input Image Cache Type: " + FusionTools.imgDataTypeChoice[ getInputImgCacheType().ordinal() ] );
 		IOFunctions.println( "Weight Cache Type: " + FusionTools.imgDataTypeChoice[ getWeightCacheType().ordinal() ] );
+		IOFunctions.println( "Adjust intensities: " + adjustIntensities );
 		IOFunctions.println( "Multiplicative iterations: " + mul );
 		IOFunctions.println( "PSF Type: " + psfTypeChoice[ getPSFType().ordinal() ] );
 		IOFunctions.println( "Psi Init: " + psiInitChoice[ psiInit ] );

@@ -46,9 +46,9 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 		Tile<?> worstTile1 = null;
 		Tile<?> worstTile2 = null;
 		
-		for (Tile<?> t : tc.getTiles())
+		for ( final Tile<?> t : tc.getTiles())
 		{
-			System.out.println( "Inspecting group: " + findGroup( t, map ) );
+			//System.out.println( "Inspecting group: " + findGroup( t, map ) );
 
 			final int connected = t.getConnectedTiles().size();
 
@@ -58,6 +58,12 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 
 			for ( final PointMatch pm : t.getMatches() )
 			{
+				final Tile<?> connectedTile = t.findConnectedTile( pm );
+
+				// make sure that pm is not the only connection of the connected tile either 
+				if ( connectedTile.getConnectedTiles().size() <= 1 )
+					continue;
+
 				double quality = 0.01; // between [0.01, 1.00]
 
 				if ( QualityPointMatch.class.isInstance( pm ) )
@@ -66,21 +72,19 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 				quality = Math.min( 1.0, quality );
 				quality = Math.max( 0.01, quality );
 
-				final double invScore = Math.pow( ( 1.01 - quality ), 2 ) * Math.sqrt( pm.getDistance() ) * Math.log10( connected );
+				final double invScore = ( 1.01 - quality ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
-				System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
-
+				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
 				if ( invScore > worstInvScore )
 				{
 					worstInvScore = invScore;
 
 					worstTile1 = t;
-					worstTile2 = t.findConnectedTile( pm );
+					worstTile2 = connectedTile;
 
-					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
+					//System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
 				}
-				
 			}
 		}
 

@@ -465,7 +465,8 @@ public class Resave_TIFF implements PlugIn
 				viewsInterestPoints,
 				spimData.getBoundingBoxes(),
 				spimData.getPointSpreadFunctions(),
-				spimData.getStitchingResults());
+				spimData.getStitchingResults(),
+				spimData.getIntensityAdjustments());
 
 		return newSpimData;
 	}

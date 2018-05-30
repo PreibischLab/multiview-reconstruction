@@ -52,7 +52,6 @@ import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThread;
-import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
 import net.preibisch.mvrecon.process.export.ImgExport;
@@ -132,7 +131,8 @@ public class Image_Deconvolution implements PlugIn
 					FusionTools.defaultBlendingBorder,
 					true,
 					decon.getBlendingRange(),
-					decon.getBlendingBorder() / ( Double.isNaN( downsampling ) ? 1.0f : (float)downsampling ) );
+					decon.getBlendingBorder() / ( Double.isNaN( downsampling ) ? 1.0f : (float)downsampling ),
+					decon.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusion of 'virtual views' " );
 			fusion.fuseGroups();

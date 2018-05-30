@@ -27,9 +27,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import bdv.util.ConstantRandomAccessible;
+import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -41,6 +43,7 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -51,6 +54,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.normalization.NormalizingRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -74,6 +78,7 @@ public class ProcessInputImages< V extends ViewId >
 	final HashMap< Group< V >, RandomAccessibleInterval< FloatType > > images;
 	final HashMap< Group< V >, RandomAccessibleInterval< FloatType > > unnormalizedWeights, normalizedWeights;
 	final HashMap< V, AffineTransform3D > models;
+	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
 	public ProcessInputImages(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
@@ -86,7 +91,8 @@ public class ProcessInputImages< V extends ViewId >
 			final float blendingBorderFusion,
 			final boolean useWeightsDecon,
 			final float blendingRangeDeconvolution,
-			final float blendingBorderDeconvolution )
+			final float blendingBorderDeconvolution,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		this.spimData = spimData;
 		this.groups = SpimData2.filterGroupsForMissingViews( spimData, groups );
@@ -99,6 +105,7 @@ public class ProcessInputImages< V extends ViewId >
 		this.useWeightsDecon = useWeightsDecon;
 		this.blendingRangeDeconvolution = blendingRangeDeconvolution;
 		this.blendingBorderDeconvolution = blendingBorderDeconvolution;
+		this.intensityAdjustments = intensityAdjustments;
 
 		this.images = new HashMap<>();
 		this.unnormalizedWeights = new HashMap<>();
@@ -113,21 +120,24 @@ public class ProcessInputImages< V extends ViewId >
 			final Collection< Group< V > > groups,
 			final ExecutorService service,
 			final Interval bb,
-			final double downsampling )
+			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		this(
 				spimData, groups, service, bb, downsampling,
 				true, FusionTools.defaultBlendingRange, FusionTools.defaultBlendingBorder,
-				true, MultiViewDeconvolution.defaultBlendingRange, MultiViewDeconvolution.defaultBlendingBorder );
+				true, MultiViewDeconvolution.defaultBlendingRange, MultiViewDeconvolution.defaultBlendingBorder,
+				intensityAdjustments );
 	}
 
 	public ProcessInputImages(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
 			final Collection< Group< V > > groups,
 			final ExecutorService service,
-			final Interval bb )
+			final Interval bb,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		this( spimData, groups, service, bb, Double.NaN );
+		this( spimData, groups, service, bb, Double.NaN, intensityAdjustments );
 	}
 
 	public ArrayList< Group< V > > getGroups() { return groups; }
@@ -151,7 +161,8 @@ public class ProcessInputImages< V extends ViewId >
 				useWeightsFusion ? Util.getArrayFromValue( blendingRangeFusion, 3 ) : null,
 				useWeightsFusion ? Util.getArrayFromValue( blendingBorderFusion, 3 ) : null,
 				useWeightsDecon ? Util.getArrayFromValue( blendingRangeDeconvolution, 3 ) : null,
-				useWeightsDecon ? Util.getArrayFromValue( blendingBorderDeconvolution, 3 ) : null );
+				useWeightsDecon ? Util.getArrayFromValue( blendingBorderDeconvolution, 3 ) : null,
+				intensityAdjustments );
 	}
 
 	public void cacheImages( final int cellDim, final int maxCacheSize ) { cacheRandomAccessibleInterval( groups, cellDim, maxCacheSize, images ); }
@@ -274,7 +285,8 @@ public class ProcessInputImages< V extends ViewId >
 			final float[] blendingRangeFusion,
 			final float[] blendingBorderFusion,
 			final float[] blendingRangeDecon,
-			final float[] blendingBorderDecon )
+			final float[] blendingBorderDecon,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
 		int i = 0;
 
@@ -317,7 +329,14 @@ public class ProcessInputImages< V extends ViewId >
 				// which applies for the image itself as well as the weights since they also use the smaller
 				// input image as reference
 				final double[] ds = new double[ 3 ];
-				final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, ds );
+				RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, ds );
+
+				if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
+					inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+							FusionTools.convertInput( inputImg ),
+							new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
+							new FloatType() );
+
 				images.add( TransformView.transformView( inputImg, model, bb, MultiViewDeconvolution.minValueImg, MultiViewDeconvolution.outsideValueImg, 1 ) );
 
 				System.out.println( "Used downsampling: " + Util.printCoordinates( ds ) );

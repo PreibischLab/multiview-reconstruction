@@ -52,6 +52,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.MicroManagerImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.MultipageTiffReader;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
@@ -123,7 +124,7 @@ public class MicroManager implements MultiViewDatasetDefinition
 		viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimData = new SpimData2( new File( directory ), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults() );
+		final SpimData2 spimData = new SpimData2( new File( directory ), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
 		if ( reader.applyAxis() )
 			Apply_Transformation.applyAxis( spimData );

@@ -29,12 +29,14 @@ import java.util.Date;
 import java.util.HashMap;
 
 import mpicbg.models.Affine3D;
+import mpicbg.models.ErrorStatistic;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
+import mpicbg.models.TileUtil;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.util.Pair;
@@ -95,23 +97,23 @@ public class GlobalOptIterative
 				else
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
-				tc.optimize( ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth() );
+				TileUtil.optimizeConcurrently(
+						new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ),  ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth(), 1.0f,
+						tc, tc.getTiles(), tc.getFixedTiles(), Runtime.getRuntime().availableProcessors());
 
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + 
-						tc.getTiles().size());
+				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+
+				// give some time for the output
+				try { Thread.sleep( 50 ); } catch ( Exception e) {}
 			}
-			catch (NotEnoughDataPointsException e)
+			catch (Exception e)
 			{
-				IOFunctions.println( "Global optimization failed: " + e );
+				IOFunctions.println( "Global optimization failed, please report this bug: " + e );
 				e.printStackTrace();
-			}
-			catch (IllDefinedDataPointsException e)
-			{
-				IOFunctions.println( "Global optimization failed: " + e );
-				e.printStackTrace();
+				return null;
 			}
 
 			finished = true;

@@ -65,6 +65,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -398,7 +399,8 @@ public class ExportSpimData2TIFF implements ImgExport
 				viewsInterestPoints,
 				new BoundingBoxes(),
 				new PointSpreadFunctions(),
-				new StitchingResults());
+				new StitchingResults(),
+				new IntensityAdjustments() );
 
 		return newSpimData;
 	}

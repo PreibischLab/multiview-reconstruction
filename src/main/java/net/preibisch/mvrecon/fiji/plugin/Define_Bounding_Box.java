@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.BDVBoundingBoxGUI;
@@ -90,6 +91,10 @@ public class Define_Bounding_Box implements PlugIn
 			final String xmlFileName,
 			final boolean saveXML )
 	{
+		// filter not present ViewIds
+		final List< ViewId > removed = SpimData2.filterMissingViews( data, viewIds );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
+
 		final String[] boundingBoxDescriptions = new String[ staticBoundingBoxAlgorithms.size() ];
 
 		for ( int i = 0; i < staticBoundingBoxAlgorithms.size(); ++i )
