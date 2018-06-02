@@ -658,7 +658,40 @@ public class DeconvolutionGUI implements FusionExportInterface
 			this.blockSize = new int[]{ (int)maxBlock[ 0 ], (int)maxBlock[ 1 ], (int)maxBlock[ 2 ] };
 		}
 
+		if ( computeOnIndex == 1 && !isPowerOfTwo( this.blockSize ) )
+		{
+			IOFunctions.println( "ERROR: Manually block sizes that are not power-of-2 (e.g. 256, 512, 1024 are not supported with GPU.");
+			return false;
+		}
+
 		return true;
+	}
+
+	public static boolean isPowerOfTwo( final int[] values )
+	{
+		if ( values == null || values.length == 0 )
+			return false;
+
+		for ( int d = 0; d < values.length; ++d )
+			if ( !isPowerOfTwo( values[ d ] ) )
+				return false;
+
+		return true;
+	}
+
+	public static boolean isPowerOfTwo( int value )
+	{
+		if ( value < 1 )
+			return false;
+
+		while( value % 2 == 0 || value == 1 )
+		{
+			value /= 2;
+			if ( value == 0 )
+				return true;
+		}
+
+		return false;
 	}
 
 	protected boolean getComputeDevice()
