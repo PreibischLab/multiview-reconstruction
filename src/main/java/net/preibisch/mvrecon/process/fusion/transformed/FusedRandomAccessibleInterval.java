@@ -103,7 +103,7 @@ public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< 
 	public void min( final Positionable min ) { interval.min( min ); }
 
 	@Override
-	public long max( final int d ) { return interval.min( d ); }
+	public long max( final int d ) { return interval.max( d ); }
 
 	@Override
 	public void max( final long[] max ) { interval.max( max ); }
