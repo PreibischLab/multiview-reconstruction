@@ -703,37 +703,100 @@ public class FusionTools
 
 	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service, final boolean showProgress )
 	{
-		final long numPixels = Views.iterable( input ).size();
-		final int nThreads = Threads.numThreads();
-		final Vector< ImagePortion > portions = divideIntoPortions( numPixels );
-		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
-
-		final AtomicInteger progress = new AtomicInteger( 0 );
-
-		for ( final ImagePortion portion : portions )
+		if ( input.numDimensions() == 3 && input.dimension( 2 ) > 16 )
 		{
-			tasks.add( new Callable< Void >()
+			final int zblock;
+
+			if ( input.dimension( 0 ) * input.dimension( 1 ) >= 2000000 )
+				zblock = 4;
+			else if ( input.dimension( 0 ) * input.dimension( 1 ) >= 200000 )
+				zblock = 8;
+			else
+				zblock = 16;
+
+			IOFunctions.println( "Copying synced after every " + zblock + " slices." );
+			System.out.println( "input.max( 0 ) = " + input.max( 0 ) );
+			System.out.println( "input.max( 1 ) = " + input.max( 1 ) );
+			System.out.println( "input.max( 2 ) = " + input.max( 2 ) );
+			System.out.println( "input.min( 0 ) = " + input.min( 0 ) );
+			System.out.println( "input.min( 1 ) = " + input.min( 1 ) );
+			System.out.println( "input.min( 2 ) = " + input.min( 2 ) );
+			System.out.println( "input.dimension( 0 ) = " + input.dimension( 0 ) );
+			System.out.println( "input.dimension( 1 ) = " + input.dimension( 1 ) );
+			System.out.println( "input.dimension( 2 ) = " + input.dimension( 2 ) );
+
+			for ( int z = 0; z < input.dimension( 2 )/zblock + 1; ++z )
 			{
-				@Override
-				public Void call() throws Exception
+				final long[] min = new long[] { input.min( 0 ), input.min( 1 ), z * zblock };
+				final long[] max = new long[] { input.max( 0 ), input.max( 1 ), Math.min( (z+1) * zblock - 1, input.max( 2 ) ) };
+
+				System.out.println( "from = " + min[ 2 ] );
+				System.out.println( "to = " + max[ 2 ] );
+
+				final RandomAccessibleInterval< T > in = Views.interval( input, min, max );
+				final RandomAccessibleInterval< T > out = Views.interval( output, min, max );
+
+				final long numPixels = Views.iterable( in ).size();
+				final int nThreads = Threads.numThreads();
+				final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+				final Vector< ImagePortion > portions = divideIntoPortions( numPixels );
+
+				for ( final ImagePortion portion : portions )
 				{
-					copyImg( portion.getStartPosition(), portion.getLoopSize(), input, output );
-
-					if ( showProgress )
-						IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
-
-					return null;
+					tasks.add( new Callable< Void >()
+					{
+						@Override
+						public Void call() throws Exception
+						{
+							copyImg( portion.getStartPosition(), portion.getLoopSize(), in, out );
+							return null;
+						}
+					});
 				}
-			});
+
+				if ( showProgress )
+					IJ.showProgress( (double)z / (double)(input.dimension( 2 )/zblock + 1) );
+
+				if ( service == null )
+					execTasks( tasks, nThreads, "copy image" );
+				else
+					execTasks( tasks, service, "copy image" );
+			}
 		}
-
-		if ( showProgress )
-			IJ.showProgress( 0.01 );
-
-		if ( service == null )
-			execTasks( tasks, nThreads, "copy image" );
 		else
-			execTasks( tasks, service, "copy image" );
+		{
+			final long numPixels = Views.iterable( input ).size();
+			final int nThreads = Threads.numThreads();
+			final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+			final Vector< ImagePortion > portions = divideIntoPortions( numPixels );
+
+			final AtomicInteger progress = new AtomicInteger( 0 );
+
+			for ( final ImagePortion portion : portions )
+			{
+				tasks.add( new Callable< Void >()
+				{
+					@Override
+					public Void call() throws Exception
+					{
+						copyImg( portion.getStartPosition(), portion.getLoopSize(), input, output );
+	
+						if ( showProgress )
+							IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
+	
+						return null;
+					}
+				});
+			}
+
+			if ( showProgress )
+				IJ.showProgress( 0.01 );
+
+			if ( service == null )
+				execTasks( tasks, nThreads, "copy image" );
+			else
+				execTasks( tasks, service, "copy image" );
+		}
 	}
 
 	public static final void execTasks( final ArrayList< Callable< Void > > tasks, final int nThreads, final String jobDescription )
