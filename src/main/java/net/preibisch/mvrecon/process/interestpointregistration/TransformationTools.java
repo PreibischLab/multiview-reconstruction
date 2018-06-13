@@ -54,6 +54,7 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.RealInterval;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Scale3D;
@@ -110,6 +111,8 @@ public class TransformationTools
 
 		final Scale3D scale = new Scale3D( 1.0/currentScale, 1.0/currentScale, 1.0/currentScale );
 
+		final double oldZ = currentViewerTransform.get( 2, 3 );
+
 		// ignore old translation
 		currentViewerTransform.set( 0, 0, 3 );
 		currentViewerTransform.set( 0, 1, 3 );
@@ -133,9 +136,11 @@ public class TransformationTools
 				break;
 			}
 
+		IOFunctions.println( "All views 2d: " + allViews2D );
+
 		// do not move in z if we have 2d data
 		if (allViews2D)
-			currentViewerTransform.set( 0, 2, 3 );
+			currentViewerTransform.set( oldZ, 2, 3 );
 		else
 			currentViewerTransform.set( -com[2], 2, 3 );
 
@@ -596,8 +601,18 @@ public class TransformationTools
 			final AffineGet mapBackModel,
 			final String modelDescription )
 	{
-		// TODO: we assume that M is an Affine3D, which is not necessarily true
-		final AffineTransform3D t = getAffineTransform( (Affine3D< ? >)tile.getModel() );
+		final AffineTransform3D t;
+
+		if ( tile != null )
+		{
+			// TODO: we assume that M is an Affine3D, which is not necessarily true
+			t = getAffineTransform( (Affine3D< ? >)tile.getModel() );
+		}
+		else
+		{
+			// it might have been removed prior to global optimization because it has no links
+			t = new AffineTransform3D();
+		}
 
 		if ( mapBackModel != null )
 			t.preConcatenate( mapBackModel );
