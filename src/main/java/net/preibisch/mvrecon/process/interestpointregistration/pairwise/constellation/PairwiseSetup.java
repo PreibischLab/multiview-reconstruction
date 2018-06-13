@@ -560,7 +560,14 @@ public abstract class PairwiseSetup< V extends Comparable< V > >
 			@Override
 			public int compare( final Subset< V > o1, final Subset< V > o2 )
 			{
-				return comp.compare( o1.getPairs().get( 0 ), o2.getPairs().get( 0 ) );
+				if ( o1.getPairs().size() == 0 && o2.getPairs().size() == 0 )
+					return 0;
+				else if ( o1.getPairs().size() == 0 )
+					return -1;
+				else if ( o2.getPairs().size() == 0 )
+					return 1;
+				else
+					return comp.compare( o1.getPairs().get( 0 ), o2.getPairs().get( 0 ) );
 			}
 		};
 
