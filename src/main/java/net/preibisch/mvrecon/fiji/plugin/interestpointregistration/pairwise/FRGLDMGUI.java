@@ -47,6 +47,7 @@ public class FRGLDMGUI extends PairwiseGUI
 	public static int defaultModel = 2;
 	public static boolean defaultRegularize = true;
 	public static int defaultRANSACIterationChoice = 1;
+	public static float min_inlier_factor = 3f;
 	protected TransformationModelGUI model = null;
 
 	protected FRGLDMParameters parameters;
@@ -87,6 +88,7 @@ public class FRGLDMGUI extends PairwiseGUI
 		gd.addMessage( "" );
 
 		gd.addSlider( "Allowed_error_for_RANSAC (px)", 0.5, 100.0, RANSACParameters.max_epsilon );
+		gd.addSlider( "Inlier_factor (minimal amount of inliers)", 1, 20, min_inlier_factor );
 		gd.addChoice( "RANSAC_iterations", RANSACParameters.ransacChoices, RANSACParameters.ransacChoices[ defaultRANSACIterationChoice ] );
 	}
 
@@ -111,6 +113,7 @@ public class FRGLDMGUI extends PairwiseGUI
 		final int redundancy = FRGLDMParameters.redundancy = (int)Math.round( gd.getNextNumber() );
 		final float ratioOfDistance = FRGLDMParameters.ratioOfDistance = (float)gd.getNextNumber();
 		final float maxEpsilon = RANSACParameters.max_epsilon = (float)gd.getNextNumber();
+		final float inlierFactor = min_inlier_factor = (float)gd.getNextNumber();
 		final int ransacIterations = RANSACParameters.ransacChoicesIterations[ defaultRANSACIterationChoice = gd.getNextChoiceIndex() ];
 
 		final float minInlierRatio;
@@ -122,13 +125,14 @@ public class FRGLDMGUI extends PairwiseGUI
 			minInlierRatio = RANSACParameters.min_inlier_ratio / 100;
 
 		this.parameters = new FRGLDMParameters( model.getModel(), ratioOfDistance, redundancy );
-		this.ransacParams = new RANSACParameters( maxEpsilon, minInlierRatio, RANSACParameters.min_inlier_factor, ransacIterations );
+		this.ransacParams = new RANSACParameters( maxEpsilon, minInlierRatio, inlierFactor, ransacIterations );
 
 		IOFunctions.println( "Selected Paramters:" );
 		IOFunctions.println( "model: " + defaultModel );
 		IOFunctions.println( "redundancy: " + redundancy );
 		IOFunctions.println( "ratioOfDistance: " + ratioOfDistance );
 		IOFunctions.println( "maxEpsilon: " + maxEpsilon );
+		IOFunctions.println( "inlierFactor: " + inlierFactor );
 		IOFunctions.println( "ransacIterations: " + ransacIterations );
 		IOFunctions.println( "minInlierRatio: " + minInlierRatio );
 
