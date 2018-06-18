@@ -57,6 +57,7 @@ import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentT
 public class Intensity_Adjustment implements PlugIn
 {
 	public static double defaultDownsampling = 10;
+	public static int defaultMaxInliers = 10000;
 	public static boolean defaultAffine = true;
 	public static double defaultTranslationRegularization = 0.1;
 	public static double defaultIdentityRegularization = 0.1;
@@ -121,7 +122,8 @@ public class Intensity_Adjustment implements PlugIn
 		else
 			gd.addChoice( "Bounding_Box", choicesForMacro, choicesForMacro[ FusionGUI.defaultBB ] );
 
-		gd.addSlider( "Downsampling", 1.0, 32.0, defaultDownsampling );
+		gd.addSlider( "Downsampling", 1.0, 64.0, defaultDownsampling );
+		gd.addNumericField( "Max_inliers", defaultMaxInliers, 0 );
 
 		gd.addMessage( "" );
 
@@ -167,6 +169,7 @@ public class Intensity_Adjustment implements PlugIn
 
 		boundingBox = FusionGUI.defaultBB = gd.getNextChoiceIndex();
 		downsampling = defaultDownsampling = gd.getNextNumber();
+		final int maxInliers = defaultMaxInliers = (int)Math.round( gd.getNextNumber() );
 
 		final boolean affine = defaultAffine = gd.getNextBoolean();
 		final double regTrans = defaultTranslationRegularization = gd.getNextNumber();
@@ -184,7 +187,7 @@ public class Intensity_Adjustment implements PlugIn
 							new InterpolatedAffineModel1D<>( new AffineModel1D(), new TranslationModel1D(), regTrans ),
 							new IdentityModel(), regIdentity );
 
-			intensityMapping = IntensityAdjustmentTools.computeIntensityAdjustment( data, viewIds, model, allBoxes.get( boundingBox ), downsampling, data.getIntensityAdjustments().getIntensityAdjustments() );
+			intensityMapping = IntensityAdjustmentTools.computeIntensityAdjustment( data, viewIds, model, allBoxes.get( boundingBox ), downsampling, maxInliers, data.getIntensityAdjustments().getIntensityAdjustments() );
 		}
 		else
 		{
@@ -193,7 +196,7 @@ public class Intensity_Adjustment implements PlugIn
 							new TranslationModel1D(),
 							new IdentityModel(), regIdentity );
 
-			intensityMapping = IntensityAdjustmentTools.computeIntensityAdjustment( data, viewIds, model, allBoxes.get( boundingBox ), downsampling, data.getIntensityAdjustments().getIntensityAdjustments() );
+			intensityMapping = IntensityAdjustmentTools.computeIntensityAdjustment( data, viewIds, model, allBoxes.get( boundingBox ), downsampling, maxInliers, data.getIntensityAdjustments().getIntensityAdjustments() );
 		}
 
 		data.getIntensityAdjustments().getIntensityAdjustments().putAll( intensityMapping );

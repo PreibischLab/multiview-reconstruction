@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import mpicbg.models.Affine1D;
 import mpicbg.models.AffineModel1D;
@@ -56,6 +57,7 @@ public class IntensityAdjustmentTools
 			final M intensityModel,
 			Interval bb,
 			double downsampling,
+			final int maxMatches,
 			final Map< ? extends ViewId, AffineModel1D > existingAdjustments )
 	{
 		if ( !Double.isNaN( downsampling ) )
@@ -141,7 +143,32 @@ public class IntensityAdjustmentTools
 					}
 		}
 
-		return runGlobal( intensityMatches, viewMap, intensityModel );
+		final Random rnd = new Random( 344 );
+		for ( final ArrayList< PointMatch > matches : intensityMatches.values() )
+		{
+			while ( matches.size() >= maxMatches )
+				matches.remove( rnd.nextInt( matches.size() ) );
+		}
+
+		final HashMap< ViewId, AffineModel1D > newModels = runGlobal( intensityMatches, viewMap, intensityModel );
+
+		if ( existingAdjustments != null )
+		{
+			IOFunctions.println( "Updating previous intensity mappings ... " );
+
+			for ( final ViewId viewId : newModels.keySet() )
+			{
+				if ( existingAdjustments.containsKey( viewId ) )
+				{
+					final AffineModel1D updatedModel = existingAdjustments.get( viewId ).copy();
+					String out = Group.pvid( viewId ) + ": " + updatedModel + " >>> ";
+					updatedModel.preConcatenate( newModels.get( viewId ) );
+					IOFunctions.println( out + updatedModel );
+				}
+			}
+		}
+
+		return newModels;
 	}
 
 	/**
@@ -197,7 +224,7 @@ public class IntensityAdjustmentTools
 			else
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
-			tc.optimize( 5, 1000, 200 );
+			tc.optimize( 5, 300, 200 );
 
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + 
 				tc.getTiles().size() +  " view-tiles:" );

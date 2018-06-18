@@ -129,7 +129,7 @@ public class TestIntensityAdjustment
 						new IdentityModel(), 0.1 );
 
 		final HashMap< ViewId, AffineModel1D > intensityMapping =
-				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, null );
+				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, Integer.MAX_VALUE, null );
 
 		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, intensityMapping );
 		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, null );
