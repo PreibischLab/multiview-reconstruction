@@ -968,9 +968,12 @@ public class FileListDatasetDefinitionUtil
 				else if (state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE && cr.get( cl ) == CheckResult.MUlTIPLE_NAMED)
 					state.getMultiplicityMap().put( cl, CheckResult.MUlTIPLE_NAMED );
 				// TODO: Error here if we have mixed indexed and named
+				
+				// When looking at files individually, we found a single instance per file, but we have multiple instances across files
+				if (state.getMultiplicityMap().get( cl ) == CheckResult.SINGLE && cr.get( cl ) == CheckResult.SINGLE && state.getAccumulateMap( cl ).size() > 1)
+					state.getMultiplicityMap().put( cl, CheckResult.MUlTIPLE_NAMED );
 			}
 		}
-		
 	}
 	
 	
