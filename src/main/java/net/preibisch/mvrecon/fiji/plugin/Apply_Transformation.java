@@ -987,6 +987,11 @@ public class Apply_Transformation implements PlugIn
 
 	public static void applyAxisGrouped(final SpimData data)
 	{
+		applyAxisGrouped( data, true );
+	}
+
+	public static void applyAxisGrouped(final SpimData data, boolean moveToOrigin)
+	{
 		final Map< Angle, Collection< Pair< Dimensions, AffineGet > > > viewsGroupedByAngle = new HashMap<>();
 		final Map< Angle, double[] > angleCentersOfMasss = new HashMap<>();
 		final ViewRegistrations viewRegistrations = data.getViewRegistrations();
@@ -1044,8 +1049,9 @@ public class Apply_Transformation implements PlugIn
 				AffineTransform3D rot = rotationAngleAxis( angle, u );
 				res.preConcatenate( rot );
 
-				// (3) move back to old CoM
-				res.preConcatenate( translateToCenter );
+				// (3) move back to old CoM (usless we want to stay at origin)
+				if (!moveToOrigin)
+					res.preConcatenate( translateToCenter );
 
 				final String desc = "Rotation around axis " + Util.printCoordinates( u ) + " by " + (-degrees) + " degrees";
 				final ViewTransform vt = new ViewTransformAffine( desc, res );
