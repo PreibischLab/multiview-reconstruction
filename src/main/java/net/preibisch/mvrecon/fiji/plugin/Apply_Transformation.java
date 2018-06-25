@@ -48,9 +48,11 @@ import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
+import net.imglib2.RealPoint;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.img.list.ListImgFactory;
 import net.imglib2.img.list.ListRandomAccess;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
@@ -945,6 +947,151 @@ public class Apply_Transformation implements PlugIn
 				}
 			}
 		}
+	}
+
+	public static AffineTransform3D rotationAngleAxis(double angle, double[] axis)
+	{
+		double[] u = toUnit( axis );
+		double[] a = new double[12];
+
+		// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions
+		a[0] = (1.0 - Math.cos( angle )) * Math.pow( u[0], 2 ) + Math.cos( angle );
+		a[1] = (1.0 - Math.cos( angle )) * u[0] * u[1] - u[2] * Math.sin( angle );
+		a[2] = (1.0 - Math.cos( angle )) * u[0] * u[2] + u[1] * Math.sin( angle );
+
+		a[4] = (1.0 - Math.cos( angle )) * u[0] * u[1] + u[2] * Math.sin( angle );
+		a[5] = (1.0 - Math.cos( angle )) * Math.pow( u[1], 2 ) + Math.cos( angle );
+		a[6] = (1.0 - Math.cos( angle )) * u[1] * u[2] - u[0] * Math.sin( angle );
+
+		a[8] = (1.0 - Math.cos( angle )) * u[0] * u[2] - u[1] * Math.sin( angle );
+		a[9] = (1.0 - Math.cos( angle )) * u[1] * u[2] + u[0] * Math.sin( angle );
+		a[10] = (1.0 - Math.cos( angle )) * Math.pow( u[2], 2 ) + Math.cos( angle );
+
+		final AffineTransform3D res = new AffineTransform3D();
+		res.set( a );
+		return res.copy();
+		
+	}
+
+	public static double[] toUnit(double[] vec)
+	{
+		double len = 0;
+		for (int i=0; i<vec.length; i++)
+			len += Math.pow( vec[i], 2 );
+		len = Math.sqrt( len );
+		final double[] unit = new double[vec.length];
+		for (int i=0; i<vec.length; i++)
+			unit[i] = vec[i] / len;
+		return unit;
+	}
+
+	public static void applyAxisGrouped(final SpimData data)
+	{
+		final Map< Angle, Collection< Pair< Dimensions, AffineGet > > > viewsGroupedByAngle = new HashMap<>();
+		final Map< Angle, double[] > angleCentersOfMasss = new HashMap<>();
+		final ViewRegistrations viewRegistrations = data.getViewRegistrations();
+
+		// Group by Angle
+		for ( final ViewDescription vd : data.getSequenceDescription().getViewDescriptions().values() )
+		{
+			if ( vd.isPresent() )
+			{
+				final Angle a = vd.getViewSetup().getAngle();
+				final ViewRegistration vr = viewRegistrations.getViewRegistration( vd );
+				final Dimensions dim = vd.getViewSetup().getSize();
+
+				if (!viewsGroupedByAngle.containsKey( a ))
+					viewsGroupedByAngle.put( a, new ArrayList<>() );
+
+				viewsGroupedByAngle.get( a ).add( new ValuePair<>( dim, vr.getModel() ) );
+			}
+		}
+
+		viewsGroupedByAngle.forEach( (a, v) -> {angleCentersOfMasss.put( a, getCenterOfMass( v ));});
+
+		for ( final ViewDescription vd : data.getSequenceDescription().getViewDescriptions().values() )
+		{
+			if ( vd.isPresent() )
+			{
+				final Angle a = vd.getViewSetup().getAngle();
+				final ViewRegistration vr = viewRegistrations.getViewRegistration( vd );
+				final double[] axis = a.getRotationAxis();
+				final double degrees = -a.getRotationAngleDegrees();
+
+				// no axis defined
+				if ( axis == null || Util.distance( new RealPoint( axis ), new RealPoint( new double[axis.length] ) ) < Double.MIN_VALUE )
+					continue;
+				final double[] u = toUnit( axis );
+				double angle = Math.toRadians( degrees );
+
+				// get center
+				double[] center = angleCentersOfMasss.get( a );
+				if (center == null)
+					continue;
+
+				// center translation
+				AffineTransform3D translateToCenter = new AffineTransform3D();
+				translateToCenter.set(
+						1, 0, 0, center[0],
+						0, 1, 0, center[1],
+						0, 0, 1, center[2] );
+
+				// (1) move CoM to origin
+				final AffineTransform3D res = new AffineTransform3D();
+				res.preConcatenate( translateToCenter.inverse() );
+
+				// (2) rotate
+				AffineTransform3D rot = rotationAngleAxis( angle, u );
+				res.preConcatenate( rot );
+
+				// (3) move back to old CoM
+				res.preConcatenate( translateToCenter );
+
+				final String desc = "Rotation around axis " + Util.printCoordinates( u ) + " by " + (-degrees) + " degrees";
+				final ViewTransform vt = new ViewTransformAffine( desc, res );
+				vr.preconcatenateTransform( vt );
+				vr.updateModel();
+			}
+		}
+	}
+
+	public static double[] getCenterOfMass(Collection< Pair< Dimensions, AffineGet > > views)
+	{
+		if (views.size() < 1)
+			return null;
+
+		final int nDims = views.iterator().next().getA().numDimensions();
+		final double[] center = new double[nDims];
+		final double[] vertex = new double[nDims];
+		final double[] vertexTransformed = new double[nDims];
+		int count = 0;
+
+		for (final Pair< Dimensions, AffineGet > view : views)
+		{
+			for (int i = 0; i< (int) Math.pow( 2, nDims ); i++)
+			{
+
+				// get i'th vertex of (0, 0, ...) - (dim_0, dim_1, ...)
+				int ii = i;
+				for (int j = 0; j<nDims; j++)
+				{
+					vertex[j] = ii%2 == 0 ? 0 : view.getA().dimension( j );
+					ii /= 2;
+				}
+
+				view.getB().apply( vertex, vertexTransformed );
+
+				for (int j = 0; j<nDims; j++)
+					center[j] += vertexTransformed[j];
+
+				count++;
+			}
+		}
+
+		for (int i = 0; i<nDims; i++)
+			center[i] /= count;
+
+		return center;
 	}
 
 	/*

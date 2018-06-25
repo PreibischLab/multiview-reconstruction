@@ -93,6 +93,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.grid.RegularTranformHelpers;
 import net.preibisch.mvrecon.fiji.datasetmanager.grid.RegularTranformHelpers.RegularTranslationParameters;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
+import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
@@ -927,9 +928,6 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			}
 		}
 
-		//TODO: with translated tiles, we also have to take the center of rotation into account
-		//Apply_Transformation.applyAxis( data );
-
 		GenericDialogPlus gdSave = new GenericDialogPlus( "Save dataset definition" );
 
 		addMessageAsJLabel("<html> <h1> Loading options </h1> <br /> </html>", gdSave);
@@ -968,8 +966,13 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			gdSave.addCheckbox( "check_stack_sizes", zSizeEqualInEveryFile );
 		}
 
+
+		boolean multipleAngles = data.getSequenceDescription().getAllAnglesOrdered().size() > 1;
+		if (multipleAngles)
+			gdSave.addCheckbox( "apply_angle_rotation", true );
+
 		gdSave.showDialog();
-		
+
 		if ( gdSave.wasCanceled() )
 			return null;
 
@@ -1031,6 +1034,15 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				RegularTranformHelpers.applyToSpimData( data, tilesGrouped, gridParamsI, true );
 			}
 		}
+
+		boolean applyAxis = false;
+		if (multipleAngles)
+			applyAxis = gdSave.getNextBoolean();
+
+		// View Registrations should now be complete
+		// with translated tiles, we also have to take the center of rotation into account
+		if (applyAxis)
+			Apply_Transformation.applyAxisGrouped( data );
 
 		boolean resaveAsHDF5 = loadChoice == 0;
 		if (resaveAsHDF5)
