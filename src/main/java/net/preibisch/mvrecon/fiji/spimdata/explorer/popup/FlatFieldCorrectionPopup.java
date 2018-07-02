@@ -1,4 +1,4 @@
-package spim.fiji.spimdata.explorer.popup;
+package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 
 import java.awt.Dimension;
 import java.awt.Point;
@@ -23,12 +23,10 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
-import spim.fiji.spimdata.imgloaders.flatfield.DefaultFlatfieldCorrectionWrappedImgLoader;
-import spim.fiji.spimdata.imgloaders.flatfield.FlatfieldCorrectionWrappedImgLoader;
-import spim.fiji.spimdata.imgloaders.flatfield.LazyLoadingFlatFieldCorrectionMap;
-import spim.fiji.spimdata.imgloaders.flatfield.MultiResolutionFlatfieldCorrectionWrappedImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.flatfield.DefaultFlatfieldCorrectionWrappedImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.flatfield.FlatfieldCorrectionWrappedImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.flatfield.LazyLoadingFlatFieldCorrectionMap;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.flatfield.MultiResolutionFlatfieldCorrectionWrappedImgLoader;
 
 public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindowSetable
 {

@@ -1,4 +1,4 @@
-package spim.fiji.spimdata.imgloaders.flatfield;
+package net.preibisch.mvrecon.fiji.spimdata.imgloaders.flatfield;
 
 import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 

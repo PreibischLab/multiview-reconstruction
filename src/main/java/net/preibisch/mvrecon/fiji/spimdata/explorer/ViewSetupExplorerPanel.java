@@ -85,6 +85,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DetectInterestPointsPo
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayRawImagesPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.FlatFieldCorrectionPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.FusionPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.IntensityAdjustmentPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.InterestPointsExplorerPopup;
@@ -107,7 +108,6 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import spim.fiji.spimdata.explorer.popup.FlatFieldCorrectionPopup;
 
 
 public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > extends FilteredAndGroupedExplorerPanel< AS, X > implements ExplorerWindow< AS, X >
