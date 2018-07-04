@@ -428,7 +428,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 				return;
 
 			// ignore missing views
-			if (vd.isPresent())
+			if (!vd.isPresent())
 				return;
 
 			final Pair< File, Integer > invKey = new ValuePair<>( e.getValue().getA(), e.getValue().getB().getA() );
