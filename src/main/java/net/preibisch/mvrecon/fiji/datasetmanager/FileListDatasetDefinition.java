@@ -117,7 +117,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 	public static final String[] loadChoices = new String[] {"Re-save as multiresolution HDF5", "Load raw data virtually (with caching)", "Load raw data"};
-
+	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
+	
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
 	{
@@ -586,9 +587,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		final ImgLoader imgLoader;
 		if (withVirtualLoader)
-			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd );
+			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
 		else
-			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd );
+			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
 		sd.setImgLoader( imgLoader );
 
 		double minResolution = Double.MAX_VALUE;
@@ -799,6 +800,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		//gd.addMessage( sbfilePatterns.toString() );
 
 		choices.add( "-- ignore this pattern --" );
+		choices.add( Z_VARIABLE_CHOICE );
 		String[] choicesAll = choices.toArray( new String[]{} );
 
 		for (int i = 0; i < numVariables; i++)
@@ -852,6 +854,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		fileVariableToUse.put( Tile.class, new ArrayList<>() );
 		fileVariableToUse.put( Angle.class, new ArrayList<>() );
 
+		final List<Integer> zVariables = new ArrayList<>();
 		for (int i = 0; i < numVariables; i++)
 		{
 			String choice = gd.getNextChoice();
@@ -865,8 +868,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				fileVariableToUse.get( Tile.class ).add( i );
 			else if (choice.equals( "Angles" ))
 				fileVariableToUse.get( Angle.class ).add( i );
+			else if (choice.equals( Z_VARIABLE_CHOICE ))
+				zVariables.add( i );
 		}
-
 
 		// TODO handle Angle-Tile swap here	
 		FileListDatasetDefinitionUtil.resolveAmbiguity( state.getMultiplicityMap(), state.getAmbiguousIllumChannel(), preferChannelsOverIlluminations, state.getAmbiguousAngleTile(), !preferAnglesOverTiles );
@@ -875,6 +879,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				fileVariableToUse, 
 				patternDetector,
 				state);
+
+		// here, we concatenate Z-grouped files
+		if (zVariables.size() > 0)
+			FileListDatasetDefinitionUtil.groupZPlanes( state, patternDetector, zVariables );
 
 		// query modified calibration
 		final boolean modifyCalibration = gd.getNextBoolean();

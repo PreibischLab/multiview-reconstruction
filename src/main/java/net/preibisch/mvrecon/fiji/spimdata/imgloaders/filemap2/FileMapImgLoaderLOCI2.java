@@ -30,6 +30,7 @@ import java.util.Set;
 
 import com.google.common.io.Files;
 
+import loci.formats.FileStitcher;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
 import loci.formats.Memoizer;
@@ -65,10 +66,19 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 	private final AbstractSequenceDescription<?, ?, ?> sd;
 	private boolean allTimepointsInSingleFiles;
 	private final File tempDir;
+	private boolean zGrouped;
 
 	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
+	{
+		this(fileMap, imgFactory, sequenceDescription, false);
+	}
+	
+	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
+			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
+			final boolean zGrouped)
 	{
 		this.fileMap = new HashMap<>();
 		this.fileMap.putAll( fileMap );
@@ -76,9 +86,9 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		this.tempDir = Files.createTempDir();
 
 		this.sd = sequenceDescription;
-
+		this.zGrouped = zGrouped;
 		allTimepointsInSingleFiles = true;
-		
+
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
 		for ( ViewId vid : fileMap.keySet() )
@@ -142,6 +152,8 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			// use Memoizer to cache ReaderState for each File on disk
 			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
 			IFormatReader reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+			if (zGrouped)
+				reader = new Memoizer( new FileStitcher(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
 
 			RandomAccessibleInterval< T > img = null;
 			try

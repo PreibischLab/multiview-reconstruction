@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import ij.IJ;
+import loci.formats.AxisGuesser;
+import loci.formats.FileStitcher;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
@@ -78,11 +80,21 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	private HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
 	private AbstractSequenceDescription< ?, ?, ? > sd;
 	private boolean allTimepointsInSingleFiles;
+	private boolean zGrouped;
 
 	public LegacyFileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription )
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
+	{
+		this(fileMap, imgFactory, sequenceDescription, false);
+	}
+	
+	public LegacyFileMapImgLoaderLOCI(
+			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
+			final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
+			final boolean zGrouped)
 	{
 		super();
 
@@ -94,6 +106,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		setImgFactory( imgFactory );
 
 		allTimepointsInSingleFiles = true;
+		this.zGrouped = zGrouped;
 		
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
@@ -191,7 +204,15 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		// use Memoizer to cache ReaderState for each File on disk
 		// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
 		IFormatReader reader = new Memoizer( new ImageReader() );
+		if (zGrouped)
+		{
+			reader = new FileStitcher(true);
+			( (FileStitcher) reader ).setCanChangePattern( false );
+		}
+
 		reader.setId( fileForVId.getAbsolutePath() );
+		if (zGrouped)
+			( (FileStitcher) reader).setAxisTypes( new int[] {AxisGuesser.Z_AXIS} );
 		reader.setSeries( fileMap.get( view ).getB().getA() );
 
 		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );

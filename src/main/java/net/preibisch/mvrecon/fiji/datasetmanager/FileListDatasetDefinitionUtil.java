@@ -30,15 +30,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.common.base.Strings;
 
 import ij.IJ;
 import ij.io.OpenDialog;
@@ -548,7 +552,103 @@ public class FileListDatasetDefinitionUtil
 				checkResults.put( Angle.class, CheckResult.MULTIPLE_INDEXED );
 		}
 	}
-	
+
+	public static void groupZPlanes(FileListViewDetectionState state, FilenamePatternDetector patternDetector, List<Integer> variablesToUse)
+	{
+		final Map< Pair< File, Pair< Integer, Integer > >, Pair< Dimensions, VoxelDimensions > > dimensionMap = state.getDimensionMap();
+		for (final Class<? extends Entity> cl: state.getIdMap().keySet())
+		{
+			final Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > idMapForClass = state.getIdMap().get( cl );
+			for (final List< Pair< File, Pair< Integer, Integer > > > fileList : idMapForClass.values())
+			{
+				// construct Map (invariant idxes, series, channel) -> (varying idxes)
+				final Map< Pair<List<Integer>, Pair<Integer, Integer>>, List<List<Integer>>> zGroupedMap = new HashMap<>();
+				final Map< Pair<List<Integer>, Pair<Integer, Integer>>, Pair< Dimensions, VoxelDimensions >> dimensionGroupedMap = new HashMap<>();
+				for (final Pair< File, Pair< Integer, Integer > > file : fileList)
+				{
+					final Pair< Integer, Integer > seriesChannel = file.getB();
+					final List<Integer> variables = new ArrayList<>();
+					final List<Integer> invariants = new ArrayList<>();
+					final Matcher m = patternDetector.getPatternAsRegex().matcher( file.getA().getAbsolutePath() );
+
+					if (!m.matches())
+						IOFunctions.printErr( "ERROR grouping z planes" );
+
+					for (int i = 1; i<=m.groupCount(); i++)
+					{
+						if (variablesToUse.contains( i-1 ))
+							variables.add( Integer.parseInt( m.group( i ) ) );
+						else
+							invariants.add( Integer.parseInt( m.group( i ) ) );
+					}
+
+					final  Pair<List<Integer>, Pair<Integer, Integer>> key = new ValuePair<>( invariants, seriesChannel );
+					if (!zGroupedMap.containsKey( key ))
+						zGroupedMap.put( key, new ArrayList<>() );
+					zGroupedMap.get( key ).add( variables );
+
+					// accumulate dimensions along z
+					if (!dimensionGroupedMap.containsKey( key ))
+						dimensionGroupedMap.put( key, dimensionMap.get( file ) );
+					else
+					{
+						final Dimensions dimNew = dimensionMap.get( file ).getA();
+						final Dimensions dimAccu = dimensionGroupedMap.get( key ).getA();
+						final long[] dim = new long[dimAccu.numDimensions()];
+						dimAccu.dimensions( dim );
+						dim[2] += dimNew.dimension( 2 );
+						dimensionGroupedMap.put( key, new ValuePair<>(new FinalDimensions( dim ), dimensionGroupedMap.get( key ).getB() ) );
+					}
+
+					// remove old dimensions from dimensionMap
+					//dimensionMap.remove( file );
+				}
+
+				// clear old fileList
+				fileList.clear();
+
+				zGroupedMap.forEach( (k,v) -> {
+					final List< Integer > invariants = k.getA();
+
+					// sort variables 
+					v.forEach( l -> Collections.sort( l ) );
+
+					// construct pattern
+					final String patternPath = getPatternFile( patternDetector, variablesToUse, invariants, v );
+					System.out.println( patternPath );
+					fileList.add( new ValuePair<>( new File( patternPath ), k.getB() ) );
+					dimensionMap.put( new ValuePair<>( new File( patternPath ), k.getB() ), dimensionGroupedMap.get( k ) );
+				});
+			}
+		}
+		state.setWasZGrouped( true );
+	}
+
+	public static String getPatternFile(FilenamePatternDetector patternDetector, List<Integer> variableIdxes, List<Integer> invariants, List<List<Integer>> variables)
+	{
+		final StringBuilder sb = new StringBuilder();
+		Iterator< Integer > invIterator = invariants.iterator();
+		final AtomicInteger varIdx = new AtomicInteger( 0 );
+		for (int i = 0; i < patternDetector.getNumVariables(); i++)
+		{
+			sb.append( patternDetector.getInvariant( i ) );
+			if (variableIdxes.contains( i ))
+			{
+				// FIXME: we assume constant length pattern here
+				Integer minLength = variables.stream().map( j -> j.get(varIdx.get()).toString().length() ).reduce( 0, Math::max );
+				String pattern = String.join( ",", variables.stream().map( j -> Strings.padStart( j.get(varIdx.get()).toString(), minLength, '0' )).collect( Collectors.toList() ));
+				varIdx.incrementAndGet();
+				sb.append( "<" + pattern + ">" );
+			}
+			else
+			{
+				sb.append( invIterator.next() );
+			}
+		}
+		sb.append( patternDetector.getInvariant( patternDetector.getNumVariables() ) );
+		return sb.toString();
+	}
+
 	public static void expandAccumulatedViewInfos
 	(
 			final Map<Class<? extends Entity>, List<Integer>> fileVariableToUse,
