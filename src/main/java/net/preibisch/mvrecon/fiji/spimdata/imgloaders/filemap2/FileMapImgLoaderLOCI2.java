@@ -66,7 +66,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 	private final AbstractSequenceDescription<?, ?, ?> sd;
 	private boolean allTimepointsInSingleFiles;
 	private final File tempDir;
-	private boolean zGrouped;
+	public boolean zGrouped;
 
 	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement

@@ -36,7 +36,8 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 
 public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortType, LegacyFileMapImgLoaderLOCI > implements FileMapGettable
 {
-	
+	public boolean zGrouped;
+
 	public FileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory,
@@ -52,6 +53,7 @@ public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortT
 			final boolean zGrouped)
 	{
 		super( new LegacyFileMapImgLoaderLOCI( fileMap, imgFactory, sequenceDescription, zGrouped ) );
+		this.zGrouped = zGrouped;
 	}
 
 	public ImgFactory< ? extends NativeType< ? > > getImgFactory() { return legacyImgLoader.getImgFactory(); }
