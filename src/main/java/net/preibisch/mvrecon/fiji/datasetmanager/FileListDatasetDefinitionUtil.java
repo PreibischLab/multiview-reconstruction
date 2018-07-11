@@ -634,9 +634,17 @@ public class FileListDatasetDefinitionUtil
 			sb.append( patternDetector.getInvariant( i ) );
 			if (variableIdxes.contains( i ))
 			{
-				// FIXME: we assume constant length pattern here
-				Integer minLength = variables.stream().map( j -> j.get(varIdx.get()).toString().length() ).reduce( 0, Math::max );
-				String pattern = String.join( ",", variables.stream().map( j -> Strings.padStart( j.get(varIdx.get()).toString(), minLength, '0' )).collect( Collectors.toList() ));
+
+				// get actual strings for variable (because of leading zeroes)
+				List< String > valuesForVariable = patternDetector.getValuesForVariable( i );
+
+				// get present ints
+				Set< Integer > presentValuesForVariable = variables.stream().map( j -> j.get( varIdx.get() ) ).collect( Collectors.toSet() );
+				// get present str
+				List< String > presentValuesStrings = new ArrayList<>(valuesForVariable.stream().filter( s -> presentValuesForVariable.contains( Integer.parseInt( s ) ) ).collect( Collectors.toSet() ) );
+				Collections.sort( presentValuesStrings );
+
+				String pattern = String.join( ",", presentValuesStrings );
 				varIdx.incrementAndGet();
 				sb.append( "<" + pattern + ">" );
 			}

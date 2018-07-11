@@ -151,9 +151,17 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 			// use Memoizer to cache ReaderState for each File on disk
 			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
-			IFormatReader reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+			IFormatReader reader = null;
 			if (zGrouped)
-				reader = new Memoizer( new FileStitcher(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+			{
+				final FileStitcher fs = new FileStitcher(true);
+				fs.setCanChangePattern( false );
+				reader = new Memoizer( fs , Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+			}
+			else
+			{
+				reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+			}
 
 			RandomAccessibleInterval< T > img = null;
 			try
@@ -232,7 +240,17 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 			// use Memoizer to cache ReaderState for each File on disk
 			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
-			IFormatReader reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+			IFormatReader reader = null;
+			if (zGrouped)
+			{
+				final FileStitcher fs = new FileStitcher(true);
+				fs.setCanChangePattern( false );
+				reader = new Memoizer( fs , Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+			}
+			else
+			{
+				reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+			}
 
 			RandomAccessibleInterval< FloatType > img = null;
 			try

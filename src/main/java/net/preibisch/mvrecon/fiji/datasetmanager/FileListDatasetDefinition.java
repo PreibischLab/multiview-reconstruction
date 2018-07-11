@@ -1001,7 +1001,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if (checkSize)
 			{
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Checking file sizes ... " );
-				LegacyFileMapImgLoaderLOCI.checkAndRemoveZeroVolume( data, (ImgLoader & FileMapGettable) data.getSequenceDescription().getImgLoader() );
+				LegacyFileMapImgLoaderLOCI.checkAndRemoveZeroVolume( data, (ImgLoader & FileMapGettable) data.getSequenceDescription().getImgLoader(), zVariables.size() > 0 );
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Finished." );
 			}
 		}
