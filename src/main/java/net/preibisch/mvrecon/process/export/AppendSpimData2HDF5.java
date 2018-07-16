@@ -67,10 +67,12 @@ import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.resave.HDF5Parameters;
+import net.preibisch.mvrecon.process.resave.HDF5Tools;
+import net.preibisch.mvrecon.process.resave.MultiResolutionTools;
 
 public class AppendSpimData2HDF5 implements ImgExport
 {
@@ -82,7 +84,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 
 	private List< ViewSetup > newViewSetups;
 
-	private Parameters params;
+	private HDF5Parameters params;
 
 	private SpimData2 spimData;
 
@@ -121,7 +123,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 		else
 			return false;
 
-		perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( newViewSetups );
+		perSetupExportMipmapInfo = MultiResolutionTools.proposeMipmaps( newViewSetups );
 
 		String fn = il.getHdf5File().getAbsolutePath();
 		if ( fn.endsWith( ".h5" ) )
@@ -139,7 +141,7 @@ public class AppendSpimData2HDF5 implements ImgExport
 		boolean is16bit = fusion.getPixelType() == 1;
 
 		final int firstviewSetupId = newViewSetups.get( 0 ).getId();
-		params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, getDescription(), is16bit );
+		params = HDF5Tools.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, getDescription(), is16bit );
 		if ( params == null )
 		{
 			System.out.println( "abort " );

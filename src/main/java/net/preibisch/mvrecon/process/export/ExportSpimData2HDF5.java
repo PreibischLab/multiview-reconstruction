@@ -61,10 +61,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -75,6 +72,9 @@ import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunct
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.resave.HDF5Parameters;
+import net.preibisch.mvrecon.process.resave.HDF5Tools;
+import net.preibisch.mvrecon.process.resave.MultiResolutionTools;
 
 public class ExportSpimData2HDF5 implements ImgExport
 {
@@ -84,7 +84,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 
 	private List< ViewSetup > newViewSetups;
 
-	private Parameters params;
+	private HDF5Parameters params;
 
 	private SpimData2 spimData;
 
@@ -128,22 +128,22 @@ public class ExportSpimData2HDF5 implements ImgExport
 
 		System.out.println( this + " " + fusion );
 
-		perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( newViewSetups );
+		perSetupExportMipmapInfo = MultiResolutionTools.proposeMipmaps( newViewSetups );
 
 		String fn = LoadParseQueryXML.defaultXMLfilename;
 		if ( fn.endsWith( ".xml" ) )
 			fn = fn.substring( 0, fn.length() - ".xml".length() );
 		for ( int i = 0;; ++i )
 		{
-			Generic_Resave_HDF5.lastExportPath = String.format( "%s-f%d.xml", fn, i );
-			if ( !new File( Generic_Resave_HDF5.lastExportPath ).exists() )
+			HDF5Tools.lastExportPath = String.format( "%s-f%d.xml", fn, i );
+			if ( !new File( HDF5Tools.lastExportPath ).exists() )
 				break;
 		}
 
 		boolean is16bit = fusion.getPixelType() == 1;
 
 		final int firstviewSetupId = newViewSetups.get( 0 ).getId();
-		params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, getDescription(), is16bit );
+		params = HDF5Tools.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, getDescription(), is16bit );
 
 		if ( params == null )
 		{
@@ -161,7 +161,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 	protected static Pair< SpimData2, HashMap< ViewId, Partition > > initSpimData(
 			final List< TimePoint > newTimepoints,
 			final List< ViewSetup > newViewSetups,
-			final Parameters params,
+			final HDF5Parameters params,
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo )
 	{
 		// SequenceDescription containing the subset of viewsetups and timepoints. Does not have an ImgLoader yet.
@@ -229,7 +229,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
-	public static < T extends RealType< T > > double[] updateAndGetMinMax( final RandomAccessibleInterval< T > img, final Parameters params )
+	public static < T extends RealType< T > > double[] updateAndGetMinMax( final RandomAccessibleInterval< T > img, final HDF5Parameters params )
 	{
 		double min, max;
 
@@ -260,7 +260,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return new double[]{ min, max };
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< UnsignedShortType > convert( final RandomAccessibleInterval< T > img, final Parameters params )
+	public static < T extends RealType< T > > RandomAccessibleInterval< UnsignedShortType > convert( final RandomAccessibleInterval< T > img, final HDF5Parameters params )
 	{
 		final double[] minmax = updateAndGetMinMax( img, params );
 

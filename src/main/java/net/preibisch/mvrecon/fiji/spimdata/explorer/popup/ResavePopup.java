@@ -44,7 +44,6 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
@@ -54,6 +53,10 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.MicroManagerImgLoader;
+import net.preibisch.mvrecon.process.resave.HDF5Parameters;
+import net.preibisch.mvrecon.process.resave.HDF5Tools;
+import net.preibisch.mvrecon.process.resave.MultiResolutionTools;
+import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable
 {
@@ -211,7 +214,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 						panel.saveXML();
 
-						final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setups );
+						final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = MultiResolutionTools.proposeMipmaps( setups );
 						final int firstviewSetupId = data.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
 						final ExportMipmapInfo autoMipmapSettings = perSetupExportMipmapInfo.get( firstviewSetupId );
 
@@ -221,8 +224,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						final File hdf5File = new File( hdf5Filename );
 						IOFunctions.println( "HDF5 file: " + hdf5File.getAbsolutePath() );
 
-						final Generic_Resave_HDF5.Parameters params =
-								new Generic_Resave_HDF5.Parameters(
+						final HDF5Parameters params =
+								new HDF5Parameters(
 										false,
 										autoMipmapSettings.getExportResolutions(),
 										autoMipmapSettings.getSubdivisions(),
@@ -237,7 +240,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 										0, Double.NaN, Double.NaN );
 
 						// write hdf5
-						Generic_Resave_HDF5.writeHDF5( Resave_HDF5.reduceSpimData2( data, viewIds ), params, progressWriter );
+						HDF5Tools.writeHDF5( SpimData2Tools.reduceSpimData2( data, viewIds ), params, progressWriter );
 
 						final Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, viewIds, params, progressWriter, true );
 

@@ -71,6 +71,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 
 public class ExportSpimData2TIFF implements ImgExport
 {
@@ -362,12 +363,12 @@ public class ExportSpimData2TIFF implements ImgExport
 
 		try
 		{
-			timepoints = new TimePointsPattern( Resave_TIFF.listAllTimePoints( timepointsToProcess ) );
+			timepoints = new TimePointsPattern( SpimData2Tools.listAllTimePoints( timepointsToProcess ) );
 		}
 		catch (ParseException e)
 		{
 			IOFunctions.println( "Automatically created list of timepoints failed to parse. This should not happen, really :) -- " + e );
-			IOFunctions.println( "Here is the list: " + Resave_TIFF.listAllTimePoints( timepointsToProcess ) );
+			IOFunctions.println( "Here is the list: " + SpimData2Tools.listAllTimePoints( timepointsToProcess ) );
 			e.printStackTrace();
 			return null;
 		}

@@ -22,18 +22,23 @@
  */
 package net.preibisch.mvrecon.headless.resave;
 
-import bdv.export.ExportMipmapInfo;
-import bdv.export.ProgressWriter;
-import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.sequence.ViewId;
-
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import bdv.export.ExportMipmapInfo;
+import bdv.export.ProgressWriter;
+import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp;
-import net.preibisch.mvrecon.fiji.plugin.resave.*;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
+import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.process.resave.HDF5Parameters;
+import net.preibisch.mvrecon.process.resave.HDF5Tools;
+import net.preibisch.mvrecon.process.resave.MultiResolutionTools;
+import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 
 /**
  * Created by schmied on 02/07/15.
@@ -55,9 +60,9 @@ public class ResaveHdf5 {
             SpimData2.saveXML( xml.getData(), xml.getXMLFileName(), xml.getClusterExtension() );
         }
 
-        final Map< Integer, ExportMipmapInfo> perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( xml.getViewSetupsToProcess() );
+        final Map< Integer, ExportMipmapInfo> perSetupExportMipmapInfo = MultiResolutionTools.proposeMipmaps( xml.getViewSetupsToProcess() );
 
-        Generic_Resave_HDF5.lastExportPath = xmlfile;
+        HDF5Tools.lastExportPath = xmlfile;
 
         final int firstviewSetupId = xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
         ExportMipmapInfo autoMipmapSettings = perSetupExportMipmapInfo.get( firstviewSetupId );
@@ -105,7 +110,7 @@ public class ResaveHdf5 {
 
 
 
-        Generic_Resave_HDF5.Parameters newParameters = new Generic_Resave_HDF5.Parameters(
+        HDF5Parameters newParameters = new HDF5Parameters(
                 params.setMipmapManual,
                 resolutions,
                 subdivisions,
@@ -123,7 +128,7 @@ public class ResaveHdf5 {
         );
 
         // write hdf5
-        Generic_Resave_HDF5.writeHDF5(Resave_HDF5.reduceSpimData2(data, viewIds), newParameters, progressWriter);
+        HDF5Tools.writeHDF5(SpimData2Tools.reduceSpimData2(data, viewIds), newParameters, progressWriter);
 
         // write xml sequence description
         try
@@ -133,7 +138,7 @@ public class ResaveHdf5 {
             xml.getIO().save( result.getA(), newParameters.getSeqFile().getAbsolutePath() );
 
             // copy the interest points if they exist
-            Resave_TIFF.copyInterestPoints(xml.getData().getBasePath(), newParameters.getSeqFile().getParentFile(), result.getB());
+            SpimData2Tools.copyInterestPoints(xml.getData().getBasePath(), newParameters.getSeqFile().getParentFile(), result.getB());
         }
         catch ( SpimDataException e )
         {
