@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.process.resave;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,23 @@ import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 
 public class MultiResolutionTools
 {
+	public static ExportMipmapInfo getLargestMipMapInfo( final Collection< ExportMipmapInfo > mipmapinfo )
+	{
+		int maxNumLevels = -1;
+		ExportMipmapInfo max = null;
+
+		for ( final ExportMipmapInfo mm : mipmapinfo )
+		{
+			if ( mm.getNumLevels() > maxNumLevels )
+			{
+				maxNumLevels = mm.getNumLevels();
+				max = mm;
+			}
+		}
+
+		return max;
+	}
+
 	public static Map< Integer, ExportMipmapInfo > proposeMipmaps( final List< ? extends BasicViewSetup > viewsetups )
 	{
 		final HashMap< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = new HashMap< Integer, ExportMipmapInfo >();

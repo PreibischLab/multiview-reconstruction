@@ -33,12 +33,8 @@ import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.hdf5.Partition;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.io.IOFunctions;
-import net.imglib2.Dimensions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
@@ -70,7 +66,7 @@ public class Resave_HDF5 implements PlugIn
 		Toggle_Cluster_Options.displayClusterProcessing = rememberClusterProcessing;
 
 		// load all dimensions if they are not known (required for estimating the mipmap layout)
-		if ( loadDimensions( xml.getData(), xml.getViewSetupsToProcess() ) )
+		if ( SpimData2Tools.loadDimensions( xml.getData(), xml.getViewSetupsToProcess() ) )
 		{
 			// save the XML again with the dimensions loaded
 			SpimData2.saveXML( xml.getData(), xml.getXMLFileName(), xml.getClusterExtension() );
@@ -123,43 +119,6 @@ public class Resave_HDF5 implements PlugIn
 		}
 		progressWriter.setProgress( 1.0 );
 		progressWriter.out().println( "done" );
-	}
-
-	public static boolean loadDimensions( final SpimData2 spimData, final List< ViewSetup > viewsetups )
-	{
-		boolean loadedDimensions = false;
-
-		for ( final ViewSetup vs : viewsetups )
-		{
-			if ( vs.getSize() == null )
-			{
-				IOFunctions.println( "Dimensions of viewsetup " + vs.getId() + " unknown. Loading them ... " );
-
-				for ( final TimePoint t : spimData.getSequenceDescription().getTimePoints().getTimePointsOrdered() )
-				{
-					final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( t.getId(), vs.getId() );
-
-					if ( vd.isPresent() )
-					{
-						Dimensions dim = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( vd.getViewSetupId() ).getImageSize( vd.getTimePointId() );
-
-						IOFunctions.println(
-								"Dimensions: " + dim.dimension( 0 ) + "x" + dim.dimension( 1 ) + "x" + dim.dimension( 2 ) +
-								", loaded from tp:" + t.getId() + " vs: " + vs.getId() );
-
-						vs.setSize( dim );
-						loadedDimensions = true;
-						break;
-					}
-					else
-					{
-						IOFunctions.println( "ViewSetup: " + vs.getId() + " not present in timepoint: " + t.getId() );
-					}
-				}
-			}
-		}
-
-		return loadedDimensions;
 	}
 
 	public static Pair< SpimData2, List< String > > createXMLObject(

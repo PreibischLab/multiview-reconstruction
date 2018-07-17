@@ -210,7 +210,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						final List< ViewSetup > setups = SpimData2.getAllViewSetupsSorted( data, viewIds );
 						
 						// load all dimensions if they are not known (required for estimating the mipmap layout)
-						Resave_HDF5.loadDimensions( data, setups );
+						SpimData2Tools.loadDimensions( data, setups );
 
 						panel.saveXML();
 

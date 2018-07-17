@@ -21,9 +21,11 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
 import mpicbg.spim.data.sequence.TimePointsPattern;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.io.IOFunctions;
+import net.imglib2.Dimensions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
@@ -31,6 +33,43 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 
 public class SpimData2Tools
 {
+	public static boolean loadDimensions( final SpimData2 spimData, final List< ViewSetup > viewsetups )
+	{
+		boolean loadedDimensions = false;
+
+		for ( final ViewSetup vs : viewsetups )
+		{
+			if ( vs.getSize() == null )
+			{
+				IOFunctions.println( "Dimensions of viewsetup " + vs.getId() + " unknown. Loading them ... " );
+
+				for ( final TimePoint t : spimData.getSequenceDescription().getTimePoints().getTimePointsOrdered() )
+				{
+					final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( t.getId(), vs.getId() );
+
+					if ( vd.isPresent() )
+					{
+						Dimensions dim = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( vd.getViewSetupId() ).getImageSize( vd.getTimePointId() );
+
+						IOFunctions.println(
+								"Dimensions: " + dim.dimension( 0 ) + "x" + dim.dimension( 1 ) + "x" + dim.dimension( 2 ) +
+								", loaded from tp:" + t.getId() + " vs: " + vs.getId() );
+
+						vs.setSize( dim );
+						loadedDimensions = true;
+						break;
+					}
+					else
+					{
+						IOFunctions.println( "ViewSetup: " + vs.getId() + " not present in timepoint: " + t.getId() );
+					}
+				}
+			}
+		}
+
+		return loadedDimensions;
+	}
+
 	/**
 	 * Assembles a new SpimData2 based on the subset of timepoints and viewsetups as selected by the user.
 	 * The imgloader is still not set here.
