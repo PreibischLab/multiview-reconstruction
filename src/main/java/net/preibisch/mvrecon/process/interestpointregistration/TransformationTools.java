@@ -256,6 +256,7 @@ public class TransformationTools
 	}
 
 	public static void getScaling( final Affine3D< ? > affine, final double[] scale ) { getScaling( getTransform3D( affine ), scale ); }
+
 	public static void getScaling( final AffineGet affine, final double[] scale ) { getScaling( getTransform3D( affine ), scale ); }
 
 	public static String getScaling( final Affine3D< ? > affine ) { return getScaling( getTransform3D( affine ) ); }
@@ -264,19 +265,29 @@ public class TransformationTools
 
 	public static String getScaling( final Transform3D t )
 	{
-		
-		final Vector3d v = new Vector3d();
-		t.getScale( v );
-		return "Scaling: " + f.format( v.x ) + ", " + f.format( v.y ) + ", " + f.format( v.z );
+		final double[] scale = new double[ 3 ];
+		getScaling( t, scale );
+
+		return "Scaling: " + f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] );
 	}
 
 	public static void getScaling( final Transform3D t, double[] scale )
 	{
-		final Vector3d v = new Vector3d();
-		t.getScale( v );
-		scale[ 0 ] = v.x;
-		scale[ 1 ] = v.y;
-		scale[ 2 ] = v.z;
+		final Vector3d x = new Vector3d( 1, 0, 0 );
+		final Vector3d y = new Vector3d( 0, 1, 0 );
+		final Vector3d z = new Vector3d( 0, 0, 1 );
+
+		t.transform( x );
+		t.transform( y );
+		t.transform( z );
+
+		System.out.println( x.length() );
+		System.out.println( y.length() );
+		System.out.println( z.length() );
+
+		scale[ 0 ] = x.length();
+		scale[ 1 ] = y.length();
+		scale[ 2 ] = z.length();
 	}
 
 	public static Transform3D getTransform3D( final Affine3D< ? > affine )
