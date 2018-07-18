@@ -49,13 +49,16 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 /**
@@ -124,8 +127,12 @@ public class Image_Fusion implements PlugIn
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusing group " + (++i) + "/" + groups.size() + " (group=" + group + ")" );
 
-			for ( final ViewDescription vd : group )
-				System.out.println( Group.pvid( vd ) );
+			final Pair< Double, String > transformedCal = TransformationTools.computeAverageCalibration( group, spimData.getViewRegistrations() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of fused image (without downsampling): " + transformedCal.getA() + " " + transformedCal.getB() );
+
+			if ( Calibrateable.class.isInstance( exporter ) )
+				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );
+
 			final Interval boundingBox = fusion.getBoundingBox();
 
 			final RandomAccessibleInterval< FloatType > virtual;

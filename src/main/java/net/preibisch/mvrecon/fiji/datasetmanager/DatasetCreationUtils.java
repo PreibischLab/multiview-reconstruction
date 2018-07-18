@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,10 +8,13 @@ import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.registration.ViewTransformAffine;
+import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
 
 public class DatasetCreationUtils
@@ -62,6 +66,76 @@ public class DatasetCreationUtils
 				viewRegistrationMap.put( viewRegistration, viewRegistration );
 			}
 		return new ViewRegistrations( viewRegistrationMap );
+	}
+
+	/*
+	 * Finds the minimal resolution in between all view descriptions, and makes sure all data is available
+	 * Should be called before registration to make sure all metadata is right
+	 * 
+	 * @return - minimal resolution in all dimensions
+	 */
+	public static double minResolution(
+			final SequenceDescription sequenceDescription,
+			final Collection< ? extends ViewId > viewIdsToProcess )
+	{
+		double minResolution = Double.MAX_VALUE;
+
+		for ( final ViewId viewId : viewIdsToProcess )
+		{
+			final ViewDescription vd = sequenceDescription.getViewDescription( 
+					viewId.getTimePointId(), viewId.getViewSetupId() );
+
+			if ( !vd.isPresent() )
+				continue;
+
+			ViewSetup setup = vd.getViewSetup();
+
+			// load metadata to update the registrations if required
+			// only use calibration as defined in the metadata
+			if ( !setup.hasVoxelSize() )
+			{
+				VoxelDimensions voxelSize = sequenceDescription.getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getVoxelSize( viewId.getTimePointId() );
+				if ( voxelSize == null )
+				{
+					IOFunctions.println( "An error occured. Cannot load calibration for" +
+							" timepoint: " + vd.getTimePoint().getName() +
+							" angle: " + vd.getViewSetup().getAngle().getName() +
+							" channel: " + vd.getViewSetup().getChannel().getName() +
+							" illum: " + vd.getViewSetup().getIllumination().getName() );
+
+					IOFunctions.println( "Quitting. Please set it manually when defining the dataset or by modifying the XML" );
+
+					return Double.NaN;
+				}
+				setup.setVoxelSize( voxelSize );
+			}
+
+			if ( !setup.hasVoxelSize() )
+			{
+				IOFunctions.println( "An error occured. No calibration available for" +
+						" timepoint: " + vd.getTimePoint().getName() +
+						" angle: " + vd.getViewSetup().getAngle().getName() +
+						" channel: " + vd.getViewSetup().getChannel().getName() +
+						" illum: " + vd.getViewSetup().getIllumination().getName() );
+
+				IOFunctions.println( "Quitting. Please set it manually when defining the dataset or by modifying the XML." );
+				IOFunctions.println( "Note: if you selected to load calibration independently for each image, it should." );
+				IOFunctions.println( "      have been loaded during interest point detection." );
+
+				return Double.NaN;
+			}
+
+			VoxelDimensions voxelSize = setup.getVoxelSize();
+			final double calX = voxelSize.dimension( 0 );
+			final double calY = voxelSize.dimension( 1 );
+			final double calZ = voxelSize.dimension( 2 );
+
+			minResolution = Math.min( minResolution, calX );
+			minResolution = Math.min( minResolution, calY );
+			minResolution = Math.min( minResolution, calZ );
+		}
+
+		return minResolution;
 	}
 
 }

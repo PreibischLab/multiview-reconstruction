@@ -39,12 +39,10 @@ import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
-import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
@@ -57,6 +55,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
+import net.preibisch.mvrecon.fiji.datasetmanager.DatasetCreationUtils;
 import net.preibisch.mvrecon.fiji.plugin.apply.ApplyParameters;
 import net.preibisch.mvrecon.fiji.plugin.apply.BigDataViewerTransformationWindow;
 import net.preibisch.mvrecon.fiji.plugin.apply.ModelLink;
@@ -226,7 +225,7 @@ public class Apply_Transformation implements PlugIn
 		// reset the transform to the calibration (x,y,z resolution), in this case we need to make sure the calibration is actually available
 		if ( params.applyTo == 1 )
 		{
-			params.minResolution = assembleAllMetaData( data.getSequenceDescription(), viewIds );
+			params.minResolution = DatasetCreationUtils.minResolution( data.getSequenceDescription(), viewIds );
 
 			if ( Double.isNaN( params.minResolution ) )
 			{
@@ -813,75 +812,6 @@ public class Apply_Transformation implements PlugIn
 		final ViewRegistrations viewRegistrations = spimData.getViewRegistrations();
 		final ViewRegistration r = viewRegistrations.getViewRegistration( viewId );
 		r.identity();
-	}
-
-	/*
-	 * Should be called before registration to make sure all metadata is right
-	 * 
-	 * @return - minimal resolution in all dimensions
-	 */
-	public static double assembleAllMetaData(
-			final SequenceDescription sequenceDescription,
-			final Collection< ? extends ViewId > viewIdsToProcess )
-	{
-		double minResolution = Double.MAX_VALUE;
-		
-		for ( final ViewId viewId : viewIdsToProcess )
-		{
-			final ViewDescription vd = sequenceDescription.getViewDescription( 
-					viewId.getTimePointId(), viewId.getViewSetupId() );
-
-			if ( !vd.isPresent() )
-				continue;
-			
-			ViewSetup setup = vd.getViewSetup();
-			
-			// load metadata to update the registrations if required
-			// only use calibration as defined in the metadata
-			if ( !setup.hasVoxelSize() )
-			{
-				VoxelDimensions voxelSize = sequenceDescription.getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getVoxelSize( viewId.getTimePointId() );
-				if ( voxelSize == null )
-				{
-					IOFunctions.println( "An error occured. Cannot load calibration for" +
-							" timepoint: " + vd.getTimePoint().getName() +
-							" angle: " + vd.getViewSetup().getAngle().getName() +
-							" channel: " + vd.getViewSetup().getChannel().getName() +
-							" illum: " + vd.getViewSetup().getIllumination().getName() );
-					
-					IOFunctions.println( "Quitting. Please set it manually when defining the dataset or by modifying the XML" );
-					
-					return Double.NaN;
-				}
-				setup.setVoxelSize( voxelSize );
-			}
-
-			if ( !setup.hasVoxelSize() )
-			{
-				IOFunctions.println( "An error occured. No calibration available for" +
-						" timepoint: " + vd.getTimePoint().getName() +
-						" angle: " + vd.getViewSetup().getAngle().getName() +
-						" channel: " + vd.getViewSetup().getChannel().getName() +
-						" illum: " + vd.getViewSetup().getIllumination().getName() );
-				
-				IOFunctions.println( "Quitting. Please set it manually when defining the dataset or by modifying the XML." );
-				IOFunctions.println( "Note: if you selected to load calibration independently for each image, it should." );
-				IOFunctions.println( "      have been loaded during interest point detection." );
-				
-				return Double.NaN;
-			}
-			
-			VoxelDimensions voxelSize = setup.getVoxelSize();
-			final double calX = voxelSize.dimension( 0 );
-			final double calY = voxelSize.dimension( 1 );
-			final double calZ = voxelSize.dimension( 2 );
-			
-			minResolution = Math.min( minResolution, calX );
-			minResolution = Math.min( minResolution, calY );
-			minResolution = Math.min( minResolution, calZ );
-		}
-		
-		return minResolution;
 	}
 
 	public static void applyAxis( final SpimData data )

@@ -22,9 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
-import fiji.util.gui.GenericDialogPlus;
-import ij.gui.GenericDialog;
-
 import java.awt.Checkbox;
 import java.awt.Color;
 import java.awt.Font;
@@ -33,13 +30,10 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.registration.ViewRegistration;
+import fiji.util.gui.GenericDialogPlus;
+import ij.gui.GenericDialog;
 import mpicbg.spim.data.registration.ViewRegistrations;
-import mpicbg.spim.data.registration.ViewTransform;
-import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
@@ -52,7 +46,6 @@ import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
 import mpicbg.spim.data.sequence.TimePointsPattern;
-import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -61,10 +54,8 @@ import net.imglib2.Dimensions;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -328,7 +319,7 @@ public abstract class StackList implements MultiViewDatasetDefinition
 			}
 
 		// get the minimal resolution of all calibrations
-		final double minResolution = Apply_Transformation.assembleAllMetaData(
+		final double minResolution = DatasetCreationUtils.minResolution(
 				sequenceDescription,
 				sequenceDescription.getViewDescriptions().values() );
 

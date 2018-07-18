@@ -46,13 +46,16 @@ import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
-public class Save3dTIFF implements ImgExport
+public class Save3dTIFF implements ImgExport, Calibrateable
 {
 	public static boolean defaultUseXMLPath = true;
 	public static String defaultPath = null;
-	
+
 	String path;
 	boolean compress;
+
+	String unit = "px";
+	double cal = 1.0;
 
 	public Save3dTIFF( final String path ) { this( path, false ); }
 	public Save3dTIFF( final String path, final boolean compress )
@@ -112,7 +115,7 @@ public class Save3dTIFF implements ImgExport
 
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
 
-		DisplayImage.setCalibration( imp, bb, downsampling, anisoF );
+		DisplayImage.setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 
 		imp.updateAndDraw();
 
@@ -204,4 +207,17 @@ public class Save3dTIFF implements ImgExport
 		// nothing to do
 		return false;
 	}
+
+	@Override
+	public void setCalibration( final double pixelSize, final String unit )
+	{
+		this.cal = pixelSize;
+		this.unit = unit;
+	}
+
+	@Override
+	public String getUnit() { return unit; }
+
+	@Override
+	public double getPixelSize() { return cal; }
 }

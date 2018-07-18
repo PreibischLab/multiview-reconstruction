@@ -38,6 +38,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.fiji.plugin.fusion.DeconvolutionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -54,9 +55,11 @@ import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMul
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThread;
 import net.preibisch.mvrecon.process.deconvolution.util.PSFPreparation;
 import net.preibisch.mvrecon.process.deconvolution.util.ProcessInputImages;
+import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools.ImgDataType;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 /**
@@ -109,6 +112,12 @@ public class Image_Deconvolution implements PlugIn
 		for ( final Group< ViewDescription > deconGroup : Group.getGroupsSorted( deconGroupBatches ) )
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Deconvolving group " + (++i) + "/" + deconGroupBatches.size() + " (group=" + deconGroup + ")" );
+
+			final Pair< Double, String > transformedCal = TransformationTools.computeAverageCalibration( deconGroup, spimData.getViewRegistrations() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of fused image (without downsampling): " + transformedCal.getA() + " " + transformedCal.getB() );
+
+			if ( Calibrateable.class.isInstance( exporter ) )
+				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );
 
 			final List< Group< ViewDescription > > deconVirtualViews = Group.getGroupsSorted( decon.getDeconvolutionGrouping( deconGroup ) );
 

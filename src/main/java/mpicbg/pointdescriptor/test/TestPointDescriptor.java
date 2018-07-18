@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.commons.math3.transform.TransformUtils;
+
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.Point;
 import mpicbg.pointdescriptor.LinkedPoint;
@@ -41,11 +43,11 @@ import mpicbg.pointdescriptor.model.TranslationInvariantModel;
 import mpicbg.pointdescriptor.model.TranslationInvariantRigidModel3D;
 import mpicbg.pointdescriptor.similarity.SimilarityMeasure;
 import mpicbg.pointdescriptor.similarity.SquareDistance;
-import mpicbg.util.TransformUtils;
 import net.imglib2.KDTree;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 //import customnode.CustomLineMesh;
 import net.preibisch.mvrecon.vecmath.Matrix3f;
 import net.preibisch.mvrecon.vecmath.Point3f;
@@ -159,7 +161,7 @@ public class TestPointDescriptor
         final Transform3D trans = new Transform3D();
         trans.rotX( Math.toRadians( 30 ) );
         
-        final AffineModel3D model = TransformUtils.getAffineModel3D( trans );
+        final AffineModel3D model = TransformationTools.getAffineModel3D( trans );
         
         for ( final Point p : points )
         {

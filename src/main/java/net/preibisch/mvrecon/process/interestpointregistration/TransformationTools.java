@@ -54,13 +54,13 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.RealInterval;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -281,13 +281,73 @@ public class TransformationTools
 		t.transform( y );
 		t.transform( z );
 
-		System.out.println( x.length() );
-		System.out.println( y.length() );
-		System.out.println( z.length() );
-
 		scale[ 0 ] = x.length();
 		scale[ 1 ] = y.length();
 		scale[ 2 ] = z.length();
+	}
+
+	public static Pair< Double, String > computeAverageCalibration(
+			final Iterable< ? extends  BasicViewDescription< ? > > group,
+			final ViewRegistrations vrs)
+	{
+		String unit = null;
+		double avgCal = 0;
+		int count = 0;
+
+		for ( final BasicViewDescription< ? > vd : group )
+		{
+			System.out.println( "\n" + Group.pvid( vd ) );
+
+			final Pair< double[], String > transformedCal = TransformationTools.computeCalibration( vd, vrs );
+
+			avgCal += transformedCal.getA()[ 0 ];
+			avgCal += transformedCal.getA()[ 1 ];
+			avgCal += transformedCal.getA()[ 2 ];
+			count += 3;
+
+			if ( unit == null )
+				unit = transformedCal.getB();
+			else if ( unit.equalsIgnoreCase( transformedCal.getB() ) )
+				unit = transformedCal.getB();
+			else
+				unit = "inconsisistent";
+
+			System.out.println( "Calibration (transformed): " + Util.printCoordinates( transformedCal.getA() ) + " " + transformedCal.getB() );
+		}
+
+		if ( count == 0 )
+			return new ValuePair<>( 1.0, "px" );
+		else
+			return new ValuePair<>( avgCal / (double)count, unit );
+	}
+	
+	public static Pair< double[], String > computeCalibration( final BasicViewDescription< ? > vd, final ViewRegistrations vrs )
+	{
+		final VoxelDimensions vs = ViewSetupUtils.getVoxelSize( vd.getViewSetup() );
+		final double[] cal, scale = new double[ 3 ];
+		final String unit;
+
+		if ( vs == null )
+		{
+			cal = new double[] { 1, 1, 1 };
+			unit = "px";
+		}
+		else
+		{
+			cal = new double[ 3 ];
+			vs.dimensions( cal );
+			unit = vs.unit();
+		}
+
+		final ViewRegistration vr = vrs.getViewRegistration( vd );
+		vr.updateModel();
+		TransformationTools.getScaling( vr.getModel(), scale );
+
+		cal[ 0 ] /= scale[ 0 ];
+		cal[ 1 ] /= scale[ 1 ];
+		cal[ 2 ] /= scale[ 2 ];
+
+		return new ValuePair<>( cal, unit );
 	}
 
 	public static Transform3D getTransform3D( final Affine3D< ? > affine )

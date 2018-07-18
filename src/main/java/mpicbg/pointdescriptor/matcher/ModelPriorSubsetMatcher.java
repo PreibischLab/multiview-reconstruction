@@ -24,15 +24,14 @@ package mpicbg.pointdescriptor.matcher;
 
 import java.util.ArrayList;
 
+import mpicbg.models.PointMatch;
+import mpicbg.models.RigidModel3D;
+import mpicbg.pointdescriptor.model.TranslationInvariantRigidModel3D;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.vecmath.Matrix3d;
 import net.preibisch.mvrecon.vecmath.Point3d;
 import net.preibisch.mvrecon.vecmath.Quat4d;
 import net.preibisch.mvrecon.vecmath.Vector3d;
-
-import mpicbg.models.PointMatch;
-import mpicbg.models.RigidModel3D;
-import mpicbg.pointdescriptor.model.TranslationInvariantRigidModel3D;
-import mpicbg.util.TransformUtils;
 
 public class ModelPriorSubsetMatcher extends SubsetMatcher
 {
@@ -49,7 +48,7 @@ public class ModelPriorSubsetMatcher extends SubsetMatcher
 		this.model = model;
 		
 		this.referenceMatrix = new Matrix3d();                
-        TransformUtils.getTransform3D( model ).get( referenceMatrix );
+		TransformationTools.getTransform3D( model ).get( referenceMatrix );
 
         this.invertedReferenceMatrix = new Matrix3d( this.referenceMatrix );
 		this.invertedReferenceMatrix.invert();
