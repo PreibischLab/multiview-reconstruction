@@ -24,17 +24,17 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 
 import java.util.ArrayList;
 
-import mpicbg.pointdescriptor.AbstractPointDescriptor;
-import mpicbg.pointdescriptor.SimplePointDescriptor;
-import mpicbg.pointdescriptor.exception.NoSuitablePointsException;
-import mpicbg.pointdescriptor.matcher.Matcher;
-import mpicbg.pointdescriptor.matcher.SubsetMatcher;
-import mpicbg.pointdescriptor.similarity.SimilarityMeasure;
-import mpicbg.pointdescriptor.similarity.SquareDistance;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.KDTree;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.AbstractPointDescriptor;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.SimplePointDescriptor;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.matcher.Matcher;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.matcher.SubsetMatcher;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.similarity.SimilarityMeasure;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.similarity.SquareDistance;
 
 public class RGLDMMatcher< I extends InterestPoint >
 {
