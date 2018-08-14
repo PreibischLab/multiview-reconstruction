@@ -52,19 +52,17 @@ public class FileListViewDetectionState
 {
 	Boolean ambiguousAngleTile;
 	Boolean ambiguousIllumChannel;
-	
 	Boolean groupedFormat;
-	
+	Boolean wasZGrouped;
+
 	Map<Class<? extends Entity>, FileListDatasetDefinitionUtil.CheckResult> multiplicityMap;	
 	Map<Class<? extends Entity>, Map<Object, List<Pair<File, Pair< Integer, Integer >>>>> accumulativeMap;	
 	Map<Class<? extends Entity>, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > >> idMap;	
 	Map<Class<? extends Entity>, Map< Integer, Object>> detailMap;
-	
-	
+
 	Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMap;
-	
 	Map<String, Pair<File, Integer>> groupUsageMap;
-	
+
 	public FileListViewDetectionState()
 	{
 		multiplicityMap = new HashMap<>();		
@@ -72,7 +70,7 @@ public class FileListViewDetectionState
 		idMap = new HashMap<>();		
 		detailMap = new HashMap<>();
 		groupUsageMap = new HashMap<>();
-		
+
 		for (Class<? extends Entity> cl : new Class[] {Angle.class, TimePoint.class, Illumination.class, Tile.class, Channel.class})
 		{
 			multiplicityMap.put( cl, CheckResult.SINGLE  );
@@ -80,14 +78,14 @@ public class FileListViewDetectionState
 			idMap.put( cl, new HashMap<>() );
 			detailMap.put( cl, new HashMap<>() );
 		}
-		
+
 		ambiguousAngleTile = false;
 		ambiguousIllumChannel = false;
-		
+
 		groupedFormat = false;
-		
+		wasZGrouped = false;
+
 		dimensionMap = new HashMap<>();
-		
 	}
 
 	/**
@@ -183,32 +181,6 @@ public class FileListViewDetectionState
 	{
 		return accumulativeMap.get( cl );
 	}
-	
-
-//	public Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > getAccumulateTPMap()
-//	{
-//		return accumulateTPMap;
-//	}
-//
-//	public Map< FileListDatasetDefinitionUtil.ChannelInfo, List< Pair< File, Pair< Integer, Integer > > > > getAccumulateChannelMap()
-//	{
-//		return accumulateChannelMap;
-//	}
-//
-//	public Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > getAccumulateIllumMap()
-//	{
-//		return accumulateIllumMap;
-//	}
-//
-//	public Map< FileListDatasetDefinitionUtil.TileInfo, List< Pair< File, Pair< Integer, Integer > > > > getAccumulateTileMap()
-//	{
-//		return accumulateTileMap;
-//	}
-//
-//	public Map< FileListDatasetDefinitionUtil.AngleInfo, List< Pair< File, Pair< Integer, Integer > > > > getAccumulateAngleMap()
-//	{
-//		return accumulateAngleMap;
-//	}
 
 	public Map< Pair< File, Pair< Integer, Integer > >, Pair< Dimensions, VoxelDimensions > > getDimensionMap()
 	{
@@ -230,8 +202,6 @@ public class FileListViewDetectionState
 		return idMap;
 	}
 
-	
-
 	public Map< Class< ? extends Entity >, Map< Integer, Object > > getDetailMap()
 	{
 		return detailMap;
@@ -252,7 +222,14 @@ public class FileListViewDetectionState
 		return groupUsageMap;
 	}
 
-	
-	
+	public Boolean getWasZGrouped()
+	{
+		return wasZGrouped;
+	}
+
+	public void setWasZGrouped(Boolean wasZGrouped)
+	{
+		this.wasZGrouped = wasZGrouped;
+	}
 
 }
