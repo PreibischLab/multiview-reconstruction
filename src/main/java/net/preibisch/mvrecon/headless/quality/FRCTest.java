@@ -68,7 +68,8 @@ public class FRCTest
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
-		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, 256, 0.1 );
+		//final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, 256, 0.1 );
+		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.fixedGridXY( input, 100 );
 
 		for ( int z = 0; z < input.dimension( 2 ); z += 10 )
 			for ( final Pair< Long, Long > xy : xyPositions )

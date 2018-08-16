@@ -173,6 +173,43 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
 	}
 
+	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
+	{
+		final long lx = interval.dimension( 0 );
+		final long ly = interval.dimension( 1 );
+
+		System.out.println( "lx: " + lx );
+		System.out.println( "ly: " + ly );
+
+		long sqX = Math.max( 1, lx / distance );
+		if ( lx % distance > 0 ) ++sqX;
+
+		long sqY = Math.max( 1, ly / distance );
+		if ( ly % distance > 0 ) ++sqY;
+
+		System.out.println( "SquaresX: " + sqX );
+		System.out.println( "SquaresY: " + sqY );
+
+		final ArrayList< Long > xPos = getLocations( sqX, lx );
+		final ArrayList< Long > yPos = getLocations( sqY, ly );
+
+		final ArrayList< Pair< Long, Long > > list = new ArrayList<>();
+
+		for ( final long x : xPos )
+			System.out.println( x );
+
+		System.out.println();
+
+		for ( final long y : yPos )
+			System.out.println( y );
+
+		for ( int y = 0; y < yPos.size(); ++y )
+			for ( int x = 0; x < xPos.size(); ++x )
+				list.add( new ValuePair< Long, Long >( xPos.get( x ) + interval.min( 0 ), yPos.get( y ) + interval.min( 1 ) ) );
+
+		return list;
+	}
+
 	public static ArrayList< Pair< Long, Long > > distributeSquaresXY( final Interval interval, final long length, final double overlapTolerance )
 	{
 		final long lx = interval.dimension( 0 );
@@ -197,7 +234,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			++sqY;
 
 		System.out.println( "SquaresX: " + sqX );
-		System.out.println( "SquaresY: " + sqX );
+		System.out.println( "SquaresY: " + sqY );
 
 		final ArrayList< Long > xPos = getLocations( sqX, lx );
 		final ArrayList< Long > yPos = getLocations( sqY, ly );
@@ -245,6 +282,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 	{
 		Interval interval = new FinalInterval( new long[] { 0, 0 }, new long[] { 260, 128 } );
 
-		distributeSquaresXY( interval, 256, 0.01 );
+		fixedGridXY( interval, 50 );
+		//distributeSquaresXY( interval, 256, 0.01 );
 	}
 }
