@@ -39,6 +39,7 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.img.Img;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -184,6 +185,47 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		}
 
 		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
+	}
+
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ )
+	{
+		return fixedGridFRC( input, distanceXY, distanceZ, 256 );
+	}
+
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize )
+	{
+		final ArrayList< Point > locations = new ArrayList<>();
+
+		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.fixedGridXY( input, distanceXY );
+
+		for ( int z = 0; z < input.dimension( 2 ); z += distanceZ )
+			for ( final Pair< Long, Long > xy : xyPositions )
+				locations.add( new Point( xy.getA(), xy.getB(), z ) );
+
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize );
+	}
+
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ )
+	{
+		return distributeGridFRC( input, 0.1, distanceZ, 256 );
+	}
+
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final int fhtSqSize )
+	{
+		return distributeGridFRC( input, 0.1, distanceZ, fhtSqSize );
+	}
+
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize )
+	{
+		final ArrayList< Point > locations = new ArrayList<>();
+
+		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, fhtSqSize, overlapTolerance );
+
+		for ( int z = 0; z < input.dimension( 2 ); z += distanceZ )
+			for ( final Pair< Long, Long > xy : xyPositions )
+				locations.add( new Point( xy.getA(), xy.getB(), z ) );
+
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize );
 	}
 
 	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
