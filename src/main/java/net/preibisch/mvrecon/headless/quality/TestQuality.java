@@ -7,6 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 
 import ij.ImageJ;
+import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.registration.ViewRegistrations;
+import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
@@ -15,7 +19,9 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
@@ -25,16 +31,22 @@ import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInt
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
 import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
 public class TestQuality
 {
-	public static void main( String[] args )
+	public static void main( String[] args ) throws SpimDataException
 	{
 		new ImageJ();
 
+		SpimData2 spimData;
+		
 		// generate 4 views with 1000 corresponding beads, single timepoint
-		SpimData2 spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
+		// spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
+
+		// load drosophila
+		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
 
 		System.out.println( "Views present:" );
 
@@ -48,22 +60,52 @@ public class TestQuality
 	{
 		// select views to process
 		final List< ViewId > viewIds = new ArrayList< ViewId >();
-		viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+
+		viewIds.add( new ViewId( 0, 0 ) );
+		viewIds.add( new ViewId( 0, 1 ) );
+
+		//viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		// filter not present ViewIds
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		Interval bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
+
+		// img loading and registrations
+		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
+		final ViewRegistrations registrations = spimData.getViewRegistrations();
+
+		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > data = new ArrayList<>();
+
+		for ( final ViewId viewId : viewIds )
+		{
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading view " +  Group.pvid( viewId ) + " ..." );
+
+			final RandomAccessibleInterval input = imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+			//DisplayImage.getImagePlusInstance( input, true, "Fused, Virtual", 0, 255 ).show();
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
+
+			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 5, 256, true, null );
+			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
+
+			final ViewRegistration vr = registrations.getViewRegistration( viewId );
+			vr.updateModel();
+
+			data.add( new ValuePair<>( frc.getRandomAccessibleInterval(), vr.getModel() ) );
+		}
 
 		// downsampling
-		double downsampling = Double.NaN;
+		double downsampling = 4; //Double.NaN;
 
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling );
-		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
+
+		final RandomAccessibleInterval< FloatType > virtual = fuseRAIs( data, downsampling, bb, 1 );
+		DisplayImage.getImagePlusInstance( virtual, false, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 	}
 

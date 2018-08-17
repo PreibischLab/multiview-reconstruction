@@ -43,7 +43,6 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
-import net.imglib2.img.Img;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -280,7 +279,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -293,7 +292,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, smooth, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
