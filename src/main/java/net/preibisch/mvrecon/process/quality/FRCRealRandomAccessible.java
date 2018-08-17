@@ -24,7 +24,11 @@ package net.preibisch.mvrecon.process.quality;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import ij.IJ;
 import ij.process.FloatProcessor;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
@@ -51,6 +55,8 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.Threads;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 /**
  * Computes the fourier ring correlation at specific positions and interpolates between all points
@@ -71,7 +77,8 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 	public FRCRealRandomAccessible(
 			final RandomAccessibleInterval< T > input,
 			final List< Point > locations,
-			final int length )
+			final int length,
+			final ExecutorService service )
 	{
 		this.n = input.numDimensions();
 
@@ -79,14 +86,47 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		this.qualityList = new PointSampleList<>( input.numDimensions() );
 
 		final RandomAccessible< FloatType > floatInput = Views.extendMirrorSingle( getFloatRAI( input ) );
+		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+		final AtomicInteger progress = new AtomicInteger( 0 );
 
+		IJ.showProgress( 0.01 );
+
+		for ( final Point l : locations )
+		{
+			tasks.add( new Callable< Void >()
+			{
+				@Override
+				public Void call() throws Exception
+				{
+					final double quality = computeFRC( floatInput, l, length );
+
+					synchronized ( qualityList )
+					{
+						qualityList.add( l, new FloatType( (float)quality ) );
+					}
+
+					IJ.showProgress( (double)progress.incrementAndGet() / locations.size() );
+
+					return null;
+				}
+			});
+		}
+
+		if ( service == null )
+			FusionTools.execTasks( tasks, Threads.numThreads(), "frc" );
+		else
+			FusionTools.execTasks( tasks, service, "frc" );
+
+		IJ.showProgress( 1.0 );
+
+		/*
 		for ( final Point l : locations )
 		{
 			final double quality = computeFRC( floatInput, l, length );
 			qualityList.add( l, new FloatType( (float)quality ) );
 			
 			System.out.println( l + ": " + quality );
-		}
+		}*/
 	}
 
 	@Override
@@ -187,12 +227,12 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final ExecutorService service )
 	{
-		return fixedGridFRC( input, distanceXY, distanceZ, 256 );
+		return fixedGridFRC( input, distanceXY, distanceZ, 256, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -202,30 +242,31 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final ExecutorService service )
 	{
-		return distributeGridFRC( input, 0.1, distanceZ, 256 );
+		return distributeGridFRC( input, 0.1, distanceZ, 256, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final int fhtSqSize )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final int fhtSqSize, final ExecutorService service )
 	{
-		return distributeGridFRC( input, 0.1, distanceZ, fhtSqSize );
+		return distributeGridFRC( input, 0.1, distanceZ, fhtSqSize, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
 		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, fhtSqSize, overlapTolerance );
 
+		
 		for ( int z = 0; z < input.dimension( 2 ); z += distanceZ )
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, service );
 	}
 
 	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
