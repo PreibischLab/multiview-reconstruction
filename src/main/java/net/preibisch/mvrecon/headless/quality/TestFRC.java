@@ -57,8 +57,8 @@ public class TestFRC
 
 	public static void testFRC( final Img< FloatType > input )
 	{
-		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, null );
-		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 100, 10, 256, null );
+		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, true, null );
+		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, null );
 
 		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();
 	}

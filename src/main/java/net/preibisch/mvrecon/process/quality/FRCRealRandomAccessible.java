@@ -78,6 +78,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			final RandomAccessibleInterval< T > input,
 			final List< Point > locations,
 			final int length,
+			final boolean smooth,
 			final ExecutorService service )
 	{
 		this.n = input.numDimensions();
@@ -98,7 +99,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 				@Override
 				public Void call() throws Exception
 				{
-					final double quality = computeFRC( floatInput, l, length );
+					final double quality = smooth ? computeSmoothFRC( floatInput, l, length ) : computeFRC( floatInput, l, length );
 
 					synchronized ( qualityList )
 					{
@@ -191,6 +192,22 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return integral;
 	}
 
+	public static double computeSmoothFRC(
+			final RandomAccessible< FloatType > input,
+			final Point location,
+			final int length )
+	{
+		final ArrayList< FloatProcessor > fps = getThreeImages( input, location.getLongPosition( 0 ), location.getLongPosition( 1 ), location.getLongPosition( 2 ), length );
+
+		final double[][] frcCurve1 = new FRC().calculateFrcCurve( fps.get( 0 ), fps.get( 1 ) );
+		final double[][] frcCurve2 = new FRC().calculateFrcCurve( fps.get( 1 ), fps.get( 2 ) );
+
+		final double integral1 = integral( frcCurve1 );
+		final double integral2 = integral( frcCurve2 );
+
+		return ( integral1 + integral2 ) / 2.0;
+	}
+
 	public static double integral( final double[][] frcCurve )
 	{
 		double integral = 0;
@@ -199,6 +216,42 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			integral += frcCurve[ i ][ 1 ];
 
 		return integral;
+	}
+
+	public static ArrayList< FloatProcessor > getThreeImages( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
+	{
+		final RandomAccessible< FloatType > s0 = Views.hyperSlice( img, 2, z );
+		final RandomAccessible< FloatType > s1 = Views.hyperSlice( img, 2, z + 1 );
+		final RandomAccessible< FloatType > s2 = Views.hyperSlice( img, 2, z - 1 );
+
+		final FloatProcessor fp0 = new FloatProcessor( length, length );
+		final FloatProcessor fp1 = new FloatProcessor( length, length );
+		final FloatProcessor fp2 = new FloatProcessor( length, length );
+
+		final long minX = x - length/2;
+		final long minY = y - length/2;
+
+		final Cursor< FloatType > c0 = Views.iterable( Views.interval( s0, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
+		final Cursor< FloatType > c1 = Views.iterable( Views.interval( s1, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
+		final Cursor< FloatType > c2 = Views.iterable( Views.interval( s2, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
+
+		while ( c0.hasNext() )
+		{
+			c0.fwd();
+			c1.fwd();
+			c2.fwd();
+
+			fp0.setf( c0.getIntPosition( 0 ) - (int)minX, c0.getIntPosition( 1 ) - (int)minY, c0.get().get() );
+			fp1.setf( c1.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
+			fp2.setf( c2.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
+		}
+
+		final ArrayList< FloatProcessor > list = new ArrayList<>();
+		list.add( fp2 ); // -1
+		list.add( fp0 ); // 0
+		list.add( fp1 ); // 1
+
+		return list;
 	}
 
 	public static Pair< FloatProcessor, FloatProcessor > getTwoImagesA( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
@@ -227,12 +280,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final ExecutorService service )
-	{
-		return fixedGridFRC( input, distanceXY, distanceZ, 256, service );
-	}
-
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final Img< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -242,20 +290,10 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, smooth, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final ExecutorService service )
-	{
-		return distributeGridFRC( input, 0.1, distanceZ, 256, service );
-	}
-
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final int distanceZ, final int fhtSqSize, final ExecutorService service )
-	{
-		return distributeGridFRC( input, 0.1, distanceZ, fhtSqSize, service );
-	}
-
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final Img< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -266,7 +304,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, smooth, service );
 	}
 
 	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
