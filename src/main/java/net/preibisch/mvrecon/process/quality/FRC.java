@@ -93,7 +93,7 @@ import org.apache.commons.math3.util.FastMath;
 	 */
 	public double[][] calculateFrcCurve(ImageProcessor ip1, ImageProcessor ip2)
 	{
-		IJ.showStatus("Calculating complex FFT images...");
+		//IJ.showStatus("Calculating complex FFT images...");
 
 		// Pad images to the same size
 		final int maxWidth = FastMath.max(ip1.getWidth(), ip2.getWidth());
@@ -105,7 +105,7 @@ import org.apache.commons.math3.util.FastMath;
 		FloatProcessor[] fft1 = getComplexFFT(ip1);
 		FloatProcessor[] fft2 = getComplexFFT(ip2);
 
-		IJ.showStatus("Preparing FRC curve calculation...");
+		//IJ.showStatus("Preparing FRC curve calculation...");
 
 		final int size = fft1[0].getWidth();
 
@@ -132,7 +132,7 @@ import org.apache.commons.math3.util.FastMath;
 		int radius = 1;
 		final double centre = size / 2;
 	    final double max = (Math.max(maxWidth, maxHeight)/2) - 1;
-		IJ.showStatus("Calculating FRC curve...");
+		//IJ.showStatus("Calculating FRC curve...");
 
 		double[][] frcCurve = new double[(int) max][3];
 
@@ -145,9 +145,9 @@ import org.apache.commons.math3.util.FastMath;
 
 		while (radius < max)
 		{
-			final double progress = (1.0 * radius) / max;
-			IJ.showProgress(progress);
-			IJ.showStatus("Calculating FRC curve...[Radius = " + radius + "px]");
+			//final double progress = (1.0 * radius) / max;
+			//IJ.showProgress(progress);
+			//IJ.showStatus("Calculating FRC curve...[Radius = " + radius + "px]");
 
 			// Inline the calculation for speed
 			double sum1 = 0;
@@ -184,8 +184,8 @@ import org.apache.commons.math3.util.FastMath;
 			radius++;
 		}
 
-		IJ.showProgress(1);
-		IJ.showStatus("Finished calculating FRC curve...");
+		//IJ.showProgress(1);
+		//IJ.showStatus("Finished calculating FRC curve...");
 
 		return frcCurve;
 	}
@@ -215,6 +215,7 @@ import org.apache.commons.math3.util.FastMath;
 		FloatProcessor taperedDataImage = getSquareTaperedImage(ip);
 
 		FHT fht = new FHT(taperedDataImage);
+		fht.setShowProgress( false );
 		fht.transform();
 
 		FloatProcessor[] ret = new FloatProcessor[2];
