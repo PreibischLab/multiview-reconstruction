@@ -39,7 +39,10 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
+import net.imglib2.neighborsearch.KNearestNeighborSearch;
+import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearch;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.RealType;
@@ -111,6 +114,16 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		// InverseDistanceWeightingInterpolatorFactory
 		final NearestNeighborSearch< FloatType > search = new NearestNeighborSearchOnKDTree<>( new KDTree<>( qualityList ) );
 		final RealRandomAccessible< FloatType > realRandomAccessible = Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< FloatType >() );
+		final RandomAccessible< FloatType > randomAccessible = Views.raster( realRandomAccessible );
+		final RandomAccessibleInterval< FloatType > rai = Views.interval( randomAccessible, interval );
+
+		return Views.interval( Views.extendZero( rai ), interval );
+	}
+
+	public RandomAccessibleInterval< FloatType > getRenderedQuality( final int numPoints, final double power )
+	{
+		final KNearestNeighborSearch< FloatType > search = new KNearestNeighborSearchOnKDTree<>( new KDTree<>( qualityList ), numPoints );
+		final RealRandomAccessible< FloatType > realRandomAccessible = Views.interpolate( search, new InverseDistanceWeightingInterpolatorFactory< FloatType >( power ) );
 		final RandomAccessible< FloatType > randomAccessible = Views.raster( realRandomAccessible );
 		final RandomAccessibleInterval< FloatType > rai = Views.interval( randomAccessible, interval );
 

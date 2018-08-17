@@ -38,8 +38,6 @@ import net.imglib2.Cursor;
 import net.imglib2.Point;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -57,7 +55,7 @@ public class FRCTest
 
 		//final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif" ) );
 		final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File(
-				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/clarity-2.tif" ) );
+				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/brain-1.tif" ) );
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
 		imp.show();
 
@@ -77,7 +75,7 @@ public class FRCTest
 
 		final FRCRealRandomAccessible< FloatType > frc = new FRCRealRandomAccessible<>( input, locations, 256 );
 
-		ImageJFunctions.show( frc.getRenderedQuality() );
+		DisplayImage.getImagePlusInstance( frc.getRenderedQuality(), false, "brain", Double.NaN, Double.NaN ).show();;
 	}
 	
 	
