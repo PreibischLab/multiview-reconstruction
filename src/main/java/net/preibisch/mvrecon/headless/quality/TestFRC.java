@@ -48,7 +48,7 @@ public class TestFRC
 
 		//final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif" ) );
 		final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File(
-				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/brain-1.tif" ) );
+				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/clarity-2.tif" ) );
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
 		imp.show();
 
@@ -57,10 +57,10 @@ public class TestFRC
 
 	public static void testFRC( final Img< FloatType > input )
 	{
-		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256 );
-		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 100, 10, 256 );
+		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, null );
+		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 100, 10, 256, null );
 
-		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "brain", Double.NaN, Double.NaN ).show();;
+		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();
 	}
 
 	public static Pair< FloatProcessor, FloatProcessor > getTwoImagesB( final Img< FloatType > img, final int z )
