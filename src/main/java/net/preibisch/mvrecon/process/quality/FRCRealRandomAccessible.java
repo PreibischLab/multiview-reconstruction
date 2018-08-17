@@ -109,7 +109,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< FloatType >() );
 	}
 
-	public RandomAccessibleInterval< FloatType > getRenderedQuality()
+	public RandomAccessibleInterval< FloatType > getRandomAccessibleInterval()
 	{
 		// InverseDistanceWeightingInterpolatorFactory
 		final NearestNeighborSearch< FloatType > search = new NearestNeighborSearchOnKDTree<>( new KDTree<>( qualityList ) );
@@ -120,7 +120,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return Views.interval( Views.extendZero( rai ), interval );
 	}
 
-	public RandomAccessibleInterval< FloatType > getRenderedQuality( final int numPoints, final double power )
+	public RandomAccessibleInterval< FloatType > getRandomAccessibleInterval( final int numPoints, final double power )
 	{
 		final KNearestNeighborSearch< FloatType > search = new KNearestNeighborSearchOnKDTree<>( new KDTree<>( qualityList ), numPoints );
 		final RealRandomAccessible< FloatType > realRandomAccessible = Views.interpolate( search, new InverseDistanceWeightingInterpolatorFactory< FloatType >( power ) );

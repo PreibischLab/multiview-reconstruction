@@ -75,7 +75,7 @@ public class FRCTest
 
 		final FRCRealRandomAccessible< FloatType > frc = new FRCRealRandomAccessible<>( input, locations, 256 );
 
-		DisplayImage.getImagePlusInstance( frc.getRenderedQuality(), false, "brain", Double.NaN, Double.NaN ).show();;
+		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "brain", Double.NaN, Double.NaN ).show();;
 	}
 	
 	
