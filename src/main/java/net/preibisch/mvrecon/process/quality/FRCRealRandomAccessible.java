@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.quality;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +44,7 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.img.Img;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -179,7 +181,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			final int length )
 
 	{
-		final Pair< FloatProcessor, FloatProcessor > fps = getTwoImagesA( input, location.getLongPosition( 0 ), location.getLongPosition( 1 ), location.getLongPosition( 2 ), length );
+		final Pair< FloatProcessor, FloatProcessor > fps = getTwoImages( input, location.getLongPosition( 0 ), location.getLongPosition( 1 ), location.getLongPosition( 2 ), length );
 
 		final FRC frc = new FRC();
 
@@ -242,7 +244,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 
 			fp0.setf( c0.getIntPosition( 0 ) - (int)minX, c0.getIntPosition( 1 ) - (int)minY, c0.get().get() );
 			fp1.setf( c1.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
-			fp2.setf( c2.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
+			fp2.setf( c2.getIntPosition( 0 ) - (int)minX, c2.getIntPosition( 1 ) - (int)minY, c2.get().get() );
 		}
 
 		final ArrayList< FloatProcessor > list = new ArrayList<>();
@@ -253,7 +255,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return list;
 	}
 
-	public static Pair< FloatProcessor, FloatProcessor > getTwoImagesA( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
+	public static Pair< FloatProcessor, FloatProcessor > getTwoImages( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
 	{
 		final RandomAccessible< FloatType > s0 = Views.hyperSlice( img, 2, z );
 		final RandomAccessible< FloatType > s1 = Views.hyperSlice( img, 2, z + 1 );
