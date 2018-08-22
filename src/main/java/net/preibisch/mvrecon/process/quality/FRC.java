@@ -378,7 +378,7 @@ import org.apache.commons.math3.util.FastMath;
 
 		double[] ySmoothed = new double[frcCurve.length];
 
-		try
+		//try
 		{
 			LoessInterpolator loess = new LoessInterpolator(bandwidth, robustness);
 			ySmoothed = loess.smooth(xVals, yVals);
@@ -386,9 +386,9 @@ import org.apache.commons.math3.util.FastMath;
 			for (int i = 0; i < frcCurve.length; i++)
 				sCurve[i][1] = ySmoothed[i];
 		}
-		catch (Exception e)
+		//catch (Exception e)
 		{
-			e.printStackTrace();
+		//	e.printStackTrace();
 		}
 
 		return sCurve;
