@@ -63,19 +63,44 @@ public class TestFRC
 
 	public static void testFRC( final Img< FloatType > input )
 	{
-		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, true, null );
-		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, null );
+		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, true, true, FRCRealRandomAccessible.relativeFRCDist, null );
+		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, false, FRCRealRandomAccessible.relativeFRCDist, null );
 
 		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();
 	}
 
-	public static void testFRCOld( final Img< FloatType > img )
+	public static void testFRCOld( final Img< FloatType > input )
 	{
+		final RandomAccessibleInterval< FloatType > img = Views.interval( Views.extendMirrorSingle( input ), input );
+
 		ThresholdMethod tm = ThresholdMethod.FIXED_1_OVER_7;
 		ImageStack stack = null;
 
-		for ( int z = 0; z < img.dimension( 2 ) - 1; z += 10 )
+		for ( int z = 10/2; z < img.dimension( 2 ) - 10/2; z += 10 )
 		{
+			final int dimX = (int)img.dimension( 0 );
+			final int dimY = (int)img.dimension( 1 );
+			final int dim = Math.min( dimX, dimY );
+
+			final FloatProcessor fp0 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z, dim );
+			final FloatProcessor fp1 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z + 1, dim );
+			//final FloatProcessor fp2 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z - 1, dim );
+
+			final FloatProcessor fpD0 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z - 5, dim );
+			final FloatProcessor fpD1 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z + 5, dim );
+
+			final FRC frc = new FRC();
+
+			double[][] frcCurveA = frc.calculateFrcCurve( fp0, fp1 );
+			//double[][] frcCurveB = frc.calculateFrcCurve( fp0, fp2 );
+
+			final double[][] frcCurve1 = frcCurveA.clone();
+			for ( int i = 0; i < frcCurve1.length; ++i )
+				frcCurve1[ i ][ 1 ] = ( frcCurveA[ i ][ 1 ] );// + frcCurveB[ i ][ 1 ] ) / 2.0;
+
+			double[][] frcCurve10 =  frc.getSmoothedCurve( frc.calculateFrcCurve( fpD0, fpD1 ) );
+
+			/*
 			final Pair< FloatProcessor, FloatProcessor > fps1 = getTwoImagesA( img, z, 1 );
 			final Pair< FloatProcessor, FloatProcessor > fps10 = getTwoImagesA( img, z - 5, 10 );
 
@@ -88,16 +113,17 @@ public class TestFRC
 			// Get FIRE Number, assumes you have access to the two image processors.
 			double[][] frcCurve1 = frc.calculateFrcCurve( fps1.getA(), fps1.getB() );
 			double[][] frcCurve10 =  frc.getSmoothedCurve( frc.calculateFrcCurve( fps10.getA(), fps10.getB() ) );
+			*/
 
 			final double[][] frcCurve = frcCurve1.clone();
 			for ( int i = 0; i < frcCurve.length; ++i )
-				frcCurve[ i ][ 1 ] = Math.max( 0, frcCurve1[ i ][ 1 ] - frcCurve10[ i ][ 1 ] );
+				frcCurve[ i ][ 1 ] = frcCurve1[ i ][ 1 ] - frcCurve10[ i ][ 1 ];//Math.max( 0, frcCurve1[ i ][ 1 ] - frcCurve10[ i ][ 1 ] );
 
 			double integral = FRCRealRandomAccessible.integral( frcCurve );
 
 			double fire = frc.calculateFireNumber( frcCurve, tm );
 			System.out.println( z + ": " + fire + " " + integral);
-
+	
 			//if ( z== 41 || z== 42 )
 			{
 			Plot p = frc.doPlot( frcCurve, frc.getSmoothedCurve( frcCurve ), tm, fire, "" + z );
