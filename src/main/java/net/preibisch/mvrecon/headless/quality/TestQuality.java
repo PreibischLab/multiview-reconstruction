@@ -80,8 +80,10 @@ public class TestQuality
 			// re-populate not present ViewIds
 			//updateMissingViews( spimData, viewIds );
 			//BoundingBoxMaximal.ignoreMissingViews = true;
-	
-			testQuality( spimData, viewIds );
+
+			final boolean relativeFRC = true;
+
+			testQuality( spimData, viewIds, relativeFRC );
 	}
 
 	public static void updateMissingViews( final SpimData2 spimData, final List< ViewId > viewIds )
@@ -128,7 +130,7 @@ public class TestQuality
 		return new FinalInterval( min, max );
 	}
 
-	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds )
+	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds, final boolean relative )
 	{
 		Interval bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
@@ -151,7 +153,7 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 20, 256, true, null );
+			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 20, 512, relative, true, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
