@@ -61,8 +61,8 @@ public class TestQuality
 
 				for ( int i = 0; i <= 55; ++i  )
 					viewIds.add( new ViewId( 0, i ) );
-				for ( int i = 119; i <=174; ++i  )
-					viewIds.add( new ViewId( 0, i ) );
+				//for ( int i = 119; i <=174; ++i  )
+				//	viewIds.add( new ViewId( 0, i ) );
 
 			//for ( int i = 0; i <= 5; ++i  )
 			//	viewIds.add( new ViewId( 0, i ) );
@@ -71,12 +71,12 @@ public class TestQuality
 			//viewIds.add( new ViewId( 0, 0 ) );
 
 			// filter not present ViewIds
-			final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
+			//final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
+			//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 	
 			// re-populate not present ViewIds
-			//updateMissingViews( spimData, viewIds );
-			//BoundingBoxMaximal.ignoreMissingViews = true;
+			updateMissingViews( spimData, viewIds );
+			BoundingBoxMaximal.ignoreMissingViews = true;
 
 			final boolean relativeFRC = true;
 			final boolean smoothLocalFRC = false;
@@ -196,7 +196,7 @@ public class TestQuality
 						final ViewRegistration vrc = spimData.getViewRegistrations().getViewRegistration( vdc );
 						vrc.updateModel();
 
-						final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( vdc );
+						final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( vd );
 						vr.getTransformList().clear();
 						vr.getTransformList().addAll( vrc.getTransformList() );
 						vr.updateModel();
