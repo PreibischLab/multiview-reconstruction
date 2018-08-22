@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.quality;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ij.IJ;
 import ij.process.FloatProcessor;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -68,17 +70,17 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
  */
 public class FRCRealRandomAccessible< T extends RealType< T > > implements RealRandomAccessible< FloatType >
 {
-	/**
-	 * The Img containing the approxmimated content-based weights
-	 */
 	final PointSampleList< FloatType > qualityList;
 	final Interval interval;
 	final int n;
-	
+
+	public static int relativeFRCDist = 5;
+
 	public FRCRealRandomAccessible(
 			final RandomAccessibleInterval< T > input,
 			final List< Point > locations,
 			final int length,
+			final boolean relative,
 			final boolean smooth,
 			final ExecutorService service )
 	{
@@ -91,6 +93,8 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
 		final AtomicInteger progress = new AtomicInteger( 0 );
 
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " + locations.size()  + " locations, length=" + length + ", relative=" + relative + ", smooth=" + smooth );
+
 		IJ.showProgress( 0.01 );
 
 		for ( final Point l : locations )
@@ -100,7 +104,12 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 				@Override
 				public Void call() throws Exception
 				{
-					final double quality = smooth ? computeSmoothFRC( floatInput, l, length ) : computeFRC( floatInput, l, length );
+					final double quality;
+
+					if ( relative )
+						quality = computeRelativeFRC( floatInput, l, length, smooth, relativeFRCDist );
+					else
+						quality = smooth ? computeSmoothFRC( floatInput, l, length ) : computeFRC( floatInput, l, length );
 
 					synchronized ( qualityList )
 					{
@@ -175,18 +184,61 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 
 	public PointSampleList< FloatType > getQualityList() { return qualityList; }
 
+	public static double computeRelativeFRC(
+			final RandomAccessible< FloatType > input,
+			final Point location,
+			final int length,
+			final boolean smooth,
+			final int relativeFRCDist )
+	{
+		final FRC frc = new FRC();
+
+		final double[][] frcCurve;
+
+		if ( smooth )
+		{
+			final FloatProcessor fp0 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) - 1, length );
+			final FloatProcessor fp1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ), length );
+			final FloatProcessor fp2 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + 1, length );
+
+			final double[][] frcCurveA = frc.calculateFrcCurve( fp0, fp1 );
+			final double[][] frcCurveB = frc.calculateFrcCurve( fp0, fp2 );
+
+			frcCurve = new double[ frcCurveA.length ][ frcCurveA[ 0 ].length ];
+			for ( int i = 0; i < frcCurve.length; ++i )
+				frcCurve[ i ][ 1 ] = ( frcCurveA[ i ][ 1 ] + frcCurveB[ i ][ 1 ] ) / 2.0;
+		}
+		else
+		{
+			final FloatProcessor fp1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ), length );
+			final FloatProcessor fp2 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + 1, length );
+
+			frcCurve = frc.calculateFrcCurve( fp1, fp2 );
+		}
+
+		final FloatProcessor fpD0 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) - relativeFRCDist, length );
+		final FloatProcessor fpD1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + relativeFRCDist, length );
+
+		final double[][] frcCurveDist =  frc.getSmoothedCurve( frc.calculateFrcCurve( fpD0, fpD1 ) );
+
+		for ( int i = 0; i < frcCurve.length; ++i )
+			frcCurve[ i ][ 1 ] = /*Math.max( 0,*/ frcCurve[ i ][ 1 ] - frcCurveDist[ i ][ 1 ];
+
+		final double integral = FRCRealRandomAccessible.integral( frcCurve );
+
+		return integral;
+	}
+
 	public static double computeFRC(
 			final RandomAccessible< FloatType > input,
 			final Point location,
 			final int length )
 
 	{
-		final Pair< FloatProcessor, FloatProcessor > fps = getTwoImages( input, location.getLongPosition( 0 ), location.getLongPosition( 1 ), location.getLongPosition( 2 ), length );
+		final FloatProcessor fp1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ), length );
+		final FloatProcessor fp2 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + 1, length );
 
-		final FRC frc = new FRC();
-
-		// Get FIRE Number, assumes you have access to the two image processors.
-		final double[][] frcCurve = frc.calculateFrcCurve( fps.getA(), fps.getB() );
+		final double[][] frcCurve = new FRC().calculateFrcCurve( fp1, fp2 );
 
 		final double integral = integral( frcCurve );
 
@@ -198,10 +250,12 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			final Point location,
 			final int length )
 	{
-		final ArrayList< FloatProcessor > fps = getThreeImages( input, location.getLongPosition( 0 ), location.getLongPosition( 1 ), location.getLongPosition( 2 ), length );
+		final FloatProcessor fp0 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) - 1, length );
+		final FloatProcessor fp1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ), length );
+		final FloatProcessor fp2 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + 1, length );
 
-		final double[][] frcCurve1 = new FRC().calculateFrcCurve( fps.get( 0 ), fps.get( 1 ) );
-		final double[][] frcCurve2 = new FRC().calculateFrcCurve( fps.get( 1 ), fps.get( 2 ) );
+		final double[][] frcCurve1 = new FRC().calculateFrcCurve( fp0, fp1 );
+		final double[][] frcCurve2 = new FRC().calculateFrcCurve( fp1, fp2 );
 
 		final double integral1 = integral( frcCurve1 );
 		final double integral2 = integral( frcCurve2 );
@@ -219,93 +273,55 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return integral;
 	}
 
-	public static ArrayList< FloatProcessor > getThreeImages( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
+	public static FloatProcessor getFloatProcessor( final RandomAccessible< FloatType > img, final int x, final int y, final int z, final int length )
 	{
-		final RandomAccessible< FloatType > s0 = Views.hyperSlice( img, 2, z );
-		final RandomAccessible< FloatType > s1 = Views.hyperSlice( img, 2, z + 1 );
-		final RandomAccessible< FloatType > s2 = Views.hyperSlice( img, 2, z - 1 );
+		final RandomAccessible< FloatType > s = Views.hyperSlice( img, 2, z );
+		final FloatProcessor fp = new FloatProcessor( length, length );
 
-		final FloatProcessor fp0 = new FloatProcessor( length, length );
-		final FloatProcessor fp1 = new FloatProcessor( length, length );
-		final FloatProcessor fp2 = new FloatProcessor( length, length );
+		final int minX = x - length/2;
+		final int minY = y - length/2;
 
-		final long minX = x - length/2;
-		final long minY = y - length/2;
-
-		final Cursor< FloatType > c0 = Views.iterable( Views.interval( s0, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
-		final Cursor< FloatType > c1 = Views.iterable( Views.interval( s1, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
-		final Cursor< FloatType > c2 = Views.iterable( Views.interval( s2, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
+		final Cursor< FloatType > c0 = Views.iterable( Views.interval( s, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
 
 		while ( c0.hasNext() )
 		{
-			c0.fwd();
-			c1.fwd();
-			c2.fwd();
-
-			fp0.setf( c0.getIntPosition( 0 ) - (int)minX, c0.getIntPosition( 1 ) - (int)minY, c0.get().get() );
-			fp1.setf( c1.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
-			fp2.setf( c2.getIntPosition( 0 ) - (int)minX, c2.getIntPosition( 1 ) - (int)minY, c2.get().get() );
+			iterate( c0, fp, minX, minY );
 		}
 
-		final ArrayList< FloatProcessor > list = new ArrayList<>();
-		list.add( fp2 ); // -1
-		list.add( fp0 ); // 0
-		list.add( fp1 ); // 1
-
-		return list;
+		return fp;
 	}
 
-	public static Pair< FloatProcessor, FloatProcessor > getTwoImages( final RandomAccessible< FloatType > img, final long x, final long y, final long z, final int length )
+	private static final void iterate( final Cursor< FloatType > c0, final FloatProcessor fp, final int minX, final int minY )
 	{
-		final RandomAccessible< FloatType > s0 = Views.hyperSlice( img, 2, z );
-		final RandomAccessible< FloatType > s1 = Views.hyperSlice( img, 2, z + 1 );
-
-		final FloatProcessor fp0 = new FloatProcessor( length, length );
-		final FloatProcessor fp1 = new FloatProcessor( length, length );
-
-		final long minX = x - length/2;
-		final long minY = y - length/2;
-
-		final Cursor< FloatType > c0 = Views.iterable( Views.interval( s0, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
-		final Cursor< FloatType > c1 = Views.iterable( Views.interval( s1, new long[]{ minX, minY }, new long[]{ x + length/2 - 1, y + length/2 - 1 } ) ).localizingCursor();
-
-		while ( c0.hasNext() )
-		{
-			c0.fwd();
-			c1.fwd();
-
-			fp0.setf( c0.getIntPosition( 0 ) - (int)minX, c0.getIntPosition( 1 ) - (int)minY, c0.get().get() );
-			fp1.setf( c1.getIntPosition( 0 ) - (int)minX, c1.getIntPosition( 1 ) - (int)minY, c1.get().get() );
-		}
-
-		return new ValuePair< FloatProcessor, FloatProcessor >( fp0, fp1 );
+		c0.fwd();
+		fp.setf( c0.getIntPosition( 0 ) - minX, c0.getIntPosition( 1 ) - minY, c0.get().get() );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
 		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.fixedGridXY( input, distanceXY );
 
-		for ( int z = 0; z < input.dimension( 2 ); z += distanceZ )
+		for ( int z = zMinDist; z < input.dimension( 2 ) - zMinDist; z += distanceZ )
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, smooth, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean smooth, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
 		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, fhtSqSize, overlapTolerance );
 
 		
-		for ( int z = 0; z < input.dimension( 2 ); z += distanceZ )
+		for ( int z = zMinDist; z < input.dimension( 2 ) - zMinDist; z += distanceZ )
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, smooth, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
 	}
 
 	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
