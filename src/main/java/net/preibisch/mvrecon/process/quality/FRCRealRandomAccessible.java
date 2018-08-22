@@ -56,6 +56,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.RealSum;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.Threads;
@@ -138,6 +139,16 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			
 			System.out.println( l + ": " + quality );
 		}*/
+	}
+
+	public double getTotalAvgQuality()
+	{
+		final RealSum sum = new RealSum( (int)getQualityList().size() );
+
+		for ( final FloatType q : getQualityList() )
+			sum.add( q.get() );
+
+		return sum.getSum() / getQualityList().size();
 	}
 
 	@Override
