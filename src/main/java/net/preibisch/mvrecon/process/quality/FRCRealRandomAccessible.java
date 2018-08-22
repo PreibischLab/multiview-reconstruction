@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.process.quality;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +45,6 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
-import net.imglib2.img.Img;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -213,7 +211,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			final FloatProcessor fp2 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + 1, length );
 
 			final double[][] frcCurveA = frc.calculateFrcCurve( fp0, fp1 );
-			final double[][] frcCurveB = frc.calculateFrcCurve( fp0, fp2 );
+			final double[][] frcCurveB = frc.calculateFrcCurve( fp1, fp2 );
 
 			frcCurve = new double[ frcCurveA.length ][ frcCurveA[ 0 ].length ];
 			for ( int i = 0; i < frcCurve.length; ++i )
@@ -230,14 +228,27 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		final FloatProcessor fpD0 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) - relativeFRCDist, length );
 		final FloatProcessor fpD1 = getFloatProcessor( input, location.getIntPosition( 0 ), location.getIntPosition( 1 ), location.getIntPosition( 2 ) + relativeFRCDist, length );
 
-		final double[][] frcCurveDist =  frc.getSmoothedCurve( frc.calculateFrcCurve( fpD0, fpD1 ) );
+		try
+		{
+			final double[][] frcCurveDist =  frc.getSmoothedCurve( frc.calculateFrcCurve( fpD0, fpD1 ) );
+	
+			for ( int i = 0; i < frcCurve.length; ++i )
+			{
+				if ( Double.isNaN( frcCurveDist[ i ][ 1 ] ) ||  Double.isNaN( frcCurve[ i ][ 1 ] ) )
+					return 0;
+ 
+				frcCurve[ i ][ 1 ] = /*Math.max( 0,*/ frcCurve[ i ][ 1 ] - frcCurveDist[ i ][ 1 ];
+			}
+	
+			final double integral = FRCRealRandomAccessible.integral( frcCurve );
 
-		for ( int i = 0; i < frcCurve.length; ++i )
-			frcCurve[ i ][ 1 ] = /*Math.max( 0,*/ frcCurve[ i ][ 1 ] - frcCurveDist[ i ][ 1 ];
-
-		final double integral = FRCRealRandomAccessible.integral( frcCurve );
-
-		return integral;
+			return integral;
+		}
+		catch ( Exception e )
+		{
+			// is thrown if everything is zero
+			return 0;
+		}
 	}
 
 	public static double computeFRC(
