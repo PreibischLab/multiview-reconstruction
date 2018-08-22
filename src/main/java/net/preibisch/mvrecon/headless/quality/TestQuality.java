@@ -3,7 +3,6 @@ package net.preibisch.mvrecon.headless.quality;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 
 import ij.ImageJ;
@@ -25,8 +24,6 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
-import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -36,7 +33,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
-import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
 public class TestQuality
 {
@@ -51,9 +47,9 @@ public class TestQuality
 
 		// load drosophila
 		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
+		spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
 		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
-		spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
+		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
 
 		System.out.println( "Views present:" );
 
@@ -63,15 +59,16 @@ public class TestQuality
 			// select views to process
 			final List< ViewId > viewIds = new ArrayList< ViewId >();
 
-			//	for ( int i = 0; i <= 55; ++i  )
-			//		viewIds.add( new ViewId( 0, i ) );
-			//	for ( int i = 119; i <=174; ++i  )
-			//		viewIds.add( new ViewId( 0, i ) );
+				for ( int i = 0; i <= 55; ++i  )
+					viewIds.add( new ViewId( 0, i ) );
+				for ( int i = 119; i <=174; ++i  )
+					viewIds.add( new ViewId( 0, i ) );
 
 			//for ( int i = 0; i <= 5; ++i  )
 			//	viewIds.add( new ViewId( 0, i ) );
 
-			viewIds.add( new ViewId( 0, 10 ) );
+			//viewIds.add( new ViewId( 0, 10 ) );
+			//viewIds.add( new ViewId( 0, 0 ) );
 
 			// filter not present ViewIds
 			final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
@@ -82,55 +79,13 @@ public class TestQuality
 			//BoundingBoxMaximal.ignoreMissingViews = true;
 
 			final boolean relativeFRC = true;
+			final boolean smoothLocalFRC = false;
+			final int fftSize = 512;
 
-			testQuality( spimData, viewIds, relativeFRC );
+			testQuality( spimData, viewIds, relativeFRC, smoothLocalFRC, fftSize );
 	}
 
-	public static void updateMissingViews( final SpimData2 spimData, final List< ViewId > viewIds )
-	{
-		for ( final ViewId viewId : viewIds )
-		{
-			final ViewDescription vd  = spimData.getSequenceDescription().getViewDescription( viewId );
-
-			if ( !vd.isPresent() )
-			{
-				for ( final ViewDescription vdc : spimData.getSequenceDescription().getViewDescriptions().values() )
-				{
-					if ( vd.getViewSetup().getAngle() == vdc.getViewSetup().getAngle() &&
-							vd.getViewSetup().getChannel() == vdc.getViewSetup().getChannel() &&
-							vd.getViewSetup().getTile() == vdc.getViewSetup().getTile() &&
-							vdc.getViewSetupId() != vd.getViewSetupId() )
-					{
-						System.out.println( "Missing view " + Group.pvid( vd ) + " compensated from " + Group.pvid( vdc ) );
-
-						final ViewRegistration vrc = spimData.getViewRegistrations().getViewRegistration( vdc );
-						vrc.updateModel();
-
-						final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( vdc );
-						vr.getTransformList().clear();
-						vr.getTransformList().addAll( vrc.getTransformList() );
-						vr.updateModel();
-					}
-				}
-			}
-		}
-	}
-
-	public static Interval trimInterval( final Interval interval )
-	{
-		final long[] min = new long[ interval.numDimensions() ];
-		final long[] max = new long[ interval.numDimensions() ];
-
-		for ( int d = 0; d < interval.numDimensions(); ++d )
-		{
-			min[ d ] = interval.min( d ) + 10;
-			max[ d ] = interval.max( d ) - 10;
-		}
-
-		return new FinalInterval( min, max );
-	}
-
-	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds, final boolean relative )
+	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds, final boolean relative, final boolean smooth, final int fftSize )
 	{
 		Interval bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
@@ -153,7 +108,7 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 20, 512, relative, true, FRCRealRandomAccessible.relativeFRCDist, null );
+			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
@@ -162,8 +117,10 @@ public class TestQuality
 			data.add( new ValuePair<>( frc.getRandomAccessibleInterval(), vr.getModel() ) );
 		}
 
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FRC done." );
+
 		// downsampling
-		double downsampling = 4; //Double.NaN;
+		double downsampling = 16; //Double.NaN;
 
 		//
 		// display virtually fused
@@ -216,6 +173,51 @@ public class TestQuality
 		}
 
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+	}
+
+
+	public static void updateMissingViews( final SpimData2 spimData, final List< ViewId > viewIds )
+	{
+		for ( final ViewId viewId : viewIds )
+		{
+			final ViewDescription vd  = spimData.getSequenceDescription().getViewDescription( viewId );
+
+			if ( !vd.isPresent() )
+			{
+				for ( final ViewDescription vdc : spimData.getSequenceDescription().getViewDescriptions().values() )
+				{
+					if ( vd.getViewSetup().getAngle() == vdc.getViewSetup().getAngle() &&
+							vd.getViewSetup().getChannel() == vdc.getViewSetup().getChannel() &&
+							vd.getViewSetup().getTile() == vdc.getViewSetup().getTile() &&
+							vdc.getViewSetupId() != vd.getViewSetupId() )
+					{
+						System.out.println( "Missing view " + Group.pvid( vd ) + " compensated from " + Group.pvid( vdc ) );
+
+						final ViewRegistration vrc = spimData.getViewRegistrations().getViewRegistration( vdc );
+						vrc.updateModel();
+
+						final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( vdc );
+						vr.getTransformList().clear();
+						vr.getTransformList().addAll( vrc.getTransformList() );
+						vr.updateModel();
+					}
+				}
+			}
+		}
+	}
+
+	public static Interval trimInterval( final Interval interval )
+	{
+		final long[] min = new long[ interval.numDimensions() ];
+		final long[] max = new long[ interval.numDimensions() ];
+
+		for ( int d = 0; d < interval.numDimensions(); ++d )
+		{
+			min[ d ] = interval.min( d ) + 10;
+			max[ d ] = interval.max( d ) - 10;
+		}
+
+		return new FinalInterval( min, max );
 	}
 
 	public static FinalDimensions getDimensions( final Interval interval )
