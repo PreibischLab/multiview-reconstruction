@@ -85,8 +85,8 @@ import org.apache.commons.math3.util.FastMath;
 	/**
 	 * Calculate the Fourier Ring Correlation curve for two images.
 	 * 
-	 * @param ip1
-	 * @param ip2
+	 * @param ip1 - image 1
+	 * @param ip2 - image 2
 	 * @return An array of triplets representing [][radius,correlation,N] where correlation is the FRC at the given
 	 *         radius from the centre of the Fourier transform (i.e. 1/spatial frequency) and N is the number of samples
 	 *         used to compute the correlation
@@ -207,7 +207,7 @@ import org.apache.commons.math3.util.FastMath;
 	/**
 	 * Convert an image into a Fourier image with real and imaginary parts
 	 * 
-	 * @param ip
+	 * @param ip - image
 	 * @return the real and imaginary parts
 	 */
 	public FloatProcessor[] getComplexFFT(ImageProcessor ip)
@@ -234,7 +234,7 @@ import org.apache.commons.math3.util.FastMath;
 	/**
 	 * Applies a Tukey window function to the image and then pads it to the next square size power of two.
 	 * 
-	 * @param dataImage
+	 * @param dataImage - image
 	 * @return The square tapered image
 	 */
 	public FloatProcessor getSquareTaperedImage(ImageProcessor dataImage)
@@ -311,9 +311,9 @@ import org.apache.commons.math3.util.FastMath;
 	 * <p>
 	 * Removed bounds checking and compute multiple values at the same time for multiple images.
 	 * 
-	 * @param x
-	 * @param y
-	 * @return
+	 * @param x - pos x
+	 * @param y - pos y
+	 * @return - the interpolated value
 	 */
 	private double[] getInterpolatedValues(final double x, final double y, float[][] images, final int maxx)
 	{
@@ -354,9 +354,9 @@ import org.apache.commons.math3.util.FastMath;
 	 * The input curve is copied and then the correlation values are smoothed using a LOESS interpolation with the given
 	 * parameters. If smoothing fails the original curve values are returned.
 	 * 
-	 * @param frcCurve
-	 * @param bandwidth
-	 * @param robustness
+	 * @param frcCurve - the FRC curve
+	 * @param bandwidth - unknown
+	 * @param robustness - unknown
 	 * @return A new FRC curve
 	 */
 	public double[][] getSmoothedCurve(double[][] frcCurve, double bandwidth, int robustness)
@@ -400,7 +400,7 @@ import org.apache.commons.math3.util.FastMath;
 	 * The input curve is copied and then the correlation values are smoothed using a LOESS interpolation with a
 	 * bandwidth of 0.0707 and robustness of 0. If smoothing fails the original curve values are returned.
 	 * 
-	 * @param frcCurve
+	 * @param frcCurve - the FRC curve
 	 * @return A new FRC curve
 	 */
 	public double[][] getSmoothedCurve(double[][] frcCurve)
@@ -414,8 +414,8 @@ import org.apache.commons.math3.util.FastMath;
 	 * Calculate the curve representing the minimum correlation required to distinguish two images for each resolution
 	 * in the input FRC curve.
 	 * 
-	 * @param frcCurve
-	 * @param method
+	 * @param frcCurve - the FRC curve
+	 * @param method - one of the methods
 	 * @return The threshold curve representing the threshold for each input spatial frequency
 	 */
 	public double[] calculateThresholdCurve(double[][] frcCurve, ThresholdMethod method)
@@ -443,10 +443,10 @@ import org.apache.commons.math3.util.FastMath;
 
 	/**
 	 * Computes the crossing points of the FRC curve and the threshold curve. The intersections can be used to determine
-	 * the image resolution using {@link #getCorrectIntersection(ArrayList, ThresholdMethod)}
+	 * the image resolution using {getCorrectIntersection(ArrayList, ThresholdMethod)}
 	 * 
-	 * @param frcCurve
-	 * @param thresholdCurve
+	 * @param frcCurve - the FRC curve
+	 * @param thresholdCurve - where to find thresholds
 	 * @return The crossing points
 	 */
 	public double[] getIntersections(double[][] frcCurve, double[] thresholdCurve)
@@ -526,13 +526,13 @@ import org.apache.commons.math3.util.FastMath;
 
 	/**
 	 * Get the correction intersection representing the image resolution. The intersection chosen depends on the method
-	 * used to calculate the threshold curve using {@link #calculateThresholdCurve(double[][], ThresholdMethod)}
+	 * used to calculate the threshold curve using {calculateThresholdCurve(double[][], ThresholdMethod)}
 	 * <p>
 	 * The intersection corresponds the lowest spatial frequency at which there is no significant correlation between
 	 * the images.
 	 * 
-	 * @param intersections
-	 * @param method
+	 * @param intersections - unknown
+	 * @param method - one of the methods
 	 * @return The intersection (or zero if no crossings)
 	 */
 	public double getCorrectIntersection(double[] intersections, ThresholdMethod method)
@@ -558,9 +558,9 @@ import org.apache.commons.math3.util.FastMath;
 	/**
 	 * Utility function that calculates the Fourier Image Resolution (FIRE) number using the provided images.
 	 * 
-	 * @param ip1
-	 * @param ip2
-	 * @param method
+	 * @param ip1 - image 1
+	 * @param ip2 - image 2
+	 * @param method - one of the methods
 	 * @return The FIRE number (in pixels)
 	 */
 	public double calculateFireNumber(ImageProcessor ip1, ImageProcessor ip2, ThresholdMethod method)
@@ -572,8 +572,8 @@ import org.apache.commons.math3.util.FastMath;
 	/**
 	 * Utility function that calculates the Fourier Image Resolution (FIRE) number using the provided FRC curve data.
 	 * 
-	 * @param frcCurve
-	 * @param method
+	 * @param frcCurve- the FRC curve
+	 * @param method - one of the methods
 	 * @return The FIRE number (in pixels)
 	 */
 	public double calculateFireNumber(double[][] frcCurve, ThresholdMethod method)
@@ -604,8 +604,8 @@ import org.apache.commons.math3.util.FastMath;
 	 * 
 	 * @param directory1 is the first directory containing data
 	 * @param directory2 is the first directory containing data
-	 * @param method is the {@link ThresholdMethod} used
-	 * @param rt is the {@link ij.measure.ResultsTable} where you want the batch to write the FIRE number to
+	 * @param method is the {ThresholdMethod} used
+	 * @param rt is the {ij.measure.ResultsTable} where you want the batch to write the FIRE number to
 	 * @param is_save_plot defines whether the plot will be saved, as described above.
 	 */
 	public void batchCalculateFireNumber(File directory1, File directory2, ThresholdMethod method, ResultsTable rt, boolean is_save_plot)
@@ -662,11 +662,11 @@ import org.apache.commons.math3.util.FastMath;
 	}
 	
 	/**
-	 * Simple method to plot the data using {@link ij.gui.Plot #Plot}
+	 * Simple method to plot the data using {ij.gui.Plot #Plot}
 	 * @param frc_curve is the raw FRC curve
-	 * @param smooth_frc is the smoothed curve computed using {@link #getSmoothedCurve(double[][])} or {@link #getSmoothedCurve(double[][], double, int)}
-	 * @param tm is the {@link ThresholdMethod} used
-	 * @param fire is the Fourier Image Resolution given by {@link #calculateFireNumber(double[][], ThresholdMethod)}
+	 * @param smooth_frc is the smoothed curve computed using {getSmoothedCurve(double[][])} or {getSmoothedCurve(double[][], double, int)}
+	 * @param tm is the {ThresholdMethod} used
+	 * @param fire is the Fourier Image Resolution given by {calculateFireNumber(double[][], ThresholdMethod)}
 	 * @param name is the title of the image that was used for the FRC calculations
 	 * @return a Plot object to use at your convenience
 	 */
