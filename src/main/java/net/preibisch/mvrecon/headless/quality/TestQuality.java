@@ -46,8 +46,8 @@ public class TestQuality
 		// spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
 
 		// load drosophila
-		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
+		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
 		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
 		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
 
@@ -56,33 +56,40 @@ public class TestQuality
 		for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
 			System.out.println( Group.pvid( viewId ) );
 
-			// select views to process
-			final List< ViewId > viewIds = new ArrayList< ViewId >();
+		// select views to process
+		final List< ViewId > viewIds = new ArrayList< ViewId >();
 
-				for ( int i = 0; i <= 55; ++i  )
-					viewIds.add( new ViewId( 0, i ) );
-				//for ( int i = 119; i <=174; ++i  )
-				//	viewIds.add( new ViewId( 0, i ) );
+		/*
+		for ( int i = 0; i <= 55; ++i  )
+			viewIds.add( new ViewId( 0, i ) );
+		for ( int i = 119; i <=174; ++i  )
+			viewIds.add( new ViewId( 0, i ) );
 
-			//for ( int i = 0; i <= 5; ++i  )
-			//	viewIds.add( new ViewId( 0, i ) );
+		for ( int i = 56; i <= 118; ++i  )
+			viewIds.add( new ViewId( 0, i ) );
+		for ( int i = 175; i <=237; ++i  )
+			viewIds.add( new ViewId( 0, i ) );
+		*/
 
-			//viewIds.add( new ViewId( 0, 10 ) );
-			//viewIds.add( new ViewId( 0, 0 ) );
+		//for ( int i = 0; i <= 5; ++i  )
+		//	viewIds.add( new ViewId( 0, i ) );
 
-			// filter not present ViewIds
-			//final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
-			//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
-	
-			// re-populate not present ViewIds
-			updateMissingViews( spimData, viewIds );
-			BoundingBoxMaximal.ignoreMissingViews = true;
+		//viewIds.add( new ViewId( 0, 10 ) );
+		viewIds.add( new ViewId( 0, 0 ) );
 
-			final boolean relativeFRC = true;
-			final boolean smoothLocalFRC = false;
-			final int fftSize = 512;
+		// filter not present ViewIds
+		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-			testQuality( spimData, viewIds, relativeFRC, smoothLocalFRC, fftSize );
+		// re-populate not present ViewIds
+		//updateMissingViews( spimData, viewIds );
+		//BoundingBoxMaximal.ignoreMissingViews = true;
+
+		final boolean relativeFRC = true;
+		final boolean smoothLocalFRC = false;
+		final int fftSize = 64;
+
+		testQuality( spimData, viewIds, relativeFRC, smoothLocalFRC, fftSize );
 	}
 
 	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds, final boolean relative, final boolean smooth, final int fftSize )
@@ -120,7 +127,7 @@ public class TestQuality
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FRC done." );
 
 		// downsampling
-		double downsampling = 16; //Double.NaN;
+		double downsampling = 4; //16; //Double.NaN;
 
 		//
 		// display virtually fused
