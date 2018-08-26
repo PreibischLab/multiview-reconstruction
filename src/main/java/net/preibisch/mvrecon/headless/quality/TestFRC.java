@@ -45,6 +45,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.quality.FRC;
 import net.preibisch.mvrecon.process.quality.FRC.ThresholdMethod;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
+import net.preibisch.mvrecon.process.quality.FRCTools;
 
 public class TestFRC
 {
@@ -63,7 +64,7 @@ public class TestFRC
 
 	public static void testFRC( final Img< FloatType > input )
 	{
-		final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 10, 256, true, true, FRCRealRandomAccessible.relativeFRCDist, null );
+		final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, 256, true, true, FRCRealRandomAccessible.relativeFRCDist, null );
 		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, false, FRCRealRandomAccessible.relativeFRCDist, null );
 
 		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();

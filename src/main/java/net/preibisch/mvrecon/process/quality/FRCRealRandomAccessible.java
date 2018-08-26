@@ -53,9 +53,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearch;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
-import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -319,129 +317,6 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		fp.setf( c0.getIntPosition( 0 ) - minX, c0.getIntPosition( 1 ) - minY, c0.get().get() );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
-	{
-		final ArrayList< Point > locations = new ArrayList<>();
-
-		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.fixedGridXY( input, distanceXY );
-
-		for ( int z = zMinDist; z < input.dimension( 2 ) - zMinDist; z += distanceZ )
-			for ( final Pair< Long, Long > xy : xyPositions )
-				locations.add( new Point( xy.getA(), xy.getB(), z ) );
-
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
-	}
-
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
-	{
-		final ArrayList< Point > locations = new ArrayList<>();
-
-		final ArrayList< Pair< Long, Long > > xyPositions = FRCRealRandomAccessible.distributeSquaresXY( input, fhtSqSize, overlapTolerance );
-
-		
-		for ( int z = zMinDist; z < input.dimension( 2 ) - zMinDist; z += distanceZ )
-			for ( final Pair< Long, Long > xy : xyPositions )
-				locations.add( new Point( xy.getA(), xy.getB(), z ) );
-
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
-	}
-
-	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )
-	{
-		final long lx = interval.dimension( 0 );
-		final long ly = interval.dimension( 1 );
-
-		System.out.println( "lx: " + lx );
-		System.out.println( "ly: " + ly );
-
-		long sqX = Math.max( 1, lx / distance );
-		if ( lx % distance > 0 ) ++sqX;
-
-		long sqY = Math.max( 1, ly / distance );
-		if ( ly % distance > 0 ) ++sqY;
-
-		System.out.println( "SquaresX: " + sqX );
-		System.out.println( "SquaresY: " + sqY );
-
-		final ArrayList< Long > xPos = getLocations( sqX, lx );
-		final ArrayList< Long > yPos = getLocations( sqY, ly );
-
-		final ArrayList< Pair< Long, Long > > list = new ArrayList<>();
-
-		for ( final long x : xPos )
-			System.out.println( x );
-
-		System.out.println();
-
-		for ( final long y : yPos )
-			System.out.println( y );
-
-		for ( int y = 0; y < yPos.size(); ++y )
-			for ( int x = 0; x < xPos.size(); ++x )
-				list.add( new ValuePair< Long, Long >( xPos.get( x ) + interval.min( 0 ), yPos.get( y ) + interval.min( 1 ) ) );
-
-		return list;
-	}
-
-	public static ArrayList< Pair< Long, Long > > distributeSquaresXY( final Interval interval, final long length, final double overlapTolerance )
-	{
-		final long lx = interval.dimension( 0 );
-		final long ly = interval.dimension( 1 );
-
-		System.out.println( "lx: " + lx );
-		System.out.println( "ly: " + ly );
-
-		long sqX = lx / length;
-		final long modX = lx % length;
-
-		long sqY = ly / length;
-		final long modY = ly % length;
-
-		System.out.println( "sqX: " + sqX + " modX: " + modX + " relX: " + (double)modX / (double)length );
-		System.out.println( "sqY: " + sqY + " modY: " + modX + " relY: " + (double)modY / (double)length );
-
-		if ( (double)modX / (double)length >= overlapTolerance || sqX == 0 )
-			++sqX;
-
-		if ( (double)modY / (double)length >= overlapTolerance || sqY == 0 )
-			++sqY;
-
-		System.out.println( "SquaresX: " + sqX );
-		System.out.println( "SquaresY: " + sqY );
-
-		final ArrayList< Long > xPos = getLocations( sqX, lx );
-		final ArrayList< Long > yPos = getLocations( sqY, ly );
-
-		for ( final long x : xPos )
-			System.out.println( x );
-
-		System.out.println();
-
-		for ( final long y : yPos )
-			System.out.println( y );
-
-		final ArrayList< Pair< Long, Long > > list = new ArrayList<>();
-
-		for ( int y = 0; y < yPos.size(); ++y )
-			for ( int x = 0; x < xPos.size(); ++x )
-				list.add( new ValuePair< Long, Long >( xPos.get( x ) + interval.min( 0 ), yPos.get( y ) + interval.min( 1 ) ) );
-
-		return list;
-	}
-
-	protected static final ArrayList< Long > getLocations( final long numSq, final long imgSize )
-	{
-		final ArrayList< Long > pos = new ArrayList<>();
-
-		final double dist = (double)imgSize / (double)numSq;
-		final double inc = (double)imgSize / ( numSq * 2.0 );
-
-		for ( int i = 0; i < numSq; ++i )
-			pos.add( Math.round( inc + i * dist ) );
-
-		return pos;
-	}
-
 	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > getFloatRAI( final RandomAccessibleInterval< T > input )
 	{
@@ -449,13 +324,5 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 			return (RandomAccessibleInterval< FloatType >)input;
 		else
 			return new ConvertedRandomAccessibleInterval< T, FloatType >( input, new RealFloatConverter< T >(),  new FloatType() );
-	}
-
-	public static void main( String[] args )
-	{
-		Interval interval = new FinalInterval( new long[] { 0, 0 }, new long[] { 260, 128 } );
-
-		fixedGridXY( interval, 50 );
-		//distributeSquaresXY( interval, 256, 0.01 );
 	}
 }

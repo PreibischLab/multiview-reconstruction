@@ -33,6 +33,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
+import net.preibisch.mvrecon.process.quality.FRCTools;
 
 public class TestQuality
 {
@@ -115,7 +116,7 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
+			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
@@ -133,55 +134,10 @@ public class TestQuality
 		// display virtually fused
 		//
 
-		final RandomAccessibleInterval< FloatType > virtual = fuseRAIs( data, downsampling, bb, 1 );
+		final RandomAccessibleInterval< FloatType > virtual = FRCTools.fuseRAIs( data, downsampling, bb, 1 );
 		DisplayImage.getImagePlusInstance( virtual, false, "Fused, Virtual" + viewIds.get( 0 ).getViewSetupId(), Double.NaN, Double.NaN ).show();
 
 	}
-
-	public static RandomAccessibleInterval< FloatType > fuseRAIs(
-			final Collection< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > data,
-			final double downsampling,
-			final Interval boundingBox,
-			final int interpolation )
-	{
-		final Interval bb;
-
-		if ( !Double.isNaN( downsampling ) )
-			bb = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
-		else
-			bb = boundingBox;
-
-		final long[] dim = new long[ bb.numDimensions() ];
-		bb.dimensions( dim );
-
-		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
-		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
-
-		for ( final Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > d : data )
-		{
-			AffineTransform3D model = d.getB();
-
-			if ( !Double.isNaN( downsampling ) )
-			{
-				model = model.copy();
-				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
-			}
-
-			images.add( TransformView.transformView( d.getA(), model, bb, 0, interpolation ) );
-
-			final float[] blending = Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
-			final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
-
-			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-			
-			FusionTools.adjustBlending( getDimensions( d.getA() ), "", blending, border, model );
-
-			weights.add( TransformWeight.transformBlending( d.getA(), border, blending, model, bb ) );
-		}
-
-		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
-	}
-
 
 	public static void updateMissingViews( final SpimData2 spimData, final List< ViewId > viewIds )
 	{
@@ -225,15 +181,5 @@ public class TestQuality
 		}
 
 		return new FinalInterval( min, max );
-	}
-
-	public static FinalDimensions getDimensions( final Interval interval )
-	{
-		final long[] dim = new long[ interval.numDimensions() ];
-
-		for ( int d = 0; d < dim.length; ++d )
-			dim[ d ] = interval.dimension( d );
-
-		return new FinalDimensions( dim );
 	}
 }
