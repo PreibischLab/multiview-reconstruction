@@ -232,7 +232,7 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 	
 			for ( int i = 0; i < frcCurve.length; ++i )
 			{
-				if ( Double.isNaN( frcCurveDist[ i ][ 1 ] ) ||  Double.isNaN( frcCurve[ i ][ 1 ] ) )
+				if ( !Double.isFinite( frcCurveDist[ i ][ 1 ] ) || !Double.isFinite( frcCurve[ i ][ 1 ] ) )
 					return 0;
  
 				frcCurve[ i ][ 1 ] = /*Math.max( 0,*/ frcCurve[ i ][ 1 ] - frcCurveDist[ i ][ 1 ];

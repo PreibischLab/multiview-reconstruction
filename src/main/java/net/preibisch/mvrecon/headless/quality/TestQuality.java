@@ -98,8 +98,8 @@ public class TestQuality
 		Interval bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
 
-		bb = trimInterval( bb );
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": cropped bounding box = " + Util.printInterval( bb ) );
+		//bb = trimInterval( bb );
+		//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": cropped bounding box = " + Util.printInterval( bb ) );
 
 		// img loading and registrations
 		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
@@ -116,7 +116,7 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
+			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
