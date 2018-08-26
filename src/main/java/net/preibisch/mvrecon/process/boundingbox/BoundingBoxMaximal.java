@@ -46,6 +46,8 @@ public class BoundingBoxMaximal implements BoundingBoxEstimation
 	final HashMap< ViewId, Dimensions > dimensions;
 	final HashMap< ViewId, AffineTransform3D > registrations;
 
+	public static boolean ignoreMissingViews = false;
+
 	public BoundingBoxMaximal(
 			final Collection< ? extends ViewId > views,
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > data )
@@ -55,7 +57,9 @@ public class BoundingBoxMaximal implements BoundingBoxEstimation
 		this.registrations = new HashMap<>();
 
 		this.views.addAll( views );
-		SpimData2.filterMissingViews( data, this.views );
+
+		if ( !ignoreMissingViews )
+			SpimData2.filterMissingViews( data, this.views );
 
 		for ( final ViewId viewId : this.views )
 		{

@@ -92,6 +92,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.InterestPointsExplorer
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.LabelPopUp;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.MaxProjectPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.PointSpreadFunctionsPopup;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.QualityPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RegisterInterestPointsPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RegistrationExplorerPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RemoveDetectionsPopup;
@@ -704,6 +705,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new DisplayRawImagesPopup() );
 		popups.add( new BoundingBoxPopup() );
 		popups.add( new DisplayFusedImagesPopup() );
+		popups.add( new QualityPopup() );
 		popups.add( new MaxProjectPopup() );
 		popups.add( new Separator() );
 

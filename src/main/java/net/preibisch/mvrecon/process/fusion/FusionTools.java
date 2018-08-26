@@ -57,6 +57,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
@@ -506,11 +507,16 @@ public class FusionTools
 	 */
 	public static void adjustBlending( final BasicViewDescription< ? extends BasicViewSetup > vd, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
 	{
-		final double[] scale = TransformationTools.scaling( vd.getViewSetup().getSize(), transformationModel ).getA();
+		adjustBlending( vd.getViewSetup().getSize(), Group.pvid( vd ), blending, border, transformationModel );
+	}
+
+	public static void adjustBlending( final Dimensions dim, final String name, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
+	{
+		final double[] scale = TransformationTools.scaling( dim, transformationModel ).getA();
 
 		final NumberFormat f = TransformationTools.f;
 
-		System.out.println( "View " + Group.pvid( vd ) + " is currently scaled by: (" +
+		System.out.println( "View " + name + " is currently scaled by: (" +
 				f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] ) + ")" );
 
 		for ( int d = 0; d < blending.length; ++d )
