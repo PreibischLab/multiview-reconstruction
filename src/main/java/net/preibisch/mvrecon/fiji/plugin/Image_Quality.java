@@ -76,10 +76,10 @@ public class Image_Quality implements PlugIn
 		if ( !result.queryXML( "Dataset Quality Estimation", true, true, true, true, true ) )
 			return;
 
-		fuse( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
+		estimateFRC( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
 	}
 
-	public static boolean fuse(
+	public static boolean estimateFRC(
 			final SpimData2 spimData,
 			final List< ViewId > viewsToProcess )
 	{
@@ -167,7 +167,7 @@ public class Image_Quality implements PlugIn
 
 			final RandomAccessibleInterval< FloatType > virtualQuality = FRCTools.fuseRAIs( data, quality.getDownsampling(), quality.getBoundingBox(), 1 );
 
-			if ( !cacheAndExport( virtualQuality, taskExecutor, new FloatType(), quality, exporter, group, null ) )
+			if ( !export( virtualQuality, taskExecutor, new FloatType(), quality, exporter, group, null ) )
 				return false;
 		}
 
@@ -178,7 +178,7 @@ public class Image_Quality implements PlugIn
 		return true;
 	}
 
-	protected static < T extends RealType< T > & NativeType< T > > boolean cacheAndExport(
+	protected static < T extends RealType< T > & NativeType< T > > boolean export(
 			final RandomAccessibleInterval< T > output,
 			final ExecutorService taskExecutor,
 			final T type,
@@ -189,29 +189,12 @@ public class Image_Quality implements PlugIn
 	{
 		final RandomAccessibleInterval< T > processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
 
-		final String title = getTitle( quality.getSplittingType(), group );
+		final String title = Image_Fusion.getTitle( quality.getSplittingType(), group );
 
 		if ( minmax == null )
 			return exporter.exportImage( processedOutput, quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group );
 		else
 			return exporter.exportImage( processedOutput, quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
-	}
-
-	public static String getTitle( final int splittingType, final Group< ViewDescription > group )
-	{
-		String title;
-		final ViewDescription vd0 = group.iterator().next();
-
-		if ( splittingType == 0 ) // "Each timepoint & channel"
-			title = "fused_tp_" + vd0.getTimePointId() + "_ch_" + vd0.getViewSetup().getChannel().getId();
-		else if ( splittingType == 1 ) // "Each timepoint, channel & illumination"
-			title = "fused_tp_" + vd0.getTimePointId() + "_ch_" + vd0.getViewSetup().getChannel().getId() + "_illum_" + vd0.getViewSetup().getIllumination().getId();
-		else if ( splittingType == 2 ) // "All views together"
-			title = "fused";
-		else // "All views"
-			title = "fused_tp_" + vd0.getTimePointId() + "_vs_" + vd0.getViewSetupId();
-
-		return title;
 	}
 
 	public static void main( String[] args )
