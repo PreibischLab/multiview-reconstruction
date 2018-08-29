@@ -17,6 +17,7 @@ import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -46,60 +47,86 @@ public class TestQuality
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		// spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
 
-		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
-		//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
+		for ( int run = 0; run <= 3; ++run )
+		{
+			// load drosophila
+			//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+			spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
+			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
+			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
+	
+			System.out.println( "Views present:" );
+	
+			for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
+				System.out.println( Group.pvid( viewId ) );
 
-		System.out.println( "Views present:" );
+			// select views to process
+			final List< ViewId > viewIds = new ArrayList< ViewId >();
+	
+			if ( run == 2 )
+				for ( int i = 0; i <= 55; ++i  )  // angle 1 view A
+					viewIds.add( new ViewId( 0, i ) );
 
-		for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
-			System.out.println( Group.pvid( viewId ) );
+			if ( run == 3 )
+				for ( int i = 119; i <=174; ++i  )  // angle 1 view B
+					viewIds.add( new ViewId( 0, i ) );
+	
+			if ( run == 0 )
+				for ( int i = 56; i <= 118; ++i  ) // angle 2 view A
+					viewIds.add( new ViewId( 0, i ) );
 
-		// select views to process
-		final List< ViewId > viewIds = new ArrayList< ViewId >();
+			if ( run == 1 )
+				for ( int i = 175; i <=237; ++i  )  // angle 2 view B
+					viewIds.add( new ViewId( 0, i ) );
+			
+	
+			//for ( int i = 0; i <= 5; ++i  )
+			//	viewIds.add( new ViewId( 0, i ) );
+	
+			//viewIds.add( new ViewId( 0, 10 ) );
+			//viewIds.add( new ViewId( 0, 0 ) );
+	
+			// filter not present ViewIds
+			//final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
+			//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
+	
+			// re-populate not present ViewIds
+			updateMissingViews( spimData, viewIds );
+			BoundingBoxMaximal.ignoreMissingViews = true;
+	
+			final boolean relativeFRC = true;
+			final boolean smoothLocalFRC = false;
+			final int fftSize = 512;
+	
+			testQuality( spimData, viewIds, relativeFRC, smoothLocalFRC, fftSize );
 
-		/*
-		for ( int i = 0; i <= 55; ++i  )
-			viewIds.add( new ViewId( 0, i ) );
-		for ( int i = 119; i <=174; ++i  )
-			viewIds.add( new ViewId( 0, i ) );
-
-		for ( int i = 56; i <= 118; ++i  )
-			viewIds.add( new ViewId( 0, i ) );
-		for ( int i = 175; i <=237; ++i  )
-			viewIds.add( new ViewId( 0, i ) );
-		*/
-
-		//for ( int i = 0; i <= 5; ++i  )
-		//	viewIds.add( new ViewId( 0, i ) );
-
-		//viewIds.add( new ViewId( 0, 10 ) );
-		viewIds.add( new ViewId( 0, 0 ) );
-
-		// filter not present ViewIds
-		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
-
-		// re-populate not present ViewIds
-		//updateMissingViews( spimData, viewIds );
-		//BoundingBoxMaximal.ignoreMissingViews = true;
-
-		final boolean relativeFRC = true;
-		final boolean smoothLocalFRC = false;
-		final int fftSize = 64;
-
-		testQuality( spimData, viewIds, relativeFRC, smoothLocalFRC, fftSize );
+			spimData = null;
+			
+			System.gc();
+			Runtime.getRuntime().runFinalization();
+		}
 	}
 
 	public static void testQuality( final SpimData2 spimData, final List< ViewId > viewIds, final boolean relative, final boolean smooth, final int fftSize )
 	{
-		Interval bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
+		final boolean isBrain = spimData.getBasePath().getAbsolutePath().contains( "/Volumes/home/Data/brain/" );
+		Interval bb;
 
-		//bb = trimInterval( bb );
-		//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": cropped bounding box = " + Util.printInterval( bb ) );
+		if ( !isBrain )
+		{
+			bb = new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": bounding box = " + bb );
+	
+			bb = trimInterval( bb );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": cropped bounding box = " + Util.printInterval( bb ) );
+		}
+		else
+		{
+			// full brain bounding box
+			// [-3378, -2334, -3814] -> [8062, 13137, 3054], dimensions (11441, 15472, 6869)
+			bb = new FinalInterval( new long[] { -3378, -2334, -3814 }, new long[] { 8062, 13137, 3054 } );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Predefined bounding box = " + Util.printInterval( bb ) );
+		}
 
 		// img loading and registrations
 		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
@@ -116,7 +143,7 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
+			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
@@ -129,6 +156,9 @@ public class TestQuality
 
 		// downsampling
 		double downsampling = 4; //16; //Double.NaN;
+
+		if ( isBrain )
+			downsampling = 16;
 
 		//
 		// display virtually fused
