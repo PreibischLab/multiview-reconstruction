@@ -17,6 +17,7 @@ import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
@@ -47,16 +48,14 @@ public class TestQuality
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		// spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
 
-		for ( int run = 0; run <= 3; ++run )
+		for ( int run = 2; run <= 3; ++run )
 		{
 			// load drosophila
 			//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
 			spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
 			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
 			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
-	
-			System.out.println( "Views present:" );
-	
+
 			for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
 				System.out.println( Group.pvid( viewId ) );
 
@@ -143,13 +142,13 @@ public class TestQuality
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-			final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
+			//final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 20, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
 			//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 			final ViewRegistration vr = registrations.getViewRegistration( viewId );
 			vr.updateModel();
 
-			data.add( new ValuePair<>( frc.getRandomAccessibleInterval(), vr.getModel() ) );
+			data.add( new ValuePair<>( FRCRealRandomAccessible.getFloatRAI( input ), vr.getModel() ) );
 		}
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FRC done." );
