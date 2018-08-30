@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 
-import mpicbg.spim.data.sequence.ImgLoader;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalDimensions;
@@ -29,7 +29,7 @@ public class FRCTools
 {
 	public static FRCRealRandomAccessible< FloatType > computeFRC(
 			final ViewId viewId,
-			final ImgLoader imgLoader,
+			final BasicImgLoader imgLoader,
 			final int zStepSize,
 			final int fftSize,
 			final boolean relative,
