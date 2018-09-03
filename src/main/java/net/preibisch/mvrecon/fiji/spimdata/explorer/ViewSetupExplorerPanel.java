@@ -68,6 +68,7 @@ import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Illumination;
+import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
@@ -157,7 +158,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		initComponent();
 
 		if ( requestStartBDV && 
-				(Hdf5ImageLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) 
+				(MultiResolutionImgLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) 
 				|| data.getSequenceDescription().getImgLoader().getClass().getSimpleName().equals( "FractalImgLoader" )
 				|| FileMapImgLoaderLOCI2.class.isInstance( data.getSequenceDescription().getImgLoader() ) ) )
 		{
