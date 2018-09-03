@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.export;
 
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,6 +43,8 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class DisplayImage implements ImgExport, Calibrateable
 {
 	final boolean virtualDisplay;
+
+	public static ExecutorService service = DeconViews.createExecutorService();
 
 	String unit = "px";
 	double cal = 1.0;
@@ -158,9 +161,9 @@ public class DisplayImage implements ImgExport, Calibrateable
 		if ( imp == null )
 		{
 			if ( virtualDisplay )
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() );
+				imp = ImageJFunctions.wrap( img, title, service );
 			else
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() ).duplicate();
+				imp = ImageJFunctions.wrap( img, title, service ).duplicate();
 		}
 
 		final double[] minmax = getFusionMinMax( img, min, max );
