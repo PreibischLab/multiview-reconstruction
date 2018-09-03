@@ -190,11 +190,11 @@ public class SplittingTools
 		}
 		else if ( MultiResolutionImgLoader.class.isInstance( underlyingImgLoader ) )
 		{
-			imgLoader = new SplitMultiResolutionImgLoader( (MultiResolutionImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval );
+			imgLoader = new SplitMultiResolutionImgLoader( (MultiResolutionImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval, spimData.getSequenceDescription()  );
 		}
 		else
 		{
-			imgLoader = new SplitImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval );
+			imgLoader = new SplitImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval, spimData.getSequenceDescription()  );
 		}
 
 		sequenceDescription.setImgLoader( imgLoader );

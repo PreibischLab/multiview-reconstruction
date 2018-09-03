@@ -3,6 +3,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 import java.util.HashMap;
 
 import mpicbg.spim.data.sequence.ImgLoader;
+import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import net.imglib2.Interval;
 
@@ -21,6 +22,11 @@ public class SplitImgLoader implements ImgLoader
 	final HashMap< Integer, Interval > newSetupId2Interval;
 
 	/**
+	 * The old SequenceDescription is be needed for the underlying imgloader
+	 */
+	final SequenceDescription oldSD;
+
+	/**
 	 * Remembers instances of SplitSetupImgLoader
 	 */
 	private final HashMap< Integer, SplitSetupImgLoader< ? > > splitSetupImgLoaders;
@@ -28,12 +34,14 @@ public class SplitImgLoader implements ImgLoader
 	public SplitImgLoader(
 			final ImgLoader underlyingImgLoader,
 			final HashMap< Integer, Integer > new2oldSetupId,
-			final HashMap< Integer, Interval > newSetupId2Interval )
+			final HashMap< Integer, Interval > newSetupId2Interval,
+			final SequenceDescription oldSD)
 	{
 		this.underlyingImgLoader = underlyingImgLoader;
 		this.new2oldSetupId = new2oldSetupId;
 		this.newSetupId2Interval = newSetupId2Interval;
 		this.splitSetupImgLoaders = new HashMap<>();
+		this.oldSD = oldSD;
 	}
 
 	@Override

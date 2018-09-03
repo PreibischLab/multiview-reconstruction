@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
+import mpicbg.spim.data.sequence.SequenceDescription;
 import net.imglib2.Interval;
 
 public class SplitMultiResolutionImgLoader implements MultiResolutionImgLoader
@@ -21,6 +22,11 @@ public class SplitMultiResolutionImgLoader implements MultiResolutionImgLoader
 	final HashMap< Integer, Interval > newSetupId2Interval;
 
 	/**
+	 * The old SequenceDescription is be needed for the underlying imgloader
+	 */
+	final SequenceDescription oldSD;
+
+	/**
 	 * Remembers instances of SplitSetupImgLoader
 	 */
 	private final HashMap< Integer, SplitMultiResolutionSetupImgLoader< ? > > splitSetupImgLoaders;
@@ -28,12 +34,14 @@ public class SplitMultiResolutionImgLoader implements MultiResolutionImgLoader
 	public SplitMultiResolutionImgLoader(
 			final MultiResolutionImgLoader underlyingImgLoader,
 			final HashMap< Integer, Integer > new2oldSetupId,
-			final HashMap< Integer, Interval > newSetupId2Interval )
+			final HashMap< Integer, Interval > newSetupId2Interval,
+			final SequenceDescription oldSD )
 	{
 		this.underlyingImgLoader = underlyingImgLoader;
 		this.new2oldSetupId = new2oldSetupId;
 		this.newSetupId2Interval = newSetupId2Interval;
 		this.splitSetupImgLoaders = new HashMap<>();
+		this.oldSD = oldSD;
 	}
 
 	@Override
