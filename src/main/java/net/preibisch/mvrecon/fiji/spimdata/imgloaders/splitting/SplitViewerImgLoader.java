@@ -1,13 +1,14 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import bdv.ViewerImgLoader;
 import bdv.ViewerSetupImgLoader;
 import bdv.cache.CacheControl;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
-import mpicbg.spim.data.sequence.VoxelDimensions;
+import mpicbg.spim.data.sequence.SequenceDescription;
+import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.Interval;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.volatiles.VolatileUnsignedShortType;
@@ -27,23 +28,26 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	final HashMap< Integer, Interval > newSetupId2Interval;
 
 	/**
+	 * The old SequenceDescription is be needed for the underlying imgloader
+	 */
+	final SequenceDescription oldSD;
+
+	/**
 	 * Remembers instances of SplitSetupImgLoader
 	 */
 	private final HashMap< Integer, SplitViewerSetupImgLoader > splitSetupImgLoaders;
-
-	final Map< Integer, VoxelDimensions > newSetupId2VoxelDim;
 
 	public SplitViewerImgLoader(
 			final ViewerImgLoader underlyingImgLoader,
 			final HashMap< Integer, Integer > new2oldSetupId,
 			final HashMap< Integer, Interval > newSetupId2Interval,
-			final Map< Integer, VoxelDimensions > newSetupId2VoxelDim )
+			final SequenceDescription oldSD )
 	{
 		this.underlyingImgLoader = underlyingImgLoader;
 		this.new2oldSetupId = new2oldSetupId;
 		this.newSetupId2Interval = newSetupId2Interval;
+		this.oldSD = oldSD;
 		this.splitSetupImgLoaders = new HashMap<>();
-		this.newSetupId2VoxelDim = newSetupId2VoxelDim;
 	}
 
 	@Override
@@ -64,7 +68,7 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 			if ( !imgType.getClass().isInstance( new UnsignedShortType() ) || !volTyoe.getClass().isInstance( new VolatileUnsignedShortType() ) )
 				throw new RuntimeException( "The underlying ViewerSetupImgLoader is not typed for <UnsignedShortType, VolatileUnsignedShortType>, cannot split up for BDV." );
 
-			sil = createNewSetupImgLoader( (ViewerSetupImgLoader)underlyingImgLoader.getSetupImgLoader( oldSetupId ), interval, newSetupId2VoxelDim.get( newSetupId ) );
+			sil = createNewSetupImgLoader( (ViewerSetupImgLoader)underlyingImgLoader.getSetupImgLoader( oldSetupId ), interval );
 			splitSetupImgLoaders.put( newSetupId, sil );
 		}
 		return sil;
@@ -72,10 +76,9 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 
 	private final synchronized SplitViewerSetupImgLoader createNewSetupImgLoader(
 			final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > setupImgLoader,
-			final Interval interval,
-			final VoxelDimensions voxelDim )
+			final Interval interval )
 	{
-		return new SplitViewerSetupImgLoader( setupImgLoader, interval, voxelDim );
+		return new SplitViewerSetupImgLoader( setupImgLoader, interval );
 	}
 
 	@Override

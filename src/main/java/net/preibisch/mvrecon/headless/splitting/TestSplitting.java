@@ -26,7 +26,10 @@ public class TestSplitting
 
 		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 250, 250, 50 } );
 
-		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, "", null );
+		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >(
+				newSD,
+				"/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset2.xml",
+				new XmlIoSpimData2( "" ) );
 		explorer.getFrame().toFront();
 
 		/*

@@ -64,6 +64,8 @@ public class SplittingTools
 		final ViewRegistrations oldRegistrations = spimData.getViewRegistrations();
 
 		final ImgLoader underlyingImgLoader = spimData.getSequenceDescription().getImgLoader();
+		spimData.getSequenceDescription().setImgLoader( null ); // we don't need it anymore there as we save it later
+
 		final HashMap< Integer, Integer > new2oldSetupId = new HashMap<>();
 		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
 
@@ -184,12 +186,7 @@ public class SplittingTools
 
 		if ( ViewerImgLoader.class.isInstance( underlyingImgLoader ) )
 		{
-			final Map< Integer, VoxelDimensions > newSetupId2VoxelDim = new HashMap<>();
-
-			for ( final ViewSetup setup : newSetups )
-				newSetupId2VoxelDim.put( setup.getId(), setup.getVoxelSize() );
-
-			imgLoader = new SplitViewerImgLoader( (ViewerImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval, newSetupId2VoxelDim );
+			imgLoader = new SplitViewerImgLoader( (ViewerImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval, spimData.getSequenceDescription() );
 		}
 		else if ( MultiResolutionImgLoader.class.isInstance( underlyingImgLoader ) )
 		{

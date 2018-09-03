@@ -25,7 +25,6 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > underlyingSetupImgLoader;
 	final Interval interval;
 	final Dimensions size;
-	final VoxelDimensions voxelDim;
 	final int n;
 
 	final double[][] mipmapResolutions;
@@ -33,11 +32,10 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	final Dimensions[] sizes;
 	final Interval[] scaledIntervals;
 
-	public SplitViewerSetupImgLoader( final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > underlyingSetupImgLoader, final Interval interval, final VoxelDimensions voxelDim )
+	public SplitViewerSetupImgLoader( final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > underlyingSetupImgLoader, final Interval interval )
 	{
 		this.underlyingSetupImgLoader = underlyingSetupImgLoader;
 		this.interval = interval;
-		this.voxelDim = voxelDim;
 		this.n = interval.numDimensions();
 
 		final long[] dim = new long[ interval.numDimensions() ];
@@ -151,7 +149,7 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	@Override
 	public VoxelDimensions getVoxelSize( final int timepointId )
 	{
-		return voxelDim;
+		throw new RuntimeException( "not supported." );
 	}
 
 	@Override
