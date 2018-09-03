@@ -2,6 +2,9 @@ package net.preibisch.mvrecon.headless.splitting;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
+import mpicbg.spim.data.generic.sequence.ImgLoaders;
+import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -25,6 +28,17 @@ public class TestSplitting
 
 		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, "", null );
 		explorer.getFrame().toFront();
+
+		/*
+		// this is how we basically save the underlying imgloader
+
+		final BasicImgLoader imgLoader = sequenceDescription.getImgLoader();
+		if ( imgLoader != null )
+		{
+			final XmlIoBasicImgLoader< ? > imgLoaderIo = ImgLoaders.createXmlIoForImgLoaderClass( imgLoader.getClass() );
+			elem.addContent( createImgLoaderElement( imgLoaderIo, imgLoader, basePath ) );
+		}
+		*/
 
 		//new Data_Explorer()
 	}

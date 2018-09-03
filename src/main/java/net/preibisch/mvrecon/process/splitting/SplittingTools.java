@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.process.splitting;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +36,8 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -58,13 +61,20 @@ public class SplittingTools
 
 		final ArrayList< ViewSetup > newSetups = new ArrayList<>();
 		final Map< ViewId, ViewRegistration > newRegistrations = new HashMap<>();
+		final Map< ViewId, ViewInterestPointLists > newInterestpoints = new HashMap<>();
+
 		int newId = 0;
-		int newTileId = 0;
+
+		// new tileId is locally computed based on the old tile ids
+		// by multiplying it with maxspread and then +1 for each new tile
+		// so each new one has to be the same across channel & illumination!
+		final int maxIntervalSpread = maxIntervalSpread( oldSetups, overlapPx, targetSize );
 
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
 			final int oldID = oldSetup.getId();
 			final Tile oldTile = oldSetup.getTile();
+			int localNewTileId = 0;
 
 			final Angle angle = oldSetup.getAngle();
 			final Channel channel = oldSetup.getChannel();
@@ -90,14 +100,17 @@ public class SplittingTools
 				for ( int d = 0; d < interval.numDimensions(); ++d )
 					location[ d ] += interval.min( d );
 
+				final int newTileId = oldTile.getId() * maxIntervalSpread + localNewTileId;
+				localNewTileId++;
 				final Tile newTile = new Tile( newTileId, Integer.toString( newTileId ), location );
 				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, illum );
 				newSetups.add( newSetup );
 
-				// update registrations for all timepoints
+				// update registrations and interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
 				{
-					final ViewRegistration oldVR = oldRegistrations.getViewRegistration( new ViewId( t.getId(), oldSetup.getId() ) );
+					final ViewId oldViewId = new ViewId( t.getId(), oldSetup.getId() );
+					final ViewRegistration oldVR = oldRegistrations.getViewRegistration( oldViewId );
 					final ArrayList< ViewTransform > transformList = new ArrayList<>( oldVR.getTransformList() );
 
 					final AffineTransform3D translation = new AffineTransform3D();
@@ -111,13 +124,43 @@ public class SplittingTools
 					final ViewId newViewId = new ViewId( t.getId(), newSetup.getId() );
 					final ViewRegistration newVR = new ViewRegistration( newViewId.getTimePointId(), newViewId.getViewSetupId(), transformList );
 					newRegistrations.put( newViewId, newVR );
+
+					// Interest points
+					final ViewInterestPointLists newVipl = new ViewInterestPointLists( newViewId.getTimePointId(), newViewId.getViewSetupId() );
+					final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
+					for ( final String label : oldVipl.getHashMap().keySet() )
+					{
+						final InterestPointList oldIpl = oldVipl.getInterestPointList( label );
+						final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
+						final ArrayList< InterestPoint > newIp = new ArrayList<>();
+
+						int id = 0;
+						for ( final InterestPoint ip : oldIp )
+						{
+							if ( contains( ip.getL(), interval ) )
+							{
+								final double[] l = ip.getL();
+								for ( int d = 0; d < interval.numDimensions(); ++d )
+									l[ d ] -= interval.min( d );
+
+								newIp.add( new InterestPoint( id++, l ) );
+							}
+						}
+	
+						final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
+								"interestpoints", "tpId_" + newViewId.getTimePointId() +
+								"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );
+						newIpl.setInterestPoints( newIp );
+						newVipl.addInterestPointList( label, newIpl ); // still add
+					}
+					newInterestpoints.put( newViewId, newVipl );
 				}
 
 				newId++;
-				newTileId++;
 			}
 		}
 
+		// missing views
 		final MissingViews oldMissingViews = spimData.getSequenceDescription().getMissingViews();
 		final HashSet< ViewId > missingViews = new HashSet< ViewId >();
 
@@ -132,21 +175,42 @@ public class SplittingTools
 		final ImgLoader imgLoader = new SplitImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval );
 		sequenceDescription.setImgLoader( imgLoader );
 
-		// TODO: create the initial view interest point object
-		final Map< ViewId, ViewInterestPointLists > vipl = new HashMap<>();
+		// interest points
+		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints( newInterestpoints );
 
-		for ( final ViewId viewId : sequenceDescription.getViewDescriptions().values() )
-			vipl.put( viewId, new ViewInterestPointLists( viewId.getTimePointId(), viewId.getViewSetupId() ) );
+		// view registrations
+		final ViewRegistrations viewRegistrations = new ViewRegistrations( newRegistrations );
 
-		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints( vipl );
-
-		// TODO: fix point spread functions
+		// TODO: fix point spread functions?
 		// TODO: fix intensity adjustments?
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePath(), sequenceDescription, new ViewRegistrations( newRegistrations ), viewInterestPoints, spimData.getBoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
+		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePath(), sequenceDescription, viewRegistrations, viewInterestPoints, spimData.getBoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
 		return spimDataNew;
+	}
+
+	private static final int maxIntervalSpread( final List< ViewSetup > oldSetups, final long[] overlapPx, final long[] targetSize )
+	{
+		int max = 1;
+
+		for ( final ViewSetup oldSetup : oldSetups )
+		{
+			final Interval input = new FinalInterval( oldSetup.getSize() );
+			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize );
+
+			max = Math.max( max, intervals.size() );
+		}
+
+		return max;
+	}
+	private static final boolean contains( final double[] l, final Interval interval )
+	{
+		for ( int d = 0; d < l.length; ++d )
+			if ( l[ d ] < interval.min( d ) || l[ d ] > interval.max( d ) )
+				return false;
+
+		return true;
 	}
 
 	public static ArrayList< Interval > distributeIntervalsFixedOverlap( final Interval input, final long[] overlapPx, final long[] targetSize )
