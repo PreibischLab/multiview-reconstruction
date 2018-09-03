@@ -21,6 +21,7 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -28,8 +29,10 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.img.Img;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -40,6 +43,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 
@@ -181,11 +185,31 @@ public class SplittingTools
 		// view registrations
 		final ViewRegistrations viewRegistrations = new ViewRegistrations( newRegistrations );
 
-		// TODO: fix point spread functions?
+		// add point spread functions
+		final HashMap< ViewId, PointSpreadFunction > newPsfs = new HashMap<>();
+		final HashMap< ViewId, PointSpreadFunction > oldPsfs = spimData.getPointSpreadFunctions().getPointSpreadFunctions();
+
+		for ( final ViewDescription newViewId : sequenceDescription.getViewDescriptions().values() )
+		{
+			if ( newViewId.isPresent() )
+			{
+				final ViewId oldViewId = new ViewId( newViewId.getTimePointId(), new2oldSetupId.get( newViewId.getViewSetupId() ) );
+				if ( oldPsfs.containsKey( oldViewId ) )
+				{
+					final PointSpreadFunction oldPsf = oldPsfs.get( oldViewId );
+					final Img< FloatType > img = oldPsf.getPSFCopy();
+					final PointSpreadFunction newPsf = new PointSpreadFunction( spimData.getBasePath(), PointSpreadFunction.createPSFFileName( newViewId ), img );
+					newPsfs.put( newViewId, newPsf );
+				}
+			}
+		}
+
+		final PointSpreadFunctions psfs = new PointSpreadFunctions( newPsfs );
+
 		// TODO: fix intensity adjustments?
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePath(), sequenceDescription, viewRegistrations, viewInterestPoints, spimData.getBoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
+		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePath(), sequenceDescription, viewRegistrations, viewInterestPoints, spimData.getBoundingBoxes(), psfs, new StitchingResults(), new IntensityAdjustments() );
 
 		return spimDataNew;
 	}
