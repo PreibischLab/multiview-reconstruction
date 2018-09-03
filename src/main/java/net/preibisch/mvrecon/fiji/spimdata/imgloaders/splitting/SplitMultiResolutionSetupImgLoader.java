@@ -3,6 +3,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.VoxelDimensions;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
@@ -61,7 +62,7 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 			{
 				min[ d ] = interval.realMin( d ) / mipmapResolutions[ level ][ d ];
 				max[ d ] = interval.realMax( d ) / mipmapResolutions[ level ][ d ];
-	
+
 				minL[ d ] = Math.round( Math.floor( min[ d ] ) );
 				maxL[ d ] = Math.round( Math.floor( max[ d ] ) );
 
@@ -88,6 +89,8 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	@Override
 	public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints )
 	{
+		IOFunctions.println( "requesting full size: " );
+
 		return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, hints ), interval ) );
 	}
 
@@ -131,13 +134,31 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	@Override
 	public RandomAccessibleInterval< T > getImage( final int timepointId, final int level, final ImgLoaderHint... hints )
 	{
+		/*IOFunctions.println( "requesting: " + level );
+
+		for ( int l = 0; l < mipmapResolutions.length; ++l )
+		{
+			System.out.println( "level " + l + ": " + mipmapTransforms[ l ] );
+			System.out.println( "level " + l + ": " + Util.printInterval( scaledIntervals[ l ] ) );
+			System.out.print( "level " + l + ": " );
+			for ( int d = 0; d < mipmapResolutions[ l ].length; ++d )
+				System.out.print( mipmapResolutions[ l ][ d ] + "x" );
+			System.out.println();
+		}
+		/*
 		if ( level == 0 )
 		{
 			return getImage( timepointId, hints );
 		}
-		else
+		else*/
 		{
-			return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, hints ), scaledIntervals[ level ] ) );
+			//final RandomAccessibleInterval img = Views.zeroMin( Views.interval(underlyingSetupImgLoader.getImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
+			//DisplayImage.getImagePlusInstance( img, false, "level=" + level, 0.0, 255.0 ).show();;
+
+			//IOFunctions.println( "size: " + Util.printInterval( img ) );
+			//IOFunctions.println( "interval: " + Util.printInterval( scaledIntervals[ level ] ) );
+
+			return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
 		}
 	}
 
@@ -163,8 +184,7 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	public RandomAccessibleInterval< FloatType > getFloatImage( int timepointId,
 			int level, boolean normalize, ImgLoaderHint... hints )
 	{
-		// TODO Auto-generated method stub
-		return null;
+		throw new RuntimeException( "not supported." );
 	}
 
 	@Override
