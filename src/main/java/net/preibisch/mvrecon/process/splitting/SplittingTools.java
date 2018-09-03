@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import bdv.ViewerImgLoader;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
@@ -40,6 +41,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitMultiResolutionImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -180,10 +182,23 @@ public class SplittingTools
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, newSetups, null, new MissingViews( missingViews ) );
 		final ImgLoader imgLoader;
 
-		if ( MultiResolutionImgLoader.class.isInstance( underlyingImgLoader ) )
+		if ( ViewerImgLoader.class.isInstance( underlyingImgLoader ) )
+		{
+			final Map< Integer, VoxelDimensions > newSetupId2VoxelDim = new HashMap<>();
+
+			for ( final ViewSetup setup : newSetups )
+				newSetupId2VoxelDim.put( setup.getId(), setup.getVoxelSize() );
+
+			imgLoader = new SplitViewerImgLoader( (ViewerImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval, newSetupId2VoxelDim );
+		}
+		else if ( MultiResolutionImgLoader.class.isInstance( underlyingImgLoader ) )
+		{
 			imgLoader = new SplitMultiResolutionImgLoader( (MultiResolutionImgLoader)underlyingImgLoader, new2oldSetupId, newSetupId2Interval );
+		}
 		else
+		{
 			imgLoader = new SplitImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval );
+		}
 
 		sequenceDescription.setImgLoader( imgLoader );
 
