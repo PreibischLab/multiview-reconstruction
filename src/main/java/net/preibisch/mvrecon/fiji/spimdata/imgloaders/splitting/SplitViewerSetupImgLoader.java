@@ -51,8 +51,19 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
 		this.mipmapTransforms = new AffineTransform3D[ levels ];
 
-		final AffineTransform3D[] oldmipmapTransforms = underlyingSetupImgLoader.getMipmapTransforms();
+		setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
+	}
 
+	protected static final void setUpMultiRes(
+			final int levels,
+			final int n,
+			final Interval interval,
+			final double[][] mipmapResolutions,
+			final AffineTransform3D[] mipmapTransforms,
+			final Dimensions[] sizes,
+			final Interval[] scaledIntervals,
+			final AffineTransform3D[] oldmipmapTransforms )
+	{
 		// precompute intervals and new mipmaptransforms (because of rounding of interval borders)
 		for ( int level = 0; level < levels; ++level )
 		{
@@ -66,7 +77,7 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 			for ( int d = 0; d < n; ++d )
 			{
 				min[ d ] = interval.realMin( d ) / mipmapResolutions[ level ][ d ];
-				max[ d ] = interval.realMax( d ) / mipmapResolutions[ level ][ d ];
+				max[ d ] = (interval.realMax( d ) - 0.01) / mipmapResolutions[ level ][ d ];
 
 				minL[ d ] = Math.round( Math.floor( min[ d ] ) );
 				maxL[ d ] = Math.round( Math.floor( max[ d ] ) );
@@ -74,8 +85,8 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 				size[ d ] = maxL[ d ] - minL[ d ] + 1;
 			}
 
-			this.sizes[ level ] = new FinalDimensions( size );
-			this.scaledIntervals[ level ] = new FinalInterval( minL, maxL );
+			sizes[ level ] = new FinalDimensions( size );
+			scaledIntervals[ level ] = new FinalInterval( minL, maxL );
 
 			final AffineTransform3D mipMapTransform = oldmipmapTransforms[ level ].copy();
 
@@ -87,7 +98,7 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 					0.0, 0.0, 1.0, (minL[ 2 ] - min[ 2 ]) );
 	
 			mipMapTransform.concatenate( additonalTranslation );
-			this.mipmapTransforms[ level ] = mipMapTransform;
+			mipmapTransforms[ level ] = mipMapTransform;
 		}
 	}
 
@@ -146,12 +157,80 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	@Override
 	public RandomAccessibleInterval< UnsignedShortType > getImage( final int timepointId, final int level, final ImgLoaderHint... hints )
 	{
-		return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
+		/*
+		System.out.println( "requesting: " + level );
+
+		for ( int l = 0; l < mipmapResolutions.length; ++l )
+		{
+			System.out.println( "level " + l + ": " + mipmapTransforms[ l ] );
+			System.out.println( "level " + l + ": " + Util.printInterval( scaledIntervals[ l ] ) );
+			System.out.print( "level " + l + ": " );
+			for ( int d = 0; d < mipmapResolutions[ l ].length; ++d )
+				System.out.print( mipmapResolutions[ l ][ d ] + "x" );
+			System.out.println();
+		}
+
+		// 164 is a problem
+		final RandomAccessibleInterval< UnsignedShortType > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
+
+		updateScaledIntervals( this.scaledIntervals, level, n, full );
+
+		final RandomAccessibleInterval img = Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
+
+		if ( level == 3 && img.dimension( 0  ) == 33 )
+		{
+			DisplayImage.getImagePlusInstance( full, false, "levefull=" + level, 0.0, 255.0 ).show();;
+			DisplayImage.getImagePlusInstance( img, false, "level=" + level, 0.0, 255.0 ).show();;
+		}
+
+		System.out.println( "size: " + Util.printInterval( img ) );
+		System.out.println( "interval: " + Util.printInterval( scaledIntervals[ level ] ) ); */
+
+		final RandomAccessibleInterval< UnsignedShortType > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
+
+		updateScaledIntervals( this.scaledIntervals, level, n, full );
+
+		return Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
+	}
+
+	/**
+	 * Sometimes because of scaling the max is too high exceeding the actual downsampled image as provided
+	 *
+	 * @param scaledIntervals - the current scaled intervals (will be updated)
+	 * @param level - which level
+	 * @param n - num dimensions
+	 * @param fullImg - the full interval as currently loaded
+	 */
+	protected static final void updateScaledIntervals( final Interval[] scaledIntervals, final int level, final int n, final Interval fullImg )
+	{
+		boolean updateScaledInterval = false;
+
+		for ( int d = 0; d < n; ++d )
+			if ( scaledIntervals[ level ].max( d ) >= fullImg.max( d ) )
+				updateScaledInterval = true;
+
+		if ( updateScaledInterval )
+		{
+			final long[] min = new long[ n ];
+			final long[] max = new long[ n ];
+
+			for ( int d = 0; d < n; ++d )
+			{
+				min[ d ] = scaledIntervals[ level ].min( d );
+				max[ d ] = Math.min( scaledIntervals[ level ].max( d ), fullImg.max( d ) );
+			}
+
+			scaledIntervals[ level ] = new FinalInterval( min, max );
+		}
 	}
 
 	@Override
 	public RandomAccessibleInterval< VolatileUnsignedShortType > getVolatileImage( final int timepointId, final int level, final ImgLoaderHint... hints )
 	{
+		final RandomAccessibleInterval< VolatileUnsignedShortType > full = underlyingSetupImgLoader.getVolatileImage( timepointId, level, hints );
+
+		updateScaledIntervals( this.scaledIntervals, level, n, full );
+
 		return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getVolatileImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
 	}
 

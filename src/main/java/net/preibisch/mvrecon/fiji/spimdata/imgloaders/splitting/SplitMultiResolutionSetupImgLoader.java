@@ -6,7 +6,6 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -46,44 +45,7 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
 		this.mipmapTransforms = new AffineTransform3D[ levels ];
 
-		final AffineTransform3D[] oldmipmapTransforms = underlyingSetupImgLoader.getMipmapTransforms();
-
-		// precompute intervals and new mipmaptransforms (because of rounding of interval borders)
-		for ( int level = 0; level < levels; ++level )
-		{
-			final double[] min = new double[ n ];
-			final double[] max = new double[ n ];
-	
-			final long[] minL = new long[ n ];
-			final long[] maxL = new long[ n ];
-			final long[] size = new long[ n ];
-
-			for ( int d = 0; d < n; ++d )
-			{
-				min[ d ] = interval.realMin( d ) / mipmapResolutions[ level ][ d ];
-				max[ d ] = interval.realMax( d ) / mipmapResolutions[ level ][ d ];
-
-				minL[ d ] = Math.round( Math.floor( min[ d ] ) );
-				maxL[ d ] = Math.round( Math.floor( max[ d ] ) );
-
-				size[ d ] = maxL[ d ] - minL[ d ] + 1;
-			}
-
-			this.sizes[ level ] = new FinalDimensions( size );
-			this.scaledIntervals[ level ] = new FinalInterval( minL, maxL );
-
-			final AffineTransform3D mipMapTransform = oldmipmapTransforms[ level ].copy();
-
-			// the additional downsampling (performed below)
-			final AffineTransform3D additonalTranslation = new AffineTransform3D();
-			additonalTranslation.set(
-					1.0, 0.0, 0.0, (minL[ 0 ] - min[ 0 ]),
-					0.0, 1.0, 0.0, (minL[ 1 ] - min[ 1 ]),
-					0.0, 0.0, 1.0, (minL[ 2 ] - min[ 2 ]) );
-	
-			mipMapTransform.concatenate( additonalTranslation );
-			this.mipmapTransforms[ level ] = mipMapTransform;
-		}
+		SplitViewerSetupImgLoader.setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
 	}
 
 	@Override
@@ -158,7 +120,11 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 			//IOFunctions.println( "size: " + Util.printInterval( img ) );
 			//IOFunctions.println( "interval: " + Util.printInterval( scaledIntervals[ level ] ) );
 
-			return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
+			final RandomAccessibleInterval< T > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
+
+			SplitViewerSetupImgLoader.updateScaledIntervals( this.scaledIntervals, level, n, full );
+
+			return Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
 		}
 	}
 
