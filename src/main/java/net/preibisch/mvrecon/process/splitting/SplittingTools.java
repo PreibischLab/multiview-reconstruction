@@ -156,7 +156,7 @@ public class SplittingTools
 						}
 	
 						final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
-								"interestpoints", "tpId_" + newViewId.getTimePointId() +
+								"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
 								"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );
 						newIpl.setInterestPoints( newIp );
 						newVipl.addInterestPointList( label, newIpl ); // still add
