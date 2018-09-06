@@ -207,6 +207,8 @@ public class SplittingTools
 
 		// add point spread functions
 		final HashMap< ViewId, PointSpreadFunction > newPsfs = new HashMap<>();
+
+		/*
 		final HashMap< ViewId, PointSpreadFunction > oldPsfs = spimData.getPointSpreadFunctions().getPointSpreadFunctions();
 
 		for ( final ViewDescription newViewId : sequenceDescription.getViewDescriptions().values() )
@@ -222,7 +224,7 @@ public class SplittingTools
 					newPsfs.put( newViewId, newPsf );
 				}
 			}
-		}
+		}*/
 
 		final PointSpreadFunctions psfs = new PointSpreadFunctions( newPsfs );
 
