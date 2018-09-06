@@ -2,9 +2,6 @@ package net.preibisch.mvrecon.headless.splitting;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.sequence.BasicImgLoader;
-import mpicbg.spim.data.generic.sequence.ImgLoaders;
-import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -21,29 +18,26 @@ public class TestSplitting
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		//spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
 
-		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-
-		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 250, 250, 50 } );
-
-		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >(
-				newSD,
-				"/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset2.xml",
-				new XmlIoSpimData2( "" ) );
-		explorer.getFrame().toFront();
-
 		/*
-		// this is how we basically save the underlying imgloader
+			<size>2048 2048 900</size>
+			<size>0.40625 0.40625 0.8125</size>
+		 */
 
-		final BasicImgLoader imgLoader = sequenceDescription.getImgLoader();
-		if ( imgLoader != null )
-		{
-			final XmlIoBasicImgLoader< ? > imgLoaderIo = ImgLoaders.createXmlIoForImgLoaderClass( imgLoader.getClass() );
-			elem.addContent( createImgLoaderElement( imgLoaderIo, imgLoader, basePath ) );
-		}
-		*/
+		final String file = "/Volumes/home/Data/Expansion Microscopy/dataset.xml";
+		//final String file = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
 
-		//new Data_Explorer()
+		final String fileOut = file.replace( ".xml", ".split.xml" );
+
+		System.out.println( "in: " + file );
+		System.out.println( "out: " + fileOut );
+
+		// load drosophila
+		spimData = new XmlIoSpimData2( "" ).load( file );
+
+		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 15 }, new long[] { 600, 600, 300 } );
+
+		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, fileOut, new XmlIoSpimData2( "" ) );
+		explorer.getFrame().toFront();
 	}
 
 }
