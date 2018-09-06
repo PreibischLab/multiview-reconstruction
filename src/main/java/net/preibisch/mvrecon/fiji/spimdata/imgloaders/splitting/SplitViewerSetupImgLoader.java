@@ -32,6 +32,8 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	final Dimensions[] sizes;
 	final Interval[] scaledIntervals;
 
+	private boolean[] isUpdated;
+
 	public SplitViewerSetupImgLoader( final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > underlyingSetupImgLoader, final Interval interval )
 	{
 		this.underlyingSetupImgLoader = underlyingSetupImgLoader;
@@ -48,6 +50,10 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 		this.scaledIntervals = new Interval[ levels ];
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
 		this.mipmapTransforms = new AffineTransform3D[ levels ];
+
+		this.isUpdated = new boolean[ levels ];
+		for ( int l = 0; l < levels; ++l )
+			this.isUpdated[ l ] = false;
 
 		setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
 	}
@@ -199,26 +205,37 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	 * @param n - num dimensions
 	 * @param fullImg - the full interval as currently loaded
 	 */
-	protected static final void updateScaledIntervals( final Interval[] scaledIntervals, final int level, final int n, final Interval fullImg )
+	protected final void updateScaledIntervals( final Interval[] scaledIntervals, final int level, final int n, final Interval fullImg )
 	{
-		boolean updateScaledInterval = false;
-
-		for ( int d = 0; d < n; ++d )
-			if ( scaledIntervals[ level ].max( d ) >= fullImg.max( d ) )
-				updateScaledInterval = true;
-
-		if ( updateScaledInterval )
+		if ( !isUpdated[ level ] )
 		{
-			final long[] min = new long[ n ];
-			final long[] max = new long[ n ];
-
-			for ( int d = 0; d < n; ++d )
+			synchronized ( this )
 			{
-				min[ d ] = scaledIntervals[ level ].min( d );
-				max[ d ] = Math.min( scaledIntervals[ level ].max( d ), fullImg.max( d ) );
-			}
+				if ( isUpdated[ level ] )
+					return;
 
-			scaledIntervals[ level ] = new FinalInterval( min, max );
+				isUpdated[ level ] = true;
+
+				boolean updateScaledInterval = false;
+		
+				for ( int d = 0; d < n; ++d )
+					if ( scaledIntervals[ level ].max( d ) >= fullImg.max( d ) )
+						updateScaledInterval = true;
+		
+				if ( updateScaledInterval )
+				{
+					final long[] min = new long[ n ];
+					final long[] max = new long[ n ];
+		
+					for ( int d = 0; d < n; ++d )
+					{
+						min[ d ] = scaledIntervals[ level ].min( d );
+						max[ d ] = Math.min( scaledIntervals[ level ].max( d ), fullImg.max( d ) );
+					}
+		
+					scaledIntervals[ level ] = new FinalInterval( min, max );
+				}
+			}
 		}
 	}
 

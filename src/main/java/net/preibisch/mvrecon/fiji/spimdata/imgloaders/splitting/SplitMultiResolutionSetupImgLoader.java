@@ -6,6 +6,7 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
+import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -28,6 +29,8 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	final Dimensions[] sizes;
 	final Interval[] scaledIntervals;
 
+	private boolean[] isUpdated;
+
 	public SplitMultiResolutionSetupImgLoader( final MultiResolutionSetupImgLoader< T > underlyingSetupImgLoader, final Interval interval )
 	{
 		this.underlyingSetupImgLoader = underlyingSetupImgLoader;
@@ -44,6 +47,10 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 		this.scaledIntervals = new Interval[ levels ];
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
 		this.mipmapTransforms = new AffineTransform3D[ levels ];
+
+		this.isUpdated = new boolean[ levels ];
+		for ( int l = 0; l < levels; ++l )
+			this.isUpdated[ l ] = false;
 
 		SplitViewerSetupImgLoader.setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
 	}
@@ -122,9 +129,51 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 
 			final RandomAccessibleInterval< T > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
 
-			SplitViewerSetupImgLoader.updateScaledIntervals( this.scaledIntervals, level, n, full );
+			updateScaledIntervals( this.scaledIntervals, level, n, full );
 
 			return Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
+		}
+	}
+
+	/**
+	 * Sometimes because of scaling the max is too high exceeding the actual downsampled image as provided
+	 *
+	 * @param scaledIntervals - the current scaled intervals (will be updated)
+	 * @param level - which level
+	 * @param n - num dimensions
+	 * @param fullImg - the full interval as currently loaded
+	 */
+	protected final void updateScaledIntervals( final Interval[] scaledIntervals, final int level, final int n, final Interval fullImg )
+	{
+		if ( !isUpdated[ level ] )
+		{
+			synchronized ( this )
+			{
+				if ( isUpdated[ level ] )
+					return;
+
+				isUpdated[ level ] = true;
+
+				boolean updateScaledInterval = false;
+		
+				for ( int d = 0; d < n; ++d )
+					if ( scaledIntervals[ level ].max( d ) >= fullImg.max( d ) )
+						updateScaledInterval = true;
+		
+				if ( updateScaledInterval )
+				{
+					final long[] min = new long[ n ];
+					final long[] max = new long[ n ];
+		
+					for ( int d = 0; d < n; ++d )
+					{
+						min[ d ] = scaledIntervals[ level ].min( d );
+						max[ d ] = Math.min( scaledIntervals[ level ].max( d ), fullImg.max( d ) );
+					}
+		
+					scaledIntervals[ level ] = new FinalInterval( min, max );
+				}
+			}
 		}
 	}
 
