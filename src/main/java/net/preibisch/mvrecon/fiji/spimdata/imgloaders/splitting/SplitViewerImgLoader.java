@@ -1,13 +1,18 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 import bdv.ViewerImgLoader;
 import bdv.ViewerSetupImgLoader;
 import bdv.cache.CacheControl;
+import bdv.img.cache.VolatileGlobalCellCache;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import net.imglib2.Interval;
+import net.imglib2.cache.queue.BlockingFetchQueues;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 
@@ -35,6 +40,11 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	 */
 	private final HashMap< Integer, SplitViewerSetupImgLoader > splitSetupImgLoaders;
 
+	/**
+	 * Its own cell cache
+	 */
+	protected VolatileGlobalCellCache cache;
+
 	public SplitViewerImgLoader(
 			final ViewerImgLoader underlyingImgLoader,
 			final HashMap< Integer, Integer > new2oldSetupId,
@@ -47,6 +57,8 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 		this.oldSD = oldSD;
 		this.splitSetupImgLoaders = new HashMap<>();
 	}
+
+	private boolean isOpen = false;
 
 	@Override
 	public SplitViewerSetupImgLoader getSetupImgLoader( final int setupId )
@@ -79,9 +91,37 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 		return new SplitViewerSetupImgLoader( setupImgLoader, interval );
 	}
 
+	private void open()
+	{
+		if ( !isOpen )
+		{
+			synchronized ( this )
+			{
+				if ( isOpen )
+					return;
+
+				isOpen = true;
+
+				int maxNumLevels = 1;
+				final List< ? extends BasicViewSetup > setups = oldSD.getViewSetupsOrdered();
+				for ( final BasicViewSetup setup : setups )
+				{
+					final double[][] resolutions = underlyingImgLoader.getSetupImgLoader( setup.getId() ).getMipmapResolutions();
+
+					if ( resolutions.length > maxNumLevels )
+						maxNumLevels = resolutions.length;
+				}
+
+				final BlockingFetchQueues< Callable< ? > > queue = new BlockingFetchQueues<>( maxNumLevels );
+				cache = new VolatileGlobalCellCache( queue );
+			}
+		}
+	}
+
 	@Override
 	public CacheControl getCacheControl()
 	{
-		return underlyingImgLoader.getCacheControl();
+		open();
+		return cache;
 	}
 }
