@@ -102,9 +102,15 @@ public class TestInterpolation
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = fuseVirtual( spimData, viewsToFuse, viewsToUse, "beads13", 1, boundingBox, downsampling );
+		final RandomAccessibleInterval< FloatType > virtual = fuseVirtual( spimData, viewsToFuse, viewsToUse, "beads13", 0, boundingBox, downsampling );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Displaying " );
+
 		final ImagePlus imp = ImageJFunctions.wrapFloat( virtual, "virtual" );
 		imp.setSlice( 50 );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": showing " );
+
 		imp.show();
 		//DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
 
@@ -224,7 +230,7 @@ public class TestInterpolation
 		// TODO: add corners as SimpleReferenceIP where w == targetW
 
 		
-		SimpleMultiThreading.threadHaltUnClean();
+		//SimpleMultiThreading.threadHaltUnClean();
 
 		for ( final ViewId viewId : viewsToFuse )
 		{
@@ -237,11 +243,15 @@ public class TestInterpolation
 
 			images.add( transformView( inputImg, annotatedIps.get( viewId ), bb, 0, interpolation ) );
 
-			final RandomAccessibleInterval< FloatType > imageArea =
-					Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
+			//final RandomAccessibleInterval< FloatType > imageArea =
+			//		Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
 
-			weights.add( transformView( imageArea, annotatedIps.get( viewId ), bb, 0, 0 ) );
+			//weights.add( transformView( imageArea, annotatedIps.get( viewId ), bb, 0, 0 ) );
+
+			weights.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( bb ) ) );
 		}
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Returning " );
 
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
 	}

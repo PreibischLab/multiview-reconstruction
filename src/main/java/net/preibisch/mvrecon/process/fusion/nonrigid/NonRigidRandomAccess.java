@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.fusion.nonrigid;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import mpicbg.models.AffineModel3D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.MovingLeastSquaresTransform;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -133,17 +134,21 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractLoc
 		final ArrayList< PointMatch > matches = new ArrayList<>();
 
 		for ( final NonrigidIP ip : ips )
-			matches.add( new PointMatch( new Point( ip.getL().clone() ), new Point( ip.getTargetW().clone() ) ) );
+			matches.add( new PointMatch( new Point( ip.getTargetW().clone() ), new Point( ip.getL().clone() ) ) );
 
 		IOFunctions.println( matches.size() );
+
 		try
 		{
+			transform.setModel( new AffineModel3D() );
 			transform.setMatches( matches );
 		} catch ( NotEnoughDataPointsException | IllDefinedDataPointsException e )
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+		IOFunctions.println( "initialized." );
 	}
 
 	@Override
