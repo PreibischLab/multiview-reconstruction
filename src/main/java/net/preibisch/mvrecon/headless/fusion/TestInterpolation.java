@@ -250,11 +250,37 @@ public class TestInterpolation
 			if ( count[ i ] > 0 )
 				System.out.println( i + ": " + count[ i ] );
 
+		final RealSum sum = new RealSum();
+		int countDist = 0;
+		double maxDist = 0;
+
 		// compute the centers
 		for ( final HashSet< AnnotatedIP > uniqueIP : uniqueIPs )
 		{
-			
+			final double[] avgPosW = new double[ 3 ];
+
+			for ( final AnnotatedIP aip : uniqueIP )
+			{
+				for ( int d = 0; d < avgPosW.length; ++d )
+					avgPosW[ d ] += aip.w[ d ];
+			}
+
+			for ( int d = 0; d < avgPosW.length; ++d )
+				avgPosW[ d ] /= (double)uniqueIP.size();
+	
+			for ( final AnnotatedIP aip : uniqueIP )
+			{
+				aip.setAvgPosW( avgPosW );
+
+				final double dist = Math.sqrt( BoundingBoxReorientation.squareDistance( aip.w[ 0 ], aip.w[ 1 ], aip.w[ 2 ], aip.avgPosW[ 0 ], aip.avgPosW[ 1 ], aip.avgPosW[ 2 ] ) );
+				sum.add( dist );
+				maxDist = Math.max( maxDist, dist );
+				++countDist;
+			}
 		}
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance from unique interest point: " + ( sum.getSum() / (double)countDist) );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Max distance from unique interest point: " + maxDist );
 	}
 
 	public static int[] uniqueInterestPointCounts( final List< HashSet< AnnotatedIP > > groups )
@@ -454,6 +480,8 @@ public class TestInterpolation
 		final InterestPoint ip, corrIp;
 		final ViewId viewId, corrViewId;
 
+		public double[] avgPosW;
+
 		public AnnotatedIP( final InterestPoint ip, final ViewId viewId, final InterestPoint corrIp, final ViewId corrViewId )
 		{
 			this.l = ip.getL().clone();
@@ -464,7 +492,12 @@ public class TestInterpolation
 			this.corrIp = corrIp;
 			this.viewId = viewId;
 			this.corrViewId = corrViewId;
+
+			this.avgPosW = w;
 		}
+
+		protected void setAvgPosW( final double[] avgPosW ) { this.avgPosW = avgPosW; }
+		public double[] getAvgPos() { return avgPosW; }
 
 		public void transform( final AffineTransform3D t, final AffineTransform3D corrT )
 		{
