@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
+import ij.ImagePlus;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
@@ -17,6 +18,7 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
@@ -31,7 +33,9 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.nonrigid.CorrespondingIP;
+import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidTools;
+import net.preibisch.mvrecon.process.fusion.nonrigid.NonrigidIP;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformedInputRandomAccessible;
@@ -76,14 +80,20 @@ public class TestInterpolation
 		IOFunctions.println( BoundingBox.getBoundingBoxDescription( boundingBox ) );
 
 		// select views to process
-		final List< ViewId > viewIds = new ArrayList< ViewId >();
-		//viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		viewIds.add( new ViewId( 0, 1 ) );
-		viewIds.add( new ViewId( 0, 2 ) );
-		viewIds.add( new ViewId( 0, 3 ) );
+		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
+		final List< ViewId > viewsToUse = new ArrayList< ViewId >(); // used to compute the non-rigid transform
+
+		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+
+		viewsToFuse.add( new ViewId( 0, 0 ) );
+		//viewsToFuse.add( new ViewId( 0, 2 ) );
+		//viewsToFuse.add( new ViewId( 0, 3 ) );
 
 		// filter not present ViewIds
-		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
+		List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewsToUse );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
+
+		removed = SpimData2.filterMissingViews( spimData, viewsToFuse );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
@@ -92,15 +102,17 @@ public class TestInterpolation
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = fuseVirtual( spimData, viewIds, "beads13", 1, boundingBox, downsampling );
-		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
+		final RandomAccessibleInterval< FloatType > virtual = fuseVirtual( spimData, viewsToFuse, viewsToUse, "beads13", 1, boundingBox, downsampling );
+		final ImagePlus imp = ImageJFunctions.wrapFloat( virtual, "virtual" );
+		imp.setSlice( 50 );
+		imp.show();
+		//DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
 
 	}
 
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformView(
 			final RandomAccessibleInterval< T > input,
-			final AffineTransform3D transform,
-			final HashMap< ViewId, AffineTransform3D > registrations,
+			final Collection< ? extends NonrigidIP > ips,
 			final Interval boundingBox,
 			final float outsideValue,
 			final int interpolation )
@@ -114,7 +126,7 @@ public class TestInterpolation
 			size[ d ] = boundingBox.dimension( d );
 		}
 
-		final TransformedInputRandomAccessible< T > virtual = new TransformedInputRandomAccessible< T >( input, transform, false, 0.0f, new FloatType( outsideValue ), offset );
+		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();
@@ -126,7 +138,8 @@ public class TestInterpolation
 
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final SpimData2 spimData,
-			final Collection< ? extends ViewId > views,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final Collection< ? extends ViewId > viewsToUse,
 			final String label,
 			final int interpolation,
 			final Interval boundingBox,
@@ -148,7 +161,7 @@ public class TestInterpolation
 		// create final registrations for all views and a list of corresponding interest points
 		final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
-		for ( final ViewId viewId : views )
+		for ( final ViewId viewId : viewsToUse )
 		{
 			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 			vr.updateModel();
@@ -164,7 +177,7 @@ public class TestInterpolation
 		// new loop for interestpoints that need the registrations
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = new HashMap<>();
 
-		for ( final ViewId viewId : views )
+		for ( final ViewId viewId : viewsToUse )
 		{
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading corresponding interest points for " + Group.pvid( viewId ) + ", label '" + label + "'" );
 
@@ -176,7 +189,7 @@ public class TestInterpolation
 				final List< CorrespondingInterestPoints > cipList = ipList.getCorrespondingInterestPointsCopy();
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": There are " + cipList.size() + " corresponding interest points in total (to all views)." );
 
-				final ArrayList< CorrespondingIP > aips = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, views, interestPointLists );
+				final ArrayList< CorrespondingIP > aips = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, interestPointLists );
 
 				if ( aips == null )
 				{
@@ -208,21 +221,26 @@ public class TestInterpolation
 		// this location in world coordinates defines where each individual point should be "warped" to
 		NonRigidTools.computeReferencePoints( annotatedIps );
 
+		// TODO: add corners as SimpleReferenceIP where w == targetW
+
+		
 		SimpleMultiThreading.threadHaltUnClean();
 
-		for ( final ViewId viewId : views )
+		for ( final ViewId viewId : viewsToFuse )
 		{
 			// this modifies the model so it maps from a smaller image to the global coordinate space,
 			// which applies for the image itself as well as the weights since they also use the smaller
 			// input image as reference
-			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( spimData.getSequenceDescription().getImgLoader(), viewId, registrations.get( viewId ) );
+			// TODO: RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( spimData.getSequenceDescription().getImgLoader(), viewId, registrations.get( viewId ) );
 
-			images.add( transformView( inputImg, registrations.get( viewId ), registrations, bb, 0, interpolation ) );
+			RandomAccessibleInterval inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+
+			images.add( transformView( inputImg, annotatedIps.get( viewId ), bb, 0, interpolation ) );
 
 			final RandomAccessibleInterval< FloatType > imageArea =
 					Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
 
-			weights.add( transformView( imageArea, registrations.get( viewId ), registrations, bb, 0, 0 ) );
+			weights.add( transformView( imageArea, annotatedIps.get( viewId ), bb, 0, 0 ) );
 		}
 
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );

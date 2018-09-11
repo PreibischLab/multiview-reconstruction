@@ -13,8 +13,6 @@ public class CorrespondingIP extends SimpleReferenceIP
 	final InterestPoint ip, corrIp;
 	final ViewId viewId, corrViewId;
 
-	public double[] avgPosW;
-
 	public CorrespondingIP( final InterestPoint ip, final ViewId viewId, final InterestPoint corrIp, final ViewId corrViewId )
 	{
 		super( ip.getL().clone(), ip.getL().clone() );

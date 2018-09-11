@@ -64,7 +64,7 @@ public class NonRigidTools
 			{
 				aip.setTargetW( avgPosW );
 
-				final double dist = Math.sqrt( BoundingBoxReorientation.squareDistance( aip.w[ 0 ], aip.w[ 1 ], aip.w[ 2 ], aip.avgPosW[ 0 ], aip.avgPosW[ 1 ], aip.avgPosW[ 2 ] ) );
+				final double dist = Math.sqrt( BoundingBoxReorientation.squareDistance( aip.w[ 0 ], aip.w[ 1 ], aip.w[ 2 ], aip.targetW[ 0 ], aip.targetW[ 1 ], aip.targetW[ 2 ] ) );
 				sum.add( dist );
 				maxDist = Math.max( maxDist, dist );
 				++countDist;
@@ -137,14 +137,14 @@ public class NonRigidTools
 			final ViewId viewId,
 			final InterestPointList ipList,
 			final List< ? extends CorrespondingInterestPoints > cipList,
-			final Collection< ? extends ViewId > viewsToProcess,
+			final Collection< ? extends ViewId > viewsToUse,
 			final Map< ? extends ViewId, ? extends ViewInterestPointLists > interestPointLists )
 	{
 		// result
 		final ArrayList< CorrespondingIP > ipPairs = new ArrayList<>();
 
 		// sort all ViewIds into a set
-		final HashSet< ViewId > views = new HashSet<>( viewsToProcess );
+		final HashSet< ViewId > views = new HashSet<>( viewsToUse );
 
 		// sort all interest points into a HashMap
 		final HashMap< Integer, InterestPoint > ips = new HashMap<>();
