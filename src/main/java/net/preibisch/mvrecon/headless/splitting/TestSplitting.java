@@ -23,8 +23,8 @@ public class TestSplitting
 			<size>0.40625 0.40625 0.8125</size>
 		 */
 
-		final String file = "/Volumes/home/Data/Expansion Microscopy/dataset.xml";
-		//final String file = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
+		//final String file = "/Volumes/home/Data/Expansion Microscopy/dataset.xml";
+		final String file = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
 
 		final String fileOut = file.replace( ".xml", ".split.xml" );
 
@@ -34,8 +34,8 @@ public class TestSplitting
 		// load drosophila
 		spimData = new XmlIoSpimData2( "" ).load( file );
 
-		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 15 }, new long[] { 600, 600, 300 } );
-		//SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 200, 200, 40 } );
+		//SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 15 }, new long[] { 600, 600, 300 } );
+		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 200, 200, 40 } );
 		// drosophila with 1000 views
 
 		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, fileOut, new XmlIoSpimData2( "" ) );
