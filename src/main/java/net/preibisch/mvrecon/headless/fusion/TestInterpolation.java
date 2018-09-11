@@ -1,10 +1,12 @@
 package net.preibisch.mvrecon.headless.fusion;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -18,9 +20,11 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -29,6 +33,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestP
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
@@ -79,6 +84,7 @@ public class TestInterpolation
 		//viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 		viewIds.add( new ViewId( 0, 1 ) );
 		viewIds.add( new ViewId( 0, 2 ) );
+		viewIds.add( new ViewId( 0, 3 ) );
 
 		// filter not present ViewIds
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
@@ -145,7 +151,6 @@ public class TestInterpolation
 
 		// create final registrations for all views and a list of corresponding interest points
 		final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
-		
 
 		for ( final ViewId viewId : views )
 		{
@@ -158,7 +163,13 @@ public class TestInterpolation
 				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
 
 			registrations.put( viewId, model );
+		}
 
+		// new loop for interestpoints that need the registrations
+		final HashMap< ViewId, ArrayList< AnnotatedIP > > annotatedIps = new HashMap<>();
+
+		for ( final ViewId viewId : views )
+		{
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading corresponding interest points for " + Group.pvid( viewId ) + ", label '" + label + "'" );
 
 			if ( spimData.getViewInterestPoints().getViewInterestPointLists( viewId ).contains( label ) )
@@ -169,15 +180,25 @@ public class TestInterpolation
 				final List< CorrespondingInterestPoints > cipList = ipList.getCorrespondingInterestPointsCopy();
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": There are " + cipList.size() + " corresponding interest points in total (to all views)." );
 
-				final ArrayList< AnnotatedIP > corrIPs = assembleAllCorrespondingPoints( viewId, ipList, cipList, views, interestPointLists );
+				final ArrayList< AnnotatedIP > aips = assembleAllCorrespondingPoints( viewId, ipList, cipList, views, interestPointLists );
 
-				if ( corrIPs == null )
+				if ( aips == null )
 				{
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to assemble pairs of corresponding interest points." );
 					return null;
 				}
 
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loaded " + corrIPs.size() + " pairs of corresponding interest points." );
+				// TODO: what if there were no corresponding interest points???
+				//			- add image corners?
+				//			- just use the "old" fusion?
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loaded " + aips.size() + " pairs of corresponding interest points." );
+
+				final double dist = transformAnnotatedIPs( aips, registrations );
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
+
+				annotatedIps.put( viewId, aips );
 			}
 			else
 			{
@@ -186,6 +207,10 @@ public class TestInterpolation
 			}
 
 		}
+
+		computeReferencePoints( annotatedIps );
+
+		SimpleMultiThreading.threadHaltUnClean();
 
 		for ( final ViewId viewId : views )
 		{
@@ -205,39 +230,107 @@ public class TestInterpolation
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
 	}
 
-	public static class IPL
+	public static void computeReferencePoints( final HashMap< ViewId, ArrayList< AnnotatedIP > > annotatedIps )
 	{
-		final String label;
-		final Map< Integer, InterestPoint > map;
+		final ArrayList< AnnotatedIP > aips = new ArrayList<>();
 
-		public IPL( final String label, final Map< Integer, InterestPoint > map )
+		for ( final ArrayList< AnnotatedIP > aipl : annotatedIps.values() )
+			aips.addAll( aipl );
+
+		// find unique interest points in the pairs of images
+		final ArrayList< HashSet< AnnotatedIP > > uniqueIPs = findUniqueInterestPoints( aips );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Total number of pairs are " + aips.size() + ", which are " + uniqueIPs.size() + " unique interest points." );
+
+		// some statistics
+		final int[] count = uniqueInterestPointCounts( uniqueIPs );
+
+		System.out.println( "Structure: " );
+		for ( int i = 0; i < count.length; ++i )
+			if ( count[ i ] > 0 )
+				System.out.println( i + ": " + count[ i ] );
+
+		// compute the centers
+		for ( final HashSet< AnnotatedIP > uniqueIP : uniqueIPs )
 		{
-			this.label = label;
-			this.map = map;
+			
 		}
 	}
 
-	public static class AnnotatedIP
+	public static int[] uniqueInterestPointCounts( final List< HashSet< AnnotatedIP > > groups )
 	{
-		final InterestPoint ip, corrIp;
-		final ViewId viewId, corrViewId;
+		if ( groups == null || groups.size() == 0 )
+			return new int[ 1 ];
 
-		public AnnotatedIP( final InterestPoint ip, final ViewId viewId, final InterestPoint corrIp, final ViewId corrViewId )
-		{
-			this.ip = ip;
-			this.viewId = viewId;
-			this.corrIp = corrIp;
-			this.corrViewId = corrViewId;
-		}
+		int maxSize = 0;
+
+		for ( final HashSet< ? > group : groups )
+			maxSize = Math.max( group.size(), maxSize );
+
+		final int[] counts = new int[ maxSize + 1 ];
+
+		for ( final HashSet< ? > group : groups )
+			++counts[ group.size() ];
+
+		return counts;
 	}
 
-	private static IPL getIPL( final Collection< IPL > ipls, final String label )
+	public static ArrayList< HashSet< AnnotatedIP > > findUniqueInterestPoints( final Collection< AnnotatedIP > pairs)
 	{
-		for ( final IPL ipl : ipls )
-			if ( ipl.label.equals( label ) )
-				return ipl;
+		final ArrayList< HashSet< AnnotatedIP > > groups = new ArrayList<>();
+		final HashSet< AnnotatedIP > unassignedCorr = new HashSet<>( pairs );
 
-		return null;
+		while ( unassignedCorr.size() > 0 )
+		{
+			final HashSet< AnnotatedIP > group = new HashSet<AnnotatedIP>();
+			final AnnotatedIP start = unassignedCorr.iterator().next();
+			group.add( start );
+			unassignedCorr.remove( start );
+
+			final LinkedList< AnnotatedIP > potentialCorrespondences = new LinkedList<>();
+			potentialCorrespondences.add( start );
+
+			final HashSet< AnnotatedIP > visited = new HashSet<>();
+
+			while ( potentialCorrespondences.size() > 0 )
+			{
+				final AnnotatedIP pc = potentialCorrespondences.remove();
+				visited.add( pc );
+
+				final ArrayList< AnnotatedIP > toRemove = new ArrayList<>();
+
+				for ( final AnnotatedIP newCorr : unassignedCorr )
+				{
+					if ( pc.ip.equals( newCorr.ip ) || pc.ip.equals( newCorr.corrIp ) || pc.corrIp.equals( newCorr.ip ) || pc.corrIp.equals( newCorr.corrIp ))
+					{
+						group.add( newCorr );
+						toRemove.add( newCorr );
+						potentialCorrespondences.add( newCorr );
+					}
+				}
+
+				unassignedCorr.removeAll( toRemove );
+			}
+
+			groups.add( group );
+
+		}
+		return groups;
+	}
+
+	public static double transformAnnotatedIPs( final Collection< AnnotatedIP > aips, final Map< ViewId, AffineTransform3D > models )
+	{
+		final RealSum sum = new RealSum( aips.size() );
+
+		for ( final AnnotatedIP aip : aips )
+		{
+			aip.transform( models.get( aip.viewId ), models.get( aip.corrViewId ) );
+
+			sum.add( Math.sqrt( BoundingBoxReorientation.squareDistance( aip.w[ 0 ], aip.w[ 1 ], aip.w[ 2 ], aip.corrW[ 0 ], aip.corrW[ 1 ], aip.corrW[ 2 ] ) ) );
+			//RealPoint.wrap( aip.w );
+		}
+
+		return sum.getSum() / (double)aips.size();
 	}
 
 	public static ArrayList< AnnotatedIP > assembleAllCorrespondingPoints(
@@ -340,5 +433,110 @@ public class TestInterpolation
 		}
 
 		return ipPairs;
+	}
+
+	public static class IPL
+	{
+		final String label;
+		final Map< Integer, InterestPoint > map;
+
+		public IPL( final String label, final Map< Integer, InterestPoint > map )
+		{
+			this.label = label;
+			this.map = map;
+		}
+	}
+
+	public static class AnnotatedIP
+	{
+		final double[] l, corrL;
+		final double[] w, corrW;
+		final InterestPoint ip, corrIp;
+		final ViewId viewId, corrViewId;
+
+		public AnnotatedIP( final InterestPoint ip, final ViewId viewId, final InterestPoint corrIp, final ViewId corrViewId )
+		{
+			this.l = ip.getL().clone();
+			this.w = ip.getL().clone();
+			this.corrL = corrIp.getL().clone();
+			this.corrW = corrIp.getL().clone();
+			this.ip = ip;
+			this.corrIp = corrIp;
+			this.viewId = viewId;
+			this.corrViewId = corrViewId;
+		}
+
+		public void transform( final AffineTransform3D t, final AffineTransform3D corrT )
+		{
+			t.apply( l, w );
+			corrT.apply( corrL, corrW );
+		}
+
+		@Override
+		public int hashCode()
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ( ( corrIp == null ) ? 0 : corrIp.hashCode() );
+			result = prime * result + Arrays.hashCode( corrL );
+			result = prime * result
+					+ ( ( corrViewId == null ) ? 0 : corrViewId.hashCode() );
+			result = prime * result + ( ( ip == null ) ? 0 : ip.hashCode() );
+			result = prime * result + Arrays.hashCode( l );
+			result = prime * result
+					+ ( ( viewId == null ) ? 0 : viewId.hashCode() );
+			return result;
+		}
+
+		@Override
+		public boolean equals( Object obj )
+		{
+			if ( this == obj )
+				return true;
+			if ( obj == null )
+				return false;
+			if ( getClass() != obj.getClass() )
+				return false;
+			AnnotatedIP other = (AnnotatedIP) obj;
+			if ( corrIp == null )
+			{
+				if ( other.corrIp != null )
+					return false;
+			} else if ( !corrIp.equals( other.corrIp ) )
+				return false;
+			if ( !Arrays.equals( corrL, other.corrL ) )
+				return false;
+			if ( corrViewId == null )
+			{
+				if ( other.corrViewId != null )
+					return false;
+			} else if ( !corrViewId.equals( other.corrViewId ) )
+				return false;
+			if ( ip == null )
+			{
+				if ( other.ip != null )
+					return false;
+			} else if ( !ip.equals( other.ip ) )
+				return false;
+			if ( !Arrays.equals( l, other.l ) )
+				return false;
+			if ( viewId == null )
+			{
+				if ( other.viewId != null )
+					return false;
+			} else if ( !viewId.equals( other.viewId ) )
+				return false;
+			return true;
+		}
+	}
+
+	private static IPL getIPL( final Collection< IPL > ipls, final String label )
+	{
+		for ( final IPL ipl : ipls )
+			if ( ipl.label.equals( label ) )
+				return ipl;
+
+		return null;
 	}
 }
