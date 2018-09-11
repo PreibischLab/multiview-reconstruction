@@ -35,6 +35,7 @@ import bdv.BigDataViewer;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RealLocalizable;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerPanel;
@@ -291,7 +292,17 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 					final Collection< InterestPoint > tmp = new HashSet<>();
 	
 					for ( final CorrespondingInterestPoints ip : ipList.getCorrespondingInterestPointsCopy() )
-						tmp.add( map.get( ip.getDetectionId() ) );
+					{
+						if ( !map.containsKey( ip.getDetectionId() ) )
+						{
+							IOFunctions.println( "Inconsistency in the interest points of view: " + Group.pvid( v ) );
+							IOFunctions.println( "Cannot find interestpoint for id = " + ip.getDetectionId() );
+						}
+						else
+						{
+							tmp.add( map.get( ip.getDetectionId() ) );
+						}
+					}
 
 					points.put( v, tmp );
 				}
