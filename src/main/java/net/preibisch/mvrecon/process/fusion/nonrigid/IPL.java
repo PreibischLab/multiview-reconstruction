@@ -14,4 +14,7 @@ public class IPL
 		this.label = label;
 		this.map = map;
 	}
+
+	public String getLabel() { return label; }
+	public Map< Integer, InterestPoint > getInterestPointMap() { return map; }
 }

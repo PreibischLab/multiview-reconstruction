@@ -32,6 +32,15 @@ public class CorrespondingIP
 	protected void setAvgPosW( final double[] avgPosW ) { this.avgPosW = avgPosW; }
 	public double[] getAvgPos() { return avgPosW; }
 
+	public double[] getL() { return l; }
+	public double[] getCorrL() { return corrL; }
+	public double[] getW() { return w; }
+	public double[] getCorrW() { return corrW; }
+	public InterestPoint getIP() { return ip; }
+	public InterestPoint getCorrIP() { return corrIp; }
+	public ViewId getViewId() { return viewId; }
+	public ViewId getCorrViewId() { return corrViewId; }
+
 	public void transform( final AffineTransform3D t, final AffineTransform3D corrT )
 	{
 		t.apply( l, w );
