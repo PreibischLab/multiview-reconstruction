@@ -170,13 +170,23 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 
 	protected String getParameters( final ViewInterestPoints vip, final List< ? extends ViewId > views, final String label )
 	{
+		if ( !vip.getViewInterestPointLists( views.get( 0 ) ).getHashMap().containsKey( label ) )
+			return "Not present in all views.";
+
 		final String parameters = vip.getViewInterestPointLists( views.get( 0 ) ).getInterestPointList( label ).getParameters();
 
 		for ( final ViewId v : views )
+		{
+			if ( !vip.getViewInterestPointLists( v ).getHashMap().containsKey( label ) )
+			{
+				return "Not present in all views.";
+			}
+
 			if ( !vip.getViewInterestPointLists( v ).getInterestPointList( label ).getParameters().equals( parameters ) )
 			{
 				return "Different types of parameters used for detection, cannot display.";
 			}
+		}
 
 		return parameters;
 	}
@@ -188,9 +198,10 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 		for ( final ViewId v : views )
 		{
 			final HashSet< Integer > cips = new HashSet< Integer >();
-	
-			for ( final CorrespondingInterestPoints c : vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy() )
-				cips.add( c.getDetectionId() );
+
+			if ( vip.getViewInterestPointLists( v ).getHashMap().containsKey( label ) )
+				for ( final CorrespondingInterestPoints c : vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy() )
+					cips.add( c.getDetectionId() );
 	
 			sum += cips.size();
 		}
@@ -211,7 +222,8 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 		int sum = 0;
 
 		for ( final ViewId v : views )
-			sum += vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy().size();
+			if ( vip.getViewInterestPointLists( v ).getHashMap().containsKey( label ) )
+				sum += vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy().size();
 
 		return sum;
 	}
