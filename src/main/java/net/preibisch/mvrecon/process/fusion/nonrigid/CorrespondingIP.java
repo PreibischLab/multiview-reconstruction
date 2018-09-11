@@ -6,10 +6,10 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
-public class CorrespondingIP
+public class CorrespondingIP extends SimpleReferenceIP
 {
-	final double[] l, corrL;
-	final double[] w, corrW;
+	final double[] corrL;
+	final double[] corrW;
 	final InterestPoint ip, corrIp;
 	final ViewId viewId, corrViewId;
 
@@ -17,24 +17,16 @@ public class CorrespondingIP
 
 	public CorrespondingIP( final InterestPoint ip, final ViewId viewId, final InterestPoint corrIp, final ViewId corrViewId )
 	{
-		this.l = ip.getL().clone();
-		this.w = ip.getL().clone();
+		super( ip.getL().clone(), ip.getL().clone() );
 		this.corrL = corrIp.getL().clone();
 		this.corrW = corrIp.getL().clone();
 		this.ip = ip;
 		this.corrIp = corrIp;
 		this.viewId = viewId;
 		this.corrViewId = corrViewId;
-
-		this.avgPosW = w;
 	}
 
-	protected void setAvgPosW( final double[] avgPosW ) { this.avgPosW = avgPosW; }
-	public double[] getAvgPos() { return avgPosW; }
-
-	public double[] getL() { return l; }
 	public double[] getCorrL() { return corrL; }
-	public double[] getW() { return w; }
 	public double[] getCorrW() { return corrW; }
 	public InterestPoint getIP() { return ip; }
 	public InterestPoint getCorrIP() { return corrIp; }

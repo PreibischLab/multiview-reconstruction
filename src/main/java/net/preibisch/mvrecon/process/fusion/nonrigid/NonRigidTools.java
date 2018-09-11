@@ -62,7 +62,7 @@ public class NonRigidTools
 	
 			for ( final CorrespondingIP aip : uniqueIP )
 			{
-				aip.setAvgPosW( avgPosW );
+				aip.setTargetW( avgPosW );
 
 				final double dist = Math.sqrt( BoundingBoxReorientation.squareDistance( aip.w[ 0 ], aip.w[ 1 ], aip.w[ 2 ], aip.avgPosW[ 0 ], aip.avgPosW[ 1 ], aip.avgPosW[ 2 ] ) );
 				sum.add( dist );
