@@ -108,7 +108,7 @@ public class TestInterpolation
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Displaying " );
 
 		final ImagePlus imp = ImageJFunctions.wrapFloat( virtual, "virtual" );
-		imp.setSlice( 50 );
+		imp.setSlice( 100 );
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": showing " );
 
@@ -229,7 +229,7 @@ public class TestInterpolation
 		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
 
 		
-		SimpleMultiThreading.threadHaltUnClean();
+		//SimpleMultiThreading.threadHaltUnClean();
 
 		for ( final ViewId viewId : viewsToFuse )
 		{

@@ -27,7 +27,7 @@ import java.util.Collection;
 
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.IllDefinedDataPointsException;
-import mpicbg.models.MovingLeastSquaresTransform;
+import mpicbg.models.MovingLeastSquaresTransform2;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -65,7 +65,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractLoc
 	final double[] s;
 	final FloatType v;
 
-	final MovingLeastSquaresTransform transform;
+	final MovingLeastSquaresTransform2 transform;
 
 	final RealRandomAccess< FloatType > ir;
 	final int offsetX, offsetY, offsetZ;
@@ -128,9 +128,9 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractLoc
 		this.ir = Views.interpolate( input, interpolatorFactory ).realRandomAccess();
 
 		//MovingLeastSquaresMesh< ? > mlsm;
-		//MovingLeastSquaresTransform2 t2;
+		//MovingLeastSquaresTransform t2;
 
-		this.transform = new MovingLeastSquaresTransform();
+		this.transform = new MovingLeastSquaresTransform2();
 		final ArrayList< PointMatch > matches = new ArrayList<>();
 
 		for ( final NonrigidIP ip : ips )
