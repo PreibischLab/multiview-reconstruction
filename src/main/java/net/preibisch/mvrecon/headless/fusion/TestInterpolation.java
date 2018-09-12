@@ -36,6 +36,7 @@ import net.preibisch.mvrecon.process.fusion.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonrigidIP;
+import net.preibisch.mvrecon.process.fusion.nonrigid.SimpleReferenceIP;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformedInputRandomAccessible;
@@ -225,12 +226,10 @@ public class TestInterpolation
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 		// this location in world coordinates defines where each individual point should be "warped" to
-		NonRigidTools.computeReferencePoints( annotatedIps );
-
-		// TODO: add corners as SimpleReferenceIP where w == targetW
+		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
 
 		
-		//SimpleMultiThreading.threadHaltUnClean();
+		SimpleMultiThreading.threadHaltUnClean();
 
 		for ( final ViewId viewId : viewsToFuse )
 		{
@@ -241,12 +240,13 @@ public class TestInterpolation
 
 			RandomAccessibleInterval inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
 
-			images.add( transformView( inputImg, annotatedIps.get( viewId ), bb, 0, interpolation ) );
+			// TODO: use standard fusion if uniquePoints.get( viewId ).size() == 0
+			images.add( transformView( inputImg, uniquePoints.get( viewId ), bb, 0, interpolation ) );
 
 			//final RandomAccessibleInterval< FloatType > imageArea =
 			//		Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
 
-			//weights.add( transformView( imageArea, annotatedIps.get( viewId ), bb, 0, 0 ) );
+			//weights.add( transformView( imageArea, uniquePoints.get( viewId ), bb, 0, 0 ) );
 
 			weights.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( bb ) ) );
 		}

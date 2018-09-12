@@ -2,6 +2,7 @@ package net.preibisch.mvrecon.process.fusion.nonrigid;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +23,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class NonRigidTools
 {
-	public static void computeReferencePoints( final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
+	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
 	{
 		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
 
@@ -73,6 +74,43 @@ public class NonRigidTools
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance from unique interest point: " + ( sum.getSum() / (double)countDist) );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Max distance from unique interest point: " + maxDist );
+
+		final ArrayList< ViewId > viewIds = new ArrayList<>( annotatedIps.keySet() );
+		Collections.sort( viewIds );
+
+		//final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = findUniqueInterestPoints( aips );
+
+		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePointsPerView = new HashMap<>();
+
+		//
+		// go over all groups, find the points that belong to this view, make one point each
+		//
+		for ( final ViewId viewId : viewIds )
+		{
+			final ArrayList< SimpleReferenceIP > myIPs = new ArrayList<>();
+
+			for ( final HashSet< CorrespondingIP > uniqueIP : uniqueIPs )
+			{
+				CorrespondingIP myIp = null;
+
+				for ( final CorrespondingIP ip : uniqueIP )
+				{
+					if ( ip.getViewId().equals( viewId ) )
+					{
+						myIp = ip;
+						break; // TODO: there could be more than one if there are inconsistencies ...
+					}
+				}
+
+				if ( myIp != null )
+					myIPs.add( new SimpleReferenceIP( myIp.getL(), myIp.getW(), myIp.getTargetW() ) );
+			}
+
+			uniquePointsPerView.put( viewId, myIPs );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Unique interest points for " + Group.pvid( viewId ) + ": " + myIPs.size() );
+		}
+
+		return uniquePointsPerView;
 	}
 
 	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Collection< CorrespondingIP > pairs)

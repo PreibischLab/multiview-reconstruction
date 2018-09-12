@@ -138,6 +138,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractLoc
 
 		IOFunctions.println( matches.size() );
 
+		// TODO: precompute every 10 pixels and interpolate
 		try
 		{
 			transform.setModel( new AffineModel3D() );
