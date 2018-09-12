@@ -28,15 +28,12 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealRandomAccess;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.process.fusion.nonrigid.grid.ModelGrid;
-import net.preibisch.mvrecon.process.fusion.nonrigid.grid.NumericAffineModel3D;
 
 public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
 {
@@ -79,6 +76,7 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > im
 
 		this.grid = new ModelGrid( controlPointDistance, boundingBox, ips );
 
+		/*
 		final RealRandomAccess< NumericAffineModel3D > model = this.grid.realRandomAccess();
 		model.setPosition( new long[] { boundingBox.min( 0 ), boundingBox.min( 1 ), boundingBox.min( 2 ) } );
 		System.out.println( model.get().getModel() );
@@ -86,7 +84,7 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > im
 		model.setPosition( new long[] { boundingBox.min( 0 ) + 1, boundingBox.min( 1 ), boundingBox.min( 2 ) } );
 		System.out.println( model.get().getModel() );
 
-		SimpleMultiThreading.threadHaltUnClean();
+		SimpleMultiThreading.threadHaltUnClean(); */
 	}
 
 	public InterpolatingNonRigidRandomAccessible(
@@ -111,7 +109,7 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > im
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
-		return new NonRigidRandomAccess< T >( img, ips, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
+		return new InterpolationgNonRigidRandomAccess< T >( img, grid, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
 
 	@Override

@@ -80,17 +80,17 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 		{
 			it.fwd();
 
-			System.out.print( Util.printCoordinates( it ) + " >>> " );
+			//System.out.print( Util.printCoordinates( it ) + " >>> " );
 
 			getWorldCoordinates( pos, it, min, controlPointDistance, n );
 
-			System.out.print( Util.printCoordinates( pos ) );
+			//System.out.print( Util.printCoordinates( pos ) );
 
 			transform.applyInPlace( pos ); // also modifies the model
 
 			it.set( new NumericAffineModel3D( model.copy() ) );
 
-			System.out.println( " >>> " + Util.printCoordinates( pos ) + ": " + model );
+			//System.out.println( " >>> " + Util.printCoordinates( pos ) + ": " + model );
 		}
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": computed grid." );

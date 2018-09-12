@@ -136,7 +136,7 @@ public class TestInterpolation
 
 		//final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
 
-		final long[] controlPointDistance = new long[] { 500, 500, 500 };
+		final long[] controlPointDistance = new long[] { 100, 100, 100 };
 		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, ips, controlPointDistance, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )

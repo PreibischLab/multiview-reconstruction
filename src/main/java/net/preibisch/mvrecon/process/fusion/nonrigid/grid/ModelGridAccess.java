@@ -39,11 +39,11 @@ public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 	@Override
 	public NumericAffineModel3D get()
 	{
-		System.out.print( Util.printCoordinates( l ) );
+		//System.out.print( Util.printCoordinates( l ) );
 
 		getLocalCoordinates( tmp, l, min, controlPointDistance, n );
 
-		System.out.println( " >>> " + Util.printCoordinates( tmp ) );
+		//System.out.println( " >>> " + Util.printCoordinates( tmp ) );
 
 		interpolated.setPosition( tmp );
 
