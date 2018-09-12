@@ -33,6 +33,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.nonrigid.CorrespondingIP;
+import net.preibisch.mvrecon.process.fusion.nonrigid.InterpolatingNonRigidRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.nonrigid.NonrigidIP;
@@ -133,7 +134,10 @@ public class TestInterpolation
 			size[ d ] = boundingBox.dimension( d );
 		}
 
-		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
+		//final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
+
+		final long[] controlPointDistance = new long[] { 500, 500, 500 };
+		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, ips, controlPointDistance, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();
