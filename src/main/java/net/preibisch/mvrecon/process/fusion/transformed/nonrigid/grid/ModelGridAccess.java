@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.nonrigid.grid;
+package net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid;
 
 import mpicbg.models.AffineModel3D;
 import net.imglib2.Localizable;

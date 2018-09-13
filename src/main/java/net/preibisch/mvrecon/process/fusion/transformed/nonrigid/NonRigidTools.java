@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.nonrigid;
+package net.preibisch.mvrecon.process.fusion.transformed.nonrigid;
 
 import java.util.ArrayList;
 import java.util.Collection;

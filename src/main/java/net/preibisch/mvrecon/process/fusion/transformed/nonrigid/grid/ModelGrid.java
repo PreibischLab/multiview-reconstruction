@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.nonrigid.grid;
+package net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,7 +19,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.img.list.ListLocalizingCursor;
 import net.imglib2.util.Util;
-import net.preibisch.mvrecon.process.fusion.nonrigid.NonrigidIP;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 
 public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 {

@@ -30,13 +30,13 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.nonrigid.CorrespondingIP;
-import net.preibisch.mvrecon.process.fusion.nonrigid.InterpolatingNonRigidRandomAccessible;
-import net.preibisch.mvrecon.process.fusion.nonrigid.NonRigidTools;
-import net.preibisch.mvrecon.process.fusion.nonrigid.NonrigidIP;
-import net.preibisch.mvrecon.process.fusion.nonrigid.SimpleReferenceIP;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.InterpolatingNonRigidRandomAccessible;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class TestInterpolation
