@@ -26,25 +26,14 @@ import java.util.Collection;
 
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.interpolation.InterpolatorFactory;
-import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
-import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedRandomAccessible;
 
-public class NonRigidRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
+public class NonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedRandomAccessible< T >
 {
-	final RandomAccessibleInterval< T > img;
 	final Collection< ? extends NonrigidIP > ips;
-	final long[] boundingBoxOffset;
-
-	final boolean hasMinValue;
-	final float minValue;
-	final FloatType outsideValue;
-
-	InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
 
 	public NonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
@@ -52,49 +41,24 @@ public class NonRigidRandomAccessible< T extends RealType< T > > implements Rand
 		final boolean hasMinValue,
 		final float minValue,
 		final FloatType outsideValue,
-		final long[] boundingBoxOffset )
+		final Interval boundingBox )
 	{
-		this.img = img;
+		super( img, hasMinValue, minValue, outsideValue, boundingBox );
+
 		this.ips = ips;
-		this.boundingBoxOffset = boundingBoxOffset;
-		this.hasMinValue = hasMinValue;
-		this.minValue = minValue;
-		this.outsideValue = outsideValue;
 	}
 
 	public NonRigidRandomAccessible(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final Collection< ? extends NonrigidIP > ips,
-			final long[] offset )
+			final Interval boundingBox )
 	{
-		this( img, ips, false, 0.0f, new FloatType( 0 ), offset );
-	}
-
-	public void setLinearInterpolation()
-	{
-		this.interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
-	}
-
-	public void setNearestNeighborInterpolation()
-	{
-		this.interpolatorFactory = new NearestNeighborInterpolatorFactory< FloatType >();
+		this( img, ips, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
 
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
 		return new NonRigidRandomAccess< T >( img, ips, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
-	}
-
-	@Override
-	public RandomAccess< FloatType > randomAccess( final Interval arg0 )
-	{
-		return randomAccess();
-	}
-
-	@Override
-	public int numDimensions()
-	{
-		return img.numDimensions();
 	}
 }

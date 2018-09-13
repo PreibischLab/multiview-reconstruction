@@ -26,30 +26,16 @@ import java.util.Collection;
 
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.interpolation.InterpolatorFactory;
-import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
-import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 
-public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
+public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedRandomAccessible< T >
 {
-	final RandomAccessibleInterval< T > img;
 	final Collection< ? extends NonrigidIP > ips;
-	final long[] boundingBoxOffset;
-	final Interval boundingBox;
-
 	final ModelGrid grid;
-	final int n;
-
-	final boolean hasMinValue;
-	final float minValue;
-	final FloatType outsideValue;
-
-	InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
 
 	public InterpolatingNonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
@@ -60,20 +46,9 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > im
 		final FloatType outsideValue,
 		final Interval boundingBox )
 	{
-		this.img = img;
+		super( img, hasMinValue, minValue, outsideValue, boundingBox );
+
 		this.ips = ips;
-		this.boundingBox = boundingBox;
-		this.hasMinValue = hasMinValue;
-		this.minValue = minValue;
-		this.outsideValue = outsideValue;
-
-		this.n = img.numDimensions();
-
-		boundingBoxOffset = new long[ n ];
-
-		for ( int d = 0; d < n; ++d )
-			boundingBoxOffset[ d ] = boundingBox.min( d );
-
 		this.grid = new ModelGrid( controlPointDistance, boundingBox, ips );
 
 		/*
@@ -96,31 +71,9 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > im
 		this( img, ips, controlPointDistance, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
 
-	public void setLinearInterpolation()
-	{
-		this.interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
-	}
-
-	public void setNearestNeighborInterpolation()
-	{
-		this.interpolatorFactory = new NearestNeighborInterpolatorFactory< FloatType >();
-	}
-
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
 		return new InterpolationgNonRigidRandomAccess< T >( img, grid, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
-	}
-
-	@Override
-	public RandomAccess< FloatType > randomAccess( final Interval arg0 )
-	{
-		return randomAccess();
-	}
-
-	@Override
-	public int numDimensions()
-	{
-		return img.numDimensions();
 	}
 }
