@@ -22,8 +22,6 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed.nonrigid;
 
-import java.util.Collection;
-
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
@@ -34,13 +32,11 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 
 public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedImgRandomAccessible< T >
 {
-	final Collection< ? extends NonrigidIP > ips;
 	final ModelGrid grid;
 
 	public InterpolatingNonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
-		final Collection< ? extends NonrigidIP > ips,
-		final long[] controlPointDistance,
+		final ModelGrid grid,
 		final boolean hasMinValue,
 		final float minValue,
 		final FloatType outsideValue,
@@ -48,8 +44,8 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > ex
 	{
 		super( img, hasMinValue, minValue, outsideValue, boundingBox );
 
-		this.ips = ips;
-		this.grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+		this.grid = grid;
+		//this.grid = new ModelGrid( controlPointDistance, boundingBox, ips );
 
 		/*
 		final RealRandomAccess< NumericAffineModel3D > model = this.grid.realRandomAccess();
@@ -64,11 +60,10 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > ex
 
 	public InterpolatingNonRigidRandomAccessible(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
-			final Collection< ? extends NonrigidIP > ips,
-			final long[] controlPointDistance,
+			final ModelGrid grid,
 			final Interval boundingBox )
 	{
-		this( img, ips, controlPointDistance, false, 0.0f, new FloatType( 0 ), boundingBox );
+		this( img, grid, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
 
 	@Override

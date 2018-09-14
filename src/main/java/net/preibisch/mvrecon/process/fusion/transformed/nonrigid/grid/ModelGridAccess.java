@@ -7,7 +7,6 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.Sampler;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >

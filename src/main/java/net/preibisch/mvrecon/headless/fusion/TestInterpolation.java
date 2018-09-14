@@ -37,6 +37,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.InterpolatingNo
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class TestInterpolation
@@ -268,7 +269,8 @@ public class TestInterpolation
 		//final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
 
 		final long[] controlPointDistance = new long[] { 10, 10, 10 };
-		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, ips, controlPointDistance, false, 0.0f, new FloatType( outsideValue ), boundingBox );
+		final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, grid, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();
