@@ -95,8 +95,8 @@ public class TestInterpolation
 
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		//viewsToFuse.add( new ViewId( 0, 0 ) );
+		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		viewsToFuse.add( new ViewId( 0, 0 ) );
 		//viewsToFuse.add( new ViewId( 0, 1 ) );
 		//viewsToFuse.add( new ViewId( 0, 2 ) );
 		//viewsToFuse.add( new ViewId( 0, 3 ) );

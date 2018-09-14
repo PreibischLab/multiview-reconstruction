@@ -29,7 +29,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public class TransformedInputRandomAccessible< T extends RealType< T > > extends AbstractTransformedRandomAccessible< T >
+public class TransformedInputRandomAccessible< T extends RealType< T > > extends AbstractTransformedImgRandomAccessible< T >
 {
 	final AffineTransform3D transform;
 	final boolean is2d;

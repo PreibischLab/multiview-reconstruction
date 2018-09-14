@@ -29,9 +29,9 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedRandomAccessible;
+import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedImgRandomAccessible;
 
-public class NonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedRandomAccessible< T >
+public class NonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedImgRandomAccessible< T >
 {
 	final Collection< ? extends NonrigidIP > ips;
 

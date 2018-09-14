@@ -28,7 +28,7 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedRandomAccess;
+import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedImgRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.NumericAffineModel3D;
 
@@ -39,7 +39,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.NumericAff
  * 
  * @author preibisch
  */
-public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > extends AbstractTransformedRandomAccess< T >
+public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > extends AbstractTransformedImgRandomAccess< T >
 {
 	// to interpolate transformations
 	final ModelGrid grid;

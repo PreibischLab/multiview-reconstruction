@@ -36,7 +36,7 @@ import net.imglib2.type.numeric.real.FloatType;
  * 
  * @author preibisch
  */
-public class TransformedInputRandomAccess< T extends RealType< T > > extends AbstractTransformedRandomAccess< T >
+public class TransformedInputRandomAccess< T extends RealType< T > > extends AbstractTransformedImgRandomAccess< T >
 {
 	final AffineTransform3D transform;
 	final double[] s, t;

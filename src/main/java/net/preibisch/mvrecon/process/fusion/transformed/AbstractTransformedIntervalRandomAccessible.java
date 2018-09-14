@@ -10,12 +10,10 @@ import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public abstract class AbstractTransformedRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
+public abstract class AbstractTransformedIntervalRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
 {
-	final protected RandomAccessibleInterval< T > img;
+	final protected Interval interval;
 
-	final protected boolean hasMinValue;
-	final protected float minValue;
 	final protected FloatType outsideValue;
 	final protected long[] boundingBoxOffset;
 	final protected Interval boundingBox;
@@ -24,19 +22,15 @@ public abstract class AbstractTransformedRandomAccessible< T extends RealType< T
 
 	protected InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
 
-	public AbstractTransformedRandomAccessible(
-			final RandomAccessibleInterval< T > img, // from ImgLoader
-			final boolean hasMinValue,
-			final float minValue,
+	public AbstractTransformedIntervalRandomAccessible(
+			final Interval interval, // from ImgLoader
 			final FloatType outsideValue,
 			final Interval boundingBox )
 	{
-		this.img = img;
-		this.hasMinValue = hasMinValue;
-		this.minValue = minValue;
+		this.interval = interval;
 		this.outsideValue = outsideValue;
 
-		this.n = img.numDimensions();
+		this.n = interval.numDimensions();
 		this.boundingBox = boundingBox;
 		this.boundingBoxOffset = new long[ n ];
 
