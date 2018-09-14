@@ -139,6 +139,7 @@ public class TestNonRigid
 
 		final int interpolation = 1;
 		final long[] controlPointDistance = new long[] { 10, 10, 10 };
+		final double alpha = 1.0;
 
 		final boolean useBlending = true;
 		final boolean useContentBased = false;
@@ -147,7 +148,7 @@ public class TestNonRigid
 		final ExecutorService service = DeconViews.createExecutorService();
 
 		final RandomAccessibleInterval< FloatType > virtual =
-				fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, interpolation, boundingBox, downsampling, service );
+				fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, alpha, interpolation, boundingBox, downsampling, service );
 
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
 
@@ -163,6 +164,7 @@ public class TestNonRigid
 			final boolean useContentBased,
 			final boolean displayDistances,
 			final long[] controlPointDistance,
+			final double alpha,
 			final int interpolation,
 			final Interval boundingBox,
 			final double downsampling,
@@ -247,7 +249,7 @@ public class TestNonRigid
 		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, boundingBox, controlPointDistance, service );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, boundingBox, service );
 
 		// create virtual images
 		for ( final ViewId viewId : viewsToFuse )
@@ -391,6 +393,7 @@ public class TestNonRigid
 	public static RandomAccessibleInterval< FloatType > transformWeightNonRigid(
 			final RealRandomAccessible< FloatType > rra,
 			final Collection< ? extends NonrigidIP > ips,
+			final double alpha,
 			final Interval boundingBox )
 	{
 		final long[] offset = new long[ rra.numDimensions() ];
@@ -408,6 +411,7 @@ public class TestNonRigid
 					rra,
 					new FloatType(),
 					ips,
+					alpha,
 					offset );
 
 		final RandomAccessibleInterval< FloatType > virtualBlendingInterval = Views.interval( virtualBlending, new FinalInterval( size ) );
@@ -463,6 +467,7 @@ public class TestNonRigid
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformViewNonRigid(
 			final RandomAccessibleInterval< T > input,
 			final Collection< ? extends NonrigidIP > ips,
+			final double alpha,
 			final Interval boundingBox,
 			final float outsideValue,
 			final int interpolation )
@@ -472,7 +477,7 @@ public class TestNonRigid
 		for ( int d = 0; d < size.length; ++d )
 			size[ d ] = boundingBox.dimension( d );
 
-		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), boundingBox );
+		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, alpha, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();

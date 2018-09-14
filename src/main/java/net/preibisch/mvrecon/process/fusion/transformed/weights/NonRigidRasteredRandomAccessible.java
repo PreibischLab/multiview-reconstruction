@@ -36,11 +36,13 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 	final RealRandomAccessible< T > realRandomAccessible;
 	final T zero;
 	final Collection< ? extends NonrigidIP > ips;
+	final double alpha;
 	final long[] offset;
 
 	/**
 	 * @param realRandomAccessible - some {@link RealRandomAccessible} that we transform
 	 * @param ips - the local points with their respective local shift
+	 * @param alpha - parameter of the moving least squares
 	 * @param offset - an additional translational offset
 	 * @param zero - the zero constant
 	 */
@@ -48,13 +50,17 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 			final RealRandomAccessible< T > realRandomAccessible,
 			final T zero,
 			final Collection< ? extends NonrigidIP > ips,
+			final double alpha,
 			final long[] offset )
 	{
 		this.realRandomAccessible = realRandomAccessible;
 		this.zero = zero;
 		this.ips = ips;
+		this.alpha = alpha;
 		this.offset = offset;
 	}
+
+	public double getAlpha() { return alpha; }
 
 	@Override
 	public int numDimensions() { return realRandomAccessible.numDimensions(); }
@@ -62,7 +68,7 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 	@Override
 	public RandomAccess< T > randomAccess()
 	{
-		return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, Util.long2int( offset ) );
+		return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, Util.long2int( offset ) );
 	}
 
 	@Override

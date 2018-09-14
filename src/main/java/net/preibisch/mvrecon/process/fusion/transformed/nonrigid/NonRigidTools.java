@@ -34,8 +34,9 @@ public class NonRigidTools
 	public static HashMap< ViewId, ModelGrid > computeGrids(
 			final Collection< ? extends ViewId > viewsToFuse,
 			final HashMap< ? extends ViewId, ? extends Collection< ? extends NonrigidIP > > uniquePoints,
-			final Interval boundingBox,
 			final long[] controlPointDistance,
+			final double alpha,
+			final Interval boundingBox,
 			final ExecutorService service )
 	{
 		final ArrayList< Callable< Pair< ViewId, ModelGrid > > > tasks = new ArrayList<>();
@@ -49,11 +50,11 @@ public class NonRigidTools
 				{
 					final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
 
-					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
+					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model (a=" + alpha + ") for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
 
 					try
 					{
-						final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+						final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips, alpha );
 						return new ValuePair< ViewId, ModelGrid >( viewId, grid );
 					}
 					catch ( Exception e )

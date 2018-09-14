@@ -46,6 +46,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 	final T zero;
 
 	final Collection< ? extends NonrigidIP > ips;
+	final double alpha;
 	final MovingLeastSquaresTransform2 transform;
 
 	final double[] s;
@@ -55,6 +56,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 			final RealRandomAccessible< T > realRandomAccessible,
 			final T zero,
 			final Collection< ? extends NonrigidIP > ips,
+			final double alpha,
 			final int[] offset )
 	{
 		super( realRandomAccessible.numDimensions() );
@@ -62,6 +64,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 		this.zero = zero;
 		this.realRandomAccessible = realRandomAccessible;
 		this.ips = ips;
+		this.alpha = alpha;
 		this.offset = new int[ offset.length ];
 
 		for ( int d = 0; d < n; ++d )
@@ -77,6 +80,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 
 		try
 		{
+			transform.setAlpha( alpha );
 			transform.setModel( new AffineModel3D() );
 			transform.setMatches( matches );
 		}
@@ -91,6 +95,8 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 
 		this.s = new double[ n ];
 	}
+
+	public double getAlpha() { return alpha; }
 
 	@Override
 	public T get()
@@ -168,7 +174,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 	public void setPosition( final long position, final int d ) { this.position[ d ] = (int)position; }
 
 	@Override
-	public NonRigidRasteredRandomAccess< T > copy() { return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, offset ); }
+	public NonRigidRasteredRandomAccess< T > copy() { return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, offset ); }
 
 	@Override
 	public NonRigidRasteredRandomAccess<T> copyRandomAccess() { return copy(); }

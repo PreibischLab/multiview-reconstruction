@@ -18,19 +18,20 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.img.list.ListLocalizingCursor;
-import net.imglib2.util.Util;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 
 public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 {
 	final int n;
 	final long[] dim, min, controlPointDistance;
+	final double alpha;
 
 	final ListImg< NumericAffineModel3D > grid;
 
-	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips, final double alpha ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 	{
 		this.n = boundingBox.numDimensions();
+		this.alpha = alpha;
 
 		if ( this.n != 3 )
 			throw new RuntimeException( "Currently only 3d is supported by " + this.getClass().getName() );
@@ -57,6 +58,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 
 		final AffineModel3D model = new AffineModel3D();
 
+		transform.setAlpha( alpha );
 		transform.setModel( model );
 		transform.setMatches( matches );
 
@@ -85,6 +87,13 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": computed grid." );
 	}
+
+	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+	{
+		this( controlPointDistance, boundingBox, ips, 1.0 );
+	}
+
+	public double getAlpha() { return alpha; }
 
 	protected static final void getWorldCoordinates( final double[] pos, final Localizable l, final long[] min, final long[] controlPointDistance, final int n )
 	{

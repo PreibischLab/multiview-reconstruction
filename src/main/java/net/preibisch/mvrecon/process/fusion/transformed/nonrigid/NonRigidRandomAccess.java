@@ -48,6 +48,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedImgRa
 public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTransformedImgRandomAccess< T >
 {
 	final Collection< ? extends NonrigidIP > ips;
+	final double alpha;
 	final double[] s;
 
 	final MovingLeastSquaresTransform2 transform;
@@ -55,6 +56,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 	public NonRigidRandomAccess(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final Collection< ? extends NonrigidIP > ips,
+			final double alpha,
 			final InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory,
 			final boolean hasMinValue,
 			final float minValue,
@@ -64,6 +66,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 		super( img, interpolatorFactory, hasMinValue, minValue, outside, offset );
 
 		this.ips = ips;
+		this.alpha = alpha;
 		this.s = new double[ n ];
 
 		this.transform = new MovingLeastSquaresTransform2();
@@ -74,6 +77,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 
 		try
 		{
+			transform.setAlpha( alpha );
 			transform.setModel( new AffineModel3D() );
 			transform.setMatches( matches );
 		}
@@ -82,6 +86,8 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 			e.printStackTrace();
 		}
 	}
+
+	public double getAlpha() { return alpha; }
 
 	@Override
 	public FloatType get()
@@ -119,7 +125,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 	public NonRigidRandomAccess< T > copyRandomAccess()
 	{
 		final NonRigidRandomAccess< T > r = new NonRigidRandomAccess< T >(
-				img, ips, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
+				img, ips, alpha, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
 		r.setPosition( this );
 		return r;
 	}

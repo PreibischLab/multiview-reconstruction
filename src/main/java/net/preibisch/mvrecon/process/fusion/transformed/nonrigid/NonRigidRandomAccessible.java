@@ -34,10 +34,12 @@ import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedImgRa
 public class NonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedImgRandomAccessible< T >
 {
 	final Collection< ? extends NonrigidIP > ips;
+	final double alpha;
 
 	public NonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
 		final Collection< ? extends NonrigidIP > ips,
+		final double alpha,
 		final boolean hasMinValue,
 		final float minValue,
 		final FloatType outsideValue,
@@ -46,6 +48,7 @@ public class NonRigidRandomAccessible< T extends RealType< T > > extends Abstrac
 		super( img, hasMinValue, minValue, outsideValue, boundingBox );
 
 		this.ips = ips;
+		this.alpha = alpha;
 	}
 
 	public NonRigidRandomAccessible(
@@ -53,12 +56,14 @@ public class NonRigidRandomAccessible< T extends RealType< T > > extends Abstrac
 			final Collection< ? extends NonrigidIP > ips,
 			final Interval boundingBox )
 	{
-		this( img, ips, false, 0.0f, new FloatType( 0 ), boundingBox );
+		this( img, ips, 1.0, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
+
+	public double getAlpha() { return alpha; }
 
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
-		return new NonRigidRandomAccess< T >( img, ips, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
+		return new NonRigidRandomAccess< T >( img, ips, alpha, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
 }
