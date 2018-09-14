@@ -5,7 +5,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public abstract class AbstractTransformedImgRandomAccessible< T extends RealType< T > > extends AbstractTransformedIntervalRandomAccessible< T >
+public abstract class AbstractTransformedImgRandomAccessible< T extends RealType< T > > extends AbstractTransformedIntervalRandomAccessible
 {
 	final protected RandomAccessibleInterval< T > img;
 

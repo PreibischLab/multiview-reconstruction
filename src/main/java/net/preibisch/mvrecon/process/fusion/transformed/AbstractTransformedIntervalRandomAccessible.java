@@ -3,14 +3,12 @@ package net.preibisch.mvrecon.process.fusion.transformed;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
-import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public abstract class AbstractTransformedIntervalRandomAccessible< T extends RealType< T > > implements RandomAccessible< FloatType >
+public abstract class AbstractTransformedIntervalRandomAccessible implements RandomAccessible< FloatType >
 {
 	final protected Interval interval;
 

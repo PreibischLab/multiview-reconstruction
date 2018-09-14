@@ -10,7 +10,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
-public abstract class AbstractTransformedImgRandomAccess< T extends RealType< T > > extends AbstractTransformedIntervalRandomAccess< T >
+public abstract class AbstractTransformedImgRandomAccess< T extends RealType< T > > extends AbstractTransformedIntervalRandomAccess
 {
 	final protected boolean hasMinValue;
 	final protected float minValue;

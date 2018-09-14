@@ -6,10 +6,9 @@ import net.imglib2.Localizable;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.interpolation.InterpolatorFactory;
-import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public abstract class AbstractTransformedIntervalRandomAccess< T extends RealType< T > > extends AbstractLocalizableInt implements RandomAccess< FloatType >
+public abstract class AbstractTransformedIntervalRandomAccess extends AbstractLocalizableInt implements RandomAccess< FloatType >
 {
 	final protected FloatType outside;
 
