@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed.weights;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.AbstractLocalizableInt;
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccess;
@@ -40,6 +41,7 @@ public class InterpolatingNonRigidRasteredRandomAccess< T > extends AbstractLoca
 	// to interpolate transformations
 	final ModelGrid grid;
 	final RealRandomAccess< NumericAffineModel3D > interpolatedModel;
+	final AffineModel3D invertedModelOpener;
 
 	final double[] s;
 	final protected int offsetX, offsetY, offsetZ;
@@ -48,6 +50,7 @@ public class InterpolatingNonRigidRasteredRandomAccess< T > extends AbstractLoca
 			final RealRandomAccessible< T > realRandomAccessible,
 			final T zero,
 			final ModelGrid grid,
+			final AffineModel3D invertedModelOpener,
 			final int[] offset )
 	{
 		super( realRandomAccessible.numDimensions() );
@@ -55,6 +58,7 @@ public class InterpolatingNonRigidRasteredRandomAccess< T > extends AbstractLoca
 		this.zero = zero;
 		this.realRandomAccessible = realRandomAccessible;
 		this.grid = grid;
+		this.invertedModelOpener = invertedModelOpener;
 		this.interpolatedModel = grid.realRandomAccess();
 		this.offset = new int[ offset.length ];
 
@@ -81,7 +85,16 @@ public class InterpolatingNonRigidRasteredRandomAccess< T > extends AbstractLoca
 		interpolatedModel.setPosition( s );
 
 		// transform the coordinates
-		interpolatedModel.get().getModel().applyInPlace( s );
+		if ( invertedModelOpener == null )
+		{
+			interpolatedModel.get().getModel().applyInPlace( s );
+		}
+		else
+		{
+			final AffineModel3D model = interpolatedModel.get().getModel();
+			model.preConcatenate( invertedModelOpener );
+			model.applyInPlace( s );
+		}
 
 		realRandomAccess.setPosition( s );
 
@@ -149,7 +162,7 @@ public class InterpolatingNonRigidRasteredRandomAccess< T > extends AbstractLoca
 	public void setPosition( final long position, final int d ) { this.position[ d ] = (int)position; }
 
 	@Override
-	public InterpolatingNonRigidRasteredRandomAccess< T > copy() { return new InterpolatingNonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, grid, offset ); }
+	public InterpolatingNonRigidRasteredRandomAccess< T > copy() { return new InterpolatingNonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, grid, invertedModelOpener, offset ); }
 
 	@Override
 	public InterpolatingNonRigidRasteredRandomAccess<T> copyRandomAccess() { return copy(); }

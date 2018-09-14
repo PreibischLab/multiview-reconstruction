@@ -51,6 +51,7 @@ public class NonRigidTools
 					final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
 
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model (a=" + alpha + ") for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
+					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": " + Util.printInterval( boundingBox ) );
 
 					try
 					{

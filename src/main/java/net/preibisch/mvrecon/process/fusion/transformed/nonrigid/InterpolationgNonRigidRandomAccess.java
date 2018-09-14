@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed.nonrigid;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccess;
@@ -44,12 +45,14 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 	// to interpolate transformations
 	final ModelGrid grid;
 	final RealRandomAccess< NumericAffineModel3D > interpolatedModel;
+	final AffineModel3D invertedModelOpener;
 
 	final double[] s;
 
 	public InterpolationgNonRigidRandomAccess(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final ModelGrid grid,
+			final AffineModel3D invertedModelOpener,
 			final InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory,
 			final boolean hasMinValue,
 			final float minValue,
@@ -58,6 +61,7 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 	{
 		super( img, interpolatorFactory, hasMinValue, minValue, outside, offset );
 
+		this.invertedModelOpener = invertedModelOpener;
 		this.grid = grid;
 		this.s = new double[ n ];
 
@@ -76,7 +80,16 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 		interpolatedModel.setPosition( s );
 
 		// transform the coordinates
-		interpolatedModel.get().getModel().applyInPlace( s );
+		if ( invertedModelOpener == null )
+		{
+			interpolatedModel.get().getModel().applyInPlace( s );
+		}
+		else
+		{
+			final AffineModel3D model = interpolatedModel.get().getModel();
+			model.preConcatenate( invertedModelOpener );
+			model.applyInPlace( s );
+		}
 
 		// check if position t is inside of the input image (pixel coordinates)
 		if ( intersectsLinearInterpolation( s[ 0 ], s[ 1 ], s[ 2 ], imgMinX, imgMinY, imgMinZ, imgMaxX, imgMaxY, imgMaxZ ) )
@@ -101,7 +114,7 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 	public InterpolationgNonRigidRandomAccess< T > copyRandomAccess()
 	{
 		final InterpolationgNonRigidRandomAccess< T > r = new InterpolationgNonRigidRandomAccess< T >(
-				img, grid, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
+				img, grid, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
 		r.setPosition( this );
 		return r;
 	}

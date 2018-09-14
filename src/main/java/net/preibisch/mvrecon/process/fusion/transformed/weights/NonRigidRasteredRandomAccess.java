@@ -47,6 +47,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 
 	final Collection< ? extends NonrigidIP > ips;
 	final double alpha;
+	final AffineModel3D invertedModelOpener;
 	final MovingLeastSquaresTransform2 transform;
 
 	final double[] s;
@@ -57,6 +58,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 			final T zero,
 			final Collection< ? extends NonrigidIP > ips,
 			final double alpha,
+			final AffineModel3D invertedModelOpener,
 			final int[] offset )
 	{
 		super( realRandomAccessible.numDimensions() );
@@ -65,6 +67,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 		this.realRandomAccessible = realRandomAccessible;
 		this.ips = ips;
 		this.alpha = alpha;
+		this.invertedModelOpener = invertedModelOpener;
 		this.offset = new int[ offset.length ];
 
 		for ( int d = 0; d < n; ++d )
@@ -106,7 +109,16 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 		s[ 2 ] = position[ 2 ] + offsetZ;
 
 		// go from world coordinate system to local coordinate system of input image (pixel coordinates)
-		transform.applyInPlace( s );
+		if ( invertedModelOpener == null )
+		{
+			transform.applyInPlace( s );
+		}
+		else
+		{
+			final AffineModel3D model = (AffineModel3D)transform.getModel();
+			model.preConcatenate( invertedModelOpener );
+			model.applyInPlace( s );
+		}
 
 		realRandomAccess.setPosition( s );
 
@@ -174,7 +186,7 @@ public class NonRigidRasteredRandomAccess< T > extends AbstractLocalizableInt im
 	public void setPosition( final long position, final int d ) { this.position[ d ] = (int)position; }
 
 	@Override
-	public NonRigidRasteredRandomAccess< T > copy() { return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, offset ); }
+	public NonRigidRasteredRandomAccess< T > copy() { return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, invertedModelOpener, offset ); }
 
 	@Override
 	public NonRigidRasteredRandomAccess<T> copyRandomAccess() { return copy(); }

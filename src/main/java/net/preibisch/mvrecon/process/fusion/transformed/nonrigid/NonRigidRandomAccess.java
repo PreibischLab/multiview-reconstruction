@@ -49,6 +49,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 {
 	final Collection< ? extends NonrigidIP > ips;
 	final double alpha;
+	final AffineModel3D invertedModelOpener;
 	final double[] s;
 
 	final MovingLeastSquaresTransform2 transform;
@@ -57,6 +58,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final Collection< ? extends NonrigidIP > ips,
 			final double alpha,
+			final AffineModel3D invertedModelOpener,
 			final InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory,
 			final boolean hasMinValue,
 			final float minValue,
@@ -67,6 +69,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 
 		this.ips = ips;
 		this.alpha = alpha;
+		this.invertedModelOpener = invertedModelOpener;
 		this.s = new double[ n ];
 
 		this.transform = new MovingLeastSquaresTransform2();
@@ -98,8 +101,16 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 		s[ 2 ] = position[ 2 ] + offsetZ;
 
 		// go from world coordinate system to local coordinate system of input image (pixel coordinates)
-		//transform.applyInverse( t, s );
-		transform.applyInPlace( s );
+		if ( invertedModelOpener == null )
+		{
+			transform.applyInPlace( s );
+		}
+		else
+		{
+			final AffineModel3D model = (AffineModel3D)transform.getModel();
+			model.preConcatenate( invertedModelOpener );
+			model.applyInPlace( s );
+		}
 
 		// check if position t is inside of the input image (pixel coordinates)
 		if ( intersectsLinearInterpolation( s[ 0 ], s[ 1 ], s[ 2 ], imgMinX, imgMinY, imgMinZ, imgMaxX, imgMaxY, imgMaxZ ) )
@@ -125,7 +136,7 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 	public NonRigidRandomAccess< T > copyRandomAccess()
 	{
 		final NonRigidRandomAccess< T > r = new NonRigidRandomAccess< T >(
-				img, ips, alpha, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
+				img, ips, alpha, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
 		r.setPosition( this );
 		return r;
 	}

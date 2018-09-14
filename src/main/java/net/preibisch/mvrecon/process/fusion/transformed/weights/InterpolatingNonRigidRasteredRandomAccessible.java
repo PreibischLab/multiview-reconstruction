@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed.weights;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
@@ -34,11 +35,13 @@ public class InterpolatingNonRigidRasteredRandomAccessible< T > implements Rando
 	final RealRandomAccessible< T > realRandomAccessible;
 	final T zero;
 	final ModelGrid grid;
+	final AffineModel3D invertedModelOpener;
 	final long[] offset;
 
 	/**
 	 * @param realRandomAccessible - some {@link RealRandomAccessible} that we transform
 	 * @param grid - the interpolated transformation grid
+	 * @param invertedModelOpener - possibly the inverse of the extra model used when opening downsampled images
 	 * @param offset - an additional translational offset
 	 * @param zero - the zero constant
 	 */
@@ -46,12 +49,14 @@ public class InterpolatingNonRigidRasteredRandomAccessible< T > implements Rando
 			final RealRandomAccessible< T > realRandomAccessible,
 			final T zero,
 			final ModelGrid grid,
+			final AffineModel3D invertedModelOpener,
 			final long[] offset )
 	{
 		this.realRandomAccessible = realRandomAccessible;
 		this.zero = zero;
 		this.grid = grid;
 		this.offset = offset;
+		this.invertedModelOpener = invertedModelOpener;
 	}
 
 	@Override
@@ -60,7 +65,7 @@ public class InterpolatingNonRigidRasteredRandomAccessible< T > implements Rando
 	@Override
 	public RandomAccess< T > randomAccess()
 	{
-		return new InterpolatingNonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, grid, Util.long2int( offset ) );
+		return new InterpolatingNonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, grid, invertedModelOpener, Util.long2int( offset ) );
 	}
 
 	@Override

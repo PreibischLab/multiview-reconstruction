@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
+import mpicbg.models.AffineModel3D;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
@@ -55,6 +56,8 @@ import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRand
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.InterpolatingNonRigidRasteredRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.NonRigidRasteredRandomAccessible;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class TestNonRigid
@@ -127,7 +130,7 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
-		double downsampling = Double.NaN;
+		double downsampling = 2.5;//Double.NaN;
 
 		//
 		// display virtually fused
@@ -166,16 +169,16 @@ public class TestNonRigid
 			final long[] controlPointDistance,
 			final double alpha,
 			final int interpolation,
-			final Interval boundingBox,
+			final Interval boundingBox1,
 			final double downsampling,
 			final ExecutorService service )
 	{
 		final Interval bb;
 
 		if ( !Double.isNaN( downsampling ) )
-			bb = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
+			bb = TransformVirtual.scaleBoundingBox( boundingBox1, 1.0 / downsampling );
 		else
-			bb = boundingBox;
+			bb = boundingBox1;
 
 		final long[] dim = new long[ bb.numDimensions() ];
 		bb.dimensions( dim );
@@ -249,38 +252,57 @@ public class TestNonRigid
 		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, boundingBox, service );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bb, service );
 
 		// create virtual images
 		for ( final ViewId viewId : viewsToFuse )
 		{
 			final ModelGrid grid = nonrigidGrids.get( viewId );
-			final AffineTransform3D model = registrations.get( viewId );
-
-			// this modifies the model so it maps from a smaller image to the global coordinate space,
-			// which applies for the image itself as well as the weights since they also use the smaller
-			// input image as reference
-			// TODO: RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( spimData.getSequenceDescription().getImgLoader(), viewId, registrations.get( viewId ) );
-
-			RandomAccessibleInterval inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+			final AffineTransform3D modelAffine = registrations.get( viewId ).copy(); // will be modified potentially
+			final AffineModel3D invertedModelOpener;
+			final RandomAccessibleInterval inputImg;
 
 			if ( !displayDistances )
 			{
-				if ( grid == null )
-					images.add( TransformView.transformView( inputImg, model, bb, 0, interpolation ) );
-				else
-					images.add( transformViewNonRigidInterpolated( inputImg, grid, bb, 0, interpolation ) );
-			}
+				//
+				// Display images (open smaller images if it makes sense)
+				//
 
-			//
-			// Display distances
-			//
-			if ( displayDistances )
+				// the model necessary to map to the image opened at a reduced resolution level
+				final Pair< RandomAccessibleInterval, AffineTransform3D > input =
+						DownsampleTools.openDownsampled2( spimData.getSequenceDescription().getImgLoader(), viewId, modelAffine, null );
+	
+				// concatenate the downsampling transformation model to the affine transform
+				if ( input.getB() != null )
+				{
+					modelAffine.concatenate( input.getB() );
+					invertedModelOpener = TransformationTools.getModel( input.getB() ).createInverse();
+				}
+				else
+				{
+					invertedModelOpener = null;
+				}
+	
+				inputImg = input.getA();
+
+				if ( grid == null )
+					images.add( TransformView.transformView( inputImg, modelAffine, bb, 0, interpolation ) );
+				else
+					images.add( transformViewNonRigidInterpolated( inputImg, grid, invertedModelOpener, bb, 0, interpolation ) );
+			}
+			else
 			{
+				//
+				// Display distances (open at full resolution)
+				//
+
+				invertedModelOpener = null;
+				inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+
 				if ( grid == null )
 					images.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), 3 ), new FinalInterval( bb ) ) );
 				else
-					images.add( visualizeDistancesViewNonRigidInterpolated( inputImg, grid, model, bb, 0, interpolation ) );
+					images.add( visualizeDistancesViewNonRigidInterpolated( inputImg, grid, modelAffine, bb, 0, interpolation ) );
 			}
 
 			//
@@ -297,12 +319,12 @@ public class TestNonRigid
 					final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescription( viewId ), blending, border, model );
+					FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescription( viewId ), blending, border, modelAffine );
 
 					if ( grid == null )
-						transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, model, bb );
+						transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, modelAffine, bb );
 					else
-						transformedBlending = transformWeightNonRigidInterpolated( new BlendingRealRandomAccessible( new FinalInterval( inputImg ), border, blending ), grid, bb );
+						transformedBlending = transformWeightNonRigidInterpolated( new BlendingRealRandomAccessible( new FinalInterval( inputImg ), border, blending ), grid, invertedModelOpener, bb );
 				}
 
 				// instantiate content based if necessary
@@ -312,22 +334,22 @@ public class TestNonRigid
 					final double[] sigma2 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma2, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, model );
-
+					FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, modelAffine );
 
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 
 					if ( grid == null )
-						transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory< ComplexFloatType >(), sigma1, sigma2, model, bb );
+						transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory<>( new ComplexFloatType() ), sigma1, sigma2, modelAffine, bb );
 					else
 						transformedContentBased = 
 							transformWeightNonRigidInterpolated(
 									new ContentBasedRealRandomAccessible(
 											inputImg,
-											new CellImgFactory< ComplexFloatType >( new ComplexFloatType() ),
+											new CellImgFactory<>( new ComplexFloatType() ),
 											sigma1,
 											sigma2 ),
 									grid,
+									invertedModelOpener,
 									bb );
 				}
 
@@ -354,9 +376,9 @@ public class TestNonRigid
 						Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
 
 				if ( grid == null )
-					weights.add( TransformView.transformView( imageArea, model, bb, 0, 0 ) );
+					weights.add( TransformView.transformView( imageArea, modelAffine, bb, 0, 0 ) );
 				else
-					weights.add( transformViewNonRigidInterpolated( imageArea, grid, bb, 0, 0 ) );
+					weights.add( transformViewNonRigidInterpolated( imageArea, grid, invertedModelOpener, bb, 0, 0 ) );
 			}
 		}
 
@@ -366,6 +388,7 @@ public class TestNonRigid
 	public static RandomAccessibleInterval< FloatType > transformWeightNonRigidInterpolated(
 			final RealRandomAccessible< FloatType > rra,
 			final ModelGrid grid,
+			final AffineModel3D invertedModelOpener,
 			final Interval boundingBox )
 	{
 		final long[] offset = new long[ rra.numDimensions() ];
@@ -383,6 +406,7 @@ public class TestNonRigid
 					rra,
 					new FloatType(),
 					grid,
+					invertedModelOpener,
 					offset );
 
 		final RandomAccessibleInterval< FloatType > virtualBlendingInterval = Views.interval( virtualBlending, new FinalInterval( size ) );
@@ -394,6 +418,7 @@ public class TestNonRigid
 			final RealRandomAccessible< FloatType > rra,
 			final Collection< ? extends NonrigidIP > ips,
 			final double alpha,
+			final AffineModel3D invertedModelOpener,
 			final Interval boundingBox )
 	{
 		final long[] offset = new long[ rra.numDimensions() ];
@@ -412,6 +437,7 @@ public class TestNonRigid
 					new FloatType(),
 					ips,
 					alpha,
+					invertedModelOpener,
 					offset );
 
 		final RandomAccessibleInterval< FloatType > virtualBlendingInterval = Views.interval( virtualBlending, new FinalInterval( size ) );
@@ -445,6 +471,7 @@ public class TestNonRigid
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformViewNonRigidInterpolated(
 			final RandomAccessibleInterval< T > input,
 			final ModelGrid grid,
+			final AffineModel3D invertedModelOpener,
 			final Interval boundingBox,
 			final float outsideValue,
 			final int interpolation )
@@ -454,7 +481,7 @@ public class TestNonRigid
 		for ( int d = 0; d < size.length; ++d )
 			size[ d ] = boundingBox.dimension( d );
 
-		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, grid, false, 0.0f, new FloatType( outsideValue ), boundingBox );
+		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, grid, invertedModelOpener, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();
@@ -468,6 +495,7 @@ public class TestNonRigid
 			final RandomAccessibleInterval< T > input,
 			final Collection< ? extends NonrigidIP > ips,
 			final double alpha,
+			final AffineModel3D invertedModelOpener,
 			final Interval boundingBox,
 			final float outsideValue,
 			final int interpolation )
@@ -477,7 +505,7 @@ public class TestNonRigid
 		for ( int d = 0; d < size.length; ++d )
 			size[ d ] = boundingBox.dimension( d );
 
-		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, alpha, false, 0.0f, new FloatType( outsideValue ), boundingBox );
+		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, alpha, invertedModelOpener, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
 			virtual.setNearestNeighborInterpolation();

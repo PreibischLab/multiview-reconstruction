@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed.nonrigid;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
@@ -33,10 +34,12 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > extends AbstractTransformedImgRandomAccessible< T >
 {
 	final ModelGrid grid;
+	final AffineModel3D invertedModelOpener;
 
 	public InterpolatingNonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
 		final ModelGrid grid,
+		final AffineModel3D invertedModelOpener,
 		final boolean hasMinValue,
 		final float minValue,
 		final FloatType outsideValue,
@@ -45,6 +48,7 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > ex
 		super( img, hasMinValue, minValue, outsideValue, boundingBox );
 
 		this.grid = grid;
+		this.invertedModelOpener = invertedModelOpener;
 		//this.grid = new ModelGrid( controlPointDistance, boundingBox, ips );
 
 		/*
@@ -61,14 +65,15 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > ex
 	public InterpolatingNonRigidRandomAccessible(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final ModelGrid grid,
+			final AffineModel3D modelOpener,
 			final Interval boundingBox )
 	{
-		this( img, grid, false, 0.0f, new FloatType( 0 ), boundingBox );
+		this( img, grid, modelOpener, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
 
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
-		return new InterpolationgNonRigidRandomAccess< T >( img, grid, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
+		return new InterpolationgNonRigidRandomAccess< T >( img, grid, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
 }

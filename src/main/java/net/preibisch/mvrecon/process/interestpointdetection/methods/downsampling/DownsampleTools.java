@@ -40,7 +40,9 @@ import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
 public class DownsampleTools
@@ -70,6 +72,26 @@ public class DownsampleTools
 	 * @return - opened image
 	 */
 	public static RandomAccessibleInterval openDownsampled( final BasicImgLoader imgLoader, final ViewId viewId, final AffineTransform3D m, final double[] usedDownsampleFactors )
+	{
+		final Pair< RandomAccessibleInterval, AffineTransform3D > opened = openDownsampled2( imgLoader, viewId, m, usedDownsampleFactors );
+
+		// concatenate the downsampling transformation model to the affine transform
+		if ( opened.getB() != null )
+			m.concatenate( opened.getB() );
+
+		return opened.getA();
+	}
+	
+	/**
+	 * Opens the image at an appropriate resolution for the provided transformation and concatenates an extra transform 
+	 * 
+	 * @param imgLoader - the img loader
+	 * @param viewId - the view id
+	 * @param m - NOT modified
+	 * @param usedDownsampleFactors - which downsample factors were used to open the image (important for weights etc)
+	 * @return - opened image and the affine transform that needs to be concatenated
+	 */
+	public static Pair< RandomAccessibleInterval, AffineTransform3D > openDownsampled2( final BasicImgLoader imgLoader, final ViewId viewId, final AffineTransform3D m, final double[] usedDownsampleFactors )
 	{
 		// have to go from input to output
 		// https://github.com/bigdataviewer/bigdataviewer-core/blob/master/src/main/java/bdv/util/MipmapTransforms.java
@@ -131,8 +153,9 @@ public class DownsampleTools
 				System.out.println( Util.printCoordinates( size ) + " valid: " + isValid + " bestScaling: " + bestScaling  );
 			}
 
+			// now done in the more specific code above
 			// concatenate the downsampling transformation model to the affine transform
-			m.concatenate( mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
+			// m.concatenate( mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 
 			System.out.println( "Choosing resolution level: " + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] );
 
@@ -140,11 +163,13 @@ public class DownsampleTools
 				for ( int d = 0; d < usedDownsampleFactors.length; ++d )
 					usedDownsampleFactors[ d ] = mipmapResolutions[ bestLevel ][ d ];
 
-			return mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), bestLevel );
+			return new ValuePair<>(
+					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), bestLevel ),
+					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 		}
 		else
 		{
-			return imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+			return new ValuePair<>( imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() ), null );
 		}
 	}
 

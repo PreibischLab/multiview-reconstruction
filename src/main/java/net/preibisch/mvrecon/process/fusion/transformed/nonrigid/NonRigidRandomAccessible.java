@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.fusion.transformed.nonrigid;
 
 import java.util.Collection;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
@@ -35,11 +36,13 @@ public class NonRigidRandomAccessible< T extends RealType< T > > extends Abstrac
 {
 	final Collection< ? extends NonrigidIP > ips;
 	final double alpha;
+	final AffineModel3D invertedModelOpener;
 
 	public NonRigidRandomAccessible(
 		final RandomAccessibleInterval< T > img, // from ImgLoader
 		final Collection< ? extends NonrigidIP > ips,
 		final double alpha,
+		final AffineModel3D invertedModelOpener,
 		final boolean hasMinValue,
 		final float minValue,
 		final FloatType outsideValue,
@@ -49,14 +52,16 @@ public class NonRigidRandomAccessible< T extends RealType< T > > extends Abstrac
 
 		this.ips = ips;
 		this.alpha = alpha;
+		this.invertedModelOpener = invertedModelOpener;
 	}
 
 	public NonRigidRandomAccessible(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final Collection< ? extends NonrigidIP > ips,
+			final AffineModel3D invertedModelOpener,
 			final Interval boundingBox )
 	{
-		this( img, ips, 1.0, false, 0.0f, new FloatType( 0 ), boundingBox );
+		this( img, ips, 1.0, invertedModelOpener, false, 0.0f, new FloatType( 0 ), boundingBox );
 	}
 
 	public double getAlpha() { return alpha; }
@@ -64,6 +69,6 @@ public class NonRigidRandomAccessible< T extends RealType< T > > extends Abstrac
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
-		return new NonRigidRandomAccess< T >( img, ips, alpha, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
+		return new NonRigidRandomAccess< T >( img, ips, alpha, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
 }

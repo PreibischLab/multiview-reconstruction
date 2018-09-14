@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.fusion.transformed.weights;
 
 import java.util.Collection;
 
+import mpicbg.models.AffineModel3D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
@@ -37,12 +38,14 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 	final T zero;
 	final Collection< ? extends NonrigidIP > ips;
 	final double alpha;
+	final AffineModel3D invertedModelOpener;
 	final long[] offset;
 
 	/**
 	 * @param realRandomAccessible - some {@link RealRandomAccessible} that we transform
 	 * @param ips - the local points with their respective local shift
 	 * @param alpha - parameter of the moving least squares
+	 * @param invertedModelOpener - possibly the inverse of the extra model used when opening downsampled images
 	 * @param offset - an additional translational offset
 	 * @param zero - the zero constant
 	 */
@@ -51,12 +54,14 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 			final T zero,
 			final Collection< ? extends NonrigidIP > ips,
 			final double alpha,
+			final AffineModel3D invertedModelOpener,
 			final long[] offset )
 	{
 		this.realRandomAccessible = realRandomAccessible;
 		this.zero = zero;
 		this.ips = ips;
 		this.alpha = alpha;
+		this.invertedModelOpener = invertedModelOpener;
 		this.offset = offset;
 	}
 
@@ -68,7 +73,7 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 	@Override
 	public RandomAccess< T > randomAccess()
 	{
-		return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, Util.long2int( offset ) );
+		return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, alpha, invertedModelOpener, Util.long2int( offset ) );
 	}
 
 	@Override
