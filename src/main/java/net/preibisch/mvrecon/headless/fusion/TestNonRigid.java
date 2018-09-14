@@ -224,27 +224,29 @@ public class TestNonRigid
 					final ArrayList< CorrespondingIP > aipsTmp = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, interestPointLists );
 
 					if ( aipsTmp == null )
-					{
-						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to assemble pairs of corresponding interest points." );
-						return null;
-					}
-
-					aips.addAll( aipsTmp );
+						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to assemble pairs of corresponding interest points for label " + label + " in view " + Group.pvid( viewId ) );
+					else
+						aips.addAll( aipsTmp );
 				}
 				else
 				{
-					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Label '" + label + "' does not exist. Stopping." );
-					return null;
+					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Label '" + label + "' does not exist in view " + Group.pvid( viewId ) );
 				}
 			}
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loaded " + aips.size() + " pairs of corresponding interest points." );
 
-			final double dist = NonRigidTools.transformAnnotatedIPs( aips, registrations );
+			if ( aips.size() < 12 )
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": This number is not sufficient for non-rigid, using pre-computed affine." );
+			}
+			else
+			{
+				final double dist = NonRigidTools.transformAnnotatedIPs( aips, registrations );
+				annotatedIps.put( viewId, aips );
 
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
-
-			annotatedIps.put( viewId, aips );
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
+			}
 		}
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points

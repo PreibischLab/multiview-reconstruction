@@ -50,6 +50,12 @@ public class NonRigidTools
 				{
 					final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
 
+					if ( ips == null )
+					{
+						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": NO POINTS to interpolate non-rigid model for " + Group.pvid( viewId ) + " - using affine model" );
+						return new ValuePair< ViewId, ModelGrid >( null, null );
+					}
+
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model (a=" + alpha + ") for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": " + Util.printInterval( boundingBox ) );
 
