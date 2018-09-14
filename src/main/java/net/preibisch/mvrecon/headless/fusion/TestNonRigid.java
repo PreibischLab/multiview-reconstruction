@@ -55,7 +55,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.weights.InterpolatingNon
 import net.preibisch.mvrecon.process.fusion.transformed.weights.NonRigidRasteredRandomAccessible;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
-public class TestInterpolation
+public class TestNonRigid
 {
 	public static void main( String[] args ) throws SpimDataException
 	{
