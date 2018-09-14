@@ -9,13 +9,18 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -30,31 +35,62 @@ public class NonRigidTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final HashMap< ? extends ViewId, ? extends Collection< ? extends NonrigidIP > > uniquePoints,
 			final Interval boundingBox,
-			final long[] controlPointDistance )
+			final long[] controlPointDistance,
+			final ExecutorService service )
 	{
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = new HashMap<>();
+		final ArrayList< Callable< Pair< ViewId, ModelGrid > > > tasks = new ArrayList<>();
 
 		for ( final ViewId viewId : viewsToFuse )
 		{
-			final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
-
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
-
-			try
+			tasks.add( new Callable< Pair< ViewId, ModelGrid > >()
 			{
-				final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
-				nonrigidGrids.put( viewId, grid );
-			}
-			catch ( Exception e )
-			{
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to interpolate non-rigid model for " + Group.pvid( viewId ) + ": " + e + " - using affine model" );
-				e.printStackTrace();
-			}
+				@Override
+				public Pair< ViewId, ModelGrid > call() throws Exception
+				{
+					final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
+
+					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
+
+					try
+					{
+						final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+						return new ValuePair< ViewId, ModelGrid >( viewId, grid );
+					}
+					catch ( Exception e )
+					{
+						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to interpolate non-rigid model for " + Group.pvid( viewId ) + ": " + e + " - using affine model" );
+						e.printStackTrace();
+						return new ValuePair< ViewId, ModelGrid >( null, null );
+					}
+				}
+			});
 		}
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": In total " + nonrigidGrids.keySet().size() + "/" + viewsToFuse.size() + " views are fused non-rigidly," );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = new HashMap<>();
 
-		return nonrigidGrids;
+		try
+		{
+			// invokeAll() returns when all tasks are complete
+			final List< Future< Pair< ViewId, ModelGrid > > > futures = service.invokeAll( tasks );
+
+			for ( final Future< Pair< ViewId, ModelGrid > > f : futures )
+			{
+				final Pair< ViewId, ModelGrid > p = f.get();
+
+				if ( p.getA() != null && p.getB() != null )
+					nonrigidGrids.put( p.getA(), p.getB() );
+			}
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": In total " + nonrigidGrids.keySet().size() + "/" + viewsToFuse.size() + " views are fused non-rigidly," );
+
+			return nonrigidGrids;
+		}
+		catch ( final Exception e )
+		{
+			IOFunctions.println( "Failed to compute non-rigid grids: " + e );
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps )

@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
@@ -33,6 +34,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
@@ -135,14 +137,18 @@ public class TestNonRigid
 		labels.add( "beads13" );
 		labels.add( "nuclei" );
 
-		int interpolation = 1;
+		final int interpolation = 1;
 		final long[] controlPointDistance = new long[] { 10, 10, 10 };
 
-		boolean useBlending = true;
-		boolean useContentBased = false;
-		boolean displayDistances = false;
+		final boolean useBlending = true;
+		final boolean useContentBased = false;
+		final boolean displayDistances = false;
 
-		final RandomAccessibleInterval< FloatType > virtual = fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, interpolation, boundingBox, downsampling );
+		final ExecutorService service = DeconViews.createExecutorService();
+
+		final RandomAccessibleInterval< FloatType > virtual =
+				fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, interpolation, boundingBox, downsampling, service );
+
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
 
 		return new ValuePair<>( viewsToFuse, boundingBox );
@@ -159,7 +165,8 @@ public class TestNonRigid
 			final long[] controlPointDistance,
 			final int interpolation,
 			final Interval boundingBox,
-			final double downsampling )
+			final double downsampling,
+			final ExecutorService service )
 	{
 		final Interval bb;
 
@@ -240,8 +247,7 @@ public class TestNonRigid
 		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		// TODO: multithreaded
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, boundingBox, controlPointDistance );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, boundingBox, controlPointDistance, service );
 
 		// create virtual images
 		for ( final ViewId viewId : viewsToFuse )
