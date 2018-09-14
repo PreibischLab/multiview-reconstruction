@@ -28,7 +28,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 
 	final ListImg< NumericAffineModel3D > grid;
 
-	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips )
+	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 	{
 		this.n = boundingBox.numDimensions();
 
@@ -55,20 +55,10 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 		for ( final NonrigidIP ip : ips )
 			matches.add( new PointMatch( new Point( ip.getTargetW().clone() ), new Point( ip.getL().clone() ) ) );
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model for " + Util.printInterval( boundingBox ) + " using " + matches.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
-
 		final AffineModel3D model = new AffineModel3D();
 
-		try
-		{
-			transform.setModel( model );
-			transform.setMatches( matches );
-		}
-		catch ( NotEnoughDataPointsException | IllDefinedDataPointsException e )
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		transform.setModel( model );
+		transform.setMatches( matches );
 
 		// iterate over all control points
 		this.grid = new ListImg< NumericAffineModel3D >( dim, new NumericAffineModel3D( new AffineModel3D() ) );

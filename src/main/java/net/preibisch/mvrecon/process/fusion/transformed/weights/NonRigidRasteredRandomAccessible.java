@@ -20,37 +20,39 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.transformed;
+package net.preibisch.mvrecon.process.fusion.transformed.weights;
+
+import java.util.Collection;
 
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 
-public class TransformedRasteredRealRandomAccessible< T > implements RandomAccessible< T >
+public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< T >
 {
 	final RealRandomAccessible< T > realRandomAccessible;
 	final T zero;
-	final AffineTransform3D transform;
+	final Collection< ? extends NonrigidIP > ips;
 	final long[] offset;
 
 	/**
 	 * @param realRandomAccessible - some {@link RealRandomAccessible} that we transform
-	 * @param transform - the affine transformation
+	 * @param ips - the local points with their respective local shift
 	 * @param offset - an additional translational offset
 	 * @param zero - the zero constant
 	 */
-	public TransformedRasteredRealRandomAccessible(
+	public NonRigidRasteredRandomAccessible(
 			final RealRandomAccessible< T > realRandomAccessible,
 			final T zero,
-			final AffineTransform3D transform,
+			final Collection< ? extends NonrigidIP > ips,
 			final long[] offset )
 	{
 		this.realRandomAccessible = realRandomAccessible;
 		this.zero = zero;
-		this.transform = transform;
+		this.ips = ips;
 		this.offset = offset;
 	}
 
@@ -60,7 +62,7 @@ public class TransformedRasteredRealRandomAccessible< T > implements RandomAcces
 	@Override
 	public RandomAccess< T > randomAccess()
 	{
-		return new TransformedRasteredRealRandomAccess< T >( realRandomAccessible, zero, transform, Util.long2int( offset ) );
+		return new NonRigidRasteredRandomAccess< T >( realRandomAccessible, zero, ips, Util.long2int( offset ) );
 	}
 
 	@Override

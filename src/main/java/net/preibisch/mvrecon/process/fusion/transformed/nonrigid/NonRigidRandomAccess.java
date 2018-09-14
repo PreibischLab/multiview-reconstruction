@@ -81,7 +81,6 @@ public class NonRigidRandomAccess< T extends RealType< T > > extends AbstractTra
 		{
 			e.printStackTrace();
 		}
-
 	}
 
 	@Override

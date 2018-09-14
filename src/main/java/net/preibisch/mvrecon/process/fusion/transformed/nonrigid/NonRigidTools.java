@@ -12,17 +12,51 @@ import java.util.Map;
 
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
+import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.RealSum;
+import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class NonRigidTools
 {
+	public static HashMap< ViewId, ModelGrid > computeGrids(
+			final Collection< ? extends ViewId > viewsToFuse,
+			final HashMap< ? extends ViewId, ? extends Collection< ? extends NonrigidIP > > uniquePoints,
+			final Interval boundingBox,
+			final long[] controlPointDistance )
+	{
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = new HashMap<>();
+
+		for ( final ViewId viewId : viewsToFuse )
+		{
+			final Collection< ? extends NonrigidIP > ips = uniquePoints.get( viewId );
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
+
+			try
+			{
+				final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+				nonrigidGrids.put( viewId, grid );
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to interpolate non-rigid model for " + Group.pvid( viewId ) + ": " + e + " - using affine model" );
+				e.printStackTrace();
+			}
+		}
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": In total " + nonrigidGrids.keySet().size() + "/" + viewsToFuse.size() + " views are fused non-rigidly," );
+
+		return nonrigidGrids;
+	}
+
 	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
 	{
 		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
