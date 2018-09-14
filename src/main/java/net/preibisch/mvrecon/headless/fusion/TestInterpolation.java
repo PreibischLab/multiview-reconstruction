@@ -13,6 +13,7 @@ import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
+import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -33,7 +34,9 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.DistanceVisualizingRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.InterpolatingNonRigidRandomAccessible;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
@@ -233,12 +236,23 @@ public class TestInterpolation
 
 			RandomAccessibleInterval inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
 
+			final long[] controlPointDistance = new long[] { 10, 10, 10 };
+			final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, uniquePoints.get( viewId ) );
+
 			// TODO: use standard fusion if uniquePoints.get( viewId ).size() == 0
-			images.add( transformView( inputImg, uniquePoints.get( viewId ), bb, 0, interpolation ) );
+			//images.add( transformViewNonRigidInterpolated( inputImg, grid, bb, 0, interpolation ) );
+
+			//
+			// Display distances
+			//
+			images.add( visualizeDistancesViewNonRigidInterpolated( inputImg, grid, registrations.get( viewId ), bb, 0, interpolation ) );
+
+			//
+			// weights
+			//
 
 			//final RandomAccessibleInterval< FloatType > imageArea =
 			//		Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
-
 			//weights.add( transformView( imageArea, uniquePoints.get( viewId ), bb, 0, 0 ) );
 
 			weights.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( bb ) ) );
@@ -249,27 +263,41 @@ public class TestInterpolation
 		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
 	}
 
-
-	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformView(
-			final RandomAccessibleInterval< T > input,
-			final Collection< ? extends NonrigidIP > ips,
+	public static RandomAccessibleInterval< FloatType > visualizeDistancesViewNonRigidInterpolated(
+			final Interval input,
+			final ModelGrid grid,
+			final AffineTransform3D originalTransform,
 			final Interval boundingBox,
 			final float outsideValue,
 			final int interpolation )
 	{
-		final long[] offset = new long[ input.numDimensions() ];
 		final long[] size = new long[ input.numDimensions() ];
 
-		for ( int d = 0; d < offset.length; ++d )
-		{
-			offset[ d ] = boundingBox.min( d );
+		for ( int d = 0; d < size.length; ++d )
 			size[ d ] = boundingBox.dimension( d );
-		}
 
-		//final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), offset );
+		final DistanceVisualizingRandomAccessible virtual = new DistanceVisualizingRandomAccessible( input, grid, originalTransform, new FloatType( outsideValue ), boundingBox );
 
-		final long[] controlPointDistance = new long[] { 10, 10, 10 };
-		final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips );
+		if ( interpolation == 0 )
+			virtual.setNearestNeighborInterpolation();
+		else
+			virtual.setLinearInterpolation();
+
+		return Views.interval( virtual, new FinalInterval( size ) );
+	}
+
+	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformViewNonRigidInterpolated(
+			final RandomAccessibleInterval< T > input,
+			final ModelGrid grid,
+			final Interval boundingBox,
+			final float outsideValue,
+			final int interpolation )
+	{
+		final long[] size = new long[ input.numDimensions() ];
+
+		for ( int d = 0; d < size.length; ++d )
+			size[ d ] = boundingBox.dimension( d );
+
 		final InterpolatingNonRigidRandomAccessible< T > virtual = new InterpolatingNonRigidRandomAccessible< T >( input, grid, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
@@ -280,6 +308,27 @@ public class TestInterpolation
 		return Views.interval( virtual, new FinalInterval( size ) );
 	}
 
+	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformViewNonRigid(
+			final RandomAccessibleInterval< T > input,
+			final Collection< ? extends NonrigidIP > ips,
+			final Interval boundingBox,
+			final float outsideValue,
+			final int interpolation )
+	{
+		final long[] size = new long[ input.numDimensions() ];
+
+		for ( int d = 0; d < size.length; ++d )
+			size[ d ] = boundingBox.dimension( d );
+
+		final NonRigidRandomAccessible< T > virtual = new NonRigidRandomAccessible< T >( input, ips, false, 0.0f, new FloatType( outsideValue ), boundingBox );
+
+		if ( interpolation == 0 )
+			virtual.setNearestNeighborInterpolation();
+		else
+			virtual.setLinearInterpolation();
+
+		return Views.interval( virtual, new FinalInterval( size ) );
+	}
 
 
 
