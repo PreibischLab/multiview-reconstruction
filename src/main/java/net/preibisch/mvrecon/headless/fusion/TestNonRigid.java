@@ -173,6 +173,7 @@ public class TestNonRigid
 			final double downsampling,
 			final ExecutorService service )
 	{
+		// TODO: Alpha has to change with downsampling (linearly, square-root?)
 		final Interval bb;
 
 		if ( !Double.isNaN( downsampling ) )
