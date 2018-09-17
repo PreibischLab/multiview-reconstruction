@@ -180,7 +180,6 @@ public class TestNonRigid
 		if ( !Double.isNaN( downsampling ) )
 			bb = TransformVirtual.scaleBoundingBox( boundingBox1, 1.0 / downsampling );
 		else
-		{
 			bb = boundingBox1;
 
 		final long[] dim = new long[ bb.numDimensions() ];
