@@ -56,8 +56,7 @@ public class NonRigidTools
 						return new ValuePair< ViewId, ModelGrid >( null, null );
 					}
 
-					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model (a=" + alpha + ") for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) );
-					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": " + Util.printInterval( boundingBox ) );
+					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Interpolating non-rigid model (a=" + alpha + ") for " + Group.pvid( viewId ) + " using " + ips.size() + " points and stepsize " + Util.printCoordinates( controlPointDistance ) + " Interval: " + Util.printInterval( boundingBox ) );
 
 					try
 					{

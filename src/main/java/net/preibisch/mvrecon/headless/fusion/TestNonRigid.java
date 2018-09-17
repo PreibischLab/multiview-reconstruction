@@ -116,8 +116,8 @@ public class TestNonRigid
 
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		viewsToFuse.add( new ViewId( 0, 0 ) );
+		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		//viewsToFuse.add( new ViewId( 0, 0 ) );
 		//viewsToFuse.add( new ViewId( 0, 1 ) );
 		//viewsToFuse.add( new ViewId( 0, 2 ) );
 		//viewsToFuse.add( new ViewId( 0, 3 ) );
@@ -130,8 +130,9 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
-		final double downsampling = 4.0;//Double.NaN;
-		final int cpd = Math.max( 1, (int)Math.round( 10 / downsampling ) );
+		final double downsampling = Double.NaN;
+		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
+		final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
 		//
 		// display virtually fused
 		//
@@ -144,7 +145,7 @@ public class TestNonRigid
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
 
-		final boolean useBlending = false;
+		final boolean useBlending = true;
 		final boolean useContentBased = false;
 		final boolean displayDistances = true;
 
@@ -153,14 +154,27 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": controlPointDistance = " + Util.printCoordinates( controlPointDistance ) );
 
 		final RandomAccessibleInterval< FloatType > virtual =
-				fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, alpha, interpolation, boundingBox, downsampling, service );
+				fuseVirtualInterpolatedNonRigid(
+						spimData,
+						viewsToFuse,
+						viewsToUse,
+						labels,
+						useBlending,
+						useContentBased,
+						displayDistances,
+						controlPointDistance,
+						alpha,
+						interpolation,
+						boundingBox,
+						downsampling,
+						service );
 
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
 
 		return new ValuePair<>( viewsToFuse, boundingBox );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static RandomAccessibleInterval< FloatType > fuseVirtualInterpolatedNonRigid(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
