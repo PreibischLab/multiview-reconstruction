@@ -23,7 +23,6 @@
 package net.preibisch.mvrecon.headless.quality;
 
 import java.io.File;
-import java.util.Random;
 
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -171,7 +170,7 @@ public class TestFRC
 
 	public static Pair< FloatProcessor, FloatProcessor > getTwoImagesB( final Img< FloatType > img, final int z )
 	{
-		Random rnd = new Random( System.currentTimeMillis() );
+		//Random rnd = new Random( System.currentTimeMillis() );
 		final RandomAccessibleInterval< FloatType > s0 = Views.hyperSlice( img, 2, z );
 
 		final FloatProcessor fp0 = new FloatProcessor( (int)s0.dimension( 0 ), (int)s0.dimension( 1 ) );
