@@ -116,8 +116,8 @@ public class TestNonRigid
 
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		//viewsToFuse.add( new ViewId( 0, 0 ) );
+		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		viewsToFuse.add( new ViewId( 0, 0 ) );
 		//viewsToFuse.add( new ViewId( 0, 1 ) );
 		//viewsToFuse.add( new ViewId( 0, 2 ) );
 		//viewsToFuse.add( new ViewId( 0, 3 ) );
@@ -130,8 +130,8 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
-		double downsampling = 2.5;//Double.NaN;
-
+		final double downsampling = 4.0;//Double.NaN;
+		final int cpd = Math.max( 1, (int)Math.round( 10 / downsampling ) );
 		//
 		// display virtually fused
 		//
@@ -141,14 +141,16 @@ public class TestNonRigid
 		labels.add( "nuclei" );
 
 		final int interpolation = 1;
-		final long[] controlPointDistance = new long[] { 10, 10, 10 };
+		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
 
-		final boolean useBlending = true;
+		final boolean useBlending = false;
 		final boolean useContentBased = false;
-		final boolean displayDistances = false;
+		final boolean displayDistances = true;
 
 		final ExecutorService service = DeconViews.createExecutorService();
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": controlPointDistance = " + Util.printCoordinates( controlPointDistance ) );
 
 		final RandomAccessibleInterval< FloatType > virtual =
 				fuseVirtual( spimData, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, alpha, interpolation, boundingBox, downsampling, service );
@@ -173,12 +175,12 @@ public class TestNonRigid
 			final double downsampling,
 			final ExecutorService service )
 	{
-		// TODO: Alpha has to change with downsampling (linearly, square-root?)
 		final Interval bb;
 
 		if ( !Double.isNaN( downsampling ) )
 			bb = TransformVirtual.scaleBoundingBox( boundingBox1, 1.0 / downsampling );
 		else
+		{
 			bb = boundingBox1;
 
 		final long[] dim = new long[ bb.numDimensions() ];
