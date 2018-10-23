@@ -74,6 +74,6 @@ public class InterpolatingNonRigidRandomAccessible< T extends RealType< T > > ex
 	@Override
 	public RandomAccess< FloatType > randomAccess()
 	{
-		return new InterpolationgNonRigidRandomAccess< T >( img, grid, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
+		return new InterpolatingNonRigidRandomAccess< T >( img, grid, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
 }

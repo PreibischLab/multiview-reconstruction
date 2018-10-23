@@ -40,7 +40,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.NumericAff
  * 
  * @author preibisch
  */
-public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > extends AbstractTransformedImgRandomAccess< T >
+public class InterpolatingNonRigidRandomAccess< T extends RealType< T > > extends AbstractTransformedImgRandomAccess< T >
 {
 	// to interpolate transformations
 	final ModelGrid grid;
@@ -49,7 +49,7 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 
 	final double[] s;
 
-	public InterpolationgNonRigidRandomAccess(
+	public InterpolatingNonRigidRandomAccess(
 			final RandomAccessibleInterval< T > img, // from ImgLoader
 			final ModelGrid grid,
 			final AffineModel3D invertedModelOpener,
@@ -105,15 +105,15 @@ public class InterpolationgNonRigidRandomAccess< T extends RealType< T > > exten
 	}
 
 	@Override
-	public InterpolationgNonRigidRandomAccess< T > copy()
+	public InterpolatingNonRigidRandomAccess< T > copy()
 	{
 		return copyRandomAccess();
 	}
 
 	@Override
-	public InterpolationgNonRigidRandomAccess< T > copyRandomAccess()
+	public InterpolatingNonRigidRandomAccess< T > copyRandomAccess()
 	{
-		final InterpolationgNonRigidRandomAccess< T > r = new InterpolationgNonRigidRandomAccess< T >(
+		final InterpolatingNonRigidRandomAccess< T > r = new InterpolatingNonRigidRandomAccess< T >(
 				img, grid, invertedModelOpener, interpolatorFactory, hasMinValue, minValue, outside, new long[] { offsetX, offsetY, offsetZ } );
 		r.setPosition( this );
 		return r;
