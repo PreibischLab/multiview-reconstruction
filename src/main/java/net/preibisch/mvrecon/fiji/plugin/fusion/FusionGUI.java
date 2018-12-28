@@ -24,7 +24,6 @@ package net.preibisch.mvrecon.fiji.plugin.fusion;
 
 import java.awt.Checkbox;
 import java.awt.Choice;
-import java.awt.Color;
 import java.awt.Label;
 import java.awt.TextField;
 import java.util.ArrayList;
@@ -215,11 +214,7 @@ public class FusionGUI implements FusionExportInterface
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 		gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
 		gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		//gd.addMessage( "" );
-
-		gd.addCheckbox( "Non-Rigid Fusion", false );
-		((Checkbox)gd.getCheckboxes().lastElement()).setForeground( Color.RED );
-		((Checkbox)gd.getCheckboxes().lastElement()).setFont( GUIHelper.mediumstatusNonItalicfont );
+		gd.addMessage( "" );
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
 		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
@@ -255,7 +250,7 @@ public class FusionGUI implements FusionExportInterface
 					(TextField)gd.getNumericFields().get( 0 ),
 					(Choice)gd.getChoices().get( 1 ),
 					(Choice)gd.getChoices().get( 3 ),
-					(Checkbox)gd.getCheckboxes().get( 2 ),
+					(Checkbox)gd.getCheckboxes().get( 1 ),
 					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().lastElement() : null,
 					(Choice)gd.getChoices().get( 4 ),
 					label1,
