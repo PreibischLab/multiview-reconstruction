@@ -31,7 +31,8 @@ public class TestNonRigid
 		SpimData2 spimData;
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Desktop/i2k/sim2/dataset.xml" );
+		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Downloads/x-wing/dataset.xml" );
 
 		Pair< List< ViewId >, BoundingBox > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges
@@ -61,8 +62,12 @@ public class TestNonRigid
 		BoundingBox boundingBox = null;
 
 		for ( final BoundingBox bb : spimData.getBoundingBoxes().getBoundingBoxes() )
+		{
+			System.out.println( "Bounding box: " + bb.getTitle() );
+
 			if ( bb.getTitle().equals( bbTitle ) )
 				boundingBox = bb;
+		}
 
 		if ( boundingBox == null )
 		{
@@ -78,8 +83,8 @@ public class TestNonRigid
 
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		//viewsToFuse.add( new ViewId( 0, 0 ) );
+		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		viewsToFuse.add( new ViewId( 0, 7 ) );
 		//viewsToFuse.add( new ViewId( 0, 1 ) );
 		//viewsToFuse.add( new ViewId( 0, 2 ) );
 		//viewsToFuse.add( new ViewId( 0, 3 ) );
@@ -92,7 +97,7 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
-		final double downsampling = Double.NaN;
+		final double downsampling = 2.0;
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
 		final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
 		//
@@ -100,8 +105,10 @@ public class TestNonRigid
 		//
 		final ArrayList< String > labels = new ArrayList<>();
 
-		labels.add( "beads13" );
-		labels.add( "nuclei" );
+		labels.add( "beads" );
+
+		//labels.add( "beads13" );
+		//labels.add( "nuclei" );
 
 		final int interpolation = 1;
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
@@ -109,7 +116,7 @@ public class TestNonRigid
 
 		final boolean useBlending = true;
 		final boolean useContentBased = false;
-		final boolean displayDistances = true;
+		final boolean displayDistances = false;
 
 		final ExecutorService service = DeconViews.createExecutorService();
 
