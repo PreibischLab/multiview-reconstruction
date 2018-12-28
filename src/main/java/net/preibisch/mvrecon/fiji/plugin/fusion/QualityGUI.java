@@ -31,8 +31,6 @@ import java.util.Date;
 import java.util.List;
 
 import ij.gui.GenericDialog;
-import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
