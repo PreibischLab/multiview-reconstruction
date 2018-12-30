@@ -15,7 +15,11 @@ import java.util.concurrent.Future;
 
 import bdv.util.ConstantRandomAccessible;
 import mpicbg.models.AffineModel3D;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
@@ -53,8 +57,98 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class NonRigidTools
 {
+	public static ArrayList< ViewId > assembleViewsToUse(
+			final SpimData2 spimData,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final boolean nonRigidAcrossTime )
+	{
+		final ArrayList< ViewId > viewsToUse = new ArrayList<>();
+
+		final ArrayList< TimePoint > tps = SpimData2.getAllTimePointsSorted( spimData, viewsToFuse );
+
+		if ( tps.size() > 1 && nonRigidAcrossTime == false )
+		{
+			IOFunctions.println( "ERROR: You selected to not have non-rigid across time but you fuse views from different timepoints. Stopping." );
+			return null;
+		}
+
+		if ( tps.size() == 1 )
+		{
+			final int tpId = tps.get( 0 ).getId();
+
+			for ( final ViewDescription vd : spimData.getSequenceDescription().getViewDescriptions().values() )
+				if ( vd.isPresent() && vd.getTimePointId() == tpId )
+					viewsToUse.add( vd );
+		}
+		else
+		{
+			for ( final ViewDescription vd : spimData.getSequenceDescription().getViewDescriptions().values() )
+				if ( vd.isPresent() && tps.contains( vd.getTimePoint() ) )
+					viewsToUse.add( vd );
+		}
+
+		return viewsToUse;
+	}
+
 	public static RandomAccessibleInterval< FloatType > fuseVirtualInterpolatedNonRigid(
 			final SpimData2 spimData,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final Collection< ? extends ViewId > viewsToUse,
+			final ArrayList< String > labels,
+			final boolean useBlending,
+			final boolean useContentBased,
+			final boolean displayDistances,
+			final long[] controlPointDistance,
+			final double alpha,
+			final int interpolation,
+			final Interval boundingBox1,
+			final double downsampling,
+			final ExecutorService service )
+	{
+		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
+
+		final HashMap< ViewId, AffineTransform3D > viewRegistrations = new HashMap<>();
+
+		for ( final ViewId viewId : viewsToUse )
+		{
+			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
+			vr.updateModel();
+			viewRegistrations.put( viewId, vr.getModel().copy() );
+		}
+
+		for ( final ViewId viewId : viewsToFuse )
+		{
+			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
+			vr.updateModel();
+			viewRegistrations.put( viewId, vr.getModel().copy() );
+		}
+
+		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
+
+		return fuseVirtualInterpolatedNonRigid(
+				imgLoader,
+				viewRegistrations,
+				spimData.getViewInterestPoints().getViewInterestPoints(),
+				viewDescriptions,
+				viewsToFuse,
+				viewsToUse,
+				labels,
+				useBlending,
+				useContentBased,
+				displayDistances,
+				controlPointDistance,
+				alpha,
+				interpolation,
+				boundingBox1,
+				downsampling,
+				service );
+	}
+
+	public static RandomAccessibleInterval< FloatType > fuseVirtualInterpolatedNonRigid(
+			final BasicImgLoader imgloader,
+			final Map< ViewId, AffineTransform3D > viewRegistrations,
+			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
@@ -86,10 +180,7 @@ public class NonRigidTools
 
 		for ( final ViewId viewId : viewsToUse )
 		{
-			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
-			vr.updateModel();
-
-			final AffineTransform3D model = vr.getModel().copy();
+			final AffineTransform3D model = viewRegistrations.get( viewId );
 
 			if ( !Double.isNaN( downsampling ) )
 				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
@@ -108,15 +199,14 @@ public class NonRigidTools
 			{
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading corresponding interest points for " + Group.pvid( viewId ) + ", label '" + label + "'" );
 				
-				if ( spimData.getViewInterestPoints().getViewInterestPointLists( viewId ).contains( label ) )
+				if ( viewInterestPoints.get( viewId ).contains( label ) )
 				{
-					final InterestPointList ipList = spimData.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label );
-					final Map< ViewId, ViewInterestPointLists > interestPointLists = spimData.getViewInterestPoints().getViewInterestPoints();
+					final InterestPointList ipList = viewInterestPoints.get( viewId ).getInterestPointList( label );
 
 					final List< CorrespondingInterestPoints > cipList = ipList.getCorrespondingInterestPointsCopy();
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": There are " + cipList.size() + " corresponding interest points in total (to all views)." );
 
-					final ArrayList< CorrespondingIP > aipsTmp = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, interestPointLists );
+					final ArrayList< CorrespondingIP > aipsTmp = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, viewInterestPoints );
 
 					if ( aipsTmp == null )
 						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to assemble pairs of corresponding interest points for label " + label + " in view " + Group.pvid( viewId ) );
@@ -167,7 +257,7 @@ public class NonRigidTools
 
 				// the model necessary to map to the image opened at a reduced resolution level
 				final Pair< RandomAccessibleInterval, AffineTransform3D > input =
-						DownsampleTools.openDownsampled2( spimData.getSequenceDescription().getImgLoader(), viewId, modelAffine, null );
+						DownsampleTools.openDownsampled2( imgloader, viewId, modelAffine, null );
 	
 				// concatenate the downsampling transformation model to the affine transform
 				if ( input.getB() != null )
@@ -194,7 +284,7 @@ public class NonRigidTools
 				//
 
 				invertedModelOpener = null;
-				inputImg = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
+				inputImg = imgloader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
 
 				if ( grid == null )
 					images.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), 3 ), new FinalInterval( bb ) ) );
@@ -216,7 +306,7 @@ public class NonRigidTools
 					final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustBlending( spimData.getSequenceDescription().getViewDescription( viewId ), blending, border, modelAffine );
+					FusionTools.adjustBlending( viewDescriptions.get( viewId ), blending, border, modelAffine );
 
 					if ( grid == null )
 						transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, modelAffine, bb );
@@ -236,7 +326,7 @@ public class NonRigidTools
 					final double[] sigma2 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma2, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, modelAffine );
+					FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, modelAffine );
 
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 
