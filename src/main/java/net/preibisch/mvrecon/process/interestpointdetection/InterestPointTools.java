@@ -72,11 +72,18 @@ public class InterestPointTools
 	 */
 	public static String[] getAllInterestPointLabels(
 			final SpimData2 spimData,
-			final List< ViewId > viewIdsToProcess )
+			final List< ? extends ViewId > viewIdsToProcess )
 	{
 		final ViewInterestPoints interestPoints = spimData.getViewInterestPoints();
 		final HashMap< String, Integer > labels = getAllInterestPointMap( interestPoints, viewIdsToProcess );
 
+		return getAllInterestPointLabels( labels, viewIdsToProcess );
+	}
+
+	public static String[] getAllInterestPointLabels(
+			final HashMap< String, Integer > labels,
+			final List< ? extends ViewId > viewIdsToProcess )
+	{
 		final String[] allLabels = new String[ labels.keySet().size() ];
 
 		int i = 0;
@@ -92,6 +99,38 @@ public class InterestPointTools
 		}
 
 		return allLabels;
+	}
+
+	public static HashMap< String, Integer > getAllCorrespondingInterestPointMap( final ViewInterestPoints interestPoints, final Collection< ? extends ViewId > views )
+	{
+		final HashMap< String, Integer > labels = new HashMap< String, Integer >();
+
+		for ( final ViewId viewId : views )
+		{
+			// which lists of interest points are available
+			final ViewInterestPointLists lists = interestPoints.getViewInterestPointLists( viewId );
+
+			if ( lists == null )
+				continue;
+
+			for ( final String label : lists.getHashMap().keySet() )
+			{
+				final InterestPointList list = lists.getInterestPointList( label );
+				int count;
+
+				if ( list.getCorrespondingInterestPointsCopy().size() > 0 )
+					count = 1;
+				else
+					count = 0;
+
+				if ( labels.containsKey( label ) )
+					count += labels.get( label );
+
+				labels.put( label, count );
+			}
+		}
+
+		return labels;
 	}
 
 	public static HashMap< String, Integer > getAllInterestPointMap( final ViewInterestPoints interestPoints, final Collection< ? extends ViewId > views )
