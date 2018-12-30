@@ -187,7 +187,7 @@ public class Image_Quality implements PlugIn
 			final Group< ViewDescription > group,
 			final double[] minmax )
 	{
-		final RandomAccessibleInterval< T > processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
+		final RandomAccessibleInterval< T > processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >( type ), type, taskExecutor, true );
 
 		final String title = Image_Fusion.getTitle( quality.getSplittingType(), group );
 
