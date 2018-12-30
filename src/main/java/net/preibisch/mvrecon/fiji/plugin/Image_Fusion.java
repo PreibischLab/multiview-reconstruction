@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +51,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
@@ -58,6 +60,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -139,15 +142,40 @@ public class Image_Fusion implements PlugIn
 
 			if ( Double.isNaN( fusion.getAnisotropyFactor() ) ) // no flattening of the fused image
 			{
-				virtual = FusionTools.fuseVirtual(
-					spimData,
-					group.getViews(),
-					fusion.useBlending(),
-					fusion.useContentBased(),
-					fusion.getInterpolation(),
-					boundingBox,
-					fusion.getDownsampling(),
-					fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				if ( fusion.getNonRigidParameters().isActive() )
+				{
+					final ArrayList< ViewId > viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
+	
+					if ( viewsToUse == null )
+						return false;
+	
+					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
+									spimData,
+									group.getViews(),
+									viewsToUse,
+									fusion.getNonRigidParameters().getLabels(),
+									fusion.useBlending(),
+									fusion.useContentBased(),
+									fusion.getNonRigidParameters().showDistanceMap(),
+									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+									fusion.getNonRigidParameters().getAlpha(),
+									fusion.getInterpolation(),
+									boundingBox,
+									fusion.getDownsampling(),
+									taskExecutor );
+				}
+				else
+				{
+					virtual = FusionTools.fuseVirtual(
+						spimData,
+						group.getViews(),
+						fusion.useBlending(),
+						fusion.useContentBased(),
+						fusion.getInterpolation(),
+						boundingBox,
+						fusion.getDownsampling(),
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				}
 			}
 			else
 			{

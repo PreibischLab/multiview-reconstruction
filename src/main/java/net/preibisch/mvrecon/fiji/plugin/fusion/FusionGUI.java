@@ -109,6 +109,8 @@ public class FusionGUI implements FusionExportInterface
 	protected double avgAnisoF;
 	protected int imgExport = defaultImgExportAlgorithm;
 
+	protected NonRigidParametersGUI nrgui;
+
 	static
 	{
 		IOFunctions.printIJLog = true;
@@ -169,8 +171,10 @@ public class FusionGUI implements FusionExportInterface
 	public int getPixelType() { return pixelType; }
 
 	public int getCacheType() { return cacheType; }
-	@Override
 
+	public NonRigidParametersGUI getNonRigidParameters() { return nrgui; }
+
+	@Override
 	public double getDownsampling(){ return downsampling; }
 
 	public boolean useBlending() { return useBlending; }
@@ -207,22 +211,20 @@ public class FusionGUI implements FusionExportInterface
 		else
 			gd.addChoice( "Bounding_Box", choicesForMacro, choicesForMacro[ defaultBB ] );
 
-		gd.addMessage( "" );
-
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
 		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 		gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
 		gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		gd.addMessage( "" );
+
+		this.nrgui = new NonRigidParametersGUI( spimData, views );
+		this.nrgui.addQuery( gd );
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
 		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
 
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
-
-		gd.addMessage( "" );
 
 		if ( avgAnisoF > 1.01 ) // for numerical instabilities (computed upon instantiation)
 		{
@@ -231,8 +233,6 @@ public class FusionGUI implements FusionExportInterface
 					"WARNING: Enabling this means to 'shrink' the dataset in z the same way the input\n" +
 					"images were scaled. Only use this if this is not a multiview dataset.", GUIHelper.smallStatusFont, GUIHelper.warning );
 		}
-
-		gd.addMessage( "" );
 
 		gd.addChoice( "Produce one fused image for", splittingTypes, splittingTypes[ defaultSplittingType ] );
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
@@ -246,13 +246,14 @@ public class FusionGUI implements FusionExportInterface
 		{
 			final ManageFusionDialogListeners m = new ManageFusionDialogListeners(
 					gd,
-					(Choice)gd.getChoices().get( 0 ),
-					(TextField)gd.getNumericFields().get( 0 ),
-					(Choice)gd.getChoices().get( 1 ),
-					(Choice)gd.getChoices().get( 3 ),
-					(Checkbox)gd.getCheckboxes().get( 1 ),
-					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().lastElement() : null,
-					(Choice)gd.getChoices().get( 4 ),
+					(Choice)gd.getChoices().get( 0 ), //boundingBoxChoice
+					(TextField)gd.getNumericFields().get( 0 ), //downsampleField
+					(Choice)gd.getChoices().get( 1 ), //pixelTypeChoice
+					(Choice)gd.getChoices().get( 3 ), //cachingChoice
+					(Choice)gd.getChoices().get( 4 ), //nonrigidChoice
+					(Checkbox)gd.getCheckboxes().get( 2 ), //contentbasedCheckbox
+					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().lastElement() : null, //anisoCheckbox
+					(Choice)gd.getChoices().get( 5 ), //splitChoice
 					label1,
 					label2,
 					this );
@@ -288,6 +289,10 @@ public class FusionGUI implements FusionExportInterface
 		pixelType = defaultPixelType = gd.getNextChoiceIndex();
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
 		cacheType = defaultCache = gd.getNextChoiceIndex();
+
+		if ( !this.nrgui.parseQuery( gd, false ) )
+			return false;
+
 		useBlending = defaultUseBlending = gd.getNextBoolean();
 		useContentBased = defaultUseContentBased = gd.getNextBoolean();
 		if ( hasIntensityAdjustments )
@@ -305,6 +310,10 @@ public class FusionGUI implements FusionExportInterface
 		splittingType = defaultSplittingType = gd.getNextChoiceIndex();
 		imgExport = defaultImgExportAlgorithm = gd.getNextChoiceIndex();
 
+		if ( this.nrgui.isActive() && this.nrgui.userSelectedAdvancedParameters() )
+			if ( !this.nrgui.advancedParameters() )
+				return false;
+
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Selected Fusion Parameters: " );
 		IOFunctions.println( "Downsampling: " + DownsampleTools.printDownsampling( getDownsampling() ) );
 		IOFunctions.println( "BoundingBox: " + getBoundingBox() );
@@ -320,6 +329,17 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.println( "Image Export: " + imgExportDescriptions[ imgExport ] );
 		IOFunctions.println( "ImgLoader.isVirtual(): " + isImgLoaderVirtual() );
 		IOFunctions.println( "ImgLoader.isMultiResolution(): " + isMultiResolution() );
+
+		IOFunctions.println( "Non-Rigid active: " + this.nrgui.isActive() );
+		if ( this.nrgui.isActive() )
+		{
+			IOFunctions.println( "Non-Rigid alpha: " + this.nrgui.getAlpha() );
+			IOFunctions.println( "Non-Rigid cpd: " + this.nrgui.getControlPointDistance() );
+			IOFunctions.println( "Non-Rigid showDistanceMap: " + this.nrgui.showDistanceMap() );
+			IOFunctions.println( "Non-Rigid nonRigidAcrossTime: " + this.nrgui.nonRigidAcrossTime() );
+			for ( final String label : this.nrgui.getLabels() )
+				IOFunctions.println( "Non-Rigid Label: " + label );
+		}
 
 		return true;
 	}
