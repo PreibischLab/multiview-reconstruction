@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import bdv.util.ConstantRandomAccessible;
+import mpicbg.models.AffineModel1D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -25,6 +26,7 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
@@ -42,6 +44,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -103,6 +106,7 @@ public class NonRigidTools
 			final int interpolation,
 			final Interval boundingBox1,
 			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
 	{
 		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
@@ -141,6 +145,7 @@ public class NonRigidTools
 				interpolation,
 				boundingBox1,
 				downsampling,
+				intensityAdjustments,
 				service );
 	}
 
@@ -160,6 +165,7 @@ public class NonRigidTools
 			final int interpolation,
 			final Interval boundingBox1,
 			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
 	{
 		final Interval bb;
@@ -247,7 +253,7 @@ public class NonRigidTools
 			final ModelGrid grid = nonrigidGrids.get( viewId );
 			final AffineTransform3D modelAffine = registrations.get( viewId ).copy(); // will be modified potentially
 			final AffineModel3D invertedModelOpener;
-			final RandomAccessibleInterval inputImg;
+			RandomAccessibleInterval inputImg;
 
 			if ( !displayDistances )
 			{
@@ -256,21 +262,27 @@ public class NonRigidTools
 				//
 
 				// the model necessary to map to the image opened at a reduced resolution level
-				final Pair< RandomAccessibleInterval, AffineTransform3D > input =
+				final Pair< RandomAccessibleInterval, AffineTransform3D > inputData =
 						DownsampleTools.openDownsampled2( imgloader, viewId, modelAffine, null );
 	
 				// concatenate the downsampling transformation model to the affine transform
-				if ( input.getB() != null )
+				if ( inputData.getB() != null )
 				{
-					modelAffine.concatenate( input.getB() );
-					invertedModelOpener = TransformationTools.getModel( input.getB() ).createInverse();
+					modelAffine.concatenate( inputData.getB() );
+					invertedModelOpener = TransformationTools.getModel( inputData.getB() ).createInverse();
 				}
 				else
 				{
 					invertedModelOpener = null;
 				}
 	
-				inputImg = input.getA();
+				inputImg = inputData.getA();
+
+				if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
+					inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+							FusionTools.convertInput( inputImg ),
+							new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
+							new FloatType() );
 
 				if ( grid == null )
 					images.add( TransformView.transformView( inputImg, modelAffine, bb, 0, interpolation ) );
