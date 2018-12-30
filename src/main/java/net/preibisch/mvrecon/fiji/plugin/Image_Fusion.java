@@ -162,6 +162,7 @@ public class Image_Fusion implements PlugIn
 									fusion.getInterpolation(),
 									boundingBox,
 									fusion.getDownsampling(),
+									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 									taskExecutor );
 				}
 				else
@@ -199,17 +200,46 @@ public class Image_Fusion implements PlugIn
 
 				final Map< ViewId, ViewDescription > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-				virtual = FusionTools.fuseVirtual(
-						imgLoader,
-						registrations,
-						viewDescriptions,
-						group.getViews(),
-						fusion.useBlending(),
-						fusion.useContentBased(),
-						fusion.getInterpolation(),
-						boundingBox,
-						fusion.getDownsampling(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				if ( fusion.getNonRigidParameters().isActive() )
+				{
+					final ArrayList< ViewId > viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
+	
+					if ( viewsToUse == null )
+						return false;
+	
+					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
+									imgLoader,
+									registrations,
+									spimData.getViewInterestPoints().getViewInterestPoints(),
+									viewDescriptions,
+									group.getViews(),
+									viewsToUse,
+									fusion.getNonRigidParameters().getLabels(),
+									fusion.useBlending(),
+									fusion.useContentBased(),
+									fusion.getNonRigidParameters().showDistanceMap(),
+									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+									fusion.getNonRigidParameters().getAlpha(),
+									fusion.getInterpolation(),
+									boundingBox,
+									fusion.getDownsampling(),
+									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+									taskExecutor );
+				}
+				else
+				{
+					virtual = FusionTools.fuseVirtual(
+							imgLoader,
+							registrations,
+							viewDescriptions,
+							group.getViews(),
+							fusion.useBlending(),
+							fusion.useContentBased(),
+							fusion.getInterpolation(),
+							boundingBox,
+							fusion.getDownsampling(),
+							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				}
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit
