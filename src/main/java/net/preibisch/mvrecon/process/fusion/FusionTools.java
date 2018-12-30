@@ -278,7 +278,7 @@ public class FusionTools
 		{
 			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 			vr.updateModel();
-			registrations.put( viewId, vr.getModel() );
+			registrations.put( viewId, vr.getModel().copy() );
 		}
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
