@@ -136,6 +136,7 @@ public class TestNonRigid
 						interpolation,
 						boundingBox,
 						downsampling,
+						null,
 						service );
 
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
