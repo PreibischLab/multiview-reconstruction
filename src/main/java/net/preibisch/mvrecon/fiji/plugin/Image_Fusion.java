@@ -26,14 +26,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.registration.ViewRegistration;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -180,8 +178,7 @@ public class Image_Fusion implements PlugIn
 			}
 			else
 			{
-				final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
-
+				// update the transformations
 				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
 				for ( final ViewId viewId : group.getViews() )
@@ -198,8 +195,6 @@ public class Image_Fusion implements PlugIn
 					registrations.put( viewId, model );
 				}
 
-				final Map< ViewId, ViewDescription > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
-
 				if ( fusion.getNonRigidParameters().isActive() )
 				{
 					final ArrayList< ViewId > viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
@@ -208,10 +203,10 @@ public class Image_Fusion implements PlugIn
 						return false;
 	
 					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
-									imgLoader,
+									spimData.getSequenceDescription().getImgLoader(),
 									registrations,
 									spimData.getViewInterestPoints().getViewInterestPoints(),
-									viewDescriptions,
+									spimData.getSequenceDescription().getViewDescriptions(),
 									group.getViews(),
 									viewsToUse,
 									fusion.getNonRigidParameters().getLabels(),
@@ -229,9 +224,9 @@ public class Image_Fusion implements PlugIn
 				else
 				{
 					virtual = FusionTools.fuseVirtual(
-							imgLoader,
+							spimData.getSequenceDescription().getImgLoader(),
 							registrations,
-							viewDescriptions,
+							spimData.getSequenceDescription().getViewDescriptions(),
 							group.getViews(),
 							fusion.useBlending(),
 							fusion.useContentBased(),
