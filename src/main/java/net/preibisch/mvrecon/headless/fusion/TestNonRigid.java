@@ -31,8 +31,9 @@ public class TestNonRigid
 		SpimData2 spimData;
 
 		// load drosophila
+		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
 		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Desktop/i2k/sim2/dataset.xml" );
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Downloads/x-wing/dataset.xml" );
+		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Downloads/x-wing/dataset.xml" );
 
 		Pair< List< ViewId >, BoundingBox > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges
@@ -84,10 +85,10 @@ public class TestNonRigid
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		viewsToFuse.add( new ViewId( 0, 7 ) );
-		//viewsToFuse.add( new ViewId( 0, 1 ) );
-		//viewsToFuse.add( new ViewId( 0, 2 ) );
-		//viewsToFuse.add( new ViewId( 0, 3 ) );
+		viewsToFuse.add( new ViewId( 0, 0 ) );
+		viewsToFuse.add( new ViewId( 0, 1 ) );
+		viewsToFuse.add( new ViewId( 0, 2 ) );
+		viewsToFuse.add( new ViewId( 0, 3 ) );
 
 		// filter not present ViewIds
 		List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewsToUse );
@@ -105,9 +106,9 @@ public class TestNonRigid
 		//
 		final ArrayList< String > labels = new ArrayList<>();
 
-		labels.add( "beads" );
+		//labels.add( "beads" );
 
-		//labels.add( "beads13" );
+		labels.add( "beads13" );
 		//labels.add( "nuclei" );
 
 		final int interpolation = 1;
