@@ -126,7 +126,7 @@ public class NonRigidParametersGUI extends NonRigidParameters
 			defaultLabel = labels.length - 1;
 
 		gd.addChoice( "Interest_Points_for_Non_Rigid", labels, labels[ defaultLabel ] );
-		gd.addCheckbox( "Advanced_Parameters", defaultAdvanced );
+		gd.addCheckbox( "Non_Rigid_Advanced_Parameters", defaultAdvanced );
 
 		return true;
 	}
