@@ -67,6 +67,12 @@ public class NonRigidParametersGUI extends NonRigidParameters
 		return parseQuery( gd, true );
 	}
 
+	/**
+	 * @param gd
+	 * @param displayAdvancedAutomatically
+	 *
+	 * @return false if the user pressed cancel in the advanced dialog
+	 */
 	public boolean parseQuery( final GenericDialog gd, final boolean displayAdvancedAutomatically )
 	{
 		final int labelIndex = defaultLabel = gd.getNextChoiceIndex();
@@ -75,7 +81,7 @@ public class NonRigidParametersGUI extends NonRigidParameters
 		if ( labelIndex == labels.length - 1 )
 		{
 			isActive = false;
-			return false;
+			return true;
 		}
 
 		this.selectedLabels = new boolean[ this.labels.length - 1 ];
