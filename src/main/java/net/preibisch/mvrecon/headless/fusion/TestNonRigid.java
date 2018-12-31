@@ -17,6 +17,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
+import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -60,21 +61,10 @@ public class TestNonRigid
 			final SpimData2 spimData,
 			final String bbTitle )
 	{
-		BoundingBox boundingBox = null;
-
-		for ( final BoundingBox bb : spimData.getBoundingBoxes().getBoundingBoxes() )
-		{
-			System.out.println( "Bounding box: " + bb.getTitle() );
-
-			if ( bb.getTitle().equals( bbTitle ) )
-				boundingBox = bb;
-		}
+		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, bbTitle );
 
 		if ( boundingBox == null )
-		{
-			System.out.println( "Bounding box '" + bbTitle + "' not found." );
 			return null;
-		}
 
 		IOFunctions.println( BoundingBox.getBoundingBoxDescription( boundingBox ) );
 

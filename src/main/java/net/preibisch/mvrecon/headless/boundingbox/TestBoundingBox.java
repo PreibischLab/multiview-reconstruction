@@ -79,4 +79,25 @@ public class TestBoundingBox
 
 		return bb;
 	}
+
+	public static BoundingBox getBoundingBox( final SpimData2 spimData, final String bbTitle )
+	{
+		BoundingBox boundingBox = null;
+
+		for ( final BoundingBox bb : spimData.getBoundingBoxes().getBoundingBoxes() )
+		{
+			System.out.println( "Bounding box: " + bb.getTitle() );
+
+			if ( bb.getTitle().equals( bbTitle ) )
+				boundingBox = bb;
+		}
+
+		if ( boundingBox == null )
+		{
+			System.out.println( "Bounding box '" + bbTitle + "' not found." );
+			return null;
+		}
+
+		return boundingBox;
+	}
 }
