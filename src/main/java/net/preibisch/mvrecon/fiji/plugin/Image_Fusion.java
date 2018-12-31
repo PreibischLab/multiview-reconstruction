@@ -134,6 +134,25 @@ public class Image_Fusion implements PlugIn
 			if ( Calibrateable.class.isInstance( exporter ) )
 				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );
 
+			final ArrayList< ViewId > viewsToUse;
+
+			if ( fusion.getNonRigidParameters().isActive() )
+			{
+				viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
+
+				if ( viewsToUse == null )
+					return false;
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Non-Rigid Views being used for current group" );
+
+				for ( final ViewId v : viewsToUse )
+					IOFunctions.println( "\t" + Group.pvid( v ) );
+			}
+			else
+			{
+				viewsToUse = null;
+			}
+
 			final Interval boundingBox = fusion.getBoundingBox();
 
 			final RandomAccessibleInterval< FloatType > virtual;
@@ -142,11 +161,6 @@ public class Image_Fusion implements PlugIn
 			{
 				if ( fusion.getNonRigidParameters().isActive() )
 				{
-					final ArrayList< ViewId > viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
-	
-					if ( viewsToUse == null )
-						return false;
-	
 					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
 									spimData,
 									group.getViews(),
@@ -197,11 +211,6 @@ public class Image_Fusion implements PlugIn
 
 				if ( fusion.getNonRigidParameters().isActive() )
 				{
-					final ArrayList< ViewId > viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
-	
-					if ( viewsToUse == null )
-						return false;
-	
 					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
 									spimData.getSequenceDescription().getImgLoader(),
 									registrations,
