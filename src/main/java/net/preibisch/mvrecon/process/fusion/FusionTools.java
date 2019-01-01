@@ -80,8 +80,10 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -94,7 +96,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInt
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformedInputRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
@@ -160,9 +161,9 @@ public class FusionTools
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
 			final List< ? extends ViewId > viewIds )
 	{
@@ -181,9 +182,9 @@ public class FusionTools
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
 			final List< ? extends ViewId > viewIds,
 			double downsampling )
@@ -204,9 +205,9 @@ public class FusionTools
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final SpimData2 spimData,
 			final List< ? extends ViewId > viewIds,
 			double downsampling,
@@ -228,9 +229,9 @@ public class FusionTools
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final List< ? extends ViewId > viewIds,
 			Interval bb,
@@ -248,9 +249,9 @@ public class FusionTools
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 * @param intensityAdjustments - the intensityadjustsments or null
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final List< ? extends ViewId > viewIds,
 			Interval bb,
@@ -260,7 +261,7 @@ public class FusionTools
 		return fuseVirtual( spimData, viewIds, true, false, 1, bb, downsampling, intensityAdjustments );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > views,
 			final boolean useBlending,
@@ -286,7 +287,40 @@ public class FusionTools
 		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, downsampling, intensityAdjustments );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< Interval, AffineTransform3D > createDownsampledBoundingBox(
+			final Interval boundingBox,
+			final double downsampling )
+	{
+		final Interval bbDS;
+
+		if ( !Double.isNaN( downsampling ) )
+			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
+		else
+			bbDS = boundingBox;
+
+		// there is rounding when scaling the bounding box ...
+		final double[] offset = new double[ boundingBox.numDimensions() ];
+		final double[] translation = new double[ boundingBox.numDimensions() ];
+
+		for ( int d = 0; d < offset.length; ++d )
+			translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * (double)downsampling;
+
+		// the virtual image is zeroMin, this transformation puts it into the global coordinate system
+		final AffineTransform3D t = new AffineTransform3D();
+		t.scale( downsampling );
+		t.translate( translation );
+
+		return new ValuePair<>( bbDS, t );
+	}
+
+	public static Interval getFusedZeroMinInterval( final Interval bbDS )
+	{
+		final long[] dim = new long[ bbDS.numDimensions() ];
+		bbDS.dimensions( dim );
+		return new FinalInterval( dim );
+	}
+
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final BasicImgLoader imgloader,
 			final Map< ViewId, AffineTransform3D > registrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
@@ -298,15 +332,9 @@ public class FusionTools
 			final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		final Interval bb;
-
-		if ( !Double.isNaN( downsampling ) )
-			bb = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
-		else
-			bb = boundingBox;
-
-		final long[] dim = new long[ bb.numDimensions() ];
-		bb.dimensions( dim );
+		final Pair< Interval, AffineTransform3D > scaledBB = createDownsampledBoundingBox( boundingBox, downsampling );
+		final Interval bb = scaledBB.getA();
+		final AffineTransform3D bbTransform = scaledBB.getB();
 
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
@@ -389,7 +417,7 @@ public class FusionTools
 			}
 		}
 
-		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+		return new ValuePair<>( new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights ), bbTransform );
 	}
 
 	@SuppressWarnings("unchecked")
