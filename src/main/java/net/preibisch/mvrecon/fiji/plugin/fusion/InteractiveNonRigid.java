@@ -142,7 +142,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 		IOFunctions.println( Util.printInterval( boundingBox ));
 		IOFunctions.println( "nonRigid = " + nonRigid );
 
-		for ( int downsampling = 1; downsampling <= 4; downsampling *= 2 )
+		for ( int downsampling = 1; downsampling <= 16; downsampling *= 2 )
 		{
 			IOFunctions.println( "DS: " + downsampling );
 
