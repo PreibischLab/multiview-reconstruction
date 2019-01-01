@@ -175,7 +175,7 @@ public class Image_Fusion implements PlugIn
 									boundingBox,
 									fusion.getDownsampling(),
 									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
-									taskExecutor );
+									taskExecutor ).getA();
 				}
 				else
 				{
@@ -187,7 +187,7 @@ public class Image_Fusion implements PlugIn
 						fusion.getInterpolation(),
 						boundingBox,
 						fusion.getDownsampling(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
 				}
 			}
 			else
@@ -228,7 +228,7 @@ public class Image_Fusion implements PlugIn
 									boundingBox,
 									fusion.getDownsampling(),
 									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
-									taskExecutor );
+									taskExecutor ).getA();
 				}
 				else
 				{
@@ -242,7 +242,7 @@ public class Image_Fusion implements PlugIn
 							fusion.getInterpolation(),
 							boundingBox,
 							fusion.getDownsampling(),
-							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
 				}
 			}
 

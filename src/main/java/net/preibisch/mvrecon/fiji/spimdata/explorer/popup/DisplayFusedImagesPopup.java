@@ -191,7 +191,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 				public void run()
 				{
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Fusing " + views.size() + ", downsampling=" + DownsampleTools.printDownsampling( downsampling ) + ", caching strategy=" + imgType );
-					final ImagePlus imp = FusionTools.display( FusionTools.fuseVirtual( spimData, views, defaultUseBlending, false, defaultInterpolation, bb, downsampling, null ), imgType );
+					final ImagePlus imp = FusionTools.display( FusionTools.fuseVirtual( spimData, views, defaultUseBlending, false, defaultInterpolation, bb, downsampling, null ).getA(), imgType );
 
 					if ( imp.getStack().getSize() > 1 )
 					{

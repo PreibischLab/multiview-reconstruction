@@ -137,7 +137,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 
 		new ImageJ();
 
-		final boolean nonRigid = true;
+		final boolean nonRigid = false;
 
 		IOFunctions.println( Util.printInterval( boundingBox ));
 		IOFunctions.println( "nonRigid = " + nonRigid );
@@ -146,15 +146,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 		{
 			IOFunctions.println( "DS: " + downsampling );
 
-			// there is rounding when scaling the bounding box ...
-			final double[] offset = new double[ 3 ];
-			final double[] translation = new double[ 3 ];
-			final Interval scaledBox = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling, offset );
-
-			for ( int d = 0; d < offset.length; ++d )
-				translation[ d ] = ( offset[ d ] + scaledBox.min( d ) ) * (double)downsampling;
-
-			final RandomAccessibleInterval< FloatType > virtualImg;
+			final Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > virtualImg;
 
 			if ( !nonRigid )
 			{
@@ -171,7 +163,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 				viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 				final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
-				final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
+				final int cpd = Math.max( 1, Math.max( 3, (int)Math.round( 10 / ds ) ) );
 
 				final ArrayList< String > labels = new ArrayList<>();
 				labels.add( "beads13" );
@@ -206,27 +198,12 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 					service );
 			}
 
-			final RandomAccessibleInterval< FloatType > cachedImg = FusionTools.cacheRandomAccessibleInterval( virtualImg, FusionGUI.maxCacheSize, new FloatType(), FusionGUI.cellDim );
+			final RandomAccessibleInterval< FloatType > cachedImg = FusionTools.cacheRandomAccessibleInterval( virtualImg.getA(), FusionGUI.maxCacheSize, new FloatType(), FusionGUI.cellDim );
 			final RandomAccessibleInterval< VolatileFloatType > volatileImg = VolatileViews.wrapAsVolatile( cachedImg );
 			//DisplayImage.getImagePlusInstance( virtual, true, "ds="+ds, 0, 255 ).show();
 			//ImageJFunctions.show( virtualVolatile );
 
-			IOFunctions.println( Util.printInterval( scaledBox ) + " " + Util.printCoordinates( offset ));
-
-			final AffineTransform3D t = new AffineTransform3D();
-			t.scale( downsampling );
-			t.translate( translation );
-
-			final double[] loc = new double[ 3 ];
-			virtualImg.realMin( loc );
-
-			//IOFunctions.println( "min: " + Util.printCoordinates( loc ));
-			//IOFunctions.println( "t: " + t);
-			t.apply( loc, loc );
-			//IOFunctions.println( "t(min): " + Util.printCoordinates( loc ));
-			//IOFunctions.println( "" );
-
-			multiRes.add( new ValuePair<>( volatileImg, t ) );
+			multiRes.add( new ValuePair<>( volatileImg, virtualImg.getB() ) );
 		}
 
 		BdvFunctions.show( new InteractiveNonRigid( multiRes, "rendered" ) );

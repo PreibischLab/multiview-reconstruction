@@ -53,7 +53,7 @@ public class TestNonRigid
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, fused, boundingBox, downsampling );
+		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, fused, boundingBox, downsampling ).getA();
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Affine", 0, 255 ).show();
 	}
 
@@ -128,7 +128,7 @@ public class TestNonRigid
 						boundingBox,
 						downsampling,
 						null,
-						service );
+						service ).getA();
 
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
 
