@@ -93,7 +93,7 @@ public class NonRigidTools
 		return viewsToUse;
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtualInterpolatedNonRigid(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtualInterpolatedNonRigid(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
@@ -149,52 +149,12 @@ public class NonRigidTools
 				service );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtualInterpolatedNonRigid(
-			final BasicImgLoader imgloader,
-			final Map< ViewId, AffineTransform3D > viewRegistrations,
+	public static HashMap< ViewId, ArrayList< CorrespondingIP > > assembleIPsForNonRigid(
 			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
-			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
-			final Collection< ? extends ViewId > viewsToFuse,
+			final Map< ViewId, AffineTransform3D > downsampledRegistrations,
 			final Collection< ? extends ViewId > viewsToUse,
-			final ArrayList< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
-			final boolean displayDistances,
-			final long[] controlPointDistance,
-			final double alpha,
-			final int interpolation,
-			final Interval boundingBox1,
-			final double downsampling,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
-			final ExecutorService service )
+			final ArrayList< String > labels )
 	{
-		final Interval bb;
-
-		if ( !Double.isNaN( downsampling ) )
-			bb = TransformVirtual.scaleBoundingBox( boundingBox1, 1.0 / downsampling );
-		else
-			bb = boundingBox1;
-
-		final long[] dim = new long[ bb.numDimensions() ];
-		bb.dimensions( dim );
-
-		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
-		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
-
-		// create final registrations for all views and a list of corresponding interest points
-		final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
-
-		for ( final ViewId viewId : viewsToUse )
-		{
-			final AffineTransform3D model = viewRegistrations.get( viewId );
-
-			if ( !Double.isNaN( downsampling ) )
-				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
-
-			registrations.put( viewId, model );
-		}
-
-		// new loop for interestpoints that need the registrations
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = new HashMap<>();
 
 		for ( final ViewId viewId : viewsToUse )
@@ -233,25 +193,36 @@ public class NonRigidTools
 			}
 			else
 			{
-				final double dist = NonRigidTools.transformAnnotatedIPs( aips, registrations );
+				final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
 				annotatedIps.put( viewId, aips );
 
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
 			}
 		}
 
-		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
-		// this location in world coordinates defines where each individual point should be "warped" to
-		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
+		return annotatedIps;
+	}
 
-		// compute all grids, if it does not contain a grid we use the old affine model
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bb, service );
+	public static Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > createNonRigidVirtualImages(
+			final BasicImgLoader imgloader,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final Map< ViewId, AffineTransform3D > downsampledRegistrations,
+			final HashMap< ViewId, ModelGrid > nonrigidGrids,
+			final Interval bbDS,
+			final boolean useBlending,
+			final boolean useContentBased,
+			final boolean displayDistances,
+			final int interpolation,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+	{
+		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
+		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
 
-		// create virtual images
 		for ( final ViewId viewId : viewsToFuse )
 		{
 			final ModelGrid grid = nonrigidGrids.get( viewId );
-			final AffineTransform3D modelAffine = registrations.get( viewId ).copy(); // will be modified potentially
+			final AffineTransform3D modelAffine = downsampledRegistrations.get( viewId ).copy(); // will be modified potentially
 			final AffineModel3D invertedModelOpener;
 			RandomAccessibleInterval inputImg;
 
@@ -285,9 +256,9 @@ public class NonRigidTools
 							new FloatType() );
 
 				if ( grid == null )
-					images.add( TransformView.transformView( inputImg, modelAffine, bb, 0, interpolation ) );
+					images.add( TransformView.transformView( inputImg, modelAffine, bbDS, 0, interpolation ) );
 				else
-					images.add( NonRigidTools.transformViewNonRigidInterpolated( inputImg, grid, invertedModelOpener, bb, 0, interpolation ) );
+					images.add( NonRigidTools.transformViewNonRigidInterpolated( inputImg, grid, invertedModelOpener, bbDS, 0, interpolation ) );
 			}
 			else
 			{
@@ -299,9 +270,9 @@ public class NonRigidTools
 				inputImg = imgloader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
 
 				if ( grid == null )
-					images.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), 3 ), new FinalInterval( bb ) ) );
+					images.add( Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), 3 ), new FinalInterval( bbDS ) ) );
 				else
-					images.add( NonRigidTools.visualizeDistancesViewNonRigidInterpolated( inputImg, grid, modelAffine, bb, 0, interpolation ) );
+					images.add( NonRigidTools.visualizeDistancesViewNonRigidInterpolated( inputImg, grid, modelAffine, bbDS, 0, interpolation ) );
 			}
 
 			//
@@ -321,14 +292,14 @@ public class NonRigidTools
 					FusionTools.adjustBlending( viewDescriptions.get( viewId ), blending, border, modelAffine );
 
 					if ( grid == null )
-						transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, modelAffine, bb );
+						transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, modelAffine, bbDS );
 					else
 						transformedBlending = NonRigidWeightTools.transformWeightNonRigidInterpolated(
 								new BlendingRealRandomAccessible(
 										new FinalInterval( inputImg ), border, blending ),
 										grid,
 										invertedModelOpener,
-										bb );
+										bbDS );
 				}
 
 				// instantiate content based if necessary
@@ -343,7 +314,7 @@ public class NonRigidTools
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 
 					if ( grid == null )
-						transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory<>( new ComplexFloatType() ), sigma1, sigma2, modelAffine, bb );
+						transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory<>( new ComplexFloatType() ), sigma1, sigma2, modelAffine, bbDS );
 					else
 						transformedContentBased = 
 								NonRigidWeightTools.transformWeightNonRigidInterpolated(
@@ -354,7 +325,7 @@ public class NonRigidTools
 											sigma2 ),
 									grid,
 									invertedModelOpener,
-									bb );
+									bbDS );
 				}
 
 				if ( useContentBased && useBlending )
@@ -380,13 +351,88 @@ public class NonRigidTools
 						Views.interval( new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ), new FinalInterval( inputImg ) );
 
 				if ( grid == null )
-					weights.add( TransformView.transformView( imageArea, modelAffine, bb, 0, 0 ) );
+					weights.add( TransformView.transformView( imageArea, modelAffine, bbDS, 0, 0 ) );
 				else
-					weights.add( NonRigidTools.transformViewNonRigidInterpolated( imageArea, grid, invertedModelOpener, bb, 0, 0 ) );
+					weights.add( NonRigidTools.transformViewNonRigidInterpolated( imageArea, grid, invertedModelOpener, bbDS, 0, 0 ) );
 			}
 		}
 
-		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+		return new ValuePair<>( images, weights );
+	}
+
+	public static HashMap< ViewId, AffineTransform3D > createDownsampledRegistrations(
+			final Collection< ? extends ViewId > viewsToUse,
+			final Map< ViewId, AffineTransform3D > viewRegistrations,
+			final double downsampling )
+	{
+		final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = new HashMap<>();
+
+		for ( final ViewId viewId : viewsToUse )
+		{
+			final AffineTransform3D model = viewRegistrations.get( viewId );
+
+			if ( !Double.isNaN( downsampling ) )
+				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
+
+			downsampledRegistrations.put( viewId, model );
+		}
+
+		return downsampledRegistrations;
+	}
+
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtualInterpolatedNonRigid(
+			final BasicImgLoader imgloader,
+			final Map< ViewId, AffineTransform3D > viewRegistrations,
+			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final Collection< ? extends ViewId > viewsToUse,
+			final ArrayList< String > labels,
+			final boolean useBlending,
+			final boolean useContentBased,
+			final boolean displayDistances,
+			final long[] controlPointDistance,
+			final double alpha,
+			final int interpolation,
+			final Interval boundingBox,
+			final double downsampling,
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
+			final ExecutorService service )
+	{
+		final Pair< Interval, AffineTransform3D > scaledBB = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling );
+
+		final Interval bbDS = scaledBB.getA();
+		final AffineTransform3D bbTransform = scaledBB.getB();
+
+		// create final registrations for all views and a list of corresponding interest points
+		final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
+
+		// new loop for interestpoints that need the registrations
+		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = assembleIPsForNonRigid( viewInterestPoints, downsampledRegistrations, viewsToUse, labels );
+
+		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
+		// this location in world coordinates defines where each individual point should be "warped" to
+		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
+
+		// compute all grids, if it does not contain a grid we use the old affine model
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, service );
+
+		// create virtual images
+		final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
+				createNonRigidVirtualImages(
+						imgloader,
+						viewDescriptions,
+						viewsToFuse,
+						downsampledRegistrations,
+						nonrigidGrids,
+						bbDS,
+						useBlending,
+						useContentBased,
+						displayDistances,
+						interpolation,
+						intensityAdjustments );
+
+		return new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform );
 	}
 
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformViewNonRigidInterpolated(
@@ -528,7 +574,7 @@ public class NonRigidTools
 		}
 	}
 
-	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
+	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final Map< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
 	{
 		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
 
