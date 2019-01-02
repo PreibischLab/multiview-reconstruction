@@ -165,7 +165,7 @@ public class FusionTools
 	 */
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
-			final List< ? extends ViewId > viewIds )
+			final Collection< ? extends ViewId > viewIds )
 	{
 		return fuseVirtual(
 				spimData,
@@ -186,7 +186,7 @@ public class FusionTools
 	 */
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			double downsampling )
 	{
 		return fuseVirtual(
@@ -209,7 +209,7 @@ public class FusionTools
 	 */
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final SpimData2 spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			double downsampling,
 			final boolean adjustIntensities )
 	{
@@ -233,7 +233,7 @@ public class FusionTools
 	 */
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			Interval bb,
 			double downsampling )
 	{
@@ -253,7 +253,7 @@ public class FusionTools
 	 */
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			Interval bb,
 			double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )

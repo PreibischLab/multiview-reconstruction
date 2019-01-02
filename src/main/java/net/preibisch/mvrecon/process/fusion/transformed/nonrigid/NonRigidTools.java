@@ -151,7 +151,6 @@ public class NonRigidTools
 
 	public static HashMap< ViewId, ArrayList< CorrespondingIP > > assembleIPsForNonRigid(
 			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
-			final Map< ViewId, AffineTransform3D > downsampledRegistrations,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels )
 	{
@@ -187,17 +186,7 @@ public class NonRigidTools
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loaded " + aips.size() + " pairs of corresponding interest points." );
 
-			if ( aips.size() < 12 )
-			{
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": This number is not sufficient for non-rigid, using pre-computed affine." );
-			}
-			else
-			{
-				final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
-				annotatedIps.put( viewId, aips );
-
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
-			}
+			annotatedIps.put( viewId, aips );
 		}
 
 		return annotatedIps;
@@ -408,11 +397,14 @@ public class NonRigidTools
 		final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
 
 		// new loop for interestpoints that need the registrations
-		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = assembleIPsForNonRigid( viewInterestPoints, downsampledRegistrations, viewsToUse, labels );
+		final HashMap< ViewId, ArrayList< CorrespondingIP > > transformedAnnotatedIps = 
+				transformAllAnnotatedIPs(
+						assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels ),
+						downsampledRegistrations );
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 		// this location in world coordinates defines where each individual point should be "warped" to
-		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps );
+		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
 		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, service );
@@ -705,6 +697,43 @@ public class NonRigidTools
 
 		}
 		return groups;
+	}
+
+	public static ArrayList< CorrespondingIP > copyIPs( final List< CorrespondingIP > in )
+	{
+		final ArrayList< CorrespondingIP > out = new ArrayList<>();
+
+		for ( final CorrespondingIP ip : in )
+			out.add( ip.copy() );
+
+		return out;
+	}
+
+	public static HashMap< ViewId, ArrayList< CorrespondingIP > > transformAllAnnotatedIPs(
+			final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps,
+			final Map< ViewId, AffineTransform3D > downsampledRegistrations )
+	{
+		final HashMap< ViewId, ArrayList< CorrespondingIP > > transformedAnnotatedIps = new HashMap<>();
+
+		for ( final ViewId viewId : annotatedIps.keySet() )
+		{
+			// they need to be copied since they might be used for multiple resolution levels
+			final ArrayList< CorrespondingIP > aips = copyIPs( annotatedIps.get( viewId ) );
+
+			if ( aips.size() < 12 )
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": This number is not sufficient for non-rigid, using pre-computed affine." );
+			}
+			else
+			{
+				final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
+				transformedAnnotatedIps.put( viewId, aips );
+	
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
+			}
+		}
+
+		return transformedAnnotatedIps;
 	}
 
 	public static double transformAnnotatedIPs( final Collection< CorrespondingIP > aips, final Map< ViewId, AffineTransform3D > models )

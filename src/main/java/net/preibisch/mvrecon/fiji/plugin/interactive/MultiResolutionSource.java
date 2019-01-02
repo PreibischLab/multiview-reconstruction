@@ -1,11 +1,15 @@
-package net.preibisch.mvrecon.fiji.plugin.fusion;
+package net.preibisch.mvrecon.fiji.plugin.interactive;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 
+import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
 import bdv.util.volatiles.VolatileViews;
 import bdv.viewer.Interpolation;
 import bdv.viewer.Source;
@@ -20,13 +24,16 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.type.volatiles.VolatileFloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -36,12 +43,12 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 
-public class InteractiveNonRigid implements Source< VolatileFloatType >
+public class MultiResolutionSource implements Source< VolatileFloatType >
 {
 	final String name;
 	final ArrayList< Pair< RandomAccessibleInterval< VolatileFloatType >, AffineTransform3D > > multiRes;
 
-	public InteractiveNonRigid(
+	public MultiResolutionSource(
 			final ArrayList< Pair< RandomAccessibleInterval< VolatileFloatType >, AffineTransform3D > > multiRes,
 			final String name )
 	{
@@ -133,7 +140,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final ArrayList< Pair< RandomAccessibleInterval< VolatileFloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
+		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
 		new ImageJ();
 
@@ -163,7 +170,7 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 				viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 				final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
-				final int cpd = Math.max( 1, Math.max( 3, (int)Math.round( 10 / ds ) ) );
+				final int cpd = Math.max( 1, Math.max( 5, (int)Math.round( 10 / ds ) ) );
 
 				final ArrayList< String > labels = new ArrayList<>();
 				labels.add( "beads13" );
@@ -198,15 +205,21 @@ public class InteractiveNonRigid implements Source< VolatileFloatType >
 					service );
 			}
 
-			final RandomAccessibleInterval< FloatType > cachedImg = FusionTools.cacheRandomAccessibleInterval( virtualImg.getA(), FusionGUI.maxCacheSize, new FloatType(), FusionGUI.cellDim );
-			final RandomAccessibleInterval< VolatileFloatType > volatileImg = VolatileViews.wrapAsVolatile( cachedImg );
-			//DisplayImage.getImagePlusInstance( virtual, true, "ds="+ds, 0, 255 ).show();
-			//ImageJFunctions.show( virtualVolatile );
-
-			multiRes.add( new ValuePair<>( volatileImg, virtualImg.getB() ) );
+			multiRes.add( new ValuePair<>( virtualImg.getA(), virtualImg.getB() ) );
 		}
 
-		BdvFunctions.show( new InteractiveNonRigid( multiRes, "rendered" ) );
+		BdvOptions options = Bdv.options();
+		
+		BdvStackSource s = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiRes ), "rendered" ) );
+		s.setDisplayRange( 0, 255 );
+
+		Random rnd = new Random();
+	
+		for ( int i = 0; i >= 0; ++i )
+		{
+			s.setColor( new ARGBType( ARGBType.rgba( rnd.nextDouble()*255, rnd.nextDouble()*255, rnd.nextDouble()*255, 0 ) ) );
+			SimpleMultiThreading.threadWait( 3000 );
+		}
 	}
 
 }
