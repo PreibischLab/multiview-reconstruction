@@ -37,6 +37,11 @@ public class CorrespondingIP extends SimpleReferenceIP
 		corrT.apply( corrL, corrW );
 	}
 
+	public CorrespondingIP copy()
+	{
+		return new CorrespondingIP( ip, viewId, corrIp, corrViewId );
+	}
+
 	@Override
 	public int hashCode()
 	{
