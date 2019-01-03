@@ -7,6 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import bdv.util.Bdv;
+import bdv.util.BdvFunctions;
+import bdv.util.BdvHandle;
+import bdv.util.BdvOptions;
+import bdv.util.BdvPointsSource;
 import bdv.util.volatiles.VolatileViews;
 import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -32,6 +37,14 @@ import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 
 public class MultiResolutionTools
 {
+	public static void updateBDV( final Bdv bdv )
+	{
+		final BdvOptions options = Bdv.options();
+		options.addTo( bdv );
+		final BdvPointsSource p = BdvFunctions.showPoints( new ArrayList<>(), "empty", options );
+		p.removeFromBdv();
+	}
+
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionNonRigid(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewsToFuse,
