@@ -22,6 +22,7 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.multithreading.SimpleMultiThreading;
@@ -140,11 +141,57 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
+		final int minDS = 1;
+		final int maxDS = 16;
+		final int dsInc = 2;
 
-		new ImageJ();
+		// affine
+		//final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
+		//		MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
 
-		final boolean nonRigid = false;
+		// non-rigid
+		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
+		final List< ViewId > viewsToUse = new ArrayList< ViewId >(); // used to compute the non-rigid transform
+
+		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+
+		final ArrayList< String > labels = new ArrayList<>();
+		labels.add( "beads13" );
+		labels.add( "nuclei" );
+
+		final int interpolation = 1;
+		final long cpd = 10;
+		final double alpha = 1.0;
+
+		final boolean useBlending = true;
+		final boolean useContentBased = false;
+		final boolean displayDistances = false;
+
+		final ExecutorService service = DeconViews.createExecutorService();
+		
+		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResNonRigid =
+				MultiResolutionTools.createMultiResolutionNonRigid(
+						spimData,
+						viewsToFuse,
+						viewsToUse,
+						labels,
+						useBlending,
+						useContentBased,
+						displayDistances,
+						cpd,
+						alpha,
+						interpolation,
+						boundingBox,
+						null,
+						service,
+						minDS,
+						maxDS,
+						dsInc );
+		
+		/* final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
+
+		final boolean nonRigid = true;
 
 		IOFunctions.println( Util.printInterval( boundingBox ));
 		IOFunctions.println( "nonRigid = " + nonRigid );
@@ -207,19 +254,35 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 
 			multiRes.add( new ValuePair<>( virtualImg.getA(), virtualImg.getB() ) );
 		}
+		*/
+		new ImageJ();
 
 		BdvOptions options = Bdv.options();
 		
-		BdvStackSource s = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiRes ), "rendered" ) );
-		s.setDisplayRange( 0, 255 );
+		//BdvStackSource affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ) );
+		//affine.setDisplayRange( 0, 200 );
+		//affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
 
+		for ( final Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > level : multiResNonRigid )
+		{
+			IOFunctions.println( "Interval: " + Util.printInterval( level.getA() ) + " t:" + level.getB() );
+			//ImageJFunctions.show( level.getA() );
+		}
+
+		
+		BdvStackSource nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ) );
+		nr.setDisplayRange( 0, 200 );
+		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
+		
+
+		/*
 		Random rnd = new Random();
 	
 		for ( int i = 0; i >= 0; ++i )
 		{
 			s.setColor( new ARGBType( ARGBType.rgba( rnd.nextDouble()*255, rnd.nextDouble()*255, rnd.nextDouble()*255, 0 ) ) );
 			SimpleMultiThreading.threadWait( 3000 );
-		}
+		}*/
 	}
 
 }

@@ -287,30 +287,38 @@ public class FusionTools
 		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, downsampling, intensityAdjustments );
 	}
 
+	/**
+	 * 
+	 * @param boundingBox - the bounding box to scale
+	 * @param downsampling - the downsampling factor
+	 * @return a downsampled interval and the corresponding affine transform to map it to global coordinates or a copy if downsampling == Double.NaN or 1.0
+	 */
 	public static Pair< Interval, AffineTransform3D > createDownsampledBoundingBox(
 			final Interval boundingBox,
 			final double downsampling )
 	{
-		final Interval bbDS;
-
-		if ( !Double.isNaN( downsampling ) )
-			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
+		if ( Double.isNaN( downsampling ) || downsampling == 1.0 )
+		{
+			return new ValuePair<>( new FinalInterval( boundingBox ), new AffineTransform3D() );
+		}
 		else
-			bbDS = boundingBox;
+		{
+			final Interval bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
 
-		// there is rounding when scaling the bounding box ...
-		final double[] offset = new double[ boundingBox.numDimensions() ];
-		final double[] translation = new double[ boundingBox.numDimensions() ];
-
-		for ( int d = 0; d < offset.length; ++d )
-			translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * (double)downsampling;
-
-		// the virtual image is zeroMin, this transformation puts it into the global coordinate system
-		final AffineTransform3D t = new AffineTransform3D();
-		t.scale( downsampling );
-		t.translate( translation );
-
-		return new ValuePair<>( bbDS, t );
+			// there is rounding when scaling the bounding box ...
+			final double[] offset = new double[ boundingBox.numDimensions() ];
+			final double[] translation = new double[ boundingBox.numDimensions() ];
+	
+			for ( int d = 0; d < offset.length; ++d )
+				translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * downsampling;
+	
+			// the virtual image is zeroMin, this transformation puts it into the global coordinate system
+			final AffineTransform3D t = new AffineTransform3D();
+			t.scale( downsampling );
+			t.translate( translation );
+	
+			return new ValuePair<>( bbDS, t );
+		}
 	}
 
 	public static Interval getFusedZeroMinInterval( final Interval bbDS )

@@ -37,10 +37,25 @@ public class MultiResolutionTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
+			final long controlPointDistance,
+			final Interval boundingBox,
+			final ExecutorService service,
+			final int minDS,
+			final int maxDS,
+			final int dsInc )
+	{
+		return createMultiResolutionNonRigid( spimData, viewsToFuse, viewsToUse, labels, true, false, false, controlPointDistance, 1.0, 1, boundingBox, null, service, minDS, maxDS, dsInc );
+	}
+
+	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionNonRigid(
+			final SpimData2 spimData,
+			final Collection< ? extends ViewId > viewsToFuse,
+			final Collection< ? extends ViewId > viewsToUse,
+			final ArrayList< String > labels,
 			final boolean useBlending,
 			final boolean useContentBased,
 			final boolean displayDistances,
-			final long[] controlPointDistance,
+			final long controlPointDistance,
 			final double alpha,
 			final int interpolation,
 			final Interval boundingBox,
@@ -48,7 +63,7 @@ public class MultiResolutionTools
 			final ExecutorService service,
 			final int minDS,
 			final int maxDS,
-			final double dsInc )
+			final int dsInc )
 	{
 		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
 
@@ -84,7 +99,7 @@ public class MultiResolutionTools
 			final boolean useBlending,
 			final boolean useContentBased,
 			final boolean displayDistances,
-			final long[] controlPointDistance,
+			final long controlPointDistance,
 			final double alpha,
 			final int interpolation,
 			final Interval boundingBox,
@@ -92,10 +107,32 @@ public class MultiResolutionTools
 			final ExecutorService service,
 			final int minDS,
 			final int maxDS,
-			final double dsInc )
+			final int dsInc )
 	{
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
+		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
+		{
+			final int cpd = Math.max( 1, Math.max( 5, (int)Math.round( controlPointDistance / downsampling ) ) );
+
+			multiRes.add(
+				NonRigidTools.fuseVirtualInterpolatedNonRigid(
+						imgloader,
+						viewRegistrations,
+						viewInterestPoints,
+						viewDescriptions,
+						viewsToFuse,
+						viewsToUse,
+						labels,
+						useBlending,
+						useContentBased,
+						displayDistances,
+						new long[] { cpd, cpd, cpd },
+						alpha, interpolation, boundingBox, downsampling, intensityAdjustments, service ) );
+		}
+
+		return multiRes;
+		/*
 		// finding the corresponding interest points is the same for all levels
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
 
@@ -105,6 +142,8 @@ public class MultiResolutionTools
 
 			final Interval bbDS = scaledBB.getA();
 			final AffineTransform3D bbTransform = scaledBB.getB();
+
+			final long cpd = Math.max( 1, Math.max( 5, (long)Math.round( controlPointDist / downsampling ) ) );
 
 			// create final registrations for all views and a list of corresponding interest points
 			final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = NonRigidTools.createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
@@ -117,7 +156,7 @@ public class MultiResolutionTools
 			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
 
 			// compute all grids, if it does not contain a grid we use the old affine model
-			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, service );
+			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, service );
 
 			// create virtual images
 			final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
@@ -137,7 +176,7 @@ public class MultiResolutionTools
 			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform ) );
 		}
 
-		return multiRes;
+		return multiRes; */
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionAffine(
@@ -146,7 +185,7 @@ public class MultiResolutionTools
 			final Interval boundingBox,
 			final int minDS,
 			final int maxDS,
-			final double dsInc )
+			final int dsInc )
 	{
 		final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
@@ -176,7 +215,7 @@ public class MultiResolutionTools
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final int minDS,
 			final int maxDS,
-			final double dsInc )
+			final int dsInc )
 	{
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
