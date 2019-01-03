@@ -1,22 +1,81 @@
 package net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid;
 
 import mpicbg.models.AffineModel3D;
+import net.imglib2.img.NativeImg;
+import net.imglib2.img.basictypeaccess.DoubleAccess;
+import net.imglib2.img.basictypeaccess.array.DoubleArray;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.NativeTypeFactory;
 import net.imglib2.type.numeric.NumericType;
+import net.imglib2.util.Fraction;
 
-public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
+public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >, NativeType< NumericAffineModel3D >
 {
-	final AffineModel3D model;
-	final double[] data1 = new double[ 12 ];
-	final double[] data2 = new double[ 12 ];
+	private int i = 0;
+	private int baseIndex = 0; // i * 12;
+
+	final protected NativeImg< ?, ? extends DoubleAccess > img;
+
+	// the DataAccess that holds the information
+	protected DoubleAccess dataAccess;
+
+	// only set when reading
+	final AffineModel3D modelTmp = new AffineModel3D();
+
+	//final double[] data1 = new double[ 12 ];
+	//final double[] data2 = new double[ 12 ];
+
+	// this is the constructor if you want it to read from an array
+	public NumericAffineModel3D( final NativeImg< ?, ? extends DoubleAccess > modelDoubleStorage )
+	{
+		img = modelDoubleStorage;
+	}
+
+	public NumericAffineModel3D( final NumericAffineModel3D model )
+	{
+		img = null;
+		dataAccess = new DoubleArray( 12 );
+		set( model );
+	}
 
 	public NumericAffineModel3D( final AffineModel3D model )
 	{
-		this.model = model;
+		img = null;
+		dataAccess = new DoubleArray( 12 );
+		setAffineModel( model );
+	}
+
+	protected void updateModelTmp()
+	{
+		modelTmp.set(
+				getAtBase( 0 ), getAtBase( 3 ), getAtBase( 6 ), getAtBase( 9 ),
+				getAtBase( 1 ), getAtBase( 4 ), getAtBase( 7 ), getAtBase( 10 ),
+				getAtBase( 2 ), getAtBase( 5 ), getAtBase( 8 ), getAtBase( 11 ) );
+	}
+
+	final protected double getAtBase( final int j )
+	{
+		return dataAccess.getValue( baseIndex + j );
+	}
+
+	final protected void setAtBase( final int j, final double value )
+	{
+		dataAccess.setValue( baseIndex + j, value );
+	}
+
+	public void setAffineModel( final AffineModel3D model )
+	{
+		final double[] tmp = new double[ 12 ];
+		model.toArray( tmp );
+
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, tmp[ j ] );
 	}
 
 	public AffineModel3D getModel()
 	{
-		return model;
+		updateModelTmp();
+		return modelTmp;
 	}
 
 	@Override
@@ -28,128 +87,145 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 	@Override
 	public NumericAffineModel3D copy()
 	{
-		return new NumericAffineModel3D( model.copy() );
+		return new NumericAffineModel3D( getModel() );
 	}
 
 	@Override
 	public void set( final NumericAffineModel3D c )
 	{
-		this.model.set( c.model );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, c.getAtBase( j ) );
 	}
 
 	@Override
-	public boolean valueEquals( final NumericAffineModel3D t )
+	public boolean valueEquals( final NumericAffineModel3D c )
 	{
-		model.toArray( data1 );
-		t.model.toArray( data2 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			if ( data1[ i ] != data2[ i ] )
+		for ( int j = 0; j < 12; ++j )
+			if ( getAtBase( j ) != c.getAtBase( j ) )
 				return false;
 
 		return true;
 	}
 
 	@Override
-	public void add( NumericAffineModel3D c )
+	public void add( final NumericAffineModel3D c )
 	{
-		model.toArray( data1 );
-		c.model.toArray( data2 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] += data2[ i ];
-
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) + c.getAtBase( j ) );
 	}
 
 	@Override
-	public void mul( NumericAffineModel3D c )
+	public void mul( final NumericAffineModel3D c )
 	{
-		model.toArray( data1 );
-		c.model.toArray( data2 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] *= data2[ i ];
-
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) * c.getAtBase( j ) );
 	}
 
 	@Override
-	public void sub( NumericAffineModel3D c )
+	public void sub( final NumericAffineModel3D c )
 	{
-		model.toArray( data1 );
-		c.model.toArray( data2 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] -= data2[ i ];
-
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) - c.getAtBase( j ) );
 	}
 
 	@Override
-	public void div( NumericAffineModel3D c )
+	public void div( final NumericAffineModel3D c )
 	{
-		model.toArray( data1 );
-		c.model.toArray( data2 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] /= data2[ i ];
-
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) / c.getAtBase( j ) );
 	}
 
 	@Override
 	public void setOne()
 	{
-		model.set( new AffineModel3D() );
+		setAffineModel( new AffineModel3D() );
 	}
 
 	@Override
 	public void setZero()
 	{
-		model.set(
-				0, 0, 0, 0,
-				0, 0, 0, 0,
-				0, 0, 0, 0 );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, 0.0 );
 	}
 
 	@Override
 	public void mul( final float c )
 	{
-		model.toArray( data1 );
-
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] *= c;
-
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) * c );
 	}
 
 	@Override
 	public void mul( final double c )
 	{
-		model.toArray( data1 );
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, getAtBase( j ) * c );
+	}
 
-		for ( int i = 0; i < data1.length; ++i )
-			data1[ i ] *= c;
+	@Override
+	public Fraction getEntitiesPerPixel()
+	{
+		return new Fraction( 12, 1 );
+	}
 
-		model.set(
-				data1[ 0 ], data1[ 3 ], data1[ 6 ], data1[ 9 ],
-				data1[ 1 ], data1[ 4 ], data1[ 7 ], data1[ 10 ],
-				data1[ 2 ], data1[ 5 ], data1[ 8 ], data1[ 11 ] );
+	@Override
+	public NumericAffineModel3D duplicateTypeOnSameNativeImg()
+	{
+		return new NumericAffineModel3D( img );
+	}
+
+	private static final NativeTypeFactory< NumericAffineModel3D, DoubleAccess > typeFactory = NativeTypeFactory.DOUBLE( img -> new NumericAffineModel3D( img ) );
+
+	@Override
+	public NativeTypeFactory< NumericAffineModel3D, DoubleAccess > getNativeTypeFactory()
+	{
+		return typeFactory;
+	}
+
+	@Override
+	public void updateContainer( final Object c )
+	{
+		dataAccess = img.update( c );
+	}
+
+	@Override
+	public void updateIndex( final int i )
+	{
+		this.i = i;
+		this.baseIndex = i * 12;
+	}
+
+	@Override
+	public int getIndex()
+	{
+		return i;
+	}
+
+	@Override
+	public void incIndex()
+	{
+		++i;
+		baseIndex += 12;
+	}
+
+	@Override
+	public void incIndex( final int increment )
+	{
+		i += increment;
+		baseIndex += 12*increment;
+	}
+
+	@Override
+	public void decIndex()
+	{
+		--i;
+		baseIndex -= 12;
+	}
+
+	@Override
+	public void decIndex( int decrement )
+	{
+		i -= decrement;
+		baseIndex -= 12*decrement;
 	}
 }
