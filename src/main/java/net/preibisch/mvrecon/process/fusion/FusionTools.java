@@ -297,28 +297,30 @@ public class FusionTools
 			final Interval boundingBox,
 			final double downsampling )
 	{
+		final Interval bbDS;
+		
 		if ( Double.isNaN( downsampling ) || downsampling == 1.0 )
 		{
-			return new ValuePair<>( new FinalInterval( boundingBox ), new AffineTransform3D() );
+			bbDS = new FinalInterval( boundingBox );
 		}
 		else
 		{
-			final Interval bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
-
-			// there is rounding when scaling the bounding box ...
-			final double[] offset = new double[ boundingBox.numDimensions() ];
-			final double[] translation = new double[ boundingBox.numDimensions() ];
-	
-			for ( int d = 0; d < offset.length; ++d )
-				translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * downsampling;
-	
-			// the virtual image is zeroMin, this transformation puts it into the global coordinate system
-			final AffineTransform3D t = new AffineTransform3D();
-			t.scale( downsampling );
-			t.translate( translation );
-	
-			return new ValuePair<>( bbDS, t );
+			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
 		}
+
+		// there is rounding when scaling the bounding box ...
+		final double[] offset = new double[ boundingBox.numDimensions() ];
+		final double[] translation = new double[ boundingBox.numDimensions() ];
+
+		for ( int d = 0; d < offset.length; ++d )
+			translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * downsampling;
+
+		// the virtual image is zeroMin, this transformation puts it into the global coordinate system
+		final AffineTransform3D t = new AffineTransform3D();
+		t.scale( downsampling );
+		t.translate( translation );
+
+		return new ValuePair<>( bbDS, t );
 	}
 
 	public static Interval getFusedZeroMinInterval( final Interval bbDS )
