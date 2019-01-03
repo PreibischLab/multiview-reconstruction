@@ -111,30 +111,6 @@ public class MultiResolutionTools
 	{
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
-		/*
-		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
-		{
-			final int cpd = Math.max( 1, Math.max( 5, (int)Math.round( controlPointDistance / downsampling ) ) );
-
-			multiRes.add(
-				NonRigidTools.fuseVirtualInterpolatedNonRigid(
-						imgloader,
-						viewRegistrations,
-						viewInterestPoints,
-						viewDescriptions,
-						viewsToFuse,
-						viewsToUse,
-						labels,
-						useBlending,
-						useContentBased,
-						displayDistances,
-						new long[] { cpd, cpd, cpd },
-						alpha, interpolation, boundingBox, downsampling, intensityAdjustments, service ) );
-		}
-
-		return multiRes;
-		*/
-
 		// finding the corresponding interest points is the same for all levels
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
 		
