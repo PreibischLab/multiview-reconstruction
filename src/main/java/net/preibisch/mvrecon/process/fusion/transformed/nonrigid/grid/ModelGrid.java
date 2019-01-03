@@ -68,6 +68,8 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 		final ListLocalizingCursor< NumericAffineModel3D > it = grid.localizingCursor();
 		final double[] pos = new double[ n ];
 
+		long time = System.currentTimeMillis();
+
 		while ( it.hasNext() )
 		{
 			it.fwd();
@@ -85,7 +87,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 			//System.out.println( " >>> " + Util.printCoordinates( pos ) + ": " + model );
 		}
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": computed grid." );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": computed grid [" + (System.currentTimeMillis() - time ) + " ms]." );
 	}
 
 	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
