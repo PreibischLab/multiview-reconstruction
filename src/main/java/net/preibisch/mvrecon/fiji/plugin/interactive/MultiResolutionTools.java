@@ -111,6 +111,7 @@ public class MultiResolutionTools
 	{
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
+		/*
 		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
 		{
 			final int cpd = Math.max( 1, Math.max( 5, (int)Math.round( controlPointDistance / downsampling ) ) );
@@ -132,18 +133,17 @@ public class MultiResolutionTools
 		}
 
 		return multiRes;
-		/*
+		*/
+
 		// finding the corresponding interest points is the same for all levels
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
-
+		
 		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
 		{
 			final Pair< Interval, AffineTransform3D > scaledBB = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling );
 
 			final Interval bbDS = scaledBB.getA();
 			final AffineTransform3D bbTransform = scaledBB.getB();
-
-			final long cpd = Math.max( 1, Math.max( 5, (long)Math.round( controlPointDist / downsampling ) ) );
 
 			// create final registrations for all views and a list of corresponding interest points
 			final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = NonRigidTools.createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
@@ -156,6 +156,7 @@ public class MultiResolutionTools
 			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
 
 			// compute all grids, if it does not contain a grid we use the old affine model
+			final long cpd = Math.max( 1, Math.max( 5, (long)Math.round( controlPointDistance / downsampling ) ) );
 			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, service );
 
 			// create virtual images
@@ -176,7 +177,7 @@ public class MultiResolutionTools
 			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform ) );
 		}
 
-		return multiRes; */
+		return multiRes;
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionAffine(
