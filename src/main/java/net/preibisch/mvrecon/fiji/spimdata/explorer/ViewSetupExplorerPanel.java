@@ -102,6 +102,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.Separator;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SimpleHyperlinkPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SpecifyCalibrationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeDetectionsPopup;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeNonRigid;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -711,6 +712,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new LabelPopUp( " Processing" ) );
 		popups.add( new DetectInterestPointsPopup() );
 		popups.add( new RegisterInterestPointsPopup() );
+		popups.add( new VisualizeNonRigid() );
 		popups.add( new IntensityAdjustmentPopup() );
 		popups.add( new FusionPopup() );
 		popups.add( new PointSpreadFunctionsPopup() );
