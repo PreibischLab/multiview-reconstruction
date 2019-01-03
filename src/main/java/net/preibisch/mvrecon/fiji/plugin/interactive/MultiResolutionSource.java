@@ -8,7 +8,9 @@ import java.util.concurrent.ExecutorService;
 
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
+import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
+import bdv.util.BdvPointsSource;
 import bdv.util.BdvStackSource;
 import bdv.util.volatiles.VolatileViews;
 import bdv.viewer.Interpolation;
@@ -146,8 +148,16 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final int dsInc = 2;
 
 		// affine
-		//final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
-		//		MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
+		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
+				MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
+
+		BdvOptions options = Bdv.options();
+		options.numSourceGroups( 2 );
+		BdvStackSource affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
+		affine.setDisplayRange( 0, 200 );
+		affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
+
+		MultiResolutionTools.updateBDV( affine );
 
 		// non-rigid
 		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
@@ -169,7 +179,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final boolean displayDistances = false;
 
 		final ExecutorService service = DeconViews.createExecutorService();
-		
+
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResNonRigid =
 				MultiResolutionTools.createMultiResolutionNonRigid(
 						spimData,
@@ -188,92 +198,14 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 						minDS,
 						maxDS,
 						dsInc );
-		
-		/* final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes = new ArrayList<>();
 
-		final boolean nonRigid = true;
-
-		IOFunctions.println( Util.printInterval( boundingBox ));
-		IOFunctions.println( "nonRigid = " + nonRigid );
-
-		for ( int downsampling = 1; downsampling <= 16; downsampling *= 2 )
-		{
-			IOFunctions.println( "DS: " + downsampling );
-
-			final Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > virtualImg;
-
-			if ( !nonRigid )
-			{
-				// affine
-				virtualImg = FusionTools.fuseVirtual( spimData, viewIds, boundingBox, downsampling );
-			}
-			else
-			{
-				// non-rigid
-				final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
-				final List< ViewId > viewsToUse = new ArrayList< ViewId >(); // used to compute the non-rigid transform
-	
-				viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-				viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-
-				final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
-				final int cpd = Math.max( 1, Math.max( 5, (int)Math.round( 10 / ds ) ) );
-
-				final ArrayList< String > labels = new ArrayList<>();
-				labels.add( "beads13" );
-				labels.add( "nuclei" );
-
-				final int interpolation = 1;
-				final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
-				final double alpha = 1.0;
-
-				final boolean useBlending = true;
-				final boolean useContentBased = false;
-				final boolean displayDistances = false;
-
-				final ExecutorService service = DeconViews.createExecutorService();
-
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": controlPointDistance = " + Util.printCoordinates( controlPointDistance ) );
-
-				virtualImg = NonRigidTools.fuseVirtualInterpolatedNonRigid(
-					spimData,
-					viewsToFuse,
-					viewsToUse,
-					labels,
-					useBlending,
-					useContentBased,
-					displayDistances,
-					controlPointDistance,
-					alpha,
-					interpolation,
-					boundingBox,
-					downsampling,
-					null,
-					service );
-			}
-
-			multiRes.add( new ValuePair<>( virtualImg.getA(), virtualImg.getB() ) );
-		}
-		*/
 		new ImageJ();
 
-		BdvOptions options = Bdv.options();
-		
-		//BdvStackSource affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ) );
-		//affine.setDisplayRange( 0, 200 );
-		//affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
-
-		for ( final Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > level : multiResNonRigid )
-		{
-			IOFunctions.println( "Interval: " + Util.printInterval( level.getA() ) + " t:" + level.getB() );
-			//ImageJFunctions.show( level.getA() );
-		}
-
-		
-		BdvStackSource nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ) );
+		options.addTo( affine );
+		BdvStackSource nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
 		nr.setDisplayRange( 0, 200 );
 		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
-		
+		MultiResolutionTools.updateBDV( affine );
 
 		/*
 		Random rnd = new Random();
