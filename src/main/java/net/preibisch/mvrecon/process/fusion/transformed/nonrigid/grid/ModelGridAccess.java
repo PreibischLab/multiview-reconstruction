@@ -2,10 +2,10 @@ package net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid;
 
 import mpicbg.models.AffineModel3D;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.Sampler;
-import net.imglib2.img.list.ListImg;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.view.Views;
 
@@ -14,12 +14,12 @@ public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 	final double[] l, tmp;
 	final int n;
 	final RealRandomAccess< NumericAffineModel3D > interpolated;
-	final ListImg< NumericAffineModel3D > grid;
+	final RandomAccessibleInterval< NumericAffineModel3D > grid;
 	final long[] min, controlPointDistance;
 	final NumericAffineModel3D model;
 
 	public ModelGridAccess(
-			final ListImg< NumericAffineModel3D > grid,
+			final RandomAccessibleInterval< NumericAffineModel3D > grid,
 			final long[] min,
 			final long[] controlPointDistance)
 	{

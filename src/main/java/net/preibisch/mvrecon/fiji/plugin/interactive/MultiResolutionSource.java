@@ -143,7 +143,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final int minDS = 1;
+		final int minDS = 4;
 		final int maxDS = 16;
 		final int dsInc = 2;
 

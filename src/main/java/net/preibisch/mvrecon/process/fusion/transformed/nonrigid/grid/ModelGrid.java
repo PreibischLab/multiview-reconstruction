@@ -13,6 +13,7 @@ import mpicbg.models.PointMatch;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
@@ -26,7 +27,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 	final long[] dim, min, controlPointDistance;
 	final double alpha;
 
-	final ListImg< NumericAffineModel3D > grid;
+	final RandomAccessibleInterval< NumericAffineModel3D > grid;
 
 	public ModelGrid( final long[] controlPointDistance, final Interval boundingBox, final Collection< ? extends NonrigidIP > ips, final double alpha ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 	{
@@ -65,7 +66,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 		// iterate over all control points
 		this.grid = new ListImg< NumericAffineModel3D >( dim, new NumericAffineModel3D( new AffineModel3D() ) );
 
-		final ListLocalizingCursor< NumericAffineModel3D > it = grid.localizingCursor();
+		final ListLocalizingCursor< NumericAffineModel3D > it = ( (ListImg< NumericAffineModel3D >)grid ).localizingCursor();
 		final double[] pos = new double[ n ];
 
 		long time = System.currentTimeMillis();
