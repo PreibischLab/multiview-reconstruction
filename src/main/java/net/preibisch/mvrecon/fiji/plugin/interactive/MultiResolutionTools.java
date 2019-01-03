@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
-import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvPointsSource;
 import bdv.util.volatiles.VolatileViews;
