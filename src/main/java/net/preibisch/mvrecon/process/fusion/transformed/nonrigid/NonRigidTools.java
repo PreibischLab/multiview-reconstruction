@@ -243,7 +243,14 @@ public class NonRigidTools
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loaded " + aips.size() + " pairs of corresponding interest points." );
 
-			annotatedIps.put( viewId, aips );
+			if ( aips.size() < 12 )
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": This number is not sufficient for non-rigid, using pre-computed affine." );
+			}
+			else
+			{
+				annotatedIps.put( viewId, aips );
+			}
 		}
 
 		return annotatedIps;
@@ -720,17 +727,10 @@ public class NonRigidTools
 			// they need to be copied since they might be used for multiple resolution levels
 			final ArrayList< CorrespondingIP > aips = copyIPs( annotatedIps.get( viewId ) );
 
-			if ( aips.size() < 12 )
-			{
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": This number is not sufficient for non-rigid, using pre-computed affine." );
-			}
-			else
-			{
-				final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
-				transformedAnnotatedIps.put( viewId, aips );
-	
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance = " + dist );
-			}
+			final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
+			transformedAnnotatedIps.put( viewId, aips );
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance of " + Group.pvid( viewId ) + " = " + dist );
 		}
 
 		return transformedAnnotatedIps;
