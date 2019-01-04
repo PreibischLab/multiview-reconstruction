@@ -125,7 +125,7 @@ public class MultiResolutionTools
 
 		// finding the corresponding interest points is the same for all levels
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
-		
+
 		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
 		{
 			final Pair< Interval, AffineTransform3D > scaledBB = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling );
@@ -144,7 +144,7 @@ public class MultiResolutionTools
 			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
 
 			// compute all grids, if it does not contain a grid we use the old affine model
-			final long cpd = Math.max( 1, Math.max( 5, (long)Math.round( controlPointDistance / downsampling ) ) );
+			final long cpd = Math.max( 2, (long)Math.round( controlPointDistance / downsampling ) );
 			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, service );
 
 			// create virtual images
