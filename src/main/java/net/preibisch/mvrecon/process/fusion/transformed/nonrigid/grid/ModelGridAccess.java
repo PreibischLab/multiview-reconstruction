@@ -11,6 +11,9 @@ import net.imglib2.view.Views;
 
 public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 {
+	// TODO: the min of the grid is handled independently, the underlying grid is zeroMin and before interpolation
+	// TODO: the min is subtracted from the world coordinates of this RealRandomAccess 
+
 	final double[] l, tmp;
 	final int n;
 	final RealRandomAccess< NumericAffineModel3D > interpolated;

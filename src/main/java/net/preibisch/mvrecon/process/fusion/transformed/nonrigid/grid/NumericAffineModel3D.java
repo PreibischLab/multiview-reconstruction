@@ -45,6 +45,11 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 		setAffineModel( model );
 	}
 
+	public NumericAffineModel3D()
+	{
+		this( new AffineModel3D() );
+	}
+
 	protected void updateModelTmp()
 	{
 		modelTmp.set(
@@ -87,7 +92,7 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 	@Override
 	public NumericAffineModel3D copy()
 	{
-		return new NumericAffineModel3D( getModel() );
+		return new NumericAffineModel3D( this );
 	}
 
 	@Override
