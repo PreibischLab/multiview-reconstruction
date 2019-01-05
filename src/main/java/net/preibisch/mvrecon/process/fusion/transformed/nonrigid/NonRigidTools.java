@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -140,18 +141,21 @@ public class NonRigidTools
 		final Interval bbDS = scaledBB.getA();
 		final AffineTransform3D bbTransform = scaledBB.getB();
 
+		// finding the corresponding interest points is the same for all levels
+		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
+
+		// find unique interest points in the pairs of images
+		final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = NonRigidTools.findUniqueInterestPoints( annotatedIps );
+
 		// create final registrations for all views and a list of corresponding interest points
 		final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
 
-		// new loop for interestpoints that need the registrations
-		final HashMap< ViewId, ArrayList< CorrespondingIP > > transformedAnnotatedIps = 
-				transformAllAnnotatedIPs(
-						assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels ),
-						downsampledRegistrations );
+		// transform unique interest points
+		final ArrayList< HashSet< CorrespondingIP > > transformedUniqueIPs = NonRigidTools.transformUniqueIPs( uniqueIPs, downsampledRegistrations );
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 		// this location in world coordinates defines where each individual point should be "warped" to
-		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
+		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
 		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, service );
@@ -573,26 +577,10 @@ public class NonRigidTools
 		}
 	}
 
-	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints( final Map< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
+	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints(
+			final Collection< ViewId > views,
+			final ArrayList< HashSet< CorrespondingIP > > uniqueIPs )
 	{
-		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
-
-		for ( final ArrayList< CorrespondingIP > aipl : annotatedIps.values() )
-			aips.addAll( aipl );
-
-		// find unique interest points in the pairs of images
-		final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = findUniqueInterestPoints( aips );
-
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Total number of pairs are " + aips.size() + ", which are " + uniqueIPs.size() + " unique interest points." );
-
-		// some statistics
-		final int[] count = uniqueInterestPointCounts( uniqueIPs );
-
-		System.out.println( "Structure: " );
-		for ( int i = 0; i < count.length; ++i )
-			if ( count[ i ] > 0 )
-				System.out.println( i + ": " + count[ i ] );
-
 		final RealSum sum = new RealSum();
 		int countDist = 0;
 		double maxDist = 0;
@@ -622,10 +610,9 @@ public class NonRigidTools
 			}
 		}
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance from unique interest point: " + ( sum.getSum() / (double)countDist) );
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Max distance from unique interest point: " + maxDist );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Avg/Max distance from unique interest point: " + ( sum.getSum() / (double)countDist) + "/" + maxDist );
 
-		final ArrayList< ViewId > viewIds = new ArrayList<>( annotatedIps.keySet() );
+		final ArrayList< ViewId > viewIds = new ArrayList<>( views );
 		Collections.sort( viewIds );
 
 		//final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = findUniqueInterestPoints( aips );
@@ -657,10 +644,33 @@ public class NonRigidTools
 			}
 
 			uniquePointsPerView.put( viewId, myIPs );
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Unique interest points for " + Group.pvid( viewId ) + ": " + myIPs.size() );
+			//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Unique interest points for " + Group.pvid( viewId ) + ": " + myIPs.size() );
 		}
 
 		return uniquePointsPerView;
+	}
+
+	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Map< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
+	{
+		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
+
+		for ( final ArrayList< CorrespondingIP > aipl : annotatedIps.values() )
+			aips.addAll( aipl );
+
+		// find unique interest points in the pairs of images
+		final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = findUniqueInterestPoints( aips );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Found " + uniqueIPs.size() + " unique interest points." );
+
+		// some statistics
+		final int[] count = uniqueInterestPointCounts( uniqueIPs );
+
+		System.out.println( "Structure: " );
+		for ( int i = 0; i < count.length; ++i )
+			if ( count[ i ] > 0 )
+				System.out.println( i + ": " + count[ i ] );
+
+		return uniqueIPs;
 	}
 
 	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Collection< CorrespondingIP > pairs)
@@ -715,7 +725,35 @@ public class NonRigidTools
 
 		return out;
 	}
+	public static HashSet< CorrespondingIP > copyIPs( final Set< CorrespondingIP > in )
+	{
+		final HashSet< CorrespondingIP > out = new HashSet<>();
 
+		for ( final CorrespondingIP ip : in )
+			out.add( ip.copy() );
+
+		return out;
+	}
+
+	public static ArrayList< HashSet< CorrespondingIP > > transformUniqueIPs(
+			final ArrayList< HashSet< CorrespondingIP > > uniqueIPs,
+			final Map< ViewId, AffineTransform3D > downsampledRegistrations)
+	{
+		final ArrayList< HashSet< CorrespondingIP > > transformedUniqueIPs = new ArrayList<>();
+
+		for ( final HashSet< CorrespondingIP > uniqueIP : uniqueIPs )
+		{
+			final HashSet< CorrespondingIP > transformedUniqueIP = copyIPs( uniqueIP );
+
+			NonRigidTools.transformCorrespondingIPs( transformedUniqueIP, downsampledRegistrations );
+
+			transformedUniqueIPs.add( transformedUniqueIP );
+		}
+
+		return transformedUniqueIPs;
+	}
+
+	/*
 	public static HashMap< ViewId, ArrayList< CorrespondingIP > > transformAllAnnotatedIPs(
 			final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps,
 			final Map< ViewId, AffineTransform3D > downsampledRegistrations )
@@ -727,16 +765,16 @@ public class NonRigidTools
 			// they need to be copied since they might be used for multiple resolution levels
 			final ArrayList< CorrespondingIP > aips = copyIPs( annotatedIps.get( viewId ) );
 
-			final double dist = NonRigidTools.transformAnnotatedIPs( aips, downsampledRegistrations );
+			final double dist = NonRigidTools.transformCorrespondingIPs( aips, downsampledRegistrations );
 			transformedAnnotatedIps.put( viewId, aips );
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Average distance of " + Group.pvid( viewId ) + " = " + dist );
 		}
 
 		return transformedAnnotatedIps;
-	}
+	}*/
 
-	public static double transformAnnotatedIPs( final Collection< CorrespondingIP > aips, final Map< ViewId, AffineTransform3D > models )
+	public static double transformCorrespondingIPs( final Collection< CorrespondingIP > aips, final Map< ViewId, AffineTransform3D > models )
 	{
 		final RealSum sum = new RealSum( aips.size() );
 

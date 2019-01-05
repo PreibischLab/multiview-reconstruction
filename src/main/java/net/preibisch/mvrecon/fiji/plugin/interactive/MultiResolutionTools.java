@@ -2,7 +2,9 @@ package net.preibisch.mvrecon.fiji.plugin.interactive;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +19,7 @@ import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -126,8 +129,13 @@ public class MultiResolutionTools
 		// finding the corresponding interest points is the same for all levels
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
 
+		// find unique interest points in the pairs of images
+		final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = NonRigidTools.findUniqueInterestPoints( annotatedIps );
+
 		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
 		{
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Assembling Non-Rigid Multiresolution pyramid for downsampling=" + downsampling );
+
 			final Pair< Interval, AffineTransform3D > scaledBB = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling );
 
 			final Interval bbDS = scaledBB.getA();
@@ -136,12 +144,12 @@ public class MultiResolutionTools
 			// create final registrations for all views and a list of corresponding interest points
 			final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = NonRigidTools.createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
 
-			final HashMap< ViewId, ArrayList< CorrespondingIP > > transformedAnnotatedIps = 
-					NonRigidTools.transformAllAnnotatedIPs( annotatedIps, downsampledRegistrations );
+			// transform unique interest points
+			final ArrayList< HashSet< CorrespondingIP > > transformedUniqueIPs = NonRigidTools.transformUniqueIPs( uniqueIPs, downsampledRegistrations );
 
 			// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 			// this location in world coordinates defines where each individual point should be "warped" to
-			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( transformedAnnotatedIps );
+			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
 
 			// compute all grids, if it does not contain a grid we use the old affine model
 			final long cpd = Math.max( 2, (long)Math.round( controlPointDistance / downsampling ) );
@@ -210,6 +218,8 @@ public class MultiResolutionTools
 
 		for ( int downsampling = minDS; downsampling <= maxDS; downsampling *= dsInc )
 		{
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Assembling Affine Multiresolution pyramid for downsampling=" + downsampling );
+
 			multiRes.add( FusionTools.fuseVirtual(
 					imgloader,
 					registrations,

@@ -16,6 +16,7 @@ import bdv.util.volatiles.VolatileViews;
 import bdv.viewer.Interpolation;
 import bdv.viewer.Source;
 import ij.ImageJ;
+import ij.ImagePlus;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,6 +43,7 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
@@ -123,6 +125,8 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 
 	public static void main( String[] args ) throws SpimDataException
 	{
+		new ImageJ();
+
 		SpimData2 spimData;
 
 		// load drosophila
@@ -143,21 +147,23 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
-		final int minDS = 4;
+		final int minDS = 1;
 		final int maxDS = 16;
 		final int dsInc = 2;
+
+		BdvOptions options = Bdv.options();
 
 		// affine
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
 				MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
 
-		BdvOptions options = Bdv.options();
+		/*
 		options.numSourceGroups( 2 );
 		BdvStackSource affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
 		affine.setDisplayRange( 0, 200 );
 		affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
-
 		MultiResolutionTools.updateBDV( affine );
+		*/
 
 		// non-rigid
 		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
@@ -199,13 +205,24 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 						maxDS,
 						dsInc );
 
-		new ImageJ();
+		//DisplayImage.getImagePlusInstance( multiResAffine.get( 1 ).getA(), false, "affine", 0, 255 ).show();
+		for ( int i = 0; i < multiResNonRigid.size(); ++i )
+		{
+			final ImagePlus imp = DisplayImage.getImagePlusInstance( multiResNonRigid.get( i ).getA(), true, "nonrigid_"+i, 0, 255 );
+			imp.setSlice( imp.getStackSize() / 2 );
+			imp.show();
+		}
+		
+		//ImageJFunctions.show( multiResAffine.get( 0 ).getA() ).setTitle( "affine" );;
+		//ImageJFunctions.show( multiResNonRigid.get( 0 ).getA() ).setTitle( "nonrigid" );;
 
-		options.addTo( affine );
+		/*
+		//options.addTo( affine );
 		BdvStackSource nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
 		nr.setDisplayRange( 0, 200 );
 		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
-		MultiResolutionTools.updateBDV( affine );
+		MultiResolutionTools.updateBDV( nr );
+		*/
 
 		/*
 		Random rnd = new Random();
