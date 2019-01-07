@@ -35,10 +35,12 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetable
 {
@@ -115,7 +117,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 					final int display = defaultDisplay = gd.getNextChoiceIndex();
 
 					NonRigidParametersGUI params = null;
-					if ( display != 3 )
+					if ( display == 0 || display == 2 )
 					{
 						params = new NonRigidParametersGUI( spimData, viewIds );
 						if ( !params.query() || !params.isActive() )
@@ -144,7 +146,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 								NonRigidTools.assembleViewsToUse( spimData, viewIds, params.nonRigidAcrossTime() );
 
 						final int interpolation = 1;
-						final boolean useBlending = false;
+						final boolean useBlending = true;
 						final boolean useContentBased = false;
 
 						final ExecutorService service = DeconViews.createExecutorService();
@@ -198,6 +200,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 							vr.updateModel();
 							registrations.put( viewId, vr.getModel().copy() );
 							vr.getTransformList().add( 0, newest );
+							vr.updateModel();
 						}
 
 						final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > oldMultiResAffine =
@@ -214,14 +217,60 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 						affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
 
 						options.addTo( affine );
-						BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( oldMultiResAffine ), "previous affine" ), options );
-						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
-						nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
-						MultiResolutionTools.updateBDV( nr );
+						BdvStackSource< ? > oldaffine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( oldMultiResAffine ), "previous affine" ), options );
+						oldaffine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+						oldaffine.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
+						MultiResolutionTools.updateBDV( oldaffine );
 					}
 					else if ( display == 2 )
 					{
 						// Overlay selected views using non-rigid
+						// non-rigid
+						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "NonRigid Views Overlapping" );
+						BdvStackSource< ? > nr = null;
+
+						final List< ViewId > viewsToUse =
+								NonRigidTools.assembleViewsToUse( spimData, viewIds, params.nonRigidAcrossTime() );
+
+						int i = 0;
+						for ( final ViewId viewId : viewIds )
+						{
+							final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
+							viewsToFuse.add( viewId );
+	
+							final int interpolation = 1;
+							final boolean useBlending = true;
+							final boolean useContentBased = false;
+	
+							final ExecutorService service = DeconViews.createExecutorService();
+	
+							final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResNonRigid =
+									MultiResolutionTools.createMultiResolutionNonRigid(
+											spimData,
+											viewsToFuse,
+											viewsToUse,
+											params.getLabels(),
+											useBlending,
+											useContentBased,
+											params.showDistanceMap(),
+											params.getControlPointDistance(),
+											params.getAlpha(),
+											interpolation,
+											boundingBox,
+											null,
+											service,
+											minDS,
+											maxDS,
+											dsInc );
+	
+							if ( nr != null )
+								options.addTo( nr );
+							nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid " + Group.pvid( viewId ) ), options );
+							final double[] minmax = FusionTools.minMaxApprox( multiResNonRigid.get( multiResNonRigid.size() - 1 ).getA() );
+							nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+							nr.setColor( new ARGBType( ColorStream.get( i++ ) ) );
+							MultiResolutionTools.updateBDV( nr );
+						}
 					}
 				}
 			} ).start();
