@@ -205,24 +205,26 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 						maxDS,
 						dsInc );
 
-		//DisplayImage.getImagePlusInstance( multiResAffine.get( 1 ).getA(), false, "affine", 0, 255 ).show();
+		/*
 		for ( int i = 0; i < multiResNonRigid.size(); ++i )
 		{
 			final ImagePlus imp = DisplayImage.getImagePlusInstance( multiResNonRigid.get( i ).getA(), true, "nonrigid_"+i, 0, 255 );
 			imp.setSlice( imp.getStackSize() / 2 );
 			imp.show();
 		}
-		
+		*/
+
 		//ImageJFunctions.show( multiResAffine.get( 0 ).getA() ).setTitle( "affine" );;
 		//ImageJFunctions.show( multiResNonRigid.get( 0 ).getA() ).setTitle( "nonrigid" );;
 
-		/*
+		
 		//options.addTo( affine );
-		BdvStackSource nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
-		nr.setDisplayRange( 0, 200 );
+		BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
+		final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
+		nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
 		MultiResolutionTools.updateBDV( nr );
-		*/
+		
 
 		/*
 		Random rnd = new Random();
