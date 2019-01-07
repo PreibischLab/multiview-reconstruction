@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -17,6 +18,8 @@ import bdv.util.BdvStackSource;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
+import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
@@ -35,6 +38,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 
 public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetable
@@ -167,18 +171,54 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 
 						BdvOptions options = Bdv.options().numSourceGroups( 2 );
 						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
-						affine.setDisplayRange( 0, 200 );
+						final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
+						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 						affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
 
 						options.addTo( affine );
 						BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
-						nr.setDisplayRange( 0, 200 );
+						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 						nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
 						MultiResolutionTools.updateBDV( nr );
 					}
-					else
+					else if ( display == 1 )
 					{
-						
+						// Overlay all views affine vs. previous affine
+
+						// affine
+						final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
+								MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
+
+						// old affine
+						final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
+
+						for ( final ViewId viewId : viewIds )
+						{
+							final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
+							final ViewTransform newest = vr.getTransformList().remove( 0 );
+							vr.updateModel();
+							registrations.put( viewId, vr.getModel().copy() );
+							vr.getTransformList().add( 0, newest );
+						}
+
+						final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > oldMultiResAffine =
+								MultiResolutionTools. createMultiResolutionAffine(
+									spimData.getSequenceDescription().getImgLoader(),
+									registrations,
+									spimData.getSequenceDescription().getViewDescriptions(),
+									viewIds, true, false, 1, boundingBox, null, minDS, maxDS, dsInc );
+
+						BdvOptions options = Bdv.options().numSourceGroups( 2 );
+						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
+						final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
+						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+						affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
+
+						options.addTo( affine );
+						BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( oldMultiResAffine ), "previous affine" ), options );
+						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+						nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
+						MultiResolutionTools.updateBDV( nr );
 					}
 				}
 			} ).start();
