@@ -151,19 +151,9 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final int maxDS = 16;
 		final int dsInc = 2;
 
-		BdvOptions options = Bdv.options();
-
 		// affine
 		final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
 				MultiResolutionTools.createMultiResolutionAffine( spimData, viewIds, boundingBox, minDS, maxDS, dsInc );
-
-		/*
-		options.numSourceGroups( 2 );
-		BdvStackSource affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
-		affine.setDisplayRange( 0, 200 );
-		affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
-		MultiResolutionTools.updateBDV( affine );
-		*/
 
 		// non-rigid
 		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
@@ -217,10 +207,16 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		//ImageJFunctions.show( multiResAffine.get( 0 ).getA() ).setTitle( "affine" );;
 		//ImageJFunctions.show( multiResNonRigid.get( 0 ).getA() ).setTitle( "nonrigid" );;
 
-		
+		BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine vs. NonRigid" );
+
+		BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
+		final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
+		affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+		affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
+		MultiResolutionTools.updateBDV( affine );
+
 		//options.addTo( affine );
 		BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
-		final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
 		nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
 		MultiResolutionTools.updateBDV( nr );

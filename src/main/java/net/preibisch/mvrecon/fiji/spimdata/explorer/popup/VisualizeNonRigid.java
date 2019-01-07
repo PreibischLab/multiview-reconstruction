@@ -35,7 +35,6 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -169,7 +168,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 										maxDS,
 										dsInc );
 
-						BdvOptions options = Bdv.options().numSourceGroups( 2 );
+						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine (magenta) vs. NonRigid (green)" );
 						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
 						final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
 						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
@@ -208,7 +207,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 									spimData.getSequenceDescription().getViewDescriptions(),
 									viewIds, true, false, 1, boundingBox, null, minDS, maxDS, dsInc );
 
-						BdvOptions options = Bdv.options().numSourceGroups( 2 );
+						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine (magenta) vs. Previous Affine (green)" );
 						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
 						final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
 						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
@@ -219,6 +218,10 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 						nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
 						MultiResolutionTools.updateBDV( nr );
+					}
+					else if ( display == 2 )
+					{
+						// Overlay selected views using non-rigid
 					}
 				}
 			} ).start();
