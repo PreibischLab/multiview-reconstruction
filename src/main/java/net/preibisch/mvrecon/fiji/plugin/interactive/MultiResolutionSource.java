@@ -130,7 +130,10 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		SpimData2 spimData;
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		if ( System.getProperty("os.name").toLowerCase().contains( "mac" ) )
+			spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		else
+			spimData = new XmlIoSpimData2( "" ).load( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" );
 
 		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
 
@@ -215,7 +218,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
 		MultiResolutionTools.updateBDV( affine );
 
-		//options.addTo( affine );
+		options.addTo( affine );
 		BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
 		nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 		nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
