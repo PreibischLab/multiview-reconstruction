@@ -58,7 +58,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 
 	public VisualizeNonRigid()
 	{
-		super( "Preview Non-Rigid Transformation ..." );
+		super( "Preview Affine/Non-Rigid Transformations ..." );
 
 		this.addActionListener( new MyActionListener() );
 	}
@@ -178,7 +178,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 
 						options.addTo( affine );
 						BdvStackSource< ? > nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid" ), options );
-						affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+						nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 						nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
 						MultiResolutionTools.updateBDV( nr );
 					}
@@ -226,7 +226,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 					{
 						// Overlay selected views using non-rigid
 						// non-rigid
-						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "NonRigid Views Overlapping" );
+						BdvOptions options = Bdv.options().numSourceGroups( viewIds.size() ).frameTitle( "NonRigid Views Overlapping" );
 						BdvStackSource< ? > nr = null;
 
 						final List< ViewId > viewsToUse =
@@ -270,6 +270,30 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 							nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
 							nr.setColor( new ARGBType( ColorStream.get( i++ ) ) );
 							MultiResolutionTools.updateBDV( nr );
+						}
+					}
+					else // if ( display == 3 )
+					{
+						// Overlay selected views using affine
+						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine Views Overlapping" );
+						BdvStackSource< ? > affine = null;
+
+						int i = 0;
+						for ( final ViewId viewId : viewIds )
+						{
+							final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
+							viewsToFuse.add( viewId );
+	
+							final ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiResAffine =
+									MultiResolutionTools.createMultiResolutionAffine( spimData, viewsToFuse, boundingBox, minDS, maxDS, dsInc );
+	
+							if ( affine != null )
+								options.addTo( affine );
+							affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine " + Group.pvid( viewId ) ), options );
+							final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
+							affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+							affine.setColor( new ARGBType( ColorStream.get( i++ ) ) );
+							MultiResolutionTools.updateBDV( affine );
 						}
 					}
 				}
