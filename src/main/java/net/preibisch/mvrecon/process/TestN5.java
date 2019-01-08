@@ -5,8 +5,14 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -18,6 +24,12 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.JsonAdapter;
 
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
+import bdv.util.volatiles.VolatileViews;
+import ch.systemsx.cisd.hdf5.HDF5Factory;
+import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import ij.ImageJ;
 import javassist.expr.NewArray;
 import mpicbg.spim.data.SpimDataException;
@@ -33,6 +45,9 @@ import mpicbg.spim.data.sequence.ViewSetups;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.display.screenimage.awt.UnsignedShortAWTScreenImage;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -99,8 +114,8 @@ public class TestN5
 			return context.serialize(src);
 		}
 	}
-	
-	public static void main( String[] args ) throws SpimDataException, IOException
+
+	public static void main( String[] args ) throws SpimDataException, IOException, InterruptedException, ExecutionException
 	{
 //		new ImageJ();
 
@@ -148,8 +163,26 @@ public class TestN5
 		System.out.println(n5.getAttribute("/whatever", "theData1", SpimData2Export.class));
 
 		System.out.println("Done.");
+
 		
-		;
-//		ViewInterestPoints vs = spimData.getViewInterestPoints();
+		// load HDF5 using N5 tools
+		// check with " h5ls -rv /home/steffi/Desktop/HisYFP-SPIM/dataset.h5"
+		IHDF5Reader hdf5Reader = HDF5Factory.openForReading("/home/steffi/Desktop/HisYFP-SPIM/dataset.h5");
+		N5HDF5Reader n5Hdf5Reader = new N5HDF5Reader(hdf5Reader, new int[]{64, 64, 64});
+		final RandomAccessibleInterval<UnsignedShortType> img = N5Utils.openVolatile(n5Hdf5Reader, "/t00000/s00/0/cells");
+		
+		BdvOptions o = BdvOptions.options();
+		BdvStackSource d = BdvFunctions.show(VolatileViews.wrapAsVolatile(img), "/t00000/s00/0/cells");
+		d.setDisplayRange(0, 255);
+		
+		ExecutorService exec = Executors.newFixedThreadPool(16);
+		N5Utils.save(img, n5, "/whatever/dataset", new int[]{32, 32, 32}, new GzipCompression(6), exec);
+		exec.shutdown();
+		
+		System.out.println("Saved");
+		
+		o.addTo( d );
+		BdvFunctions.show(VolatileViews.wrapAsVolatile((RandomAccessibleInterval)N5Utils.openVolatile(n5, "/whatever/dataset")), "/whatever/dataset", o );
+		n5.setAttribute("/whatever/dataset", "transform", new double[] {1, 0 ,0 ,0, 0, 1, 0, 0, 0, 0, 0, 1, 0});
 	}
 }
