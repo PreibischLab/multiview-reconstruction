@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -98,6 +99,8 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 					// filter not present ViewIds
 					final List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewIds );
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
+
+					Collections.sort( viewIds );
 
 					final GenericDialog gd = new GenericDialog( "Preview Affine/Non-Rigid" );
 
@@ -268,7 +271,17 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 							nr = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResNonRigid ), "nonrigid " + Group.pvid( viewId ) ), options );
 							final double[] minmax = FusionTools.minMaxApprox( multiResNonRigid.get( multiResNonRigid.size() - 1 ).getA() );
 							nr.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
-							nr.setColor( new ARGBType( ColorStream.get( i++ ) ) );
+
+							if ( viewIds.size() == 1 )
+								nr.setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 0 ) ) );
+							else if ( viewIds.size() == 2 && i == 0 )
+								nr.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
+							else if ( viewIds.size() == 2 && i == 1 )
+								nr.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
+							else
+								nr.setColor( new ARGBType( ColorStream.get( i ) ) );
+							i++;
+
 							MultiResolutionTools.updateBDV( nr );
 						}
 					}
@@ -292,7 +305,18 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 							affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine " + Group.pvid( viewId ) ), options );
 							final double[] minmax = FusionTools.minMaxApprox( multiResAffine.get( multiResAffine.size() - 1 ).getA() );
 							affine.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
-							affine.setColor( new ARGBType( ColorStream.get( i++ ) ) );
+
+							if ( viewIds.size() == 1 )
+								affine.setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 0 ) ) );
+							else if ( viewIds.size() == 2 && i == 0 )
+								affine.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0 ) ) );
+							else if ( viewIds.size() == 2 && i == 1 )
+								affine.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0 ) ) );
+							else
+								affine.setColor( new ARGBType( ColorStream.get( i ) ) );
+
+							i++;
+
 							MultiResolutionTools.updateBDV( affine );
 						}
 					}
