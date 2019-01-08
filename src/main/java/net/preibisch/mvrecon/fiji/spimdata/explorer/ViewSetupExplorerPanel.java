@@ -700,23 +700,26 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 	{
 		final ArrayList< ExplorerWindowSetable > popups = new ArrayList< ExplorerWindowSetable >();
 
-		popups.add( new LabelPopUp( " Displaying" ) );
+		popups.add( new LabelPopUp( " Display/Verify" ) );
 		popups.add( new BDVPopup() );
 		popups.add( new DisplayRawImagesPopup() );
-		popups.add( new BoundingBoxPopup() );
 		popups.add( new DisplayFusedImagesPopup() );
-		popups.add( new QualityPopup() );
+		popups.add( new VisualizeNonRigid() );
 		popups.add( new MaxProjectPopup() );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Processing" ) );
 		popups.add( new DetectInterestPointsPopup() );
 		popups.add( new RegisterInterestPointsPopup() );
-		popups.add( new VisualizeNonRigid() );
 		popups.add( new IntensityAdjustmentPopup() );
+		popups.add( new BoundingBoxPopup() );
 		popups.add( new FusionPopup() );
 		popups.add( new PointSpreadFunctionsPopup() );
 		popups.add( new DeconvolutionPopup() );
+		popups.add( new Separator() );
+
+		popups.add( new LabelPopUp( " Quality" ) );
+		popups.add( new QualityPopup() );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Calibration/Transformations" ) );
