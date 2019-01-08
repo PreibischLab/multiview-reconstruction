@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -62,12 +64,16 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<contributor>
 			<name>Tobias Pietzsch</name>
 			<url>http://imagej.net/User:Pietzsch</url>
-			<properties><id>tpietzsch</id></properties>
+			<properties>
+				<id>tpietzsch</id>
+			</properties>
 		</contributor>
 		<contributor>
 			<name>Curtis Rueden</name>
 			<url>http://imagej.net/User:Rueden</url>
-			<properties><id>ctrueden</id></properties>
+			<properties>
+				<id>ctrueden</id>
+			</properties>
 		</contributor>
 	</contributors>
 
@@ -109,6 +115,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<repository>
 			<id>imagej.public</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
+		</repository>
+		<repository>
+			<id>saalfeld-lab-maven-repo</id>
+			<url>https://saalfeldlab.github.io/maven</url>
 		</repository>
 	</repositories>
 
@@ -250,6 +260,16 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5</artifactId>
 			<version>2.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-hdf5</artifactId>
+			<version>1.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-imglib2</artifactId>
+			<version>3.0.0</version>
 		</dependency>
 	</dependencies>
 
