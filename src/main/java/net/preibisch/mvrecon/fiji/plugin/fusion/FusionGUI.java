@@ -194,6 +194,11 @@ public class FusionGUI implements FusionExportInterface
 
 	public boolean queryDetails()
 	{
+		final boolean enableNonRigid = NonRigidParametersGUI.enableNonRigid;
+		final Choice boundingBoxChoice, pixelTypeChoice, cachingChoice, nonrigidChoice, splitChoice;
+		final TextField downsampleField;
+		final Checkbox contentbasedCheckbox, anisoCheckbox;
+
 		final String[] choices = FusionGUI.getBoundingBoxChoices( allBoxes );
 		final String[] choicesForMacro = FusionGUI.getBoundingBoxChoices( allBoxes, false );
 
@@ -210,18 +215,35 @@ public class FusionGUI implements FusionExportInterface
 			gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
 		else
 			gd.addChoice( "Bounding_Box", choicesForMacro, choicesForMacro[ defaultBB ] );
+		boundingBoxChoice = (Choice)gd.getChoices().lastElement();
 
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
+		downsampleField = (TextField)gd.getNumericFields().lastElement();
+
 		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
+		pixelTypeChoice = (Choice)gd.getChoices().lastElement();
+
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 		gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
+		cachingChoice = (Choice)gd.getChoices().lastElement();
+
 		gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
 		this.nrgui = new NonRigidParametersGUI( spimData, views );
-		this.nrgui.addQuery( gd );
+		if ( enableNonRigid )
+		{
+			this.nrgui.addQuery( gd );
+			nonrigidChoice = (Choice)gd.getChoices().lastElement();
+		}
+		else
+		{
+			this.nrgui.isActive = false;
+			nonrigidChoice = null;
+		}
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
 		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
+		contentbasedCheckbox = (Checkbox)gd.getCheckboxes().lastElement();
 
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
@@ -229,12 +251,19 @@ public class FusionGUI implements FusionExportInterface
 		if ( avgAnisoF > 1.01 ) // for numerical instabilities (computed upon instantiation)
 		{
 			gd.addCheckbox( "Preserve_original data anisotropy (shrink image " + TransformationTools.f.format( avgAnisoF ) + " times in z) ", defaultPreserveAnisotropy );
+			anisoCheckbox = (Checkbox)gd.getCheckboxes().lastElement();
 			gd.addMessage(
 					"WARNING: Enabling this means to 'shrink' the dataset in z the same way the input\n" +
 					"images were scaled. Only use this if this is not a multiview dataset.", GUIHelper.smallStatusFont, GUIHelper.warning );
 		}
+		else
+		{
+			anisoCheckbox = null;
+		}
 
 		gd.addChoice( "Produce one fused image for", splittingTypes, splittingTypes[ defaultSplittingType ] );
+		splitChoice = (Choice)gd.getChoices().lastElement();
+
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
 
 		gd.addMessage( "Estimated size: ", GUIHelper.largestatusfont, GUIHelper.good );
@@ -246,14 +275,14 @@ public class FusionGUI implements FusionExportInterface
 		{
 			final ManageFusionDialogListeners m = new ManageFusionDialogListeners(
 					gd,
-					(Choice)gd.getChoices().get( 0 ), //boundingBoxChoice
-					(TextField)gd.getNumericFields().get( 0 ), //downsampleField
-					(Choice)gd.getChoices().get( 1 ), //pixelTypeChoice
-					(Choice)gd.getChoices().get( 3 ), //cachingChoice
-					(Choice)gd.getChoices().get( 4 ), //nonrigidChoice
-					(Checkbox)gd.getCheckboxes().get( 2 ), //contentbasedCheckbox
-					avgAnisoF > 1.01 ? (Checkbox)gd.getCheckboxes().lastElement() : null, //anisoCheckbox
-					(Choice)gd.getChoices().get( 5 ), //splitChoice
+					boundingBoxChoice,
+					downsampleField,
+					pixelTypeChoice,
+					cachingChoice,
+					nonrigidChoice,
+					contentbasedCheckbox,
+					anisoCheckbox,
+					splitChoice,
 					label1,
 					label2,
 					this );
@@ -290,8 +319,11 @@ public class FusionGUI implements FusionExportInterface
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
 		cacheType = defaultCache = gd.getNextChoiceIndex();
 
-		if ( !this.nrgui.parseQuery( gd, false ) )
-			return false;
+		if ( enableNonRigid )
+		{
+			if ( !this.nrgui.parseQuery( gd, false ) )
+				return false;
+		}
 
 		useBlending = defaultUseBlending = gd.getNextBoolean();
 		useContentBased = defaultUseContentBased = gd.getNextBoolean();

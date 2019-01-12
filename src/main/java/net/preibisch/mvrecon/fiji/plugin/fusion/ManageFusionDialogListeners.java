@@ -88,8 +88,9 @@ public class ManageFusionDialogListeners
 		this.cachingChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
 
-		this.nonRigidChoice.addItemListener( new ItemListener() { @Override
-			public void itemStateChanged(ItemEvent e) { update(); } });
+		if ( this.nonRigidChoice != null )
+			this.nonRigidChoice.addItemListener( new ItemListener() { @Override
+				public void itemStateChanged(ItemEvent e) { update(); } });
 
 		this.splitChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
@@ -99,17 +100,12 @@ public class ManageFusionDialogListeners
 
 		if ( this.anisoCheckbox != null )
 		{
-			System.out.println( "Add" );
 			this.anisoF = fusion.getAnisotropyFactor();
 			this.anisoCheckbox.addItemListener( new ItemListener() { @Override
 				public void itemStateChanged(ItemEvent e) { update(); } });
 		}
-		else
-		{
-			System.out.println( "null" );
-		}
-}
-	
+	}
+
 	public void update()
 	{
 		fusion.boundingBox = boundingBoxChoice.getSelectedIndex();
@@ -201,7 +197,7 @@ public class ManageFusionDialogListeners
 		else if ( fusion.cacheType == 1 ) // Cached
 			fusedSizeMB = 2 * Math.round( fusedSizeMB / Math.max( 1, Math.pow( fusedSizeMB, 0.3 ) ) );
 
-		if ( nonRigidChoice.getSelectedIndex() < nonRigidChoice.getItemCount() - 1 )
+		if ( nonRigidChoice != null && nonRigidChoice.getSelectedIndex() < nonRigidChoice.getItemCount() - 1 )
 			fusedSizeMB *= 1.5;
 
 		return inputImagesMB + processingMB + fusedSizeMB;
