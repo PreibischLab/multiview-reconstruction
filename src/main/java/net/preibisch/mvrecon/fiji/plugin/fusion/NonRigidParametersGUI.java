@@ -13,6 +13,8 @@ import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
 public class NonRigidParametersGUI extends NonRigidParameters
 {
+	public static boolean enableNonRigid = false;
+
 	public static boolean[] defaultAdditional = new boolean[] { true };
 	public static boolean defaultAdvanced = false;
 	public static boolean defaultAdditionalIPs = false;
@@ -98,17 +100,13 @@ public class NonRigidParametersGUI extends NonRigidParameters
 			return true;
 	}
 
-	public boolean addQuery( final GenericDialog gd )
+	public void addQuery( final GenericDialog gd )
 	{
 		final HashMap< String, Integer > corrMap = InterestPointTools.getAllCorrespondingInterestPointMap( spimData.getViewInterestPoints(), viewIds );
 
 		if ( corrMap.keySet().size() == 0 )
-		{
-			IOFunctions.printErr( "No corresponding interest points available, stopping.\n"
-					+ "Please run Interest Point Detection followed by Intererst Point Registration (e.g. ICP) first" ); 
-			isActive = false;
-			return false;
-		}
+			IOFunctions.println( "No corresponding interest points available.\n"
+					+ "To enable non-rigid please run Interest Point Detection followed by Intererst Point Registration (e.g. ICP) first" ); 
 
 		this.labels = new String[ corrMap.keySet().size() + 1 ];
 		this.labels[ labels.length - 1 ] = "-= Disable Non-Rigid =-";
@@ -133,8 +131,6 @@ public class NonRigidParametersGUI extends NonRigidParameters
 
 		gd.addChoice( "Interest_Points_for_Non_Rigid", labels, labels[ defaultLabel ] );
 		gd.addCheckbox( "Non_Rigid_Advanced_Parameters", defaultAdvanced );
-
-		return true;
 	}
 
 	public boolean advancedParameters()
