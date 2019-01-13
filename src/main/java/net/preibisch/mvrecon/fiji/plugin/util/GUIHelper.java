@@ -167,7 +167,12 @@ public class GUIHelper
 				continue;
 
 			final ViewRegistration r = vr.getViewRegistration( vd );
-			final String rName = r.getTransformList().get( 0 ).getName();
+			final String rName;
+
+			if ( r.getTransformList().size() == 0 )
+				rName = null;
+			else
+				rName = r.getTransformList().get( 0 ).getName();
 
 			if ( rName != null )
 			{
