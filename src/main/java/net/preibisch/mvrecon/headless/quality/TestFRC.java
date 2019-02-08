@@ -36,6 +36,8 @@ import net.imglib2.Cursor;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
+import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -52,6 +54,10 @@ public class TestFRC
 	{
 		new ImageJ();
 
+		plot();
+
+		SimpleMultiThreading.threadHaltUnClean();
+
 		//final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif" ) );
 		final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File(
 				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/clarity-2.tif" ) );
@@ -59,6 +65,16 @@ public class TestFRC
 		imp.show();
 
 		testFRCOld( img );
+	}
+
+	public static void plot()
+	{
+		final File input = new File( "/Users/spreibi/Desktop/input-full.tif" );
+
+		final Img< FloatType > img = IOFunctions.openAs32Bit( input, new CellImgFactory< FloatType >( new FloatType() ) );
+
+		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
+		imp.show();
 	}
 
 	public static void testFRC( final Img< FloatType > input )
