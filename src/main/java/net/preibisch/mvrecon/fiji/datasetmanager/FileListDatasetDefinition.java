@@ -783,6 +783,17 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			gd.addChoice( "BioFormats_Channels_are?", choicesChannelIllum, choicesChannelIllum[0] );
 
 
+		// We have grouped files -> detect patterns again, using only master files for group
+		// that way, we automatically ignore patterns BioFormats has already grouped
+		// e.g. MicroManager _MMSTack_Pos{?}.ome.tif -> positions are treated as series by BF
+		if (state.getGroupedFormat() )
+		{
+			patternDetector = new NumericalFilenamePatternDetector();
+			// detect in all unique master files in groupUsageMap := actual file -> (master file, series)
+			patternDetector.detectPatterns( state.getGroupUsageMap().values().stream().map( p -> p.getA() ).collect( Collectors.toSet() ).stream().collect( Collectors.toList() ) );
+			numVariables = patternDetector.getNumVariables();
+		}
+
 		if (numVariables >= 1)
 //			sbfilePatterns.append( "<p> No numerical patterns found in filenames</p>" );
 //		else
