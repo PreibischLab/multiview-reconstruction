@@ -102,21 +102,18 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS, X > explorer, final AS data,
 			final String xml, final X io)
 	{
-		
-		
-		
 		this.explorer = explorer;
 		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();
 		this.data = data;
-		this.xml = xml == null ? "" : xml.replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
+		//this.xml = xml == null ? "" : xml; // should work as well
+		this.xml = xml == null ? "" : xml.replace("\\\\", "////").replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
 		this.io = io;
 		this.isMac = System.getProperty( "os.name" ).toLowerCase().contains( "mac" );
 		this.selectedRows = new HashSet<>();
 		this.firstSelectedVD = null;
 
-		
 		popups = initPopups();
-		
+
 		// for access to the current BDV
 		currentInstance = this;
 	}
