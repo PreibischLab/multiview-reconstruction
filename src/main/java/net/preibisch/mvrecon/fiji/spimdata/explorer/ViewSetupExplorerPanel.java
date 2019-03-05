@@ -89,6 +89,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.FusionPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.IntensityAdjustmentPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.InterestPointsExplorerPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.LabelPopUp;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.LogClickLocationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.MaxProjectPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.PointSpreadFunctionsPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.QualityPopup;
@@ -735,6 +736,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new InterestPointsExplorerPopup() );
 		popups.add( new RemoveDetectionsPopup() );
 		popups.add( new VisualizeDetectionsPopup() );
+		popups.add( new LogClickLocationPopup() );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Modifications" ) );
