@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed;
 
+import java.util.Arrays;
 import java.util.List;
 
 import net.imglib2.AbstractLocalizableInt;
@@ -69,19 +70,32 @@ public class FusedRandomAccess extends AbstractLocalizableInt implements RandomA
 		double sumI = 0;
 		double sumW = 0;
 
+//		int nonZeroWeights = 0;
 		for ( int j = 0; j < numImages; ++j )
 		{
 			final double weight = w[ j ].get().getRealDouble();
+			if ( weight == 0 )
+				continue;
 			final double intensity = i[ j ].get().getRealDouble();
 
 			sumI += intensity * weight;
 			sumW += weight;
+//			if ( weight != 0 )
+//				nonZeroWeights++;
+//			break; //TEMP HACK for testing
 		}
 
 		if ( sumW > 0 )
 			value.set( (float)( sumI / sumW ) );
 		else
 			value.set(  0 );
+
+//		System.out.println( this + ": " + //
+//				"numImages=" + numImages + ", " + //
+//				"pos=" + Arrays.toString( position ) + ", " + //
+//				"value=" + sumI + "/" + sumW + " = " + value.get() + ", " + //
+//				"nonZeroWeights=" + nonZeroWeights + //
+//				"");
 
 		return value;
 	}

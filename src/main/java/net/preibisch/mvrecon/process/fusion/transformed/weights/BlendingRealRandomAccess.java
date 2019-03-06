@@ -44,7 +44,11 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 
 	// static lookup table for the blending function
 	final static private double[] lookUp;
-	private static final int indexFor( final double d ) { return (int)Math.round( d * 1000.0 ); }
+
+	private static final int indexFor( final double d )
+	{
+		return ( int ) ( d * 1000.0 + 0.5 ); // (int)Math.round( d * 1000.0 );
+	}
 
 	static
 	{
@@ -106,12 +110,13 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 			// the position in the image relative to the boundaries and the border
 			final float l = ( location[ d ] - min[ d ] );
 
+			final float dist1 = l - border[ d ];
+			final float dist2 = dimMinus1[ d ] - l - border[ d ];
 			// the distance to the border that is closer
-			final float dist = Math.max( 0, Math.min( l - border[ d ], dimMinus1[ d ] - l - border[ d ] ) );
+			final float dist = dist1 < dist2 ? dist1 : dist2;
 
 			// if this is 0, the total result will be 0, independent of the number of dimensions
-			if ( dist == 0 )
-				return 0;
+			if (dist <= 0) return 0;
 
 			final float relDist = dist / blending[ d ];
 

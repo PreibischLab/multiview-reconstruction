@@ -764,7 +764,12 @@ public class FusionTools
 					copyImg( portion.getStartPosition(), portion.getLoopSize(), input, output );
 
 					if ( showProgress )
-						IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
+					{
+						final int cur = progress.incrementAndGet();
+						final int tot = tasks.size();
+						IJ.showStatus( "Copying image data (" + cur + " / " + tot + ")" );
+						IJ.showProgress( (double) cur / tot );
+					}
 
 					return null;
 				}
