@@ -141,7 +141,7 @@ public class TransformationTools
 
 		// do not move in z if we have 2d data
 		if (allViews2D)
-			currentViewerTransform.set( oldZ, 2, 3 );
+			currentViewerTransform.set( oldZ * scale.getScale( 2 ), 2, 3 );
 		else
 			currentViewerTransform.set( -com[2], 2, 3 );
 
