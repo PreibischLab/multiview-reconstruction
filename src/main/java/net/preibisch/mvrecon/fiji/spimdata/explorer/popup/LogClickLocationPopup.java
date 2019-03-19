@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -35,6 +36,11 @@ public class LogClickLocationPopup extends JMenuItem implements ExplorerWindowSe
 		@Override
 		public void mouseClicked(MouseEvent e)
 		{
+			// play beep as a reminder that the click was registered
+			// NB: might not work on every OS, tested on OSX
+			// see: https://stackoverflow.com/questions/10771441/java-equivalent-of-c-sharp-system-beep
+			Toolkit.getDefaultToolkit().beep();
+
 			// global coordinates of clicked point
 			final RealPoint gPos = new RealPoint( 3 );
 			panel.bdvPopup().getBDV().getViewerFrame().getViewerPanel().getGlobalMouseCoordinates( gPos );
