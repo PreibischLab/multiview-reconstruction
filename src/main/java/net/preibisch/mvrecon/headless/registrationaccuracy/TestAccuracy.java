@@ -14,12 +14,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import mpicbg.models.AffineModel3D;
+import mpicbg.models.Model;
+import mpicbg.models.Tile;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewTransform;
-import mpicbg.spim.data.sequence.Angle;
-import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
@@ -32,6 +32,7 @@ import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
@@ -96,7 +97,12 @@ public class TestAccuracy
 	}
 
 
-	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel)
+	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel, boolean applyCalibration )
+	{
+		printCurrentNonrigidRegistrationAccuracy( data, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false );
+	}
+
+	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel, boolean applyCalibration, boolean getPreRegistrationFromManualPoints)
 	{
 
 		// split the views into groups according to the grouping factors
@@ -112,15 +118,56 @@ public class TestAccuracy
 			System.out.println( Group.gvids( group ) );
 			final List< ViewDescription > vds = Group.getViewsSorted( group.getViews() );
 
-			// calculate non-rigid model grid
-			BoundingBoxMaximal bboxMaximal = new BoundingBoxMaximal( vds, data );
+			// get current view registrations
+			final HashMap< ViewId, AffineTransform3D > viewRegistrations = new HashMap<>( data.getViewRegistrations().getViewRegistrations().entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getModel() ) ) );
+
+			// estimate new registration from manual interest points
+			// i.e. calculate new affine view registrations from them
+			if (getPreRegistrationFromManualPoints)
+			{
+				// first view transform for calibration
+				ViewRegistration vrFirst = data.getViewRegistrations().getViewRegistration( vds.get( 0 ) );
+				vrFirst.updateModel();
+
+				// flip transform
+				final AffineTransform3D flip = new AffineTransform3D();
+				flip.rotate( 1, Math.PI );
+
+				// get manual ip registration with calibration / flip
+				HashMap< ViewId, Tile< AffineModel3D > > manualVRmpi = printManualIpRegistrationAccuracy( data, groupingFactors, new AffineModel3D(), manualIpLabel, true );
+				viewRegistrations.clear();
+				viewRegistrations.putAll( new HashMap<>( manualVRmpi.entrySet().stream().collect( Collectors.toMap(
+						e -> e.getKey(),
+						e -> {
+							AffineModel3D m = e.getValue().getModel();
+							AffineTransform3D res = new AffineTransform3D();
+							res.set( m.getMatrix( null ) );
+
+							// Angle 2 -> model has to include flip
+							if (data.getSequenceDescription().getViewDescriptions().get(e.getKey()).getViewSetup().getAngle().getId() == 2)
+								res.concatenate( flip );
+
+							// model has to include calibration
+							res.concatenate( vrFirst.getTransformList().get( vrFirst.getTransformList().size()-1 ).asAffine3D() );
+							return res;
+						}
+				) ) ) );
+			}
+
+			// calclulate bounding box with (new) registrations
+			BoundingBoxMaximal bboxMaximal = new BoundingBoxMaximal( vds,
+					new HashMap<>(vds.stream().collect( Collectors.toMap( e -> e,
+							e -> ViewSetupUtils.getSizeOrLoad( e.getViewSetup(), e.getTimePoint(), data.getSequenceDescription().getImgLoader() ) ) ) ),
+					viewRegistrations );
 			BoundingBox bbox = bboxMaximal.estimate( "bbox" );
+
+			// calculate non-rigid model grid
 			final HashMap< ViewId, ModelGrid > modelGrids = getNonRigidModelGrid( 
-					data.getViewRegistrations().getViewRegistrations().entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getModel() ) ),
+					viewRegistrations,
 					data.getViewInterestPoints().getViewInterestPoints(),
 					vds,
 					vds,
-					new ArrayList<>( Arrays.asList( new String[] {automaticIpLabel} ) ),
+					new ArrayList<>( Arrays.asList( getPreRegistrationFromManualPoints ? new String[] {manualIpLabel} : new String[] {automaticIpLabel}) ),
 					new long[] {10l, 10l, 10l},
 					1.0,
 					bbox,
@@ -172,8 +219,9 @@ public class TestAccuracy
 						// get view registrations
 						final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
 						final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
-						final AffineTransform3D modelA = vrA.getModel();
-						final AffineTransform3D modelB = vrB.getModel();
+
+						final AffineTransform3D modelA = viewRegistrations.get( vds.get( i.get() ) );
+						final AffineTransform3D modelB = viewRegistrations.get( vds.get( j.get() ) );
 
 						// find the non-rigidly transformed points for the corresponding IPs 
 						// 1) starting estimate: affine view registration
@@ -183,8 +231,23 @@ public class TestAccuracy
 						double[] cNRa = findTransformedPoint( cA, ipA.getL().clone(), 0.1, 1000, 0.01, modelGrids.get( vds.get( i.get() ) ), 0.1 );
 						double[] cNRb = findTransformedPoint( cB, ipB.getL().clone(), 0.1, 1000, 0.01, modelGrids.get( vds.get( j.get() ) ), 0.1 );
 
-						// NB: this will fail with NullPointerException if we could not find the transformed point
-						// we do not handle the exception, so that we will immediately know if something went wrong!
+						// print big warning in case we could not find a point
+						if (cNRa == null | cNRb == null)
+						{
+							System.err.println( "WARNING: target point could not be found" );
+							return;
+						}
+
+						// un-do calibration if necessary
+						if (!applyCalibration)
+						{
+							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
+							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+
+							calibA.asAffine3D().applyInverse( cNRa, cNRa );
+							calibB.asAffine3D().applyInverse( cNRb, cNRb );
+						}
+
 						final double distance = Util.distance( new RealPoint( cNRa ), new RealPoint( cNRb ) );
 
 						// add to per-pair (errSumInner) and per-view (errSum) errors/counters
@@ -202,7 +265,7 @@ public class TestAccuracy
 		}
 	}
 
-	public static void printCurrentRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel )
+	public static void printCurrentRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, boolean applyCalibration)
 	{
 
 		final List< Group< ViewDescription > > groups = Group.splitBy( 
@@ -258,6 +321,14 @@ public class TestAccuracy
 						modelA.apply( cA, cA );
 						modelB.apply( cB, cB );
 
+						if (!applyCalibration)
+						{
+							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
+							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+							calibA.asAffine3D().applyInverse( cA, cA );
+							calibB.asAffine3D().applyInverse( cB, cB );
+						}
+
 						final double distance = Util.distance( new RealPoint( cA ), new RealPoint( cB ) );
 
 						errSumInner.add( distance );
@@ -276,7 +347,7 @@ public class TestAccuracy
 		
 	}
 
-	public static void printManualIpRegistrationAccuracy(SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel)
+	public static <M extends Model< M >> HashMap< ViewId, Tile< M > > printManualIpRegistrationAccuracy(SpimData2 data, Set<Class<? extends Entity>> groupingFactors, M model, String manualIpLabel, boolean applyCalibration)
 	{
 
 		final List< Group< ViewDescription > > groups = Group.splitBy( 
@@ -284,14 +355,14 @@ public class TestAccuracy
 					.filter( vd -> !data.getSequenceDescription().getMissingViews().getMissingViews().contains( vd ))
 					.collect( Collectors.toList() ), 
 				groupingFactors );
+
+		HashMap< ViewId, Tile< M > > combinedResult = new HashMap<>();
 		
 		for (final Group< ViewDescription > group : groups)
 		{
 			System.out.println( Group.gvids( group ) );
 			// we do not care about the error, we assume the manual IPs to be as good as it gets
 			final ConvergenceStrategy cs = new ConvergenceStrategy( Double.MAX_VALUE );
-			//final TranslationModel3D model = new TranslationModel3D();
-			final AffineModel3D model = new AffineModel3D();
 
 			final List< ViewDescription > vds = Group.getViewsSorted( group.getViews() );
 			final Set< ViewId > vidsUsed = new HashSet<>();
@@ -328,12 +399,15 @@ public class TestAccuracy
 						double[] cB = ipB.getL().clone();
 
 						// apply calibration, rotation
-						final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
-						final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
-						final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
-						final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
-						calibA.asAffine3D().apply( cA, cA );
-						calibB.asAffine3D().apply( cB, cB );
+						if (applyCalibration)
+						{
+							final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
+							final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
+							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
+							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+							calibA.asAffine3D().apply( cA, cA );
+							calibB.asAffine3D().apply( cB, cB );
+						}
 
 						final AffineTransform3D flip = new AffineTransform3D();
 						flip.rotate( 1, Math.PI );
@@ -358,8 +432,12 @@ public class TestAccuracy
 			// fix first view in group
 			final Set<ViewId> fixed = new HashSet<>();
 			fixed.add( vds.get( 0 ) );
-			GlobalOpt.compute( model, pmc, cs, fixed, Group.toGroups( vidsUsed ) );
+			final HashMap< ViewId, Tile< M > > globalOptResult = GlobalOpt.compute( model, pmc, cs, fixed, Group.toGroups( vidsUsed ) );
+
+			combinedResult.putAll( globalOptResult );
 		}
+
+		return combinedResult;
 	}
 
 	/**
@@ -446,8 +524,8 @@ public class TestAccuracy
 		// get results independently for angle/illumination combinations
 		// or all together
 		final Set<Class<? extends Entity>> groupingFactors = new HashSet<>();
-		groupingFactors.add( Illumination.class );
-		groupingFactors.add( Angle.class );
+		//groupingFactors.add( Illumination.class );
+		//groupingFactors.add( Angle.class );
 
 		// label of the manual Interest Points
 		final String manualIpLabel = "manual";
@@ -455,9 +533,12 @@ public class TestAccuracy
 		// NB: correspondences must be saved correctly for Non-Rigid accuracy estimation
 		final String automaticIpLabel = "beads";
 
+		// whether to get errors in calibrated, isotropic units or raw pixel units
+		boolean applyCalibration = true;
+
 		/* --- CALCULATE RESULTS --- */
-		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel );
-		//printManualIpRegistrationAccuracy( spimData, groupingFactors, manualIpLabel );
-		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel );
+		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration );
+		//printManualIpRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration );
+		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false );
 	}
 }
