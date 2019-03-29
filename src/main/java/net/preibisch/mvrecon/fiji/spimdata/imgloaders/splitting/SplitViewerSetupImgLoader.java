@@ -10,6 +10,8 @@ import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
+import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.Img;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -271,7 +273,11 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	public RandomAccessibleInterval< FloatType > getFloatImage( int timepointId,
 			int level, boolean normalize, ImgLoaderHint... hints )
 	{
-		throw new RuntimeException( "not supported." );
+		final RandomAccessibleInterval< UnsignedShortType > image = getImage( timepointId, level, hints );
+		final RandomAccessibleInterval< FloatType > floatImg = Converters.convert( image, new RealFloatConverter< UnsignedShortType >(), new FloatType() );
+		if (normalize)
+			AbstractImgLoader.normalize( floatImg );
+		return floatImg;
 	}
 
 	@Override
