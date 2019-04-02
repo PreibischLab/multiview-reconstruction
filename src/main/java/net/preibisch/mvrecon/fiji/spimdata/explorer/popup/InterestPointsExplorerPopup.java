@@ -40,7 +40,7 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ViewSetupExplorerPanel< ?, ? > panel;
+	FilteredAndGroupedExplorerPanel< ?, ? > panel;
 	InterestPointExplorer< ?, ? > ipe = null;
 
 	public InterestPointsExplorerPopup()
@@ -54,7 +54,7 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 	@Override
 	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
 	{
-		this.panel = (ViewSetupExplorerPanel< ?, ? >)panel;
+		this.panel = (FilteredAndGroupedExplorerPanel< ?, ? >)panel;
 		return this;
 	}
 
@@ -82,7 +82,7 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 				{
 					if ( ipe == null || !ipe.frame().isVisible() )
 					{
-						ipe = instanceFor( (ViewSetupExplorerPanel)panel );
+						ipe = instanceFor( (FilteredAndGroupedExplorerPanel< SpimData2, ? >) panel );
 					}
 					else
 					{
