@@ -16,16 +16,20 @@ import java.util.stream.Collectors;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.Tile;
+import mpicbg.models.TranslationModel3D;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewTransform;
+import mpicbg.spim.data.sequence.Angle;
+import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.Interval;
 import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
@@ -147,8 +151,14 @@ public class TestAccuracy
 							if (data.getSequenceDescription().getViewDescriptions().get(e.getKey()).getViewSetup().getAngle().getId() == 2)
 								res.concatenate( flip );
 
+							// find the calibration transform
+							AffineGet calib = null;
+							for (int i = 0; i<vrFirst.getTransformList().size(); i++)
+								if (vrFirst.getTransformList().get( i ).getName().equals( "calibration" ))
+									calib = vrFirst.getTransformList().get( i ).asAffine3D();
+
 							// model has to include calibration
-							res.concatenate( vrFirst.getTransformList().get( vrFirst.getTransformList().size()-1 ).asAffine3D() );
+							res.concatenate( calib );
 							return res;
 						}
 				) ) ) );
@@ -241,8 +251,16 @@ public class TestAccuracy
 						// un-do calibration if necessary
 						if (!applyCalibration)
 						{
-							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
-							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+
+							ViewTransform calibA = null;
+							for (ViewTransform v: vrA.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibA = v;
+
+							ViewTransform calibB = null;
+							for (ViewTransform v: vrB.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibB = v;
 
 							calibA.asAffine3D().applyInverse( cNRa, cNRa );
 							calibB.asAffine3D().applyInverse( cNRb, cNRb );
@@ -323,8 +341,16 @@ public class TestAccuracy
 
 						if (!applyCalibration)
 						{
-							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
-							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+							ViewTransform calibA = null;
+							for (ViewTransform v: vrA.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibA = v;
+
+							ViewTransform calibB = null;
+							for (ViewTransform v: vrB.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibB = v;
+
 							calibA.asAffine3D().applyInverse( cA, cA );
 							calibB.asAffine3D().applyInverse( cB, cB );
 						}
@@ -403,8 +429,17 @@ public class TestAccuracy
 						{
 							final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
 							final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
-							final ViewTransform calibA = vrA.getTransformList().get( vrA.getTransformList().size() -1 );
-							final ViewTransform calibB = vrB.getTransformList().get( vrB.getTransformList().size() -1 );
+
+							ViewTransform calibA = null;
+							for (ViewTransform v: vrA.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibA = v;
+
+							ViewTransform calibB = null;
+							for (ViewTransform v: vrB.getTransformList())
+								if (v.getName().equals( "calibration" ))
+									calibB = v;
+
 							calibA.asAffine3D().apply( cA, cA );
 							calibB.asAffine3D().apply( cB, cB );
 						}
@@ -516,7 +551,7 @@ public class TestAccuracy
 		SpimData2 spimData = null;
 		try
 		{
-			 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/davidh-ssd/BS_TEST/dataset_2_2_icp_all.xml" );
+			 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/davidh-ssd/BS_TEST/dataset_2_0_icp_angle_illum_1.xml" );
 		}
 		catch ( SpimDataException e ){ e.printStackTrace(); }
 
@@ -524,21 +559,21 @@ public class TestAccuracy
 		// get results independently for angle/illumination combinations
 		// or all together
 		final Set<Class<? extends Entity>> groupingFactors = new HashSet<>();
-		//groupingFactors.add( Illumination.class );
-		//groupingFactors.add( Angle.class );
+		groupingFactors.add( Illumination.class );
+		groupingFactors.add( Angle.class );
 
 		// label of the manual Interest Points
 		final String manualIpLabel = "manual";
 		// label of the IPs used for automatic registration
 		// NB: correspondences must be saved correctly for Non-Rigid accuracy estimation
-		final String automaticIpLabel = "beads";
+		final String automaticIpLabel = "beads2";
 
 		// whether to get errors in calibrated, isotropic units or raw pixel units
-		boolean applyCalibration = true;
+		boolean applyCalibration = false;
 
 		/* --- CALCULATE RESULTS --- */
 		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration );
-		//printManualIpRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration );
+		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new TranslationModel3D(), manualIpLabel, applyCalibration );
 		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false );
 	}
 }
