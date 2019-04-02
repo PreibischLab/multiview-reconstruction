@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import mpicbg.models.AbstractAffineModel3D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.Tile;
@@ -103,10 +104,10 @@ public class TestAccuracy
 
 	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel, boolean applyCalibration )
 	{
-		printCurrentNonrigidRegistrationAccuracy( data, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false );
+		printCurrentNonrigidRegistrationAccuracy( data, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 1 );
 	}
 
-	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel, boolean applyCalibration, boolean getPreRegistrationFromManualPoints)
+	public static void printCurrentNonrigidRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, String automaticIpLabel, boolean applyCalibration, boolean getPreRegistrationFromManualPoints, int foldSplit)
 	{
 
 		// split the views into groups according to the grouping factors
@@ -138,7 +139,7 @@ public class TestAccuracy
 				flip.rotate( 1, Math.PI );
 
 				// get manual ip registration with calibration / flip
-				HashMap< ViewId, Tile< AffineModel3D > > manualVRmpi = printManualIpRegistrationAccuracy( data, groupingFactors, new AffineModel3D(), manualIpLabel, true );
+				HashMap< ViewId, Tile< AffineModel3D > > manualVRmpi = printManualIpRegistrationAccuracy( data, groupingFactors, new AffineModel3D(), manualIpLabel, true, foldSplit, false );
 				viewRegistrations.clear();
 				viewRegistrations.putAll( new HashMap<>( manualVRmpi.entrySet().stream().collect( Collectors.toMap(
 						e -> e.getKey(),
@@ -195,8 +196,8 @@ public class TestAccuracy
 					final RealSum errSumInner = new RealSum();
 					final AtomicInteger countInnter = new AtomicInteger();
 
-					// do not compare a view to itself
-					if (i.get() == j.get())
+					// do not compare a view to itself or others in the same split
+					if (vds.get( i.get() ).getViewSetupId()/foldSplit == vds.get( j.get() ).getViewSetupId()/foldSplit)
 						continue;
 
 					// get IPs for the manual label
@@ -283,7 +284,7 @@ public class TestAccuracy
 		}
 	}
 
-	public static void printCurrentRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, boolean applyCalibration)
+	public static void printCurrentRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, boolean applyCalibration, int foldSplit)
 	{
 
 		final List< Group< ViewDescription > > groups = Group.splitBy( 
@@ -302,6 +303,9 @@ public class TestAccuracy
 				final AtomicInteger count = new AtomicInteger();
 				for(AtomicInteger j = new AtomicInteger(); j.get() < vds.size(); j.incrementAndGet())
 				{
+					if (vds.get( i.get() ).getViewSetupId()/foldSplit == vds.get( j.get() ).getViewSetupId()/foldSplit)
+						continue;
+
 					final RealSum errSumInner = new RealSum();
 					final AtomicInteger countInnter = new AtomicInteger();
 
@@ -373,7 +377,7 @@ public class TestAccuracy
 		
 	}
 
-	public static <M extends Model< M >> HashMap< ViewId, Tile< M > > printManualIpRegistrationAccuracy(SpimData2 data, Set<Class<? extends Entity>> groupingFactors, M model, String manualIpLabel, boolean applyCalibration)
+	public static <M extends AbstractAffineModel3D< M >> HashMap< ViewId, Tile< M > > printManualIpRegistrationAccuracy(SpimData2 data, Set<Class<? extends Entity>> groupingFactors, M model, String manualIpLabel, boolean applyCalibration, int foldSplit, boolean printBetweenTiles)
 	{
 
 		final List< Group< ViewDescription > > groups = Group.splitBy( 
@@ -425,7 +429,7 @@ public class TestAccuracy
 						double[] cB = ipB.getL().clone();
 
 						// apply calibration, rotation
-						if (applyCalibration)
+						if (true)
 						{
 							final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
 							final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
@@ -470,6 +474,113 @@ public class TestAccuracy
 			final HashMap< ViewId, Tile< M > > globalOptResult = GlobalOpt.compute( model, pmc, cs, fixed, Group.toGroups( vidsUsed ) );
 
 			combinedResult.putAll( globalOptResult );
+
+			if (printBetweenTiles)
+			{
+				for (AtomicInteger i = new AtomicInteger(); i.get()<vds.size(); i.incrementAndGet())
+				{
+					final RealSum errSum = new RealSum();
+					final AtomicInteger count = new AtomicInteger();
+					for(AtomicInteger j = new AtomicInteger(); j.get() < vds.size(); j.incrementAndGet())
+					{
+						if (vds.get( i.get() ).getViewSetupId()/foldSplit == vds.get( j.get() ).getViewSetupId()/foldSplit)
+							continue;
+	
+						final RealSum errSumInner = new RealSum();
+						final AtomicInteger countInnter = new AtomicInteger();
+	
+						if (i.get() == j.get())
+							continue;
+						
+						final InterestPointList ipsA = data.getViewInterestPoints().getViewInterestPointLists( vds.get( i.get() ) ).getInterestPointList( manualIpLabel );
+						final InterestPointList ipsB = data.getViewInterestPoints().getViewInterestPointLists( vds.get( j.get() ) ).getInterestPointList( manualIpLabel );
+	
+						if (ipsA == null | ipsB == null)
+							continue;
+	
+						// not sure if this check is necessary, but it wont hurt
+						if (ipsA.getCorrespondingInterestPointsCopy() == null || ipsB.getCorrespondingInterestPointsCopy() == null)
+							continue;
+						
+						final List< CorrespondingInterestPoints > corrs =
+								ipsA.getCorrespondingInterestPointsCopy().stream().filter( cp -> cp.getCorrespondingViewId().equals( vds.get( j.get() ) ) ).collect( Collectors.toList() );
+						
+						final List< InterestPoint > ipsACp = ipsA.getInterestPointsCopy();
+						final List< InterestPoint > ipsBCp = ipsB.getInterestPointsCopy();
+	
+						corrs.forEach( corr -> {
+							final InterestPoint ipA = ipsACp.get( corr.getDetectionId() );
+							final InterestPoint ipB = ipsBCp.get( corr.getCorrespondingDetectionId() );
+							double[] cA = ipA.getL().clone();
+							double[] cB = ipB.getL().clone();
+	
+							// apply view registration
+							final ViewRegistration vrA = data.getViewRegistrations().getViewRegistration( vds.get( i.get() ) );
+							final ViewRegistration vrB = data.getViewRegistrations().getViewRegistration( vds.get( j.get() ) );
+							final AffineTransform3D modelA = new AffineTransform3D();
+							modelA.set( globalOptResult.get( vds.get( i.get() ) ).getModel().getMatrix( null ) );
+							final AffineTransform3D modelB = new AffineTransform3D();
+							modelB.set( globalOptResult.get( vds.get( j.get() ) ).getModel().getMatrix( null ) );
+	
+							if (true)
+							{
+								ViewTransform calibA = null;
+								for (ViewTransform v: vrA.getTransformList())
+									if (v.getName().equals( "calibration" ))
+										calibA = v;
+	
+								ViewTransform calibB = null;
+								for (ViewTransform v: vrB.getTransformList())
+									if (v.getName().equals( "calibration" ))
+										calibB = v;
+	
+								calibA.asAffine3D().apply( cA, cA );
+								calibB.asAffine3D().apply( cB, cB );
+								
+								final AffineTransform3D flip = new AffineTransform3D();
+								flip.rotate( 1, Math.PI );
+								
+								if (vds.get( i.get() ).getViewSetup().getAngle().getId() == 2)
+									flip.apply( cA, cA );
+								
+								if (vds.get( j.get() ).getViewSetup().getAngle().getId() == 2)
+									flip.apply( cB, cB );
+							}
+							
+							modelA.apply( cA, cA );
+							modelB.apply( cB, cB );
+	
+							if (!applyCalibration)
+							{
+								ViewTransform calibA = null;
+								for (ViewTransform v: vrA.getTransformList())
+									if (v.getName().equals( "calibration" ))
+										calibA = v;
+	
+								ViewTransform calibB = null;
+								for (ViewTransform v: vrB.getTransformList())
+									if (v.getName().equals( "calibration" ))
+										calibB = v;
+	
+								calibA.asAffine3D().applyInverse( cA, cA );
+								calibB.asAffine3D().applyInverse( cB, cB );
+							}
+	
+							final double distance = Util.distance( new RealPoint( cA ), new RealPoint( cB ) );
+	
+							errSumInner.add( distance );
+							countInnter.incrementAndGet();
+	
+							errSum.add( distance );
+							count.incrementAndGet();
+						});
+						System.out.println( Group.pvid( vds.get( i.get() ) ) + "<=>" + Group.pvid( vds.get( j.get() ) )  + ", mean error : " + (countInnter.get() > 0 ? errSumInner.getSum() / countInnter.get() : " no correspondences ") );
+					}
+					
+					System.out.println( Group.pvid( vds.get( i.get() ) ) + ", mean error : " + (count.get() > 0 ? errSum.getSum() / count.get() : " no correspondences ") );
+				}
+			}
+			
 		}
 
 		return combinedResult;
@@ -551,7 +662,7 @@ public class TestAccuracy
 		SpimData2 spimData = null;
 		try
 		{
-			 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/davidh-ssd/BS_TEST/dataset_2_0_icp_angle_illum_1.xml" );
+			 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/davidh-ssd/BS_TEST/dataset_2_2_icp_all_1.split.xml" );
 		}
 		catch ( SpimDataException e ){ e.printStackTrace(); }
 
@@ -559,8 +670,8 @@ public class TestAccuracy
 		// get results independently for angle/illumination combinations
 		// or all together
 		final Set<Class<? extends Entity>> groupingFactors = new HashSet<>();
-		groupingFactors.add( Illumination.class );
-		groupingFactors.add( Angle.class );
+		//groupingFactors.add( Illumination.class );
+		//groupingFactors.add( Angle.class );
 
 		// label of the manual Interest Points
 		final String manualIpLabel = "manual";
@@ -572,8 +683,8 @@ public class TestAccuracy
 		boolean applyCalibration = false;
 
 		/* --- CALCULATE RESULTS --- */
-		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration );
-		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new TranslationModel3D(), manualIpLabel, applyCalibration );
-		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false );
+		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration, 8 );
+		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new AffineModel3D(), manualIpLabel, applyCalibration, 8, true );
+		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 8 );
 	}
 }
