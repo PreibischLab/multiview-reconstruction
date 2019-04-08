@@ -38,6 +38,7 @@ import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -489,7 +490,12 @@ public class DownsampleTools
 			mipMapTransform.identity();
 		}
 
-		final ImgFactory< net.imglib2.type.numeric.real.FloatType > f = ((Img<net.imglib2.type.numeric.real.FloatType>)input).factory();
+		final ImgFactory< FloatType > f;
+
+		if ( Img.class.isInstance( input ))
+			f = ((Img<FloatType>)input).factory();
+		else
+			f = new CellImgFactory<FloatType>( new FloatType());
 
 		// the additional downsampling (performed below)
 		final AffineTransform3D additonalDS = new AffineTransform3D();
