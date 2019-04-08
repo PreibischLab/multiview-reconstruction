@@ -138,30 +138,36 @@ public class SplittingTools
 					// Interest points
 					final ViewInterestPointLists newVipl = new ViewInterestPointLists( newViewId.getTimePointId(), newViewId.getViewSetupId() );
 					final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
-					for ( final String label : oldVipl.getHashMap().keySet() )
+
+					// only update interest points for present views
+					// oldVipl may be null for missing views
+					if (!spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
 					{
-						final InterestPointList oldIpl = oldVipl.getInterestPointList( label );
-						final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
-						final ArrayList< InterestPoint > newIp = new ArrayList<>();
-
-						int id = 0;
-						for ( final InterestPoint ip : oldIp )
+						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
-							if ( contains( ip.getL(), interval ) )
-							{
-								final double[] l = ip.getL();
-								for ( int d = 0; d < interval.numDimensions(); ++d )
-									l[ d ] -= interval.min( d );
-
-								newIp.add( new InterestPoint( id++, l ) );
-							}
-						}
+							final InterestPointList oldIpl = oldVipl.getInterestPointList( label );
+							final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
+							final ArrayList< InterestPoint > newIp = new ArrayList<>();
 	
-						final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
-								"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
-								"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );
-						newIpl.setInterestPoints( newIp );
-						newVipl.addInterestPointList( label, newIpl ); // still add
+							int id = 0;
+							for ( final InterestPoint ip : oldIp )
+							{
+								if ( contains( ip.getL(), interval ) )
+								{
+									final double[] l = ip.getL();
+									for ( int d = 0; d < interval.numDimensions(); ++d )
+										l[ d ] -= interval.min( d );
+	
+									newIp.add( new InterestPoint( id++, l ) );
+								}
+							}
+		
+							final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
+									"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
+									"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );
+							newIpl.setInterestPoints( newIp );
+							newVipl.addInterestPointList( label, newIpl ); // still add
+						}
 					}
 					newInterestpoints.put( newViewId, newVipl );
 				}

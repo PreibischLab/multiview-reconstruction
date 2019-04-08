@@ -1,21 +1,34 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import bdv.ViewerSetupImgLoader;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
+import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.IterableInterval;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
+import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.Img;
+import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.type.volatiles.VolatileUnsignedShortType;
+import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -268,10 +281,13 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	}
 
 	@Override
-	public RandomAccessibleInterval< FloatType > getFloatImage( int timepointId,
-			int level, boolean normalize, ImgLoaderHint... hints )
+	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final int level, final boolean normalize, final ImgLoaderHint... hints )
 	{
-		throw new RuntimeException( "not supported." );
+		final RandomAccessibleInterval< UnsignedShortType > image = getImage( timepointId, level, hints );
+		final RandomAccessibleInterval< FloatType > floatImg = Converters.convert( image, new RealFloatConverter< UnsignedShortType >(), new FloatType() );
+		if (normalize)
+			AbstractImgLoader.normalize( floatImg );
+		return floatImg;
 	}
 
 	@Override
