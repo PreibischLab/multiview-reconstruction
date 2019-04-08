@@ -34,7 +34,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<developer>
 			<id>StephanPreibisch</id>
 			<name>Stephan Preibisch</name>
-			<url>http://imagej.net/User:StephanP</url>
+			<url>https://imagej.net/User:StephanP</url>
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -48,7 +48,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<developer>
 			<id>hoerldavid</id>
 			<name>David Hoerl</name>
-			<url>http://imagej.net/User:Davidhoerl</url>
+			<url>https://imagej.net/User:Davidhoerl</url>
 			<roles>
 				<role>developer</role>
 				<role>debugger</role>
@@ -61,12 +61,12 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	<contributors>
 		<contributor>
 			<name>Tobias Pietzsch</name>
-			<url>http://imagej.net/User:Pietzsch</url>
+			<url>https://imagej.net/User:Pietzsch</url>
 			<properties><id>tpietzsch</id></properties>
 		</contributor>
 		<contributor>
 			<name>Curtis Rueden</name>
-			<url>http://imagej.net/User:Rueden</url>
+			<url>https://imagej.net/User:Rueden</url>
 			<properties><id>ctrueden</id></properties>
 		</contributor>
 	</contributors>
@@ -108,7 +108,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	<repositories>
 		<repository>
 			<id>imagej.public</id>
-			<url>http://maven.imagej.net/content/groups/public</url>
+			<url>https://maven.imagej.net/content/groups/public</url>
 		</repository>
 	</repositories>
 

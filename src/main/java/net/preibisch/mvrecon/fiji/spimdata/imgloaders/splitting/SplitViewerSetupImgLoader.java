@@ -18,6 +18,8 @@ import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
+import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
@@ -281,129 +283,11 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final int level, final boolean normalize, final ImgLoaderHint... hints )
 	{
-		final RandomAccessibleInterval< UnsignedShortType > ushortImg = getImage( timepointId, level, hints );
-
-		// copy unsigned short img to float img
-
-		// create float img
-		final FloatType f = new FloatType();
-		final ImgFactory< FloatType > imgFactory;
-		if ( Intervals.numElements( ushortImg ) <= Integer.MAX_VALUE )
-		{
-			imgFactory = new ArrayImgFactory<>( f );
-		}
-		else
-		{
-			final long[] dimsLong = new long[ ushortImg.numDimensions() ];
-			ushortImg.dimensions( dimsLong );
-			final int[] cellDimensions = new int[ dimsLong.length ];
-			for ( int i = 0; i < cellDimensions.length; ++i )
-				cellDimensions[ i ] = 64;
-
-			imgFactory = new CellImgFactory<>( f, cellDimensions );
-		}
-		final Img< FloatType > floatImg = imgFactory.create( ushortImg );
-
-		// set up executor service
-		final int numProcessors = Runtime.getRuntime().availableProcessors();
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( numProcessors );
-		final ArrayList< Callable< Void > > tasks = new ArrayList<>();
-
-		// set up all tasks
-		final int numPortions = numProcessors * 2;
-		final long threadChunkSize = floatImg.size() / numPortions;
-		final long threadChunkMod = floatImg.size() % numPortions;
-
-		for ( int portionID = 0; portionID < numPortions; ++portionID )
-		{
-			// move to the starting position of the current thread
-			final long startPosition = portionID * threadChunkSize;
-
-			// the last thread may has to run longer if the number of pixels cannot be divided by the number of threads
-			final long loopSize = ( portionID == numPortions - 1 ) ? threadChunkSize + threadChunkMod : threadChunkSize;
-
-			if ( Views.iterable( ushortImg ).iterationOrder().equals( floatImg.iterationOrder() ) )
-			{
-				tasks.add( new Callable< Void >()
-				{
-					@Override
-					public Void call() throws Exception
-					{
-						final Cursor< UnsignedShortType > in = Views.iterable( ushortImg ).cursor();
-						final Cursor< FloatType > out = floatImg.cursor();
-
-						in.jumpFwd( startPosition );
-						out.jumpFwd( startPosition );
-
-						for ( long j = 0; j < loopSize; ++j )
-							out.next().set( in.next().getRealFloat() );
-
-						return null;
-					}
-				} );
-			}
-			else
-			{
-				tasks.add( new Callable< Void >()
-				{
-					@Override
-					public Void call() throws Exception
-					{
-						final Cursor< UnsignedShortType > in = Views.iterable( ushortImg ).localizingCursor();
-						final RandomAccess< FloatType > out = floatImg.randomAccess();
-
-						in.jumpFwd( startPosition );
-
-						for ( long j = 0; j < loopSize; ++j )
-						{
-							final UnsignedShortType vin = in.next();
-							out.setPosition( in );
-							out.get().set( vin.getRealFloat() );
-						}
-
-						return null;
-					}
-				} );
-			}
-		}
-
-		try
-		{
-			// invokeAll() returns when all tasks are complete
-			taskExecutor.invokeAll( tasks );
-			taskExecutor.shutdown();
-		}
-		catch ( final InterruptedException e )
-		{
-			return null;
-		}
-
-		if ( normalize )
-			// normalize the image to 0...1
-			normalize( floatImg );
-
+		final RandomAccessibleInterval< UnsignedShortType > image = getImage( timepointId, level, hints );
+		final RandomAccessibleInterval< FloatType > floatImg = Converters.convert( image, new RealFloatConverter< UnsignedShortType >(), new FloatType() );
+		if (normalize)
+			AbstractImgLoader.normalize( floatImg );
 		return floatImg;
-	}
-
-	/**
-	 * normalize img to 0...1
-	 */
-	protected static void normalize( final IterableInterval< FloatType > img )
-	{
-		float currentMax = img.firstElement().get();
-		float currentMin = currentMax;
-		for ( final FloatType t : img )
-		{
-			final float f = t.get();
-			if ( f > currentMax )
-				currentMax = f;
-			else if ( f < currentMin )
-				currentMin = f;
-		}
-
-		final float scale = ( float ) ( 1.0 / ( currentMax - currentMin ) );
-		for ( final FloatType t : img )
-			t.set( ( t.get() - currentMin ) * scale );
 	}
 
 	@Override
