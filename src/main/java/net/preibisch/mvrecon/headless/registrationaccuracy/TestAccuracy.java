@@ -118,6 +118,8 @@ public class TestAccuracy
 					.collect( Collectors.toList() ), 
 				groupingFactors );
 
+		final HashMap<ViewId, Double> perViewErrors = new HashMap<>();
+
 		for (final Group< ViewDescription > group : groups)
 		{
 			System.out.println( Group.gvids( group ) );
@@ -280,8 +282,18 @@ public class TestAccuracy
 				}
 				// print mean per-view error
 				System.out.println( Group.pvid( vds.get( i.get() ) ) + ", mean error : " + (count.get() > 0 ? errSum.getSum() / count.get() : " no correspondences ") );
+
+				if (count.get() > 0)
+					perViewErrors.put( vds.get( i.get() ), errSum.getSum() / count.get() );
 			}
 		}
+
+		System.out.println( "=== RESULTS ===" );
+		perViewErrors.entrySet().forEach( e -> {
+			System.out.println( " = Error View: " + Group.pvid( e.getKey() ) + ": " + e.getValue() );
+		});
+		System.out.println( "=== Mean Error: " + perViewErrors.values().stream().reduce( 0.0, (a,b) -> a+b ) / perViewErrors.size() );
+		
 	}
 
 	public static void printCurrentRegistrationAccuracy( final SpimData2 data, Set<Class<? extends Entity>> groupingFactors, String manualIpLabel, boolean applyCalibration, int foldSplit)
@@ -292,7 +304,9 @@ public class TestAccuracy
 					.filter( vd -> !data.getSequenceDescription().getMissingViews().getMissingViews().contains( vd ))
 					.collect( Collectors.toList() ), 
 				groupingFactors );
-		
+
+		final HashMap<ViewId, Double> perViewErrors = new HashMap<>();
+
 		for (final Group< ViewDescription > group : groups)
 		{
 			System.out.println( Group.gvids( group ) );
@@ -371,8 +385,16 @@ public class TestAccuracy
 				}
 				
 				System.out.println( Group.pvid( vds.get( i.get() ) ) + ", mean error : " + (count.get() > 0 ? errSum.getSum() / count.get() : " no correspondences ") );
+				if (count.get() > 0)
+					perViewErrors.put( vds.get( i.get() ), errSum.getSum() / count.get() );
 			}
 		}
+
+		System.out.println( "=== RESULTS ===" );
+		perViewErrors.entrySet().forEach( e -> {
+			System.out.println( " = Error View: " + Group.pvid( e.getKey() ) + ": " + e.getValue() );
+		});
+		System.out.println( "=== Mean Error: " + perViewErrors.values().stream().reduce( 0.0, (a,b) -> a+b ) / perViewErrors.size() );
 
 		
 	}
@@ -387,7 +409,8 @@ public class TestAccuracy
 				groupingFactors );
 
 		HashMap< ViewId, Tile< M > > combinedResult = new HashMap<>();
-		
+		final HashMap<ViewId, Double> perViewErrors = new HashMap<>();
+
 		for (final Group< ViewDescription > group : groups)
 		{
 			System.out.println( Group.gvids( group ) );
@@ -576,11 +599,22 @@ public class TestAccuracy
 						});
 						System.out.println( Group.pvid( vds.get( i.get() ) ) + "<=>" + Group.pvid( vds.get( j.get() ) )  + ", mean error : " + (countInnter.get() > 0 ? errSumInner.getSum() / countInnter.get() : " no correspondences ") );
 					}
-					
+
 					System.out.println( Group.pvid( vds.get( i.get() ) ) + ", mean error : " + (count.get() > 0 ? errSum.getSum() / count.get() : " no correspondences ") );
+					if (count.get() > 0)
+						perViewErrors.put( vds.get( i.get() ), errSum.getSum() / count.get() );
 				}
 			}
 			
+		}
+		
+		if (printBetweenTiles)
+		{
+			System.out.println( "=== RESULTS ===" );
+			perViewErrors.entrySet().forEach( e -> {
+				System.out.println( " = Error View: " + Group.pvid( e.getKey() ) + ": " + e.getValue() );
+			});
+			System.out.println( "=== Mean Error: " + perViewErrors.values().stream().reduce( 0.0, (a,b) -> a+b ) / perViewErrors.size() );
 		}
 
 		return combinedResult;
@@ -691,5 +725,11 @@ public class TestAccuracy
 		printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration, 8 ); //actual errors
 		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new AffineModel3D(), manualIpLabel, applyCalibration, 8, true ); //theoretical results
 		//printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 8 ); //non-rigid, true for theoretical
+
+		/*
+		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration, 8 );
+		printManualIpRegistrationAccuracy( spimData, groupingFactors, new AffineModel3D(), manualIpLabel, applyCalibration, 8, true );
+		//printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 8 );
+		*/
 	}
 }
