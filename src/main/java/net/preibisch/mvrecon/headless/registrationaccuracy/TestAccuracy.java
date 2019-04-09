@@ -662,7 +662,8 @@ public class TestAccuracy
 		SpimData2 spimData = null;
 		try
 		{
-			 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/davidh-ssd/BS_TEST/dataset_2_2_icp_all_1.split.xml" );
+			 spimData = new XmlIoSpimData2( "" ).load("/Volumes/SamsungOld/Fabio Testdata/_Benchmark/dataset_2_0_icp_angle_illum_1.split.xml"); 
+					 //"/Volumes/davidh-ssd/BS_TEST/dataset_2_2_icp_all_1.split.xml" );
 		}
 		catch ( SpimDataException e ){ e.printStackTrace(); }
 
@@ -670,21 +671,25 @@ public class TestAccuracy
 		// get results independently for angle/illumination combinations
 		// or all together
 		final Set<Class<? extends Entity>> groupingFactors = new HashSet<>();
-		//groupingFactors.add( Illumination.class );
-		//groupingFactors.add( Angle.class );
+		groupingFactors.add( Illumination.class );
+		groupingFactors.add( Angle.class );
+
+		// nothing: all
+		// angle: angle
+		// both: angle_illum
 
 		// label of the manual Interest Points
 		final String manualIpLabel = "manual";
 		// label of the IPs used for automatic registration
 		// NB: correspondences must be saved correctly for Non-Rigid accuracy estimation
-		final String automaticIpLabel = "beads2";
+		final String automaticIpLabel = "stuff2";
 
 		// whether to get errors in calibrated, isotropic units or raw pixel units
 		boolean applyCalibration = false;
 
 		/* --- CALCULATE RESULTS --- */
-		//printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration, 8 );
-		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new AffineModel3D(), manualIpLabel, applyCalibration, 8, true );
-		printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 8 );
+		printCurrentRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, applyCalibration, 8 ); //actual errors
+		//printManualIpRegistrationAccuracy( spimData, groupingFactors, new AffineModel3D(), manualIpLabel, applyCalibration, 8, true ); //theoretical results
+		//printCurrentNonrigidRegistrationAccuracy( spimData, groupingFactors, manualIpLabel, automaticIpLabel, applyCalibration, false, 8 ); //non-rigid, true for theoretical
 	}
 }
