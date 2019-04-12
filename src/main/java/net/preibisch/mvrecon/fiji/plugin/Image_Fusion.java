@@ -199,7 +199,8 @@ public class Image_Fusion implements PlugIn
 				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
 				// get updated registration for views to fuse AND all other views that may influence the fusion
-				for ( final ViewId viewId : Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) )
+				for ( final ViewId viewId : fusion.getNonRigidParameters().isActive() ? 
+						Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) : group.getViews() )
 				{
 					final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 					vr.updateModel();
