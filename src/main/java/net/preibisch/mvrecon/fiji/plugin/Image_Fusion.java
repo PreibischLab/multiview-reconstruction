@@ -28,6 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.Sets;
 
 import ij.ImageJ;
 import ij.plugin.PlugIn;
@@ -195,7 +198,8 @@ public class Image_Fusion implements PlugIn
 				// update the transformations
 				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
-				for ( final ViewId viewId : group.getViews() )
+				// get updated registration for views to fuse AND all other views that may influence the fusion
+				for ( final ViewId viewId : Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) )
 				{
 					final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 					vr.updateModel();
