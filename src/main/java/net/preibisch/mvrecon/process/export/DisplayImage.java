@@ -145,13 +145,24 @@ public class DisplayImage implements ImgExport, Calibrateable
 		return minmax;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
 			final RandomAccessibleInterval< T > img,
 			final boolean virtualDisplay,
 			final String title,
 			final double min,
 			final double max )
+	{
+		return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
+	}
+
+	@SuppressWarnings("unchecked")
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final RandomAccessibleInterval< T > img,
+			final boolean virtualDisplay,
+			final String title,
+			final double min,
+			final double max,
+			final ExecutorService service )
 	{
 		ImagePlus imp = null;
 

@@ -71,6 +71,7 @@ public class NonRigidTools
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
+			final boolean virtualGrid,
 			final int interpolation,
 			final Interval boundingBox1,
 			final double downsampling,
@@ -110,6 +111,7 @@ public class NonRigidTools
 				displayDistances,
 				controlPointDistance,
 				alpha,
+				virtualGrid,
 				interpolation,
 				boundingBox1,
 				downsampling,
@@ -130,6 +132,7 @@ public class NonRigidTools
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
+			final boolean virtualGrid,
 			final int interpolation,
 			final Interval boundingBox,
 			final double downsampling,
@@ -158,7 +161,7 @@ public class NonRigidTools
 		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, service );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, bbDS, virtualGrid, service );
 
 		// create virtual images
 		final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
@@ -514,6 +517,7 @@ public class NonRigidTools
 			final long[] controlPointDistance,
 			final double alpha,
 			final Interval boundingBox,
+			final boolean virtual,
 			final ExecutorService service )
 	{
 		final ArrayList< Callable< Pair< ViewId, ModelGrid > > > tasks = new ArrayList<>();
@@ -537,7 +541,7 @@ public class NonRigidTools
 
 					try
 					{
-						final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips, alpha );
+						final ModelGrid grid = new ModelGrid( controlPointDistance, boundingBox, ips, alpha, virtual );
 						return new ValuePair< ViewId, ModelGrid >( viewId, grid );
 					}
 					catch ( Exception e )

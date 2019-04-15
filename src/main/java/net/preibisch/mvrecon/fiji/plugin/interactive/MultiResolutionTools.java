@@ -153,7 +153,7 @@ public class MultiResolutionTools
 
 			// compute all grids, if it does not contain a grid we use the old affine model
 			final long cpd = Math.max( 2, (long)Math.round( controlPointDistance / downsampling ) );
-			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, service );
+			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, true, service );
 
 			// create virtual images
 			final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
