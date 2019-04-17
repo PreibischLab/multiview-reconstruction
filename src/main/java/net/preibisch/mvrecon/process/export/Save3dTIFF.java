@@ -50,8 +50,9 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 {
 	public static boolean defaultUseXMLPath = true;
 	public static String defaultPath = null;
+	public static String defaultFN = "exp";
 
-	String path;
+	String path, fnAddition;
 	boolean compress;
 
 	String unit = "px";
@@ -86,7 +87,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 		String fileName;
 
 		if ( !title.endsWith( ".tif" ) )
-			fileName = new File( path, title + ".tif" ).getAbsolutePath();
+			fileName = new File( path, fnAddition + "_" + title + ".tif" ).getAbsolutePath();
 		else
 			fileName = new File( path, title ).getAbsolutePath();
 
@@ -183,6 +184,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 		}
 
 		PluginHelper.addSaveAsDirectoryField( gd, "Output_file_directory", defaultPath, 80 );
+		gd.addStringField( "Filename_addition", defaultFN );
 		gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", Resave_TIFF.defaultCompress );
 
 		gd.showDialog();
@@ -190,6 +192,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 			return false;
 
 		this.path = defaultPath = gd.getNextString().trim();
+		this.fnAddition = defaultFN = gd.getNextString();
 		this.compress = Resave_TIFF.defaultCompress = gd.getNextBoolean();
 
 		return true;
