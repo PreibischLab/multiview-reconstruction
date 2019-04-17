@@ -50,7 +50,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 {
 	public static boolean defaultUseXMLPath = true;
 	public static String defaultPath = null;
-	public static String defaultFN = "exp";
+	public static String defaultFN = "";
 
 	String path, fnAddition;
 	boolean compress;
@@ -85,11 +85,17 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	public String getFileName( final String title )
 	{
 		String fileName;
+		String add;
+
+		if ( fnAddition.length() > 0 )
+			add = fnAddition + "_";
+		else
+			add = "";
 
 		if ( !title.endsWith( ".tif" ) )
-			fileName = new File( path, fnAddition + "_" + title + ".tif" ).getAbsolutePath();
+			fileName = new File( path, add + title + ".tif" ).getAbsolutePath();
 		else
-			fileName = new File( path, title ).getAbsolutePath();
+			fileName = new File( path, add + title ).getAbsolutePath();
 
 		if ( compress )
 			return fileName + ".zip";
@@ -192,7 +198,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 			return false;
 
 		this.path = defaultPath = gd.getNextString().trim();
-		this.fnAddition = defaultFN = gd.getNextString();
+		this.fnAddition = defaultFN = gd.getNextString().trim();
 		this.compress = Resave_TIFF.defaultCompress = gd.getNextBoolean();
 
 		return true;
