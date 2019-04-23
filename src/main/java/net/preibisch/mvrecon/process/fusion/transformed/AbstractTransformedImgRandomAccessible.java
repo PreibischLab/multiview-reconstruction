@@ -25,4 +25,9 @@ public abstract class AbstractTransformedImgRandomAccessible< T extends RealType
 		this.hasMinValue = hasMinValue;
 		this.minValue = minValue;
 	}
+
+	public RandomAccessibleInterval< T > getSource()
+	{
+		return img;
+	}
 }
