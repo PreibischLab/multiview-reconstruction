@@ -68,4 +68,9 @@ public class TransformedInputRandomAccessible< T extends RealType< T > > extends
 		else
 			return new TransformedInputRandomAccess< T >( img, transform, interpolatorFactory, hasMinValue, minValue, outsideValue, boundingBoxOffset );
 	}
+
+	public AffineTransform3D getTransform()
+	{
+		return transform;
+	}
 }
