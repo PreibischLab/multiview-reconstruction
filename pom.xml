@@ -103,6 +103,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<!-- NB: Deploy releases to the ImageJ Maven repository. -->
 		<releaseProfiles>deploy-to-imagej</releaseProfiles>
+
+		<!-- HACK: Use Java 11 so that we can depend on openjfx. -->
+		<scijava.jvm.build.version>11</scijava.jvm.build.version>
+		<enforcer.skip>true</enforcer.skip>
 	</properties>
 
 	<repositories>
@@ -245,6 +249,18 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>
+		</dependency>
+
+		<!-- NB: Needed for OpenJDK. -->
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>11.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-swing</artifactId>
+			<version>11.0.2</version>
 		</dependency>
 	</dependencies>
 
