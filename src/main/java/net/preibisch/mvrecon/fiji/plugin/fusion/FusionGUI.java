@@ -42,6 +42,7 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
+
 import net.imglib2.Interval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -53,6 +54,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.export.TileByTileFusion;
 import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
 import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
 import net.preibisch.mvrecon.process.export.ImgExport;
@@ -115,6 +117,7 @@ public class FusionGUI implements FusionExportInterface
 	{
 		IOFunctions.printIJLog = true;
 
+		staticImgExportAlgorithms.add( new TileByTileFusion() );
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
 		staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
