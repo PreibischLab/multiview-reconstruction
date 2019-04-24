@@ -29,7 +29,7 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.fusion.transformed.fusion.FusedRandomAccessibleInterval;
 
 public class FusedNonZeroRandomAccessibleInterval extends FusedRandomAccessibleInterval
 {

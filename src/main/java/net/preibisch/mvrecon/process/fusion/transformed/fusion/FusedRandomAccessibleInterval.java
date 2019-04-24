@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.transformed;
+package net.preibisch.mvrecon.process.fusion.transformed.fusion;
 
 import java.util.List;
 

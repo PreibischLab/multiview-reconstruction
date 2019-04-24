@@ -27,7 +27,7 @@ import java.util.List;
 import net.imglib2.RandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.RealSum;
-import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccess;
+import net.preibisch.mvrecon.process.fusion.transformed.fusion.FusedRandomAccess;
 
 public class FusedNonZeroRandomAccess extends FusedRandomAccess
 {

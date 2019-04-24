@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.transformed;
+package net.preibisch.mvrecon.process.fusion.transformed.fusion;
 
 import java.util.List;
 
@@ -31,54 +31,71 @@ import net.imglib2.RandomAccessible;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implements RandomAccess< FloatType >
+public class FusedRandomAccess extends AbstractLocalizableInt implements RandomAccess< FloatType >
 {
 	final List< ? extends RandomAccessible< FloatType > > images;
+	final List< ? extends RandomAccessible< FloatType > > weights;
 
-	final int numImages;
-	final RandomAccess< ? extends RealType< ? > >[] i;
+	final protected int numImages;
+	final protected RandomAccess< ? extends RealType< ? > >[] i, w;
 
-	final FloatType value = new FloatType();
+	final protected FloatType value = new FloatType();
 
-	public FusedRandomAccessNoWeights(
+	public FusedRandomAccess(
 			final int n,
-			final List< ? extends RandomAccessible< FloatType > > images )
+			final List< ? extends RandomAccessible< FloatType > > images,
+			final List< ? extends RandomAccessible< FloatType > > weights )
 	{
 		super( n );
 
 		this.images = images;
+		this.weights = weights;
 
 		this.numImages = images.size();
 
 		this.i = new RandomAccess[ numImages ];
+		this.w = new RandomAccess[ numImages ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			this.i[ j ] = images.get( j ).randomAccess();
+			this.w[ j ] = weights.get( j ).randomAccess();
+		}
 	}
 
 	@Override
 	public FloatType get()
 	{
 		double sumI = 0;
+		double sumW = 0;
 
 		for ( int j = 0; j < numImages; ++j )
-			sumI +=  i[ j ].get().getRealDouble();
+		{
+			final double weight = w[ j ].get().getRealDouble();
+			final double intensity = i[ j ].get().getRealDouble();
 
-		value.set( (float) sumI );
+			sumI += intensity * weight;
+			sumW += weight;
+		}
+
+		if ( sumW > 0 )
+			value.set( (float)( sumI / sumW ) );
+		else
+			value.set(  0 );
 
 		return value;
 	}
 
 	@Override
-	public FusedRandomAccessNoWeights copy()
+	public FusedRandomAccess copy()
 	{
 		return copyRandomAccess();
 	}
 
 	@Override
-	public FusedRandomAccessNoWeights copyRandomAccess()
+	public FusedRandomAccess copyRandomAccess()
 	{
-		final FusedRandomAccessNoWeights r = new FusedRandomAccessNoWeights( n, images );
+		final FusedRandomAccess r = new FusedRandomAccess( n, images, weights );
 		r.setPosition( this );
 		return r;
 	}
@@ -89,7 +106,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		++position[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].fwd( d );
+			w[ j ].fwd( d );
+		}
 	}
 
 	@Override
@@ -98,7 +118,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		--position[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].bck( d );
+			w[ j ].bck( d );
+		}
 	}
 
 	@Override
@@ -107,7 +130,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		position[ d ] += distance;
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].move( distance, d );
+			w[ j ].move( distance, d );
+		}
 	}
 
 	@Override
@@ -116,7 +142,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		position[ d ] += distance;
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].move( distance, d );
+			w[ j ].move( distance, d );
+		}
 	}
 
 	@Override
@@ -126,7 +155,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 			position[ d ] += localizable.getIntPosition( d );
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].move( localizable );
+			w[ j ].move( localizable );
+		}
 	}
 
 	@Override
@@ -136,7 +168,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 			position[ d ] += distance[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].move( distance );
+			w[ j ].move( distance );
+		}
 	}
 
 	@Override
@@ -146,7 +181,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 			position[ d ] += distance[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].move( distance );
+			w[ j ].move( distance );
+		}
 	}
 
 	@Override
@@ -155,7 +193,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		localizable.localize( position );
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].setPosition( localizable );
+			w[ j ].setPosition( localizable );
+		}
 	}
 
 	@Override
@@ -165,7 +206,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 			position[ d ] = pos[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].setPosition( pos );
+			w[ j ].setPosition( pos );
+		}
 	}
 
 	@Override
@@ -175,7 +219,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 			position[ d ] = ( int ) pos[ d ];
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].setPosition( pos );
+			w[ j ].setPosition( pos );
+		}
 	}
 
 	@Override
@@ -184,7 +231,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		position[ d ] = pos;
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].setPosition( pos, d );
+			w[ j ].setPosition( pos, d );
+		}
 	}
 
 	@Override
@@ -193,6 +243,10 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 		position[ d ] = ( int ) pos;
 
 		for ( int j = 0; j < numImages; ++j )
+		{
 			i[ j ].setPosition( pos, d );
+			w[ j ].setPosition( pos, d );
+		}
 	}
+
 }
