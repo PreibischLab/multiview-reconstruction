@@ -36,7 +36,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedImgRandomAccess;
+import net.preibisch.mvrecon.process.fusion.transformed.images.AbstractTransformedImgRandomAccess;
 
 /**
  * Virtually transforms any RandomAccessibleInterval&lt;RealType&gt; into a RandomAccess&lt;FloatType&gt; using an AffineTransformation

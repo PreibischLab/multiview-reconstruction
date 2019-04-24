@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.transformed;
+package net.preibisch.mvrecon.process.fusion.transformed.images;
 
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccess;

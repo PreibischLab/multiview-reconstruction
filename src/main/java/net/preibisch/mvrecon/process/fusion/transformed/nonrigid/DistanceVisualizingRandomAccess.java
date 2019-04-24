@@ -29,7 +29,7 @@ import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
-import net.preibisch.mvrecon.process.fusion.transformed.AbstractTransformedIntervalRandomAccess;
+import net.preibisch.mvrecon.process.fusion.transformed.images.AbstractTransformedIntervalRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.NumericAffineModel3D;
 

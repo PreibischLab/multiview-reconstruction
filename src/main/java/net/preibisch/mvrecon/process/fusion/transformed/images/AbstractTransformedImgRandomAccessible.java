@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.transformed;
+package net.preibisch.mvrecon.process.fusion.transformed.images;
 
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;

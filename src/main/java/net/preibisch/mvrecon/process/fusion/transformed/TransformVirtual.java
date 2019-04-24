@@ -24,8 +24,6 @@ package net.preibisch.mvrecon.process.fusion.transformed;
 
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 
