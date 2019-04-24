@@ -57,4 +57,8 @@ public abstract class AbstractTransformedIntervalRandomAccessible implements Ran
 	{
 		return n;
 	}
+
+	public long[] offset() {
+		return boundingBoxOffset;
+	}
 }
