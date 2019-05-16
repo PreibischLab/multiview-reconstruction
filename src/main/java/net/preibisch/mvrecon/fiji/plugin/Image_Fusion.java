@@ -276,6 +276,8 @@ public class Image_Fusion implements PlugIn
 		}
 
 		exporter.finish();
+		
+		taskExecutor.shutdown();
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
