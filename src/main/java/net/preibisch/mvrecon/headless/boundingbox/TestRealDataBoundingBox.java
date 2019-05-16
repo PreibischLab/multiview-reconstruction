@@ -73,6 +73,8 @@ public class TestRealDataBoundingBox
 
 		final BoundingBox bb = estimation.estimate( "MinFilterThresholdBoundingBoxGUI" );
 
+		service.shutdown();
+
 		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, true, false, 1, bb, 2.0, null ).getA(), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
 	}
 }
