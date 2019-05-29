@@ -259,6 +259,8 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 			}
 		}
 		
+		taskExecutor.shutdown();
+		
 		return true;
 	}
 	

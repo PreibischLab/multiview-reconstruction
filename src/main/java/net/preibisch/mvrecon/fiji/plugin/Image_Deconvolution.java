@@ -89,6 +89,13 @@ public class Image_Deconvolution implements PlugIn
 		return deconvolve( spimData, views, DeconViews.createExecutorService() );
 	}
 
+	/**
+	 * 
+	 * @param spimData
+	 * @param viewList
+	 * @param service Will be shutdown.
+	 * @return
+	 */
 	public static boolean deconvolve(
 			final SpimData2 spimData,
 			final List< ViewId > viewList,

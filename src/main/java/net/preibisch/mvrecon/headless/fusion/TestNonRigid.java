@@ -140,6 +140,8 @@ public class TestNonRigid
 						downsampling,
 						null,
 						service ).getA();
+		
+		service.shutdown();
 
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImgByPlane3d( virtual, new ImagePlusImgFactory< FloatType >( new FloatType() ), service, true );
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImg( virtual, new ImagePlusImgFactory< FloatType >(), new FloatType(), service, true );
