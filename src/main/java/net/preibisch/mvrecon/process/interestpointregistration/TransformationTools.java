@@ -112,7 +112,22 @@ public class TransformationTools
 		final Scale3D scale = new Scale3D( 1.0/currentScale, 1.0/currentScale, 1.0/currentScale );
 
 		final double oldZ = currentViewerTransform.get( 2, 3 );
+/*
+ * 
+		// ignore old translation
+		currentViewerTransform.set( 0, 0, 3 );
+		currentViewerTransform.set( 0, 1, 3 );
+		currentViewerTransform.set( 0, 2, 3 );
 
+		Transform3D t = new Transform3D();
+		//t.rotX(angle);
+		//t.rotY(angle);
+		
+		//t.get(matrix);
+		//TODO Here to put connection Marwan
+		currentViewerTransform.preConcatenate( scale );
+
+ */
 		// ignore old translation
 		currentViewerTransform.set( 0, 0, 3 );
 		currentViewerTransform.set( 0, 1, 3 );
@@ -128,6 +143,7 @@ public class TransformationTools
 		currentViewerTransform.set( -com[1] + cY , 1, 3 );
 
 		// check if all selected views are 2d
+		
 		boolean allViews2D = true;
 		for (final BasicViewDescription< ? > vd : selectedViews)
 			if (vd.isPresent() && vd.getViewSetup().hasSize() && vd.getViewSetup().getSize().dimension( 2 ) != 1)
