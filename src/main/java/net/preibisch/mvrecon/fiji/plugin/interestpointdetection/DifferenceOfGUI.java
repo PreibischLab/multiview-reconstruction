@@ -668,7 +668,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 				DisplayFusedImagesPopup.defaultInterpolation,
 				bb,
 				ds,
-				null );
+				null ).getA();
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Fusing temporary image ... " );
 

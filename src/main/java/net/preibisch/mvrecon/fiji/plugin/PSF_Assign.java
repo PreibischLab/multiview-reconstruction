@@ -120,7 +120,7 @@ public class PSF_Assign implements PlugIn
 			gd1.addChoice( "Select PSF", psfTitles, psfTitles[ defaultPSF ] );
 
 			gd1.showDialog();
-			if ( gd.wasCanceled() )
+			if ( gd1.wasCanceled() )
 				return false;
 
 			final int psfChoice = defaultPSF = gd1.getNextChoiceIndex();
@@ -140,7 +140,7 @@ public class PSF_Assign implements PlugIn
 			gd1.addMessage( "Note: File dimensions must be odd, with the center of the PSF in the middle", GUIHelper.mediumstatusfont );
 
 			gd1.showDialog();
-			if ( gd.wasCanceled() )
+			if ( gd1.wasCanceled() )
 				return false;
 
 			final String fileName = gd1.getNextString();
@@ -237,12 +237,12 @@ public class PSF_Assign implements PlugIn
 			gd1.addChoice( "Source_channel", from, from[ defaultChannelFrom ] );
 			gd1.addChoice( "Target_channel", to, to[ defaultChannelTo ] );
 
-			gd.showDialog();
-			if ( gd.wasCanceled() )
+			gd1.showDialog();
+			if ( gd1.wasCanceled() )
 				return false;
 
-			final Channel source = candidateChannels.get( defaultChannelFrom =  gd.getNextChoiceIndex() );
-			final Channel target = targetChannels.get( defaultChannelTo =  gd.getNextChoiceIndex() );
+			final Channel source = candidateChannels.get( defaultChannelFrom =  gd1.getNextChoiceIndex() );
+			final Channel target = targetChannels.get( defaultChannelTo =  gd1.getNextChoiceIndex() );
 
 
 			for ( final ViewId viewId : viewIds )
@@ -337,11 +337,11 @@ public class PSF_Assign implements PlugIn
 
 			gd1.addChoice( "Source_timepoint", from, from[ defaultTimePointFrom ] );
 
-			gd.showDialog();
-			if ( gd.wasCanceled() )
+			gd1.showDialog();
+			if ( gd1.wasCanceled() )
 				return false;
 
-			final TimePoint source = candidateTimePoints.get( defaultTimePointFrom =  gd.getNextChoiceIndex() );
+			final TimePoint source = candidateTimePoints.get( defaultTimePointFrom =  gd1.getNextChoiceIndex() );
 
 			for ( final ViewId viewId : viewIds )
 			{

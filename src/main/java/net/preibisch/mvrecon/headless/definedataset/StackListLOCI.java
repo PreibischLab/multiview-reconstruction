@@ -33,6 +33,7 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.mvrecon.fiji.datasetmanager.DatasetCreationUtils;
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -67,7 +68,7 @@ public class StackListLOCI extends StackList
 		sequenceDescription.setImgLoader( imgLoader );
 
 		// get the minimal resolution of all calibrations
-		final double minResolution = Apply_Transformation.assembleAllMetaData(
+		final double minResolution = DatasetCreationUtils.minResolution(
 				sequenceDescription,
 				sequenceDescription.getViewDescriptions().values() );
 

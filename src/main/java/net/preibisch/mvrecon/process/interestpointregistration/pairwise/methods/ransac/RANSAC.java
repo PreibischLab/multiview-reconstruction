@@ -28,11 +28,10 @@ import java.util.ArrayList;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.LinkedPoint;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
-import mpicbg.pointdescriptor.LinkedPoint;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 
 /**

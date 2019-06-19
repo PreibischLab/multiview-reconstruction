@@ -57,7 +57,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 
 import bdv.BigDataViewer;
-import bdv.img.hdf5.Hdf5ImageLoader;
+import bdv.ViewerImgLoader;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.VisibilityAndGrouping;
@@ -73,7 +73,6 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.type.numeric.ARGBType;
-
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ApplyTransformationPopup;
@@ -92,6 +91,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.InterestPointsExplorer
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.LabelPopUp;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.MaxProjectPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.PointSpreadFunctionsPopup;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.QualityPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RegisterInterestPointsPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RegistrationExplorerPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.RemoveDetectionsPopup;
@@ -102,6 +102,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.Separator;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SimpleHyperlinkPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.SpecifyCalibrationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeDetectionsPopup;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeNonRigid;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -156,7 +157,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		initComponent();
 
 		if ( requestStartBDV && 
-				(Hdf5ImageLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) 
+				(ViewerImgLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) 
 				|| data.getSequenceDescription().getImgLoader().getClass().getSimpleName().equals( "FractalImgLoader" )
 				|| FileMapImgLoaderLOCI2.class.isInstance( data.getSequenceDescription().getImgLoader() ) ) )
 		{
@@ -699,11 +700,11 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 	{
 		final ArrayList< ExplorerWindowSetable > popups = new ArrayList< ExplorerWindowSetable >();
 
-		popups.add( new LabelPopUp( " Displaying" ) );
+		popups.add( new LabelPopUp( " Display/Verify" ) );
 		popups.add( new BDVPopup() );
 		popups.add( new DisplayRawImagesPopup() );
-		popups.add( new BoundingBoxPopup() );
 		popups.add( new DisplayFusedImagesPopup() );
+		popups.add( new VisualizeNonRigid() );
 		popups.add( new MaxProjectPopup() );
 		popups.add( new Separator() );
 
@@ -711,9 +712,14 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new DetectInterestPointsPopup() );
 		popups.add( new RegisterInterestPointsPopup() );
 		popups.add( new IntensityAdjustmentPopup() );
+		popups.add( new BoundingBoxPopup() );
 		popups.add( new FusionPopup() );
 		popups.add( new PointSpreadFunctionsPopup() );
 		popups.add( new DeconvolutionPopup() );
+		popups.add( new Separator() );
+
+		popups.add( new LabelPopUp( " Quality" ) );
+		popups.add( new QualityPopup() );
 		popups.add( new Separator() );
 
 		popups.add( new LabelPopUp( " Calibration/Transformations" ) );

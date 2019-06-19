@@ -135,6 +135,10 @@ public class Block extends AbstractInterval
 	public long[] getBlockSize() { return blockSize.clone(); }
 	public long[] getEffectiveSize() { return effectiveSize.clone(); }
 
+	/** WARNING: this method may never get invoked, unless the garbage collector processes this instance;
+	 *           what is likely to happen is that the native memory consumed by the {@link ExecutorService}
+	 *           is never released.
+	 *           It would be preferable to declare a "destroy()" method that does so explictly. */
 	@Override
 	public void finalize()
 	{

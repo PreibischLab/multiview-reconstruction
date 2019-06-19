@@ -35,7 +35,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
-
+import net.preibisch.mvrecon.process.fusion.transformed.weights.TransformedRasteredRandomAccessible;
 import util.RealViews;
 
 public class TransformWeight
@@ -111,7 +111,7 @@ public class TransformWeight
 
 		// the virtual weight construct
 		final RandomAccessible< FloatType > virtualBlending =
-				new TransformedRasteredRealRandomAccessible< FloatType >(
+				new TransformedRasteredRandomAccessible< FloatType >(
 					rra,
 					new FloatType(),
 					transform,

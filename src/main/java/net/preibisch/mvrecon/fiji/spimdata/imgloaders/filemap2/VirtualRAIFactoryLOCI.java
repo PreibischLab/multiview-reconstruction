@@ -26,10 +26,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
+import loci.formats.AxisGuesser;
+import loci.formats.FileStitcher;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
+import loci.formats.Memoizer;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.exception.IncompatibleTypeException;
@@ -157,22 +160,33 @@ public class VirtualRAIFactoryLOCI
 	public static void setReaderFileAndSeriesIfNecessary(final IFormatReader reader, final File file, final int series)
 	{
 
+		final boolean isFileStitcher = FileStitcher.class.isInstance( ( (Memoizer) reader).getReader() );
 		boolean haveToReadFile = false;
 		// did we setId at all?
 		haveToReadFile |= (reader.getCurrentFile() == null);
 
-		// is the reader set to the right file?
-		// we check the canonical path of the file, otherwise something /./ would lead to setId being called
-		// again even though the correct file is set already
-		if (!haveToReadFile)
-			try { haveToReadFile |= !(new File(reader.getCurrentFile()).getCanonicalPath().equals( file.getCanonicalPath() ) ); }
-			catch (IOException e) { return; }
+		// we only check whether the set file is the correct one if we have a normal reader with normal filenames
+		// FIXME: this would probably crash anyway (also for normal readers) as we setId while reader is not closed
+		//    but the way we call it, we never have to re-setID for the reader
+		// TODO: investigate
+		if (!isFileStitcher)
+		{
+			// is the reader set to the right file?
+			// we check the canonical path of the file, otherwise something /./ would lead to setId being called
+			// again even though the correct file is set already
+			if (!haveToReadFile)
+				try { haveToReadFile |= !(new File(reader.getCurrentFile()).getCanonicalPath().equals( file.getCanonicalPath() ) ); }
+				catch (IOException e) { return; }
+		}
 
 		if (haveToReadFile)
 		{
 			try
 			{
 				reader.setId( file.getAbsolutePath() );
+
+				if ( isFileStitcher )
+					( (FileStitcher) ( (Memoizer) reader).getReader() ).setAxisTypes( new int[] {AxisGuesser.Z_AXIS} );
 			}
 			catch ( FormatException | IOException e )
 			{
@@ -197,6 +211,14 @@ public class VirtualRAIFactoryLOCI
 	 */
 	public static boolean checkReaderFileAndSeries(final IFormatReader reader, final File file, final int series)
 	{
+		// if we have a fileStitcher, do not check the actual file name
+		final boolean isFileStitcher = FileStitcher.class.isInstance( ( (Memoizer) reader).getReader() );
+		if (isFileStitcher)
+			if (reader.getCurrentFile() == null)
+				return false;
+			else
+				return reader.getSeries() == series;
+
 		if (reader.getCurrentFile() == null || !reader.getCurrentFile().equals( file.getAbsolutePath() ))
 			return false;
 		else

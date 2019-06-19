@@ -34,7 +34,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.io.Files;
+
 import ij.IJ;
+import loci.formats.AxisGuesser;
+import loci.formats.FileStitcher;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
@@ -78,13 +82,26 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	private HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
 	private AbstractSequenceDescription< ?, ?, ? > sd;
 	private boolean allTimepointsInSingleFiles;
+	private boolean zGrouped;
+	private File tempDir;
 
 	public LegacyFileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final ImgFactory< ? extends NativeType< ? > > imgFactory,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription )
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
+	{
+		this(fileMap, imgFactory, sequenceDescription, false);
+	}
+	
+	public LegacyFileMapImgLoaderLOCI(
+			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
+			final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
+			final boolean zGrouped)
 	{
 		super();
+
+		this.tempDir = Files.createTempDir();
 
 		this.fileMap = new HashMap<>();
 		this.fileMap.putAll( fileMap );
@@ -94,6 +111,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		setImgFactory( imgFactory );
 
 		allTimepointsInSingleFiles = true;
+		this.zGrouped = zGrouped;
 		
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
@@ -190,8 +208,21 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 		// use Memoizer to cache ReaderState for each File on disk
 		// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
-		IFormatReader reader = new Memoizer( new ImageReader() );
+		IFormatReader reader = null;
+		if (zGrouped)
+		{
+			final FileStitcher fs = new FileStitcher(true);
+			fs.setCanChangePattern( false );
+			reader = new Memoizer( fs , Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+		}
+		else
+		{
+			reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+		}
+
 		reader.setId( fileForVId.getAbsolutePath() );
+		if (zGrouped)
+			( (FileStitcher) ( (Memoizer) reader).getReader() ).setAxisTypes( new int[] {AxisGuesser.Z_AXIS} );
 		reader.setSeries( fileMap.get( view ).getB().getA() );
 
 		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
@@ -210,11 +241,13 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		for ( int d = 0; d < vs.getSize().numDimensions(); ++d )
 			dim[d] = (int) vs.getSize().dimension( d );
 
-		final Img< T > img = imgFactory.imgFactory( type ).create( dim, type );
+		final Img< T > img = imgFactory.imgFactory( type ).create( dim );
 
 		if ( img == null )
+		{
+			try { reader.close(); } catch (IOException e1) { e1.printStackTrace(); }
 			throw new RuntimeException( "Could not instantiate " + getImgFactory().getClass().getSimpleName() + " for '" + file + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ", most likely out of memory." );
-
+		}
 		final boolean isLittleEndian = reader.isLittleEndian();
 		final boolean isArray = ArrayImg.class.isInstance( img );
 		final int pixelType = reader.getPixelType();
@@ -302,6 +335,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			return null;
 		}
 
+		try { reader.close(); } catch (IOException e1) { e1.printStackTrace(); }
 		return img;
 	}
 	
@@ -412,10 +446,11 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	 * (use this to fix "the BioFormats bug")
 	 * @param spimData the SpimData to correct
 	 * @param loader the imgLoader to use
+	 * @param filesArePatterns whether file names contain patterns and should be grouped when opening
 	 * @param <T> pixel type
 	 * @param <IL> ImgLoader type
 	 */
-	public static <T extends RealType< T > & NativeType< T >, IL extends ImgLoader & FileMapGettable > void checkAndRemoveZeroVolume(final SpimData2 spimData, final IL loader)
+	public static <T extends RealType< T > & NativeType< T >, IL extends ImgLoader & FileMapGettable > void checkAndRemoveZeroVolume(final SpimData2 spimData, final IL loader, boolean filesArePatterns)
 	{
 		// collect vds for every (file, series) combo
 		final Map< Pair< File, Integer >, List< BasicViewDescription< ViewSetup > > > invertedMap = new HashMap<>();
@@ -438,7 +473,10 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			invertedMap.get( invKey ).add( vd );
 		});
 
-		final ImageReader reader = new ImageReader();
+		// use an FileStitcher if we have grouped files (single z-planes per file)
+		final IFormatReader reader = filesArePatterns ? new FileStitcher( true ) : new ImageReader();
+		if (filesArePatterns)
+			( (FileStitcher) reader ).setCanChangePattern( false );
 
 		// collect corrected dimensions
 		final Map< Pair< File, Integer >, Dimensions > dimensionMap = new HashMap<>();
@@ -452,7 +490,14 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 
 			if (reader.getCurrentFile() == null || !reader.getCurrentFile().equals( e.getKey().getA().getAbsolutePath() ))
 			{
-				try { reader.setId( e.getKey().getA().getAbsolutePath() ); }
+				try 
+				{ 
+					reader.setId( e.getKey().getA().getAbsolutePath() );
+
+					// make sure grouped axis is interpreted as z
+					if (filesArePatterns)
+						( (FileStitcher)  reader).setAxisTypes( new int[] {AxisGuesser.Z_AXIS} );
+				}
 				catch ( FormatException | IOException e1 ) { e1.printStackTrace(); }
 			}
 			reader.setSeries( e.getKey().getB() );
@@ -472,6 +517,20 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			});
 		});
 
+		try
+		{
+			reader.close();
+		}
+		catch ( IOException e1 )
+		{
+			e1.printStackTrace();
+		}
+
+	}
+	
+	public static <T extends RealType< T > & NativeType< T >, IL extends ImgLoader & FileMapGettable > void checkAndRemoveZeroVolume(final SpimData2 spimData, final IL loader)
+	{
+		checkAndRemoveZeroVolume( spimData, loader, false );
 	}
 
 	/**

@@ -67,6 +67,7 @@ public class GUIHelper
 	public static Font largestatusfont = new Font( Font.SANS_SERIF, Font.BOLD + Font.ITALIC, 14 );
 	public static Font largefont = new Font( Font.SANS_SERIF, Font.BOLD, 14 );
 	public static Font mediumstatusfont = new Font( Font.SANS_SERIF, Font.BOLD + Font.ITALIC, 12 );
+	public static Font mediumstatusNonItalicfont = new Font( Font.SANS_SERIF, Font.BOLD, 12 );
 	public static Font headline = new Font( Font.SANS_SERIF, Font.BOLD, 12 );
 	public static Font smallStatusFont = new Font( Font.SANS_SERIF, Font.ITALIC, 11 );
 
@@ -166,7 +167,12 @@ public class GUIHelper
 				continue;
 
 			final ViewRegistration r = vr.getViewRegistration( vd );
-			final String rName = r.getTransformList().get( 0 ).getName();
+			final String rName;
+
+			if ( r.getTransformList().size() == 0 )
+				rName = null;
+			else
+				rName = r.getTransformList().get( 0 ).getName();
 
 			if ( rName != null )
 			{

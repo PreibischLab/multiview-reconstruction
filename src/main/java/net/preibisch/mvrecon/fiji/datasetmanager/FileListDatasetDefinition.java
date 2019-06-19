@@ -51,7 +51,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -117,7 +119,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 	public static final String[] loadChoices = new String[] {"Re-save as multiresolution HDF5", "Load raw data virtually (with caching)", "Load raw data"};
-
+	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
+	
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
 	{
@@ -586,9 +589,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		final ImgLoader imgLoader;
 		if (withVirtualLoader)
-			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd );
+			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
 		else
-			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd );
+			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
 		sd.setImgLoader( imgLoader );
 
 		double minResolution = Double.MAX_VALUE;
@@ -697,8 +700,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		// summary illum
 		if ( state.getMultiplicityMap().get( Illumination.class ) == CheckResult.SINGLE )
 		{
-//			if (!state.getAmbiguousIllumChannel())
-//				inFileSummarySB.append( "<p> No illuminations detected within files </p>" );
+			//if (!state.getAmbiguousIllumChannel())
+			//	inFileSummarySB.append( "<p> No illuminations detected within files </p>" );
 			choices.add( "Illuminations" );
 		}
 		else if ( state.getMultiplicityMap().get( Illumination.class ) == CheckResult.MULTIPLE_INDEXED )
@@ -713,13 +716,11 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			int numIllum = state.getAccumulateMap( Illumination.class ).size();
 			inFileSummarySB.append( "<p style=\"color:green\">" + numIllum + " Illuminations found within files </p>" );
 		}
-		
-		//inFileSummarySB.append( "<br />" );
-		
+
 		// summary tile
 		if ( state.getMultiplicityMap().get( Tile.class ) == CheckResult.SINGLE )
 		{
-//			inFileSummarySB.append( "<p> No tiles detected within files </p>" );
+			//inFileSummarySB.append( "<p> No tiles detected within files </p>" );
 			choices.add( "Tiles" );
 		}
 		else if ( state.getMultiplicityMap().get( Tile.class ) == CheckResult.MULTIPLE_INDEXED )
@@ -745,7 +746,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		// summary angle
 		if ( state.getMultiplicityMap().get( Angle.class ) == CheckResult.SINGLE )
 		{
-//			inFileSummarySB.append( "<p> No angles detected within files </p>" );
+			//inFileSummarySB.append( "<p> No angles detected within files </p>" );
 			choices.add( "Angles" );
 		}
 		else if ( state.getMultiplicityMap().get( Angle.class ) == CheckResult.MULTIPLE_INDEXED )
@@ -782,8 +783,22 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			gd.addChoice( "BioFormats_Channels_are?", choicesChannelIllum, choicesChannelIllum[0] );
 
 
+		// We have grouped files -> detect patterns again, using only master files for group
+		// that way, we automatically ignore patterns BioFormats has already grouped
+		// e.g. MicroManager _MMSTack_Pos{?}.ome.tif -> positions are treated as series by BF
+		// we have to keep the old pattern detector (for all files) -> it will be used for final view assignment
+		FilenamePatternDetector patternDetectorOld = null;
+		if (state.getGroupedFormat() )
+		{
+			patternDetectorOld = patternDetector;
+			patternDetector = new NumericalFilenamePatternDetector();
+			// detect in all unique master files in groupUsageMap := actual file -> (master file, series)
+			patternDetector.detectPatterns( state.getGroupUsageMap().values().stream().map( p -> p.getA() ).collect( Collectors.toSet() ).stream().collect( Collectors.toList() ) );
+			numVariables = patternDetector.getNumVariables();
+		}
+
 		if (numVariables >= 1)
-//			sbfilePatterns.append( "<p> No numerical patterns found in filenames</p>" );
+//		sbfilePatterns.append( "<p> No numerical patterns found in filenames</p>" );
 //		else
 		{
 			final Pair< String, String > prefixAndPattern = splitIntoPrefixAndPattern( patternDetector );
@@ -799,6 +814,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		//gd.addMessage( sbfilePatterns.toString() );
 
 		choices.add( "-- ignore this pattern --" );
+		choices.add( Z_VARIABLE_CHOICE );
 		String[] choicesAll = choices.toArray( new String[]{} );
 
 		for (int i = 0; i < numVariables; i++)
@@ -852,6 +868,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		fileVariableToUse.put( Tile.class, new ArrayList<>() );
 		fileVariableToUse.put( Angle.class, new ArrayList<>() );
 
+		final List<Integer> zVariables = new ArrayList<>();
 		for (int i = 0; i < numVariables; i++)
 		{
 			String choice = gd.getNextChoice();
@@ -865,16 +882,55 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 				fileVariableToUse.get( Tile.class ).add( i );
 			else if (choice.equals( "Angles" ))
 				fileVariableToUse.get( Angle.class ).add( i );
+			else if (choice.equals( Z_VARIABLE_CHOICE ))
+				zVariables.add( i );
 		}
-
 
 		// TODO handle Angle-Tile swap here	
 		FileListDatasetDefinitionUtil.resolveAmbiguity( state.getMultiplicityMap(), state.getAmbiguousIllumChannel(), preferChannelsOverIlluminations, state.getAmbiguousAngleTile(), !preferAnglesOverTiles );
 
+		// if we have used a grouped pattern
+		// we will still have to use the old pattern detector (containing all files) in the next step
+		// update fileVariableToUse so all grouped patterns are ignored
+		if (patternDetectorOld != null)
+		{
+			// ungrouped variables have more than one match in master files
+			final boolean[] ungroupedVariable = new boolean[patternDetectorOld.getNumVariables()];
+			final String[] variableInstances = new String[patternDetectorOld.getNumVariables()];
+			for (final File masterFile : state.getGroupUsageMap().values().stream().map( p -> p.getA() ).collect( Collectors.toSet() ).stream().collect( Collectors.toList() ))
+			{
+				final Matcher m = patternDetectorOld.getPatternAsRegex().matcher( masterFile.getAbsolutePath() );
+				m.matches();
+				for (int i = 0; i<patternDetectorOld.getNumVariables(); i++)
+				{
+					final String variableInstance = m.group( i + 1 );
+					if (variableInstances[i] == null)
+						variableInstances[i] = variableInstance;
+					// we found an instance != first
+					if (!variableInstances[i].equals( variableInstance ) )
+						ungroupedVariable[i] = true;
+				}
+			}
+
+			// update fileVariablesToUse
+			// idx of pattern in grouped files -> idx in all files
+			for (final AtomicInteger oldIdx = new AtomicInteger(); oldIdx.get()<patternDetectorOld.getNumVariables(); oldIdx.incrementAndGet())
+			{
+				if (!ungroupedVariable[oldIdx.get()])
+					fileVariableToUse.forEach( (k, v) -> {
+							fileVariableToUse.put( k, v.stream().map( (idx) -> ((idx >= oldIdx.get()) ? idx + 1 : idx )).collect( Collectors.toList() ) );
+					});
+			}
+		}
+
 		FileListDatasetDefinitionUtil.expandAccumulatedViewInfos(
 				fileVariableToUse, 
-				patternDetector,
+				patternDetectorOld == null ? patternDetector : patternDetectorOld,
 				state);
+
+		// here, we concatenate Z-grouped files
+		if (zVariables.size() > 0)
+			FileListDatasetDefinitionUtil.groupZPlanes( state, patternDetector, zVariables );
 
 		// query modified calibration
 		final boolean modifyCalibration = gd.getNextBoolean();
@@ -993,7 +1049,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if (checkSize)
 			{
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Checking file sizes ... " );
-				LegacyFileMapImgLoaderLOCI.checkAndRemoveZeroVolume( data, (ImgLoader & FileMapGettable) data.getSequenceDescription().getImgLoader() );
+				LegacyFileMapImgLoaderLOCI.checkAndRemoveZeroVolume( data, (ImgLoader & FileMapGettable) data.getSequenceDescription().getImgLoader(), zVariables.size() > 0 );
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Finished." );
 			}
 		}

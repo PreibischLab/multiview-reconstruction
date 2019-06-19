@@ -49,7 +49,7 @@ public class InterestPoint extends Point implements RealLocalizable
 	{
 		super( l );
 		this.id = id;
-		this.useW = true;
+		this.useW = useW;
 	}
 
 	public int getId() { return id; }

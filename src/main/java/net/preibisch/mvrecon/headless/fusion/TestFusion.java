@@ -76,7 +76,7 @@ public class TestFusion
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling );
+		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling ).getA();
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
 
 		//

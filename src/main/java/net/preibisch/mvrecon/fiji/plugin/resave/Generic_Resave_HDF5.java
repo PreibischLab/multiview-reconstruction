@@ -342,24 +342,48 @@ public class Generic_Resave_HDF5 implements PlugIn
 		{
 			final GenericDialogPlus gd = new GenericDialogPlus( dialogTitle );
 
+			final Checkbox cManualMipmap, cSplit;
+			final TextField tfSubsampling, tfChunkSizes, tfSplitTimepoints, tfSplitSetups;
+
 			gd.addCheckbox( "manual_mipmap_setup", lastSetMipmapManual );
-			final Checkbox cManualMipmap = ( Checkbox ) gd.getCheckboxes().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				cManualMipmap = ( Checkbox ) gd.getCheckboxes().lastElement();
+			else
+				cManualMipmap = null;
+
 			gd.addStringField( "Subsampling_factors", lastSubsampling, 25 );
-			final TextField tfSubsampling = ( TextField ) gd.getStringFields().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				tfSubsampling = ( TextField ) gd.getStringFields().lastElement();
+			else
+				tfSubsampling = null;
+
 			gd.addStringField( "Hdf5_chunk_sizes", lastChunkSizes, 25 );
-			final TextField tfChunkSizes = ( TextField ) gd.getStringFields().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				tfChunkSizes = ( TextField ) gd.getStringFields().lastElement();
+			else
+				tfChunkSizes = null;
 
 			gd.addMessage( "" );
 			gd.addCheckbox( "split_hdf5", lastSplit );
-			final Checkbox cSplit = ( Checkbox ) gd.getCheckboxes().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				cSplit = ( Checkbox ) gd.getCheckboxes().lastElement();
+			else
+				cSplit = null;
+
 			gd.addNumericField( "timepoints_per_partition", lastTimepointsPerPartition, 0, 25, "" );
-			final TextField tfSplitTimepoints = ( TextField ) gd.getNumericFields().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				tfSplitTimepoints = ( TextField ) gd.getNumericFields().lastElement();
+			else
+				tfSplitTimepoints = null;
+
 			gd.addNumericField( "setups_per_partition", lastSetupsPerPartition, 0, 25, "" );
-			final TextField tfSplitSetups = ( TextField ) gd.getNumericFields().lastElement();
+			if ( !PluginHelper.isHeadless() )
+				tfSplitSetups = ( TextField ) gd.getNumericFields().lastElement();
+			else
+				tfSplitSetups = null;
+
 			if ( displayClusterProcessing )
-			{
 				gd.addNumericField( "run_only_job_number", lastJobIndex, 0, 25, "" );
-			}
 
 			gd.addMessage( "" );
 			gd.addCheckbox( "use_deflate_compression", lastDeflate );
@@ -380,61 +404,65 @@ public class Generic_Resave_HDF5 implements PlugIn
 
 			final String autoSubsampling = ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() );
 			final String autoChunkSizes = ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() );
-			gd.addDialogListener( new DialogListener()
+
+			if ( !PluginHelper.isHeadless() )
 			{
-				@Override
-				public boolean dialogItemChanged( final GenericDialog dialog, final AWTEvent e )
+				gd.addDialogListener( new DialogListener()
 				{
-					gd.getNextBoolean();
-					gd.getNextString();
-					gd.getNextString();
-					gd.getNextBoolean();
-					gd.getNextNumber();
-					gd.getNextNumber();
-					if ( displayClusterProcessing )
-						gd.getNextNumber();
-					gd.getNextBoolean();
-					if ( askForXMLPath )
+					@Override
+					public boolean dialogItemChanged( final GenericDialog dialog, final AWTEvent e )
+					{
+						gd.getNextBoolean();
 						gd.getNextString();
-					if ( !is16bit )
-						gd.getNextChoiceIndex();
-					if ( e instanceof ItemEvent && e.getID() == ItemEvent.ITEM_STATE_CHANGED && e.getSource() == cManualMipmap )
-					{
-						final boolean useManual = cManualMipmap.getState();
-						tfSubsampling.setEnabled( useManual );
-						tfChunkSizes.setEnabled( useManual );
-						if ( !useManual )
+						gd.getNextString();
+						gd.getNextBoolean();
+						gd.getNextNumber();
+						gd.getNextNumber();
+						if ( displayClusterProcessing )
+							gd.getNextNumber();
+						gd.getNextBoolean();
+						if ( askForXMLPath )
+							gd.getNextString();
+						if ( !is16bit )
+							gd.getNextChoiceIndex();
+						if ( e instanceof ItemEvent && e.getID() == ItemEvent.ITEM_STATE_CHANGED && e.getSource() == cManualMipmap )
 						{
-							tfSubsampling.setText( autoSubsampling );
-							tfChunkSizes.setText( autoChunkSizes );
+							final boolean useManual = cManualMipmap.getState();
+							tfSubsampling.setEnabled( useManual );
+							tfChunkSizes.setEnabled( useManual );
+							if ( !useManual )
+							{
+								tfSubsampling.setText( autoSubsampling );
+								tfChunkSizes.setText( autoChunkSizes );
+							}
 						}
+						else if ( e instanceof ItemEvent && e.getID() == ItemEvent.ITEM_STATE_CHANGED && e.getSource() == cSplit )
+						{
+							final boolean split = cSplit.getState();
+							tfSplitTimepoints.setEnabled( split );
+							tfSplitSetups.setEnabled( split );
+						}
+						return true;
 					}
-					else if ( e instanceof ItemEvent && e.getID() == ItemEvent.ITEM_STATE_CHANGED && e.getSource() == cSplit )
-					{
-						final boolean split = cSplit.getState();
-						tfSplitTimepoints.setEnabled( split );
-						tfSplitSetups.setEnabled( split );
-					}
-					return true;
+				} );
+
+				tfSubsampling.setEnabled( lastSetMipmapManual );
+				tfChunkSizes.setEnabled( lastSetMipmapManual );
+				if ( !lastSetMipmapManual )
+				{
+					tfSubsampling.setText( autoSubsampling );
+					tfChunkSizes.setText( autoChunkSizes );
 				}
-			} );
 
-			tfSubsampling.setEnabled( lastSetMipmapManual );
-			tfChunkSizes.setEnabled( lastSetMipmapManual );
-			if ( !lastSetMipmapManual )
-			{
-				tfSubsampling.setText( autoSubsampling );
-				tfChunkSizes.setText( autoChunkSizes );
-			}
+				tfSplitTimepoints.setEnabled( lastSplit );
+				tfSplitSetups.setEnabled( lastSplit );
 
-			tfSplitTimepoints.setEnabled( lastSplit );
-			tfSplitSetups.setEnabled( lastSplit );
-
-			if ( displayClusterProcessing )
-			{
-				cSplit.setEnabled( false );
-				tfSplitTimepoints.setEnabled( false );
-				tfSplitSetups.setEnabled( false );
+				if ( displayClusterProcessing )
+				{
+					cSplit.setEnabled( false );
+					tfSplitTimepoints.setEnabled( false );
+					tfSplitSetups.setEnabled( false );
+				}
 			}
 
 			gd.showDialog();

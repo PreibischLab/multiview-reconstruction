@@ -213,6 +213,8 @@ public class DeconvolutionGUI implements FusionExportInterface
 	protected String psiStartFile = "";
 	protected boolean preciseAvgMax = true;
 
+	protected NonRigidParametersGUI nrgui;
+
 	final protected SpimData2 spimData;
 	final List< ViewId > views;
 	final List< BoundingBox > allBoxes;
@@ -308,6 +310,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 	public boolean getAdditionalSmoothBlending() { return additionalSmoothBlending; }
 	public boolean groupTiles() { return groupTiles; }
 	public boolean groupIllums() { return groupIllums; }
+	public NonRigidParametersGUI getNonRigidParameters() { return nrgui; }
 	public PsiInitFactory getPsiInitFactory()
 	{
 		final PsiInitType psiInitType = PsiInitType.values()[ psiInit ];
@@ -331,13 +334,15 @@ public class DeconvolutionGUI implements FusionExportInterface
 			return false;
 
 		final boolean hasIntensityAdjustments = IntensityAdjustmentTools.containsAdjustments( spimData.getIntensityAdjustments(), views );
+		final boolean enableNonRigid = false; //NonRigidParametersGUI.enableNonRigid;
+		this.nrgui = new NonRigidParametersGUI( spimData, views );
 
 		final String[] choices = FusionGUI.getBoundingBoxChoices( allBoxes );
 
 		if ( defaultBB >= choices.length )
 			defaultBB = 0;
 
-		Choice boundingBoxChoice = null, inputCacheChoice = null, weightCacheChoice = null, blockChoice = null, computeOnChoice = null, splitChoice = null;
+		Choice boundingBoxChoice = null, inputCacheChoice = null, nonrigidChoice = null, weightCacheChoice = null, blockChoice = null, computeOnChoice = null, splitChoice = null;
 		TextField downsampleField = null;
 		Label label1 = null, label2 = null;
 
@@ -353,6 +358,17 @@ public class DeconvolutionGUI implements FusionExportInterface
 		if ( !PluginHelper.isHeadless() ) inputCacheChoice = (Choice)gd.getChoices().lastElement();
 		gd.addChoice( "Weight image(s)", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultWeightCacheType ] );
 		if ( !PluginHelper.isHeadless() ) weightCacheChoice = (Choice)gd.getChoices().lastElement();
+
+		if ( enableNonRigid )
+		{
+			this.nrgui.addQuery( gd );
+			nonrigidChoice = (Choice)gd.getChoices().lastElement();
+		}
+		else
+		{
+			this.nrgui.isActive = false;
+			nonrigidChoice = null;
+		}
 
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities", defaultAdjustIntensities );
@@ -394,6 +410,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 					boundingBoxChoice,
 					downsampleField,
 					inputCacheChoice,
+					nonrigidChoice,
 					weightCacheChoice,
 					blockChoice,
 					computeOnChoice,

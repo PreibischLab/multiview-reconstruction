@@ -125,6 +125,7 @@ public class PointSpreadFunction
 
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, false, file, 0, 1 );
 		final boolean success = new FileSaver( imp ).saveAsTiffStack( new File( dir, file ).toString() );
+		imp.close();
 
 		if ( success )
 			modified = false;

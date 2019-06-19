@@ -102,7 +102,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 		// fuse the dataset
 		Img< FloatType > img =
 				FusionTools.copyImgNoTranslation(
-						FusionTools.fuseVirtual( spimData, views, true, false, 1, maxBB, downsampling, null ),
+						FusionTools.fuseVirtual( spimData, views, true, false, 1, maxBB, downsampling, null ).getA(),
 						new ArrayImgFactory<>(),
 						new FloatType(),
 						service );
@@ -258,6 +258,8 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 				return false;
 			}
 		}
+		
+		taskExecutor.shutdown();
 		
 		return true;
 	}

@@ -46,7 +46,7 @@ public class DeconViews
 		this.views = new ArrayList<>();
 		this.views.addAll( input );
 
-		this.service = FFTConvolution.createExecutorService( Threads.numThreads() );
+		this.service = service;
 
 		if ( ThreadPoolExecutor.class.isInstance( service ) )
 			this.numThreads = ((ThreadPoolExecutor)service).getMaximumPoolSize();

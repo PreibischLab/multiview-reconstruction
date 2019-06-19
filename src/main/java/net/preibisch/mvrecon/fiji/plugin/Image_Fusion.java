@@ -22,17 +22,20 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
+
+import ij.IJ;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.registration.ViewRegistration;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,6 +45,8 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -49,13 +54,19 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.process.export.Calibrateable;
+import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 /**
@@ -124,31 +135,77 @@ public class Image_Fusion implements PlugIn
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Fusing group " + (++i) + "/" + groups.size() + " (group=" + group + ")" );
 
-			for ( final ViewDescription vd : group )
-				System.out.println( Group.pvid( vd ) );
+			final Pair< Double, String > transformedCal = TransformationTools.computeAverageCalibration( group, spimData.getViewRegistrations() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of fused image (without downsampling): " + transformedCal.getA() + " " + transformedCal.getB() );
+
+			if ( Calibrateable.class.isInstance( exporter ) )
+				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );
+
+			final ArrayList< ViewId > viewsToUse;
+
+			if ( fusion.getNonRigidParameters().isActive() )
+			{
+				viewsToUse = NonRigidTools.assembleViewsToUse( spimData, group.getViews(), fusion.getNonRigidParameters().nonRigidAcrossTime() );
+
+				if ( viewsToUse == null )
+					return false;
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Non-Rigid Views being used for current group" );
+
+				for ( final ViewId v : viewsToUse )
+					IOFunctions.println( "\t" + Group.pvid( v ) );
+			}
+			else
+			{
+				viewsToUse = null;
+			}
+
 			final Interval boundingBox = fusion.getBoundingBox();
 
 			final RandomAccessibleInterval< FloatType > virtual;
 
 			if ( Double.isNaN( fusion.getAnisotropyFactor() ) ) // no flattening of the fused image
 			{
-				virtual = FusionTools.fuseVirtual(
-					spimData,
-					group.getViews(),
-					fusion.useBlending(),
-					fusion.useContentBased(),
-					fusion.getInterpolation(),
-					boundingBox,
-					fusion.getDownsampling(),
-					fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				if ( fusion.getNonRigidParameters().isActive() )
+				{
+					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
+									spimData,
+									group.getViews(),
+									viewsToUse,
+									fusion.getNonRigidParameters().getLabels(),
+									fusion.useBlending(),
+									fusion.useContentBased(),
+									fusion.getNonRigidParameters().showDistanceMap(),
+									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+									fusion.getNonRigidParameters().getAlpha(),
+									false,
+									fusion.getInterpolation(),
+									boundingBox,
+									fusion.getDownsampling(),
+									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+									taskExecutor ).getA();
+				}
+				else
+				{
+					virtual = FusionTools.fuseVirtual(
+						spimData,
+						group.getViews(),
+						fusion.useBlending(),
+						fusion.useContentBased(),
+						fusion.getInterpolation(),
+						boundingBox,
+						fusion.getDownsampling(),
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
+				}
 			}
 			else
 			{
-				final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
-
+				// update the transformations
 				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
-				for ( final ViewId viewId : group.getViews() )
+				// get updated registration for views to fuse AND all other views that may influence the fusion
+				for ( final ViewId viewId : fusion.getNonRigidParameters().isActive() ? 
+						Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) : group.getViews() )
 				{
 					final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 					vr.updateModel();
@@ -162,19 +219,42 @@ public class Image_Fusion implements PlugIn
 					registrations.put( viewId, model );
 				}
 
-				final Map< ViewId, ViewDescription > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
-
-				virtual = FusionTools.fuseVirtual(
-						imgLoader,
-						registrations,
-						viewDescriptions,
-						group.getViews(),
-						fusion.useBlending(),
-						fusion.useContentBased(),
-						fusion.getInterpolation(),
-						boundingBox,
-						fusion.getDownsampling(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				if ( fusion.getNonRigidParameters().isActive() )
+				{
+					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
+									spimData.getSequenceDescription().getImgLoader(),
+									registrations,
+									spimData.getViewInterestPoints().getViewInterestPoints(),
+									spimData.getSequenceDescription().getViewDescriptions(),
+									group.getViews(),
+									viewsToUse,
+									fusion.getNonRigidParameters().getLabels(),
+									fusion.useBlending(),
+									fusion.useContentBased(),
+									fusion.getNonRigidParameters().showDistanceMap(),
+									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+									fusion.getNonRigidParameters().getAlpha(),
+									false,
+									fusion.getInterpolation(),
+									boundingBox,
+									fusion.getDownsampling(),
+									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+									taskExecutor ).getA();
+				}
+				else
+				{
+					virtual = FusionTools.fuseVirtual(
+							spimData.getSequenceDescription().getImgLoader(),
+							registrations,
+							spimData.getSequenceDescription().getViewDescriptions(),
+							group.getViews(),
+							fusion.useBlending(),
+							fusion.useContentBased(),
+							fusion.getInterpolation(),
+							boundingBox,
+							fusion.getDownsampling(),
+							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
+				}
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit
@@ -196,6 +276,8 @@ public class Image_Fusion implements PlugIn
 		}
 
 		exporter.finish();
+		
+		taskExecutor.shutdown();
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
@@ -229,14 +311,32 @@ public class Image_Fusion implements PlugIn
 			final Group< ViewDescription > group,
 			final double[] minmax )
 	{
-		final RandomAccessibleInterval< T > processedOutput;
+		RandomAccessibleInterval< T > processedOutput = null;
 
 		if ( fusion.getCacheType() == 0 ) // Virtual
 			processedOutput = output;
 		else if ( fusion.getCacheType() == 1 ) // Cached
 			processedOutput = FusionTools.cacheRandomAccessibleInterval( output, FusionGUI.maxCacheSize, type, FusionGUI.cellDim );
 		else // Precomputed
-			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
+		{
+			if ( FloatType.class.isInstance( type ) )
+			{
+				//IJ.log( "fast float" );
+				processedOutput = (RandomAccessibleInterval)ImagePlusAdapter.wrapFloat( DisplayImage.getImagePlusInstance( output, false, "Fused", 0, 255, taskExecutor ) );
+			}
+			else if ( UnsignedShortType.class.isInstance( type ) )
+			{
+				//IJ.log( "fast short" );
+				processedOutput = (RandomAccessibleInterval)ImagePlusAdapter.wrapShort( DisplayImage.getImagePlusInstance( output, false, "Fused", 0, 255, taskExecutor ) );
+			}
+
+			if ( processedOutput == null )
+			{
+				IOFunctions.println( "WARNING: fall-back to slower fusion." );
+				processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
+			}
+		}
+			
 
 		final String title = getTitle( fusion.getSplittingType(), group );
 

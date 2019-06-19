@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.export;
 
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
@@ -39,9 +40,12 @@ import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
-public class DisplayImage implements ImgExport
+public class DisplayImage implements ImgExport, Calibrateable
 {
 	final boolean virtualDisplay;
+
+	String unit = "px";
+	double cal = 1.0;
 
 	public DisplayImage() { this( true ); }
 	public DisplayImage( final boolean virtualDisplay ) { this.virtualDisplay = virtualDisplay; }
@@ -89,7 +93,7 @@ public class DisplayImage implements ImgExport
 
 		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minmax[ 0 ], minmax[ 1 ] );
 
-		setCalibration( imp, bb, downsampling, anisoF );
+		setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 
 		imp.updateAndDraw();
 		imp.show();
@@ -97,19 +101,21 @@ public class DisplayImage implements ImgExport
 		return true;
 	}
 
-	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling, final double anisoF )
+	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling, final double anisoF, final double cal, final String unit )
 	{
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
 		final double ai = Double.isNaN( anisoF ) ? 1.0 : anisoF;
 
 		if ( bb != null )
 		{
-			imp.getCalibration().xOrigin = -(bb.min( 0 ) / ds);
-			imp.getCalibration().yOrigin = -(bb.min( 1 ) / ds);
-			imp.getCalibration().zOrigin = -(bb.min( 2 ) / ds);
-			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = ds;
-			imp.getCalibration().pixelDepth = ds * ai;
+			imp.getCalibration().xOrigin = -(bb.min( 0 ) / ds) * cal;
+			imp.getCalibration().yOrigin = -(bb.min( 1 ) / ds) * cal;
+			imp.getCalibration().zOrigin = -(bb.min( 2 ) / ds) * cal;
+			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = ds * cal;
+			imp.getCalibration().pixelDepth = ds * ai * cal;
 		}
+
+		imp.getCalibration().setUnit( unit );
 	}
 
 	public static < T extends RealType< T > > double[] getFusionMinMax(
@@ -137,13 +143,29 @@ public class DisplayImage implements ImgExport
 		return minmax;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
 			final RandomAccessibleInterval< T > img,
 			final boolean virtualDisplay,
 			final String title,
 			final double min,
 			final double max )
+	{
+		final ExecutorService service = DeconViews.createExecutorService();
+		try {
+			return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
+		} finally {
+			service.shutdown();
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final RandomAccessibleInterval< T > img,
+			final boolean virtualDisplay,
+			final String title,
+			final double min,
+			final double max,
+			final ExecutorService service )
 	{
 		ImagePlus imp = null;
 
@@ -153,9 +175,9 @@ public class DisplayImage implements ImgExport
 		if ( imp == null )
 		{
 			if ( virtualDisplay )
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() );
+				imp = ImageJFunctions.wrap( img, title, service );
 			else
-				imp = ImageJFunctions.wrap( img, title, DeconViews.createExecutorService() ).duplicate();
+				imp = ImageJFunctions.wrap( img, title, service ).duplicate();
 		}
 
 		final double[] minmax = getFusionMinMax( img, min, max );
@@ -182,4 +204,17 @@ public class DisplayImage implements ImgExport
 		// this spimdata object was not modified
 		return false;
 	}
+
+	@Override
+	public void setCalibration( final double pixelSize, final String unit )
+	{
+		this.cal = pixelSize;
+		this.unit = unit;
+	}
+
+	@Override
+	public String getUnit() { return unit; }
+
+	@Override
+	public double getPixelSize() { return cal; }
 }

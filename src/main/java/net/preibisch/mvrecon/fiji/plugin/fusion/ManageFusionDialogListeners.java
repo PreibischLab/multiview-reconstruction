@@ -41,7 +41,7 @@ public class ManageFusionDialogListeners
 {
 	final GenericDialog gd;
 	final TextField downsampleField;
-	final Choice boundingBoxChoice, pixelTypeChoice, cachingChoice, splitChoice;
+	final Choice boundingBoxChoice, pixelTypeChoice, cachingChoice, nonRigidChoice, splitChoice;
 	final Checkbox contentbasedCheckbox, anisoCheckbox;
 	final Label label1;
 	final Label label2;
@@ -55,6 +55,7 @@ public class ManageFusionDialogListeners
 			final TextField downsampleField,
 			final Choice pixelTypeChoice,
 			final Choice cachingChoice,
+			final Choice nonRigidChoice,
 			final Checkbox contentbasedCheckbox,
 			final Checkbox anisoCheckbox,
 			final Choice splitChoice,
@@ -67,6 +68,7 @@ public class ManageFusionDialogListeners
 		this.downsampleField = downsampleField;
 		this.pixelTypeChoice = pixelTypeChoice;
 		this.cachingChoice = cachingChoice;
+		this.nonRigidChoice = nonRigidChoice;
 		this.contentbasedCheckbox = contentbasedCheckbox;
 		this.anisoCheckbox = anisoCheckbox;
 		this.splitChoice = splitChoice;
@@ -86,6 +88,10 @@ public class ManageFusionDialogListeners
 		this.cachingChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
 
+		if ( this.nonRigidChoice != null )
+			this.nonRigidChoice.addItemListener( new ItemListener() { @Override
+				public void itemStateChanged(ItemEvent e) { update(); } });
+
 		this.splitChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
 
@@ -94,17 +100,12 @@ public class ManageFusionDialogListeners
 
 		if ( this.anisoCheckbox != null )
 		{
-			System.out.println( "Add" );
 			this.anisoF = fusion.getAnisotropyFactor();
 			this.anisoCheckbox.addItemListener( new ItemListener() { @Override
 				public void itemStateChanged(ItemEvent e) { update(); } });
 		}
-		else
-		{
-			System.out.println( "null" );
-		}
-}
-	
+	}
+
 	public void update()
 	{
 		fusion.boundingBox = boundingBoxChoice.getSelectedIndex();
@@ -171,10 +172,10 @@ public class ManageFusionDialogListeners
 
 		if ( fusion.isImgLoaderVirtual() )
 		{
-			// either 50% of the RAM or 5% of the downsampled input
+			// either 90% of the RAM or size of the downsampled input
 			inputImagesMB = Math.min(
-					Runtime.getRuntime().maxMemory() / ( 1024*1024*2 ),
-					( ( ( maxNumPixelsInput / Math.round( inputDownSampling * 1024*1024 ) ) * inputBytePerPixel ) / 20 ) );
+					Math.round( Runtime.getRuntime().maxMemory() / ( 1024*1024*1.1 ) ),
+					( ( maxNumPixelsInput / Math.round( inputDownSampling * 1024*1024 ) ) * inputBytePerPixel ) );
 		}
 		else
 		{
@@ -195,6 +196,9 @@ public class ManageFusionDialogListeners
 			fusedSizeMB /= Math.max( 1, Math.round( Math.pow( fusedSizeMB, 0.3 ) ) );
 		else if ( fusion.cacheType == 1 ) // Cached
 			fusedSizeMB = 2 * Math.round( fusedSizeMB / Math.max( 1, Math.pow( fusedSizeMB, 0.3 ) ) );
+
+		if ( nonRigidChoice != null && nonRigidChoice.getSelectedIndex() < nonRigidChoice.getItemCount() - 1 )
+			fusedSizeMB *= 1.5;
 
 		return inputImagesMB + processingMB + fusedSizeMB;
 	}

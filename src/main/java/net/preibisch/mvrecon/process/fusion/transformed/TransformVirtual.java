@@ -62,14 +62,24 @@ public class TransformVirtual
 	 */
 	public static Interval scaleBoundingBox( final Interval boundingBox, final double factor )
 	{
+		return scaleBoundingBox( boundingBox, factor, null );
+	}
+
+	public static Interval scaleBoundingBox( final Interval boundingBox, final double factor, final double[] offset )
+	{
 		final int n = boundingBox.numDimensions();
 		final long[] min = new long[ n ];
 		final long[] max = new long[ n ];
 
 		for ( int d = 0; d < min.length; ++ d )
 		{
-			min[ d ] = Math.round( boundingBox.min( d ) * factor );
+			final double minValue = boundingBox.min( d ) * factor;
+
+			min[ d ] = Math.round( minValue );
 			max[ d ] = Math.round( boundingBox.max( d ) * factor );
+
+			if ( offset != null )
+				offset[ d ] = minValue - min[ d ];
 		}
 
 		return new FinalInterval( min, max );

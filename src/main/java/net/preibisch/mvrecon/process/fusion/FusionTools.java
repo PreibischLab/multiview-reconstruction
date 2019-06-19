@@ -57,6 +57,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
@@ -79,8 +80,10 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -93,7 +96,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInt
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformedInputRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
@@ -159,11 +161,11 @@ public class FusionTools
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
-			final List< ? extends ViewId > viewIds )
+			final Collection< ? extends ViewId > viewIds )
 	{
 		return fuseVirtual(
 				spimData,
@@ -180,11 +182,11 @@ public class FusionTools
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			double downsampling )
 	{
 		return fuseVirtual(
@@ -203,11 +205,11 @@ public class FusionTools
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final SpimData2 spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			double downsampling,
 			final boolean adjustIntensities )
 	{
@@ -227,11 +229,11 @@ public class FusionTools
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			Interval bb,
 			double downsampling )
 	{
@@ -247,11 +249,11 @@ public class FusionTools
 	 * @param downsampling - desired downsampling, Double.NaN means no downsampling
 	 * @param intensityAdjustments - the intensityadjustsments or null
 	 *
-	 * @return a virtually fused RandomAccessibleInterval
+	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
-			final List< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIds,
 			Interval bb,
 			double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
@@ -259,7 +261,7 @@ public class FusionTools
 		return fuseVirtual( spimData, viewIds, true, false, 1, bb, downsampling, intensityAdjustments );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > views,
 			final boolean useBlending,
@@ -277,7 +279,7 @@ public class FusionTools
 		{
 			final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 			vr.updateModel();
-			registrations.put( viewId, vr.getModel() );
+			registrations.put( viewId, vr.getModel().copy() );
 		}
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
@@ -285,7 +287,50 @@ public class FusionTools
 		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, downsampling, intensityAdjustments );
 	}
 
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
+	/**
+	 * 
+	 * @param boundingBox - the bounding box to scale
+	 * @param downsampling - the downsampling factor
+	 * @return a downsampled interval and the corresponding affine transform to map it to global coordinates or a copy if downsampling == Double.NaN or 1.0
+	 */
+	public static Pair< Interval, AffineTransform3D > createDownsampledBoundingBox(
+			final Interval boundingBox,
+			final double downsampling )
+	{
+		final Interval bbDS;
+		
+		if ( Double.isNaN( downsampling ) || downsampling == 1.0 )
+		{
+			bbDS = new FinalInterval( boundingBox );
+		}
+		else
+		{
+			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
+		}
+
+		// there is rounding when scaling the bounding box ...
+		final double[] offset = new double[ boundingBox.numDimensions() ];
+		final double[] translation = new double[ boundingBox.numDimensions() ];
+
+		for ( int d = 0; d < offset.length; ++d )
+			translation[ d ] = ( offset[ d ] + bbDS.min( d ) ) * downsampling;
+
+		// the virtual image is zeroMin, this transformation puts it into the global coordinate system
+		final AffineTransform3D t = new AffineTransform3D();
+		t.scale( downsampling );
+		t.translate( translation );
+
+		return new ValuePair<>( bbDS, t );
+	}
+
+	public static Interval getFusedZeroMinInterval( final Interval bbDS )
+	{
+		final long[] dim = new long[ bbDS.numDimensions() ];
+		bbDS.dimensions( dim );
+		return new FinalInterval( dim );
+	}
+
+	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final BasicImgLoader imgloader,
 			final Map< ViewId, AffineTransform3D > registrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
@@ -297,15 +342,51 @@ public class FusionTools
 			final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		final Interval bb;
 
-		if ( !Double.isNaN( downsampling ) )
-			bb = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
-		else
-			bb = boundingBox;
+		Interval bBox2d = null;
+		// go through the images and check if they are all 2-dimensional
+		boolean is_2d = false;
+		for ( final ViewId vid: views )
+		{
+			if ( viewDescriptions.get(vid).getViewSetup().hasSize() )
+				if (viewDescriptions.get(vid).getViewSetup().getSize().dimension(2) == 1)
+					is_2d = true;
+				else
+				{
+					// TODO: maybe warn that 2d images will be lost during fusion if we have a 2d/3d mixup
+					is_2d = false; // we found a non-2d image
+					break;
+				}
+		}
 
-		final long[] dim = new long[ bb.numDimensions() ];
-		bb.dimensions( dim );
+		if (is_2d)
+		{
+			// set the translational part of the registrations to 0
+			for ( AffineTransform3D transform : registrations.values())
+			{
+				// check if we have just scaling in 3d
+				boolean justScale3d = true;
+				for (int d1 = 0; d1<3; d1++)
+					for (int d2 = 0; d2<3; d2++)
+						if ((d1 > 1 || d2>1) && d1 != d2 && transform.get(d1,d2) != 0)
+							justScale3d = false;
+				if (justScale3d)
+					transform.set(0,2,3);
+				else
+					IOFunctions.println("WARNING: You are trying to fuse 2d images with 3d registrations.");
+			}
+			// create a virtual 2-d bounding box
+			long[] bbMin = new long[3];
+			long[] bbMax = new long[3];
+			boundingBox.min(bbMin);
+			boundingBox.max(bbMax);
+			bbMin[2] = bbMax[2] = 0;
+			bBox2d = new FinalInterval(bbMin, bbMax);
+		}
+
+		final Pair< Interval, AffineTransform3D > scaledBB = createDownsampledBoundingBox( is_2d ? bBox2d : boundingBox, downsampling );
+		final Interval bb = scaledBB.getA();
+		final AffineTransform3D bbTransform = scaledBB.getB();
 
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
@@ -388,7 +469,7 @@ public class FusionTools
 			}
 		}
 
-		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+		return new ValuePair<>( new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights ), bbTransform );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -506,11 +587,16 @@ public class FusionTools
 	 */
 	public static void adjustBlending( final BasicViewDescription< ? extends BasicViewSetup > vd, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
 	{
-		final double[] scale = TransformationTools.scaling( vd.getViewSetup().getSize(), transformationModel ).getA();
+		adjustBlending( vd.getViewSetup().getSize(), Group.pvid( vd ), blending, border, transformationModel );
+	}
+
+	public static void adjustBlending( final Dimensions dim, final String name, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
+	{
+		final double[] scale = TransformationTools.scaling( dim, transformationModel ).getA();
 
 		final NumberFormat f = TransformationTools.f;
 
-		System.out.println( "View " + Group.pvid( vd ) + " is currently scaled by: (" +
+		System.out.println( "View " + name + " is currently scaled by: (" +
 				f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] ) + ")" );
 
 		for ( int d = 0; d < blending.length; ++d )
@@ -740,7 +826,7 @@ public class FusionTools
 	{
 		final ExecutorService taskExecutor = Executors.newFixedThreadPool( nThreads );
 
-		execTasks( tasks, Executors.newFixedThreadPool( nThreads ), jobDescription );
+		execTasks( tasks, taskExecutor, jobDescription );
 
 		taskExecutor.shutdown();
 	}

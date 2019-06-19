@@ -52,6 +52,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 	public static final String MAPPING_FILE_TAG = "file";
 	public static final String MAPPING_SERIES_TAG = "series";
 	public static final String MAPPING_C_TAG = "channel";
+	public static final String ZGROUPED_TAG = "ZGrouped";
 
 	@Override
 	public Element toXml(FileMapImgLoaderLOCI2 imgLoader, File basePath)
@@ -61,6 +62,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 		final Element wholeElem = new Element( "ImageLoader" );
 		wholeElem.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME,
 				this.getClass().getAnnotation( ImgLoaderIo.class ).format() );
+		wholeElem.addContent( XmlHelpers.booleanElement( ZGROUPED_TAG, imgLoader.zGrouped ) );
 
 		final Element filesElement = new Element( FILES_TAG );
 
@@ -90,6 +92,8 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 	public FileMapImgLoaderLOCI2 fromXml(Element elem, File basePath,
 			AbstractSequenceDescription< ?, ?, ? > sequenceDescription)
 	{
+		final boolean zGrouped = XmlHelpers.getBoolean( elem, ZGROUPED_TAG, false );
+
 		// final File path = loadPath( elem, DIRECTORY_TAG, basePath );
 		final Element fileMapElement = elem.getChild( FILES_TAG );
 
@@ -110,7 +114,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 			fileMap.put( vd, p );
 		}
 
-		return new FileMapImgLoaderLOCI2( fileMap, null, sequenceDescription );
+		return new FileMapImgLoaderLOCI2( fileMap, null, sequenceDescription, zGrouped );
 	}
 
 }

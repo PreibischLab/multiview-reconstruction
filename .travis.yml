@@ -1,9 +1,13 @@
+dist: xenial
 language: java
-jdk: oraclejdk8
+jdk: openjdk8
 branches:
   only:
   - master
   - "/.*-[0-9]+\\..*/"
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y openjfx libopenjfx-java libopenjfx-jni
 install: true
 script: ".travis/build.sh"
 cache:

@@ -46,13 +46,17 @@ import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
-public class Save3dTIFF implements ImgExport
+public class Save3dTIFF implements ImgExport, Calibrateable
 {
 	public static boolean defaultUseXMLPath = true;
 	public static String defaultPath = null;
-	
-	String path;
+	public static String defaultFN = "";
+
+	String path, fnAddition;
 	boolean compress;
+
+	String unit = "px";
+	double cal = 1.0;
 
 	public Save3dTIFF( final String path ) { this( path, false ); }
 	public Save3dTIFF( final String path, final boolean compress )
@@ -81,11 +85,17 @@ public class Save3dTIFF implements ImgExport
 	public String getFileName( final String title )
 	{
 		String fileName;
+		String add;
+
+		if ( fnAddition.length() > 0 )
+			add = fnAddition + "_";
+		else
+			add = "";
 
 		if ( !title.endsWith( ".tif" ) )
-			fileName = new File( path, title + ".tif" ).getAbsolutePath();
+			fileName = new File( path, add + title + ".tif" ).getAbsolutePath();
 		else
-			fileName = new File( path, title ).getAbsolutePath();
+			fileName = new File( path, add + title ).getAbsolutePath();
 
 		if ( compress )
 			return fileName + ".zip";
@@ -112,7 +122,7 @@ public class Save3dTIFF implements ImgExport
 
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
 
-		DisplayImage.setCalibration( imp, bb, downsampling, anisoF );
+		DisplayImage.setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 
 		imp.updateAndDraw();
 
@@ -180,6 +190,7 @@ public class Save3dTIFF implements ImgExport
 		}
 
 		PluginHelper.addSaveAsDirectoryField( gd, "Output_file_directory", defaultPath, 80 );
+		gd.addStringField( "Filename_addition", defaultFN );
 		gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", Resave_TIFF.defaultCompress );
 
 		gd.showDialog();
@@ -187,6 +198,7 @@ public class Save3dTIFF implements ImgExport
 			return false;
 
 		this.path = defaultPath = gd.getNextString().trim();
+		this.fnAddition = defaultFN = gd.getNextString().trim();
 		this.compress = Resave_TIFF.defaultCompress = gd.getNextBoolean();
 
 		return true;
@@ -204,4 +216,17 @@ public class Save3dTIFF implements ImgExport
 		// nothing to do
 		return false;
 	}
+
+	@Override
+	public void setCalibration( final double pixelSize, final String unit )
+	{
+		this.cal = pixelSize;
+		this.unit = unit;
+	}
+
+	@Override
+	public String getUnit() { return unit; }
+
+	@Override
+	public double getPixelSize() { return cal; }
 }

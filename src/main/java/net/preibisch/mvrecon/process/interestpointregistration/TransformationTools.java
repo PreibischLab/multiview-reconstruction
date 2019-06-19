@@ -54,13 +54,13 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.RealInterval;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -68,6 +68,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.vecmath.Matrix4d;
 import net.preibisch.mvrecon.vecmath.Matrix4f;
 import net.preibisch.mvrecon.vecmath.Quat4f;
 import net.preibisch.mvrecon.vecmath.Transform3D;
@@ -156,7 +157,7 @@ public class TransformationTools
 
 		// do not move in z if we have 2d data
 		if (allViews2D)
-			currentViewerTransform.set( oldZ, 2, 3 );
+			currentViewerTransform.set( oldZ * scale.getScale( 2 ), 2, 3 );
 		else
 			currentViewerTransform.set( -com[2], 2, 3 );
 
@@ -271,6 +272,7 @@ public class TransformationTools
 	}
 
 	public static void getScaling( final Affine3D< ? > affine, final double[] scale ) { getScaling( getTransform3D( affine ), scale ); }
+
 	public static void getScaling( final AffineGet affine, final double[] scale ) { getScaling( getTransform3D( affine ), scale ); }
 
 	public static String getScaling( final Affine3D< ? > affine ) { return getScaling( getTransform3D( affine ) ); }
@@ -279,18 +281,89 @@ public class TransformationTools
 
 	public static String getScaling( final Transform3D t )
 	{
-		final Vector3d v = new Vector3d();
-		t.getScale( v );
-		return "Scaling: " + f.format( v.x ) + ", " + f.format( v.y ) + ", " + f.format( v.z );
+		final double[] scale = new double[ 3 ];
+		getScaling( t, scale );
+
+		return "Scaling: " + f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] );
 	}
 
 	public static void getScaling( final Transform3D t, double[] scale )
 	{
-		final Vector3d v = new Vector3d();
-		t.getScale( v );
-		scale[ 0 ] = v.x;
-		scale[ 1 ] = v.y;
-		scale[ 2 ] = v.z;
+		final Vector3d x = new Vector3d( 1, 0, 0 );
+		final Vector3d y = new Vector3d( 0, 1, 0 );
+		final Vector3d z = new Vector3d( 0, 0, 1 );
+
+		t.transform( x );
+		t.transform( y );
+		t.transform( z );
+
+		scale[ 0 ] = x.length();
+		scale[ 1 ] = y.length();
+		scale[ 2 ] = z.length();
+	}
+
+	public static Pair< Double, String > computeAverageCalibration(
+			final Iterable< ? extends  BasicViewDescription< ? > > group,
+			final ViewRegistrations vrs)
+	{
+		String unit = null;
+		double avgCal = 0;
+		int count = 0;
+
+		for ( final BasicViewDescription< ? > vd : group )
+		{
+			System.out.println( "\n" + Group.pvid( vd ) );
+
+			final Pair< double[], String > transformedCal = TransformationTools.computeCalibration( vd, vrs );
+
+			avgCal += transformedCal.getA()[ 0 ];
+			avgCal += transformedCal.getA()[ 1 ];
+			avgCal += transformedCal.getA()[ 2 ];
+			count += 3;
+
+			if ( unit == null )
+				unit = transformedCal.getB();
+			else if ( unit.equalsIgnoreCase( transformedCal.getB() ) )
+				unit = transformedCal.getB();
+			else
+				unit = "inconsisistent";
+
+			System.out.println( "Calibration (transformed): " + Util.printCoordinates( transformedCal.getA() ) + " " + transformedCal.getB() );
+		}
+
+		if ( count == 0 )
+			return new ValuePair<>( 1.0, "px" );
+		else
+			return new ValuePair<>( avgCal / (double)count, unit );
+	}
+	
+	public static Pair< double[], String > computeCalibration( final BasicViewDescription< ? > vd, final ViewRegistrations vrs )
+	{
+		final VoxelDimensions vs = ViewSetupUtils.getVoxelSize( vd.getViewSetup() );
+		final double[] cal, scale = new double[ 3 ];
+		final String unit;
+
+		if ( vs == null )
+		{
+			cal = new double[] { 1, 1, 1 };
+			unit = "px";
+		}
+		else
+		{
+			cal = new double[ 3 ];
+			vs.dimensions( cal );
+			unit = vs.unit();
+		}
+
+		final ViewRegistration vr = vrs.getViewRegistration( vd );
+		vr.updateModel();
+		TransformationTools.getScaling( vr.getModel(), scale );
+
+		cal[ 0 ] /= scale[ 0 ];
+		cal[ 1 ] /= scale[ 1 ];
+		cal[ 2 ] /= scale[ 2 ];
+
+		return new ValuePair<>( cal, unit );
 	}
 
 	public static Transform3D getTransform3D( final Affine3D< ? > affine )
@@ -364,6 +437,82 @@ public class TransformationTools
 		transform.set( m2 );
 
 		return transform;
+	}
+
+	public static AffineModel3D getAffineModel3D( Transform3D transform )
+	{
+		final double[] m = new double[16];
+		transform.get( m );
+
+		AffineModel3D model = new AffineModel3D();
+		model.set( m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11] );
+
+		return model;
+	}
+
+	public static RigidModel3D getRigidModel3D( Transform3D transform )
+	{
+		final double[] m = new double[16];
+		transform.get( m );
+
+		RigidModel3D model = new RigidModel3D();
+		model.set( m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11] );
+
+		return model;
+	}
+
+	public static Matrix4d getMatrix4d( final AffineModel3D model )
+	{
+		final Matrix4d matrix = new Matrix4d();
+
+		final double[] m = new double[ 12 ];
+		model.getMatrix( m );
+
+		matrix.m00 = m[ 0 ];
+		matrix.m01 = m[ 1 ];
+		matrix.m02 = m[ 2 ];
+		matrix.m03 = m[ 3 ];
+		matrix.m10 = m[ 4 ];
+		matrix.m11 = m[ 5 ];
+		matrix.m12 = m[ 6 ];
+		matrix.m13 = m[ 7 ];
+		matrix.m20 = m[ 8 ];
+		matrix.m21 = m[ 9 ];
+		matrix.m22 = m[ 10 ];
+		matrix.m23 = m[ 11 ];
+		matrix.m30 = 0;
+		matrix.m31 = 0;
+		matrix.m32 = 0;
+		matrix.m33 = 0;
+
+		return matrix;
+	}
+
+	public static Matrix4d getMatrix4d( final RigidModel3D model )
+	{
+		final Matrix4d matrix = new Matrix4d();
+
+		final double[] m = new double[ 12 ];
+		model.getMatrix( m );
+
+		matrix.m00 = m[ 0 ];
+		matrix.m01 = m[ 1 ];
+		matrix.m02 = m[ 2 ];
+		matrix.m03 = m[ 3 ];
+		matrix.m10 = m[ 4 ];
+		matrix.m11 = m[ 5 ];
+		matrix.m12 = m[ 6 ];
+		matrix.m13 = m[ 7 ];
+		matrix.m20 = m[ 8 ];
+		matrix.m21 = m[ 9 ];
+		matrix.m22 = m[ 10 ];
+		matrix.m23 = m[ 11 ];
+		matrix.m30 = 0;
+		matrix.m31 = 0;
+		matrix.m32 = 0;
+		matrix.m33 = 0;
+
+		return matrix;
 	}
 
 	public static String printAffine3D( final Affine3D< ? > model )

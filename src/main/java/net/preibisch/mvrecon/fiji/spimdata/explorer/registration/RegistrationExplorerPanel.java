@@ -152,7 +152,6 @@ public class RegistrationExplorerPanel extends JPanel
 		
 		Platform.runLater( new Runnable()
 		{
-			
 			@Override
 			public void run()
 			{
@@ -235,14 +234,18 @@ public class RegistrationExplorerPanel extends JPanel
 	
 	public void initComponent( final ViewRegistrations viewRegistrations )
 	{
-		
+
+		// NB: JavaFX Platform will startup when the first JFXPanel is created and
+		// shutdown implicitly on MVR <-> Stitcher switching (parent closes).
+		// It will not restart and therefore, the registration explorer creation will hang.
+
+		// Disable the implicit exit
+		Platform.setImplicitExit( false );
+
 		jfx = new JFXPanel();
 		initFX();
-		
 		this.add(jfx);
-		
-		
-		
+
 		/*
 		tableModel = new RegistrationTableModel( viewRegistrations, this );
 

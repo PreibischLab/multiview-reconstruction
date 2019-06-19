@@ -27,19 +27,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-import mpicbg.icp.ICP;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.TranslationModel3D;
-import mpicbg.pointdescriptor.exception.NoSuitablePointsException;
 import mpicbg.spim.io.IOFunctions;
 import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
+import net.preibisch.mvrecon.process.pointcloud.icp.ICP;
+import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;
 
 /**
  * Iterative closest point implementation

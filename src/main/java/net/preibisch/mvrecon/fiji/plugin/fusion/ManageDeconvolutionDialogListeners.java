@@ -45,7 +45,7 @@ public class ManageDeconvolutionDialogListeners
 {
 	final GenericDialog gd;
 	final TextField downsampleField;
-	final Choice boundingBoxChoice, inputCacheChoice, weightCacheChoice, blockChoice, computeOnChoice, splitChoice;
+	final Choice boundingBoxChoice, inputCacheChoice, nonRigidChoice, weightCacheChoice, blockChoice, computeOnChoice, splitChoice;
 	final Label label1;
 	final Label label2;
 	final DeconvolutionGUI decon;
@@ -57,6 +57,7 @@ public class ManageDeconvolutionDialogListeners
 			final Choice boundingBoxChoice,
 			final TextField downsampleField,
 			final Choice inputCacheChoice,
+			final Choice nonRigidChoice,
 			final Choice weightCacheChoice,
 			final Choice blockChoice,
 			final Choice computeOnChoice,
@@ -69,6 +70,7 @@ public class ManageDeconvolutionDialogListeners
 		this.boundingBoxChoice = boundingBoxChoice;
 		this.downsampleField = downsampleField;
 		this.inputCacheChoice = inputCacheChoice;
+		this.nonRigidChoice = nonRigidChoice;
 		this.weightCacheChoice = weightCacheChoice;
 		this.blockChoice = blockChoice;
 		this.computeOnChoice = computeOnChoice;
@@ -85,6 +87,10 @@ public class ManageDeconvolutionDialogListeners
 
 		this.inputCacheChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
+
+		if ( this.nonRigidChoice != null )
+			this.nonRigidChoice.addItemListener( new ItemListener() { @Override
+				public void itemStateChanged(ItemEvent e) { update(); } });
 
 		this.weightCacheChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
@@ -251,6 +257,9 @@ public class ManageDeconvolutionDialogListeners
 		// the temporary images per thread (one or two threads)
 		if ( decon.computeOnIndex == 0 || decon.computeOnIndex == 1 )
 			processingMB += blockMB * 2 * 1.5;
+
+		if ( nonRigidChoice != null && nonRigidChoice.getSelectedIndex() < nonRigidChoice.getItemCount() - 1 )
+			fusedSizeMB *= 1.5;
 
 		return inputImagesMB + processingMB + fusedSizeMB;
 	}
