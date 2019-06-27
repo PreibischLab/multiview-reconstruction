@@ -196,12 +196,21 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 					{
 						for ( final ViewId v : views )
 						{
-							DisplayImage.getImagePlusInstance(
-								spimData.getPointSpreadFunctions().getPointSpreadFunctions().get( v ).getPSFCopy(),
-								false,
-								"PSF " + Group.pvid( v ),
-								Double.NaN,
-								Double.NaN ).show();;
+							final PointSpreadFunction psf = spimData.getPointSpreadFunctions().getPointSpreadFunctions().get( v );
+
+							if ( psf == null )
+							{
+								IOFunctions.println( "No PSF assigned to view " + Group.pvid( v ) );
+							}
+							else
+							{
+								DisplayImage.getImagePlusInstance(
+									psf.getPSFCopy(),
+									false,
+									"PSF " + Group.pvid( v ),
+									Double.NaN,
+									Double.NaN ).show();
+							}
 						}
 					}
 					else

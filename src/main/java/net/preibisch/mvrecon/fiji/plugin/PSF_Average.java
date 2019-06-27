@@ -100,6 +100,9 @@ public class PSF_Average implements PlugIn
 	{
 		final Img< FloatType > avgPSF = averagePSF( spimData, viewIds );
 
+		if ( avgPSF == null )
+			return false;
+
 		if ( subtractMinProjections )
 			PSFExtraction.removeMinProjections( avgPSF );
 
@@ -148,6 +151,12 @@ public class PSF_Average implements PlugIn
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could NOT find psf for " + Group.pvid( viewId ) );
 			}
+		}
+
+		if ( psfs.isEmpty() )
+		{
+			IOFunctions.println( "No PSFs available. Stopping." );
+			return null;
 		}
 
 		final Img< FloatType > avgPSF =  PSFCombination.computeAverageImage( psfs.values(), new ArrayImgFactory< FloatType >(), true );

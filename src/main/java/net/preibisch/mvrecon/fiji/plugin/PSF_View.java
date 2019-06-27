@@ -89,9 +89,31 @@ public class PSF_View implements PlugIn
 
 	public static boolean display(
 			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewIds,
+			final Collection< ? extends ViewId > viewIdsIn,
 			final int choice )
 	{
+		final ArrayList< ViewId > viewIds = new ArrayList<>();
+
+		for ( final ViewId v : viewIdsIn )
+		{
+			final PointSpreadFunction psf = spimData.getPointSpreadFunctions().getPointSpreadFunctions().get( v );
+
+			if ( psf == null )
+				IOFunctions.println( "No PSF assigned to view " + Group.pvid( v ) );
+			else
+				viewIds.add( v );
+		}
+
+		if ( viewIds.isEmpty() )
+		{
+			IOFunctions.println( "No PSFs available. Stopping." );
+			return false;
+		}
+		else
+		{
+			IOFunctions.println( "Displaying PSFs of " + viewIds.size() + " views." );
+		}
+
 		if ( choice == 0 )
 		{
 			DisplayImage.getImagePlusInstance( PSF_Average.averagePSF( spimData, viewIds ), false, "Averaged PSF", 0, 1 ).show();
