@@ -1158,6 +1158,7 @@ public class Interest_Point_Registration implements PlugIn
 			final List< PairwiseMatch > pairs = subset.getViewPairs();
 
 			final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+			// *** @@@ NOTE @@@ *** this taskExecutor is never shutdown()
 			final ArrayList< Callable< PairwiseMatch > > tasks = new ArrayList< Callable< PairwiseMatch > >(); // your tasks
 
 			for ( final PairwiseMatch pair : pairs )

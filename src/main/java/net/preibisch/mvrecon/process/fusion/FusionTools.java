@@ -826,7 +826,7 @@ public class FusionTools
 	{
 		final ExecutorService taskExecutor = Executors.newFixedThreadPool( nThreads );
 
-		execTasks( tasks, Executors.newFixedThreadPool( nThreads ), jobDescription );
+		execTasks( tasks, taskExecutor, jobDescription );
 
 		taskExecutor.shutdown();
 	}

@@ -183,6 +183,8 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 						minDS,
 						maxDS,
 						dsInc );
+		
+		service.shutdown();
 
 		/*
 		for ( int i = 0; i < multiResNonRigid.size(); ++i )
