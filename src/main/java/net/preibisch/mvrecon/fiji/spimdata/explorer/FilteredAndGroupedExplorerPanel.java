@@ -108,7 +108,12 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		this.explorer = explorer;
 		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();
 		this.data = data;
-		this.xml = xml == null ? "" : xml.replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
+
+		// normalize the xml path
+		this.xml = xml == null ? "" : xml.replace("\\\\", "////").replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
+		// NB: a lot of path normalization problems (e.g. windows network locations not accessible) are also fixed by not normalizing
+		// therefore, if we run into problems in the future, we could also use the line below:
+		//this.xml = xml == null ? "" : xml;
 		this.io = io;
 		this.isMac = System.getProperty( "os.name" ).toLowerCase().contains( "mac" );
 		this.selectedRows = new HashSet<>();
