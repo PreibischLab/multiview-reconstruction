@@ -17,6 +17,7 @@ import bdv.img.cache.VolatileGlobalCellCache;
 import bdv.util.BdvFunctions;
 import bdv.util.MipmapTransforms;
 import bdv.util.volatiles.VolatileTypeMatcher;
+import bdv.util.volatiles.VolatileViews;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
@@ -36,19 +37,12 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
-public class N5ImgLoader implements MultiResolutionImgLoader//, ViewerImgLoader
+public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 {
 
-	// FIXME: ViewerImgLoader does not seem to work, BigStitcher BSV window just stays blank
 	private N5Reader n5 = null;
 	private final AbstractSequenceDescription<?, ?, ?> sd;
 	private final String containerPath;
-
-	/**
-	 * Its own cell cache
-	 */
-	//protected VolatileGlobalCellCache cache;
-	//private boolean isOpen = false;
 
 	public N5ImgLoader(
 			final String containerPath,
@@ -69,42 +63,14 @@ public class N5ImgLoader implements MultiResolutionImgLoader//, ViewerImgLoader
 	{
 		return new N5SetupImgLoader<>( setupId );
 	}
-	
-	/*
-	private void open()
-	{
-		if ( !isOpen )
-		{
-			synchronized ( this )
-			{
-				if ( isOpen )
-					return;
-
-				isOpen = true;
-
-				int maxNumLevels = 1;
-				final List< ? extends BasicViewSetup > setups = sd.getViewSetupsOrdered();
-				for ( final BasicViewSetup setup : setups )
-				{
-					final double[][] resolutions = getSetupImgLoader( setup.getId() ).getMipmapResolutions();
-
-					if ( resolutions.length > maxNumLevels )
-						maxNumLevels = resolutions.length;
-				}
-
-				final BlockingFetchQueues< Callable< ? > > queue = new BlockingFetchQueues<>( maxNumLevels );
-				cache = new VolatileGlobalCellCache( queue );
-			}
-		}
-	}
 
 	//@Override
 	public CacheControl getCacheControl()
 	{
-		// nop cache control?
+		// nop cache control, seems to work
 		return new CacheControl.Dummy();
 	}
-	*/
+
 
 	class N5SetupImgLoader <T extends RealType< T > & NativeType< T >, V extends Volatile< T > & NativeType< V > > implements MultiResolutionSetupImgLoader< T >, ViewerSetupImgLoader< T, V >
 	{
@@ -283,7 +249,8 @@ public class N5ImgLoader implements MultiResolutionImgLoader//, ViewerImgLoader
 		{
 			try
 			{
-				return N5Utils.openVolatile( n5, String.format( viewSetupFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ));
+				RandomAccessibleInterval img = N5Utils.openVolatile( n5, String.format( viewSetupFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ));
+				return (RandomAccessibleInterval< V >) VolatileViews.wrapAsVolatile( img );
 			}
 			catch ( IOException e )
 			{
