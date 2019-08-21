@@ -76,9 +76,18 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 	{
 		
 		private final int setupId;
+
+		// new paths
+		private final String viewIdFstring = "/setup%2$02d/timepoint%1$05d"; // TODO: do not swap index in fstring, do it in calls below
+		private final String viewSetupFstring = "/setup%02d";
+		private final String scaleFstring = "/s%d";
+
+		/*
+		// paths for datasets converted from hdf5 via n5-utils
 		private final String resolutionsFstring = "/s%02d/resolutions";
 		private final String viewSetupFstring = "/t%05d/s%02d";
 		private final String scaleFstring = "/%d/cells";
+		*/
 		
 		private double[][] resolutions = null;
 		
@@ -101,7 +110,7 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 		{
 			try
 			{
-				return N5Utils.open( n5, String.format( viewSetupFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ) );
+				return N5Utils.open( n5, String.format( viewIdFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ) );
 			}
 			catch ( IOException e )
 			{
@@ -109,7 +118,7 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 			}
 			return null;
 		}
-	
+
 		@Override
 		public double[][] getMipmapResolutions()
 		{
@@ -118,24 +127,30 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 	
 					try
 					{
-						final DatasetAttributes datasetAttributes = n5.getDatasetAttributes( String.format( resolutionsFstring, setupId ) );
+						// old format
+						//final DatasetAttributes datasetAttributes = n5.getDatasetAttributes( String.format( resolutionsFstring, setupId ) );
+
+						resolutions = n5.getAttribute( String.format( viewSetupFstring, setupId ), "downsamplingFactors", double[][].class );
+
+						/*
 						final long[] dims = datasetAttributes.getDimensions();
 						final long nScales = dims[1];
 	
 						resolutions = new double[(int) dims[1]][(int) dims[0]];
-		
+
 						final double[] data = ((DoubleArrayDataBlock) n5.readBlock( 
 									String.format( resolutionsFstring, setupId ),
 									datasetAttributes, new long[2] ))
 								.getData();
-						
+
 						for (int i = 0; i<nScales; i++)
 						{
 							resolutions[i][0] = data[i*3 + 0];
 							resolutions[i][1] = data[i*3 + 1];
 							resolutions[i][2] = data[i*3 + 2];
 						}
-		
+						*/
+
 					}
 					catch ( IOException e )
 					{
@@ -143,23 +158,23 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 						e.printStackTrace();
 					}
 				}
-	
+
 			return resolutions;
 		}
-	
+
 		@Override
 		public AffineTransform3D[] getMipmapTransforms()
 		{
 			if ( resolutions == null )
 				getMipmapResolutions();
-	
+
 			AffineTransform3D[] transforms = new AffineTransform3D[resolutions.length];
 			for (int i = 0; i<resolutions.length; i++)
 				transforms[i] = MipmapTransforms.getMipmapTransformDefault( resolutions[i] );
-	
+
 			return transforms;
 		}
-	
+
 		@Override
 		public int numMipmapLevels()
 		{
@@ -168,19 +183,19 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 	
 			return resolutions.length;
 		}
-	
+
 		@Override
 		public RandomAccessibleInterval< T > getImage(int timepointId, ImgLoaderHint... hints)
 		{
 			return getImage( timepointId, 0, hints );
 		}
-	
+
 		@Override
 		public T getImageType()
 		{
 			try
 			{
-				return N5Utils.type( n5.getDatasetAttributes( String.format( viewSetupFstring, 0, setupId ) + "/" + String.format( scaleFstring, 0 ) ).getDataType() );
+				return N5Utils.type( n5.getDatasetAttributes( String.format( viewIdFstring, 0, setupId ) + "/" + String.format( scaleFstring, 0 ) ).getDataType() );
 			}
 			catch ( IOException e )
 			{
@@ -188,26 +203,26 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 			}
 			return null;
 		}
-	
+
 		@Override
 		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, boolean normalize,
 				ImgLoaderHint... hints)
 		{
 			return getFloatImage( timepointId, 0, normalize, hints );
 		}
-	
+
 		@Override
 		public Dimensions getImageSize(int timepointId)
 		{
 			return getImageSize( timepointId, 0 );
 		}
-	
+
 		@Override
 		public VoxelDimensions getVoxelSize(int timepointId)
 		{
 			return sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) ).getViewSetup().getVoxelSize();
 		}
-	
+
 		@Override
 		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, int level, boolean normalize,
 				ImgLoaderHint... hints)
@@ -225,7 +240,7 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 			}
 			return floatImg;
 		}
-	
+
 		@Override
 		public Dimensions getImageSize(int timepointId, int level)
 		{
@@ -233,7 +248,7 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 			{
 				return new FinalDimensions( 
 						n5.getDatasetAttributes( 
-								String.format( viewSetupFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ) 
+								String.format( viewIdFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ) 
 								).getDimensions()
 						);
 			}
@@ -243,13 +258,13 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 				return null;
 			}
 		}
-	
+
 		@Override
 		public RandomAccessibleInterval< V > getVolatileImage(int timepointId, int level, ImgLoaderHint... hints)
 		{
 			try
 			{
-				RandomAccessibleInterval img = N5Utils.openVolatile( n5, String.format( viewSetupFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ));
+				RandomAccessibleInterval img = N5Utils.openVolatile( n5, String.format( viewIdFstring, timepointId, setupId ) + "/" + String.format( scaleFstring, level ));
 				return (RandomAccessibleInterval< V >) VolatileViews.wrapAsVolatile( img );
 			}
 			catch ( IOException e )
@@ -258,18 +273,19 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 			}
 			return null;
 		}
-	
+
 		@Override
 		public V getVolatileImageType()
 		{
 			return (V) VolatileTypeMatcher.getVolatileTypeForType( getImageType() ).createVariable();
 		}
-	
+
 	}
 
 	public static void main(String[] args)
 	{
-		N5ImgLoader n5ImgLoader = new N5ImgLoader( "/Users/david/Desktop/grid-3d-stitched-h5/dataset.n5", null );
+		System.out.println( String.format( "/t%05d/s%02d", 1, 100 ) );
+		N5ImgLoader n5ImgLoader = new N5ImgLoader( "/Users/david/Desktop/grid-3d/dataset.n5", null );
 		RandomAccessibleInterval< ? > image0 = n5ImgLoader.getSetupImgLoader( 0 ).getImage( 0, 0, new ImgLoaderHint[0] );
 		RandomAccessibleInterval< ? > image1 = n5ImgLoader.getSetupImgLoader( 0 ).getVolatileImage( 0, 1, new ImgLoaderHint[0] );
 		BdvFunctions.show( image0, "scale0" );

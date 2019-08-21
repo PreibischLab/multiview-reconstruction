@@ -25,6 +25,8 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +35,13 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.janelia.saalfeldlab.n5.GzipCompression;
+
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
+import bdv.export.ProposeMipmaps;
+import bdv.export.WriteSequenceToHdf5;
+import bdv.export.n5.WriteSequenceToN5;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -54,6 +61,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.MicroManagerImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable
 {
@@ -62,7 +70,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	FilteredAndGroupedExplorerPanel< ?, ? > panel;
 
-	protected static String[] types = new String[]{ "As TIFF ...", "As compressed TIFF ...", "As HDF5 ...", "As compressed HDF5 ..." };
+	protected static String[] types = new String[]{ "As TIFF ...", "As compressed TIFF ...", "As HDF5 ...", "As compressed HDF5 ...", "As compressed N5 ..." };
 
 	public ResavePopup()
 	{
@@ -72,16 +80,19 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 		final JMenuItem zippedTiff = new JMenuItem( types[ 1 ] );
 		final JMenuItem hdf5 = new JMenuItem( types[ 2 ] );
 		final JMenuItem deflatehdf5 = new JMenuItem( types[ 3 ] );
+		final JMenuItem n5 = new JMenuItem( types[ 4 ] );
 
 		tiff.addActionListener( new MyActionListener( 0 ) );
 		zippedTiff.addActionListener( new MyActionListener( 1 ) );
 		hdf5.addActionListener( new MyActionListener( 2 ) );
 		deflatehdf5.addActionListener( new MyActionListener( 3 ) );
+		n5.addActionListener( new MyActionListener( 4 ) );
 
 		this.add( tiff );
 		this.add( zippedTiff );
 		this.add( hdf5 );
 		this.add( deflatehdf5 );
+		this.add( n5 );
 	}
 
 	@Override
@@ -248,6 +259,50 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						panel.setSpimData( result.getA() );
 						panel.updateContent();
 
+						progressWriter.setProgress( 1.0 );
+						panel.saveXML();
+						progressWriter.out().println( "done" );
+					}
+
+					// --- N5 ---
+					else if (index == 4)
+					{
+						final String n5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".n5";
+						final File n5File = new File( n5Filename );
+
+						final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
+						final Map< Integer, ExportMipmapInfo > proposedMipmaps = ProposeMipmaps.proposeMipmaps( sdReduced.getSequenceDescription() );
+						try
+						{
+							WriteSequenceToN5.writeN5File(
+									sdReduced.getSequenceDescription(),
+									proposedMipmaps,
+									new GzipCompression(), // TODO: make user-settable
+									n5File,
+									null, //TODO: loopbackHeuristic,
+									null, //TODO: afterEachPlane,
+									Runtime.getRuntime().availableProcessors(), // TODO: better numWorkers?
+									progressWriter );
+						}
+						catch ( IOException e )
+						{
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+						// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
+						final List< String > filesToCopy = new ArrayList< String >();
+						final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5File.getParentFile(), filesToCopy );
+
+						// replace imgLoader
+						newSpimData.getSequenceDescription().setImgLoader( new N5ImgLoader( n5File.getAbsolutePath(), newSpimData.getSequenceDescription() ) );
+						newSpimData.setBasePath( n5File.getParentFile() );
+
+						// replace the spimdata object
+						panel.setSpimData( newSpimData );
+						panel.updateContent();
+
+						// save and finish progress
 						progressWriter.setProgress( 1.0 );
 						panel.saveXML();
 						progressWriter.out().println( "done" );
