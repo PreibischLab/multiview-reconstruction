@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
 import bdv.export.WriteSequenceToHdf5;
+import bdv.export.n5.ExportScalePyramid;
 import bdv.export.n5.WriteSequenceToN5;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -272,6 +274,14 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 						final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
 						final Map< Integer, ExportMipmapInfo > proposedMipmaps = ProposeMipmaps.proposeMipmaps( sdReduced.getSequenceDescription() );
+
+						// crude overwrite of block size
+						proposedMipmaps.keySet().forEach( k -> {
+							ExportMipmapInfo exportMipmapInfo = proposedMipmaps.get( k );
+							for (int[] row : exportMipmapInfo.getSubdivisions())
+								Arrays.fill( row, 64 );
+						});
+
 						try
 						{
 							WriteSequenceToN5.writeN5File(
@@ -279,7 +289,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 									proposedMipmaps,
 									new GzipCompression(), // TODO: make user-settable
 									n5File,
-									null, //TODO: loopbackHeuristic,
+									new ExportScalePyramid.DefaultLoopbackHeuristic(),
 									null, //TODO: afterEachPlane,
 									Runtime.getRuntime().availableProcessors(), // TODO: better numWorkers?
 									progressWriter );

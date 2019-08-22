@@ -228,6 +228,7 @@ public class N5ImgLoader implements MultiResolutionImgLoader, ViewerImgLoader
 				ImgLoaderHint... hints)
 		{
 			// TODO: super simple, converter-based float loading, can we do it faster?
+			// TODO: replace with default implementation in newer spimdata
 			RandomAccessibleInterval< T > image = getImage( timepointId, level, hints );
 			RandomAccessibleInterval< FloatType > floatImg = Converters.convert( image, (T i, FloatType o) -> o.set( i.getRealFloat() ), new FloatType() );
 			if (normalize)
