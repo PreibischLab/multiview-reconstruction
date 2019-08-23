@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -180,7 +181,7 @@ public class Resave_N5 implements PlugIn
 	public static List<ViewId> parseViewIdString(String input)
 	{
 		final ArrayList<ViewId> result = new ArrayList<>();
-		for (String vid : input.split( ")," ))
+		for (String vid : input.split( Pattern.quote( ")," )))
 		{
 			String[] vidPair = vid.replace( ")", "" ).replace( "(", "" ).split( "," );
 			result.add( new ViewId( Integer.parseInt( vidPair[0] ), Integer.parseInt( vidPair[0] ) ) );
