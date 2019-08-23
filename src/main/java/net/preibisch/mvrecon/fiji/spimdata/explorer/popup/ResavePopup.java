@@ -42,7 +42,7 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
 import bdv.export.WriteSequenceToHdf5;
-import bdv.export.n5.ExportScalePyramid;
+import bdv.export.ExportScalePyramid;
 import bdv.export.n5.WriteSequenceToN5;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;

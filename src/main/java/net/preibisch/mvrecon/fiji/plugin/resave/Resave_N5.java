@@ -19,9 +19,8 @@ import org.kohsuke.args4j.Option;
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
-import bdv.export.n5.BdvN5Names;
-import bdv.export.n5.ExportScalePyramid;
 import bdv.export.n5.WriteSequenceToN5;
+import bdv.img.n5.BdvN5Format;
 import fiji.util.gui.GenericDialogPlus;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimDataException;
@@ -113,7 +112,7 @@ public class Resave_N5 implements PlugIn
 						proposedMipmaps,
 						new GzipCompression(), // TODO: make user-settable
 						n5File,
-						new ExportScalePyramid.DefaultLoopbackHeuristic(),
+						new bdv.export.ExportScalePyramid.DefaultLoopbackHeuristic(),
 						null, //TODO: afterEachPlane,
 						Runtime.getRuntime().availableProcessors(), // TODO: better numWorkers?
 						progressWriter
@@ -123,7 +122,7 @@ public class Resave_N5 implements PlugIn
 				{
 					N5FSWriter n5 = new N5FSWriter( n5File.getAbsolutePath() );
 					for (ViewId vid : vidsToResave)
-						n5.setAttribute( BdvN5Names.getPathName( vid.getViewSetupId(), vid.getTimePointId() ), clusterParams.finishedAttribute, true);
+						n5.setAttribute( BdvN5Format.getPathName( vid.getViewSetupId(), vid.getTimePointId() ), clusterParams.finishedAttribute, true);
 				}
 				
 			}
