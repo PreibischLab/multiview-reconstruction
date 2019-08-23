@@ -117,7 +117,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-core</artifactId>
-			<version>0.0.0</version>
+			<version>8.0.0-SNAPSHOT</version>
 		</dependency>
 
 		<!-- Fiji dependencies -->
@@ -149,6 +149,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<!-- NB: dependency:analyze erroneously flags this, but it's required -->
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
+			<version>1.0.0-beta-17</version>
 		</dependency>
 
 		<!-- ImgLib2 dependencies -->
