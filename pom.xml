@@ -280,6 +280,9 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 						<version>3.1.1</version>
 						<configuration>
 							<!-- Do not minimize for now to speed up packaging. -->
+							<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+							<resource>META-INF/json/org.scijava.plugin.Plugin</resource>
+							</transformer>
 							<!--<minimizeJar>true</minimizeJar> -->
 							<filters>
 								<filter>
@@ -315,27 +318,4 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		</profile>
 	</profiles>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>spim.fiji.plugin.Data_Explorer</mainClass>
-						</manifest>
-					</archive>
-					<descriptorRefs>jar-with-dependencies</descriptorRefs>
-				</configuration>
-				<executions>
-				<execution>
-				<phase>package</phase>
-				<goals>
-				<goal>
-				single</goal></goals>
-				</execution></executions>
-			</plugin>
-		</plugins>
-	</build>
 </project>
