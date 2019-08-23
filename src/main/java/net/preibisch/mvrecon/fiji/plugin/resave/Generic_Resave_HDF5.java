@@ -57,7 +57,7 @@ import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
 import bdv.export.SubTaskProgressWriter;
 import bdv.export.WriteSequenceToHdf5;
-import bdv.export.WriteSequenceToHdf5.DefaultLoopbackHeuristic;
+import bdv.export.n5.ExportScalePyramid.DefaultLoopbackHeuristic;
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.hdf5.Partition;
 import bdv.spimdata.SpimDataMinimal;
