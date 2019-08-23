@@ -117,7 +117,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-core</artifactId>
-			<version>7.0.1-SNAPSHOT</version>
+			<version>0.0.0</version>
 		</dependency>
 
 		<!-- Fiji dependencies -->
@@ -253,6 +253,16 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>args4j</artifactId>
 			<version>2.33</version>
 		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-imglib2</artifactId>
+			<version>3.4.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5</artifactId>
+			<version>2.1.1</version>
+		</dependency>
 	</dependencies>
 	
 	<profiles>
@@ -315,7 +325,15 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 							<mainClass>spim.fiji.plugin.Data_Explorer</mainClass>
 						</manifest>
 					</archive>
+					<descriptorRefs>jar-with-dependencies</descriptorRefs>
 				</configuration>
+				<executions>
+				<execution>
+				<phase>package</phase>
+				<goals>
+				<goal>
+				single</goal></goals>
+				</execution></executions>
 			</plugin>
 		</plugins>
 	</build>
