@@ -34,6 +34,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
 import net.preibisch.mvrecon.headless.resave.HeadlessParseQueryXML;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Resave_N5 implements PlugIn
 {
@@ -171,6 +172,17 @@ public class Resave_N5 implements PlugIn
 					parseViewIdString( parsedArgs.getViewsToResave() ) :
 					xml.getData().getSequenceDescription().getViewDescriptions().keySet();
 
+		for ( final ViewId v : vidsToResave )
+		{
+			if ( !xml.getData().getSequenceDescription().getViewDescriptions().containsKey( v ) )
+			{
+				System.out.println( "Cannot resave ViewId " + Group.pvid( v ) + ", it is not part of the XML." );
+				System.err.println( "Cannot resave ViewId " + Group.pvid( v ) + ", it is not part of the XML." );
+
+				return;
+			}
+		}
+
 		SimpleClusterResaveParameters params = new SimpleClusterResaveParameters();
 		params.saveData = !parsedArgs.noResaveData;
 		params.saveXML = !parsedArgs.noResaveXML;
@@ -184,7 +196,7 @@ public class Resave_N5 implements PlugIn
 		for (String vid : input.split( Pattern.quote( ")," )))
 		{
 			String[] vidPair = vid.replace( ")", "" ).replace( "(", "" ).split( "," );
-			result.add( new ViewId( Integer.parseInt( vidPair[0] ), Integer.parseInt( vidPair[0] ) ) );
+			result.add( new ViewId( Integer.parseInt( vidPair[0] ), Integer.parseInt( vidPair[1] ) ) );
 		}
 		return result;
 	}
