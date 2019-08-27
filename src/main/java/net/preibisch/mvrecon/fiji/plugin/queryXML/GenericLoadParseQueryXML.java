@@ -146,7 +146,7 @@ public class GenericLoadParseQueryXML<
 	{
 		this.io = io;
 		IOFunctions.println( "Using spimdata version: " + Version.getVersion() );
-		IOFunctions.println( "Using spimreconstruction version: " + net.preibisch.mvrecon.Version.getVersion() );
+		IOFunctions.println( "Using multiview-reconstruction version: " + net.preibisch.mvrecon.Version.getVersion() );
 	}
 
 	/**
