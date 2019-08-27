@@ -22,6 +22,23 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 
 public class CreateN5Scripts
 {
+	/**
+	 * HOWTO call it using qsub
+	 * 
+	 * Create jobs
+	 * ./java -cp multiview-reconstruction-0.3.6-SNAPSHOT.jar net.preibisch.mvrecon.headless.cluster.CreateN5Scripts -r /fast/AG_Preibisch/Stephan/n5/dataset.xml
+	 * 
+	 * Submit jobs
+	 * ./submitAll
+	 * 
+	 * Verify archive
+	 * ./java -cp multiview-reconstruction-0.3.6-SNAPSHOT.jar net.preibisch.mvrecon.headless.cluster.VerifyDistributedN5 -i /fast/AG_Preibisch/Stephan/n5/dataset-n5.xml
+	 * 
+	 * Tar archive (without compression)
+	 * cd /fast/AG_Preibisch/Stephan/n5/
+	 * tar -cf n5.tar dataset.n5 dataset-n5.xml
+	 */
+
 	public static String submitScript = "submitAll.sh";
 	public static String jobFileNamePrefix = "./job_";
 	public static String jobFileNameEnding = ".sh";
