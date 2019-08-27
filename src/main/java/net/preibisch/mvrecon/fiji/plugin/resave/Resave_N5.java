@@ -38,7 +38,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class Resave_N5 implements PlugIn
 {
-	static class SimpleClusterResaveParameters
+	public static class SimpleClusterResaveParameters
 	{
 		public boolean saveXML = true;
 		public boolean saveData = true;
