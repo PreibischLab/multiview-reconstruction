@@ -23,6 +23,9 @@
 package net.preibisch.mvrecon.headless.quality;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -33,6 +36,7 @@ import ij.process.ImageProcessor;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
+import net.imglib2.PointSampleList;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -69,10 +73,93 @@ public class TestFRC
 
 	public static void plot()
 	{
-		final File input = new File( "/Users/spreibi/Desktop/input-full.tif" );
+		final File inputFile = new File( "/Users/stephanpreibisch/Desktop/Results_WEKA/input-full.tif" );
+		final Img< FloatType > input = IOFunctions.openAs32Bit( inputFile, new CellImgFactory< FloatType >( new FloatType() ) );
+		final RandomAccessibleInterval< FloatType > img = Views.interval( Views.extendMirrorSingle( input ), input );
 
-		final Img< FloatType > img = IOFunctions.openAs32Bit( input, new CellImgFactory< FloatType >( new FloatType() ) );
+		final int zMinDist = FRCRealRandomAccessible.relativeFRCDist;
+		final int distanceZ = 1;
 
+		final FRCRealRandomAccessible< FloatType > frcList = FRCTools.distributeGridFRC( input, 0.1, distanceZ, 256, true, true, zMinDist, null );
+		final PointSampleList< FloatType > qualityList = frcList.getQualityList();
+
+		final HashMap<Integer, Double> zLocations = new HashMap<Integer, Double>();
+		final HashMap<Integer, Integer> zLocationsCount = new HashMap<Integer, Integer>();
+	
+		final Cursor< FloatType > cursor = qualityList.localizingCursor();
+		while (cursor.hasNext())
+		{
+			cursor.fwd();
+			final int z = cursor.getIntPosition(2);
+			
+			if ( zLocations.containsKey(z) )
+			{
+				double v = zLocations.get(z);
+				int c = zLocationsCount.get(z);
+
+				zLocations.put(z, v + cursor.get().get());
+				zLocationsCount.put(z, c + 1);
+			}
+			else
+			{
+				zLocations.put(z, cursor.get().getRealDouble());
+				zLocationsCount.put(z, 1);
+			}
+		}
+
+		final ArrayList<Integer> z = new ArrayList<Integer>( zLocations.keySet() );
+		Collections.sort(z );
+		for ( final int zl : z )
+		{
+			
+			System.out.println( zl + "\t" + zLocations.get(zl) / (double)zLocationsCount.get(zl));
+		}
+
+		/*
+		for ( int z = zMinDist; z < input.dimension( 2 ) - zMinDist; z += distanceZ )
+		{
+			final int dimX = (int)img.dimension( 0 );
+			final int dimY = (int)img.dimension( 1 );
+			final int dim = Math.min( dimX, dimY );
+
+			final FloatProcessor fp0 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z, dim );
+			final FloatProcessor fp1 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z + 1, dim );
+			final FloatProcessor fp2 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z - 1, dim );
+
+			final FRC frc = new FRC();
+
+			double[][] frcCurveA = frc.calculateFrcCurve( fp0, fp1 );
+			double[][] frcCurveB = frc.calculateFrcCurve( fp0, fp2 );
+
+			final double integralA = FRCRealRandomAccessible.integral( frcCurveA );
+			final double integralB = FRCRealRandomAccessible.integral( frcCurveB );
+
+			final double integral =  ( integralA + integralB ) / 2.0;
+
+			final double[][] frcCurve = frcCurveA.clone();
+			for ( int i = 0; i < frcCurve.length; ++i )
+				frcCurve[ i ][ 1 ] = ( frcCurveA[ i ][ 1 ] + frcCurveB[ i ][ 1 ] ) / 2.0;
+
+			final FloatProcessor fpD0 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z - zMinDist, dim );
+			final FloatProcessor fpD1 = FRCRealRandomAccessible.getFloatProcessor( img, dimX/2, dimY/2, z + zMinDist, dim );
+
+			final double[][] frcCurveDist =  frc.getSmoothedCurve( frc.calculateFrcCurve( fpD0, fpD1 ) );
+
+			boolean fail = false;
+
+			for ( int i = 0; i < frcCurve.length; ++i )
+			{
+				if ( !Double.isFinite( frcCurveDist[ i ][ 1 ] ) || !Double.isFinite( frcCurve[ i ][ 1 ] ) )
+					fail = true;
+ 
+				frcCurve[ i ][ 1 ] = frcCurve[ i ][ 1 ] - frcCurveDist[ i ][ 1 ];
+			}
+	
+			final double relintegral = fail ? 0 : FRCRealRandomAccessible.integral( frcCurve );
+
+			System.out.println( z + "\t" + integral+ "\t" + relintegral );
+		}*/
+	
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
 		imp.show();
 	}
