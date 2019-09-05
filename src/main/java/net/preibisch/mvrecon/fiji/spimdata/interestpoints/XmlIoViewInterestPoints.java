@@ -38,6 +38,8 @@ import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.XmlIoSingleton;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.io.IOFunctions;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 import org.jdom2.Element;
 
@@ -90,6 +92,12 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 
 			final ViewId viewId = new ViewId( timepointId, setupId );
 			final ViewInterestPointLists collection = viewsInterestPoints.getViewInterestPointLists( viewId );
+
+			if ( collection == null )
+			{
+				IOFunctions.println( "WARNING: Interestpoints are defined for a non-existing view: " + Group.pvid( viewId ) + " ... ignoring it.");
+				continue;
+			}
 
 			// we do not load the interestpoints nor the correspondinginterestpoints, we just do that once it is requested
 			final InterestPointList list = new InterestPointList( basePath, new File( interestPointFileName ) );
