@@ -25,6 +25,9 @@ public class CreateN5Scripts
 	/**
 	 * HOWTO call it using qsub
 	 * 
+	 * Build multiview-reconstruction FAT-JAR
+	 * ./build OR mvn -P fatjar clean package -Denforcer.skip=true
+	 * 
 	 * Create jobs
 	 * ./java -cp multiview-reconstruction-0.3.6-SNAPSHOT.jar net.preibisch.mvrecon.headless.cluster.CreateN5Scripts -r /fast/AG_Preibisch/Stephan/n5/dataset.xml
 	 * 
