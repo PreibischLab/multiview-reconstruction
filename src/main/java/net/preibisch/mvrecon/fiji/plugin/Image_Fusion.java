@@ -28,7 +28,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
+
+import ij.IJ;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -41,6 +45,8 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -56,6 +62,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.Calibrateable;
+import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
@@ -171,6 +178,7 @@ public class Image_Fusion implements PlugIn
 									fusion.getNonRigidParameters().showDistanceMap(),
 									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
 									fusion.getNonRigidParameters().getAlpha(),
+									false,
 									fusion.getInterpolation(),
 									boundingBox,
 									fusion.getDownsampling(),
@@ -195,7 +203,9 @@ public class Image_Fusion implements PlugIn
 				// update the transformations
 				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
 
-				for ( final ViewId viewId : group.getViews() )
+				// get updated registration for views to fuse AND all other views that may influence the fusion
+				for ( final ViewId viewId : fusion.getNonRigidParameters().isActive() ? 
+						Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) : group.getViews() )
 				{
 					final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
 					vr.updateModel();
@@ -224,6 +234,7 @@ public class Image_Fusion implements PlugIn
 									fusion.getNonRigidParameters().showDistanceMap(),
 									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
 									fusion.getNonRigidParameters().getAlpha(),
+									false,
 									fusion.getInterpolation(),
 									boundingBox,
 									fusion.getDownsampling(),
@@ -265,6 +276,8 @@ public class Image_Fusion implements PlugIn
 		}
 
 		exporter.finish();
+		
+		taskExecutor.shutdown();
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
@@ -298,14 +311,32 @@ public class Image_Fusion implements PlugIn
 			final Group< ViewDescription > group,
 			final double[] minmax )
 	{
-		final RandomAccessibleInterval< T > processedOutput;
+		RandomAccessibleInterval< T > processedOutput = null;
 
 		if ( fusion.getCacheType() == 0 ) // Virtual
 			processedOutput = output;
 		else if ( fusion.getCacheType() == 1 ) // Cached
 			processedOutput = FusionTools.cacheRandomAccessibleInterval( output, FusionGUI.maxCacheSize, type, FusionGUI.cellDim );
 		else // Precomputed
-			processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
+		{
+			if ( FloatType.class.isInstance( type ) )
+			{
+				//IJ.log( "fast float" );
+				processedOutput = (RandomAccessibleInterval)ImagePlusAdapter.wrapFloat( DisplayImage.getImagePlusInstance( output, false, "Fused", 0, 255, taskExecutor ) );
+			}
+			else if ( UnsignedShortType.class.isInstance( type ) )
+			{
+				//IJ.log( "fast short" );
+				processedOutput = (RandomAccessibleInterval)ImagePlusAdapter.wrapShort( DisplayImage.getImagePlusInstance( output, false, "Fused", 0, 255, taskExecutor ) );
+			}
+
+			if ( processedOutput == null )
+			{
+				IOFunctions.println( "WARNING: fall-back to slower fusion." );
+				processedOutput = FusionTools.copyImg( output, new ImagePlusImgFactory< T >(), type, taskExecutor, true );
+			}
+		}
+			
 
 		final String title = getTitle( fusion.getSplittingType(), group );
 

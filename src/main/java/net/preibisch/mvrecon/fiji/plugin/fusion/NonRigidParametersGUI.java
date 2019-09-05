@@ -13,7 +13,7 @@ import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
 public class NonRigidParametersGUI extends NonRigidParameters
 {
-	public static boolean enableNonRigid = false;
+	public static boolean enableNonRigid = true;
 
 	public static boolean[] defaultAdditional = new boolean[] { true };
 	public static boolean defaultAdvanced = false;

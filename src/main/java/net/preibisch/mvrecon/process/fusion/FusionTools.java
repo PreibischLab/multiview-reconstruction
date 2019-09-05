@@ -342,7 +342,49 @@ public class FusionTools
 			final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		final Pair< Interval, AffineTransform3D > scaledBB = createDownsampledBoundingBox( boundingBox, downsampling );
+
+		Interval bBox2d = null;
+		// go through the images and check if they are all 2-dimensional
+		boolean is_2d = false;
+		for ( final ViewId vid: views )
+		{
+			if ( viewDescriptions.get(vid).getViewSetup().hasSize() )
+				if (viewDescriptions.get(vid).getViewSetup().getSize().dimension(2) == 1)
+					is_2d = true;
+				else
+				{
+					// TODO: maybe warn that 2d images will be lost during fusion if we have a 2d/3d mixup
+					is_2d = false; // we found a non-2d image
+					break;
+				}
+		}
+
+		if (is_2d)
+		{
+			// set the translational part of the registrations to 0
+			for ( AffineTransform3D transform : registrations.values())
+			{
+				// check if we have just scaling in 3d
+				boolean justScale3d = true;
+				for (int d1 = 0; d1<3; d1++)
+					for (int d2 = 0; d2<3; d2++)
+						if ((d1 > 1 || d2>1) && d1 != d2 && transform.get(d1,d2) != 0)
+							justScale3d = false;
+				if (justScale3d)
+					transform.set(0,2,3);
+				else
+					IOFunctions.println("WARNING: You are trying to fuse 2d images with 3d registrations.");
+			}
+			// create a virtual 2-d bounding box
+			long[] bbMin = new long[3];
+			long[] bbMax = new long[3];
+			boundingBox.min(bbMin);
+			boundingBox.max(bbMax);
+			bbMin[2] = bbMax[2] = 0;
+			bBox2d = new FinalInterval(bbMin, bbMax);
+		}
+
+		final Pair< Interval, AffineTransform3D > scaledBB = createDownsampledBoundingBox( is_2d ? bBox2d : boundingBox, downsampling );
 		final Interval bb = scaledBB.getA();
 		final AffineTransform3D bbTransform = scaledBB.getB();
 
@@ -784,7 +826,7 @@ public class FusionTools
 	{
 		final ExecutorService taskExecutor = Executors.newFixedThreadPool( nThreads );
 
-		execTasks( tasks, Executors.newFixedThreadPool( nThreads ), jobDescription );
+		execTasks( tasks, taskExecutor, jobDescription );
 
 		taskExecutor.shutdown();
 	}

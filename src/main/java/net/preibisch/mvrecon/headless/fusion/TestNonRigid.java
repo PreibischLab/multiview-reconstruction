@@ -10,6 +10,8 @@ import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
@@ -53,8 +55,13 @@ public class TestNonRigid
 		//
 		// display virtually fused
 		//
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": starting with affine" );
+
 		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, fused, boundingBox, downsampling ).getA();
-		DisplayImage.getImagePlusInstance( virtual, true, "Fused Affine", 0, 255 ).show();
+		DisplayImage.getImagePlusInstance( virtual, false, "Fused Affine", 0, 255 ).show();
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with affine" );
 	}
 
 	public static Pair< List< ViewId >, BoundingBox > testInterpolation(
@@ -74,11 +81,11 @@ public class TestNonRigid
 
 		viewsToUse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
-		//viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		viewsToFuse.add( new ViewId( 0, 0 ) );
-		viewsToFuse.add( new ViewId( 0, 1 ) );
-		viewsToFuse.add( new ViewId( 0, 2 ) );
-		viewsToFuse.add( new ViewId( 0, 3 ) );
+		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
+		//viewsToFuse.add( new ViewId( 0, 0 ) );
+		//viewsToFuse.add( new ViewId( 0, 1 ) );
+		//viewsToFuse.add( new ViewId( 0, 2 ) );
+		//viewsToFuse.add( new ViewId( 0, 3 ) );
 
 		// filter not present ViewIds
 		List< ViewId > removed = SpimData2.filterMissingViews( spimData, viewsToUse );
@@ -88,7 +95,7 @@ public class TestNonRigid
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Removed " +  removed.size() + " views because they are not present." );
 
 		// downsampling
-		final double downsampling = 2.0;
+		final double downsampling = Double.NaN;
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
 		final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
 		//
@@ -98,12 +105,13 @@ public class TestNonRigid
 
 		//labels.add( "beads" );
 
-		labels.add( "beads13" );
-		//labels.add( "nuclei" );
+		//labels.add( "beads13" );
+		labels.add( "nuclei" );
 
 		final int interpolation = 1;
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
+		final boolean virtualGrid = false;
 
 		final boolean useBlending = true;
 		final boolean useContentBased = false;
@@ -112,6 +120,8 @@ public class TestNonRigid
 		final ExecutorService service = DeconViews.createExecutorService();
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": controlPointDistance = " + Util.printCoordinates( controlPointDistance ) );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": starting with non-rigid" );
 
 		final RandomAccessibleInterval< FloatType > virtual =
 				NonRigidTools.fuseVirtualInterpolatedNonRigid(
@@ -124,13 +134,21 @@ public class TestNonRigid
 						displayDistances,
 						controlPointDistance,
 						alpha,
+						virtualGrid,
 						interpolation,
 						boundingBox,
 						downsampling,
 						null,
 						service ).getA();
+		
+		service.shutdown();
 
-		DisplayImage.getImagePlusInstance( virtual, true, "Fused Non-rigid", 0, 255 ).show();
+		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImgByPlane3d( virtual, new ImagePlusImgFactory< FloatType >( new FloatType() ), service, true );
+		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImg( virtual, new ImagePlusImgFactory< FloatType >(), new FloatType(), service, true );
+
+		final RandomAccessibleInterval< FloatType > out = ImageJFunctions.wrapFloat( DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ) );
+
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with non-rigid" );
 
 		return new ValuePair<>( viewsToFuse, boundingBox );
 	}

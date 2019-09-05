@@ -172,6 +172,8 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 										minDS,
 										maxDS,
 										dsInc );
+						
+						service.shutdown();
 
 						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine (magenta) vs. NonRigid (green)" );
 						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
@@ -265,6 +267,8 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 											minDS,
 											maxDS,
 											dsInc );
+							
+							service.shutdown();
 	
 							if ( nr != null )
 								options.addTo( nr );

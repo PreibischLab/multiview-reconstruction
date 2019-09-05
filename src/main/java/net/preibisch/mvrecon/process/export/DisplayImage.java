@@ -44,8 +44,6 @@ public class DisplayImage implements ImgExport, Calibrateable
 {
 	final boolean virtualDisplay;
 
-	public static ExecutorService service = DeconViews.createExecutorService();
-
 	String unit = "px";
 	double cal = 1.0;
 
@@ -145,13 +143,29 @@ public class DisplayImage implements ImgExport, Calibrateable
 		return minmax;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
 			final RandomAccessibleInterval< T > img,
 			final boolean virtualDisplay,
 			final String title,
 			final double min,
 			final double max )
+	{
+		final ExecutorService service = DeconViews.createExecutorService();
+		try {
+			return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
+		} finally {
+			service.shutdown();
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final RandomAccessibleInterval< T > img,
+			final boolean virtualDisplay,
+			final String title,
+			final double min,
+			final double max,
+			final ExecutorService service )
 	{
 		ImagePlus imp = null;
 

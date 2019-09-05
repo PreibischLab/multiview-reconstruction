@@ -682,15 +682,21 @@ public class FFTConvolution< R extends RealType< R > >
 	/**
 	 * Set the executor service to use.
 	 * 
+	 * When null, a new {@link ExecutorService} is created with the maximum number of available threads,
+	 * and then it is returned (so that it can be shutdown elsewhere to avoid consuming native memory).
+	 * Otherwise, returns the service that was provided as argument.
+	 * 
 	 * @param service
 	 *            - Executor service to use.
 	 */
-	public void setExecutorService( final ExecutorService service )
+	public ExecutorService setExecutorService( final ExecutorService service )
 	{
 		if ( service == null )
 			this.service = Executors.newFixedThreadPool( Runtime.getRuntime( ).availableProcessors());
 		else
 			this.service = service;
+		
+		return this.service;
 	}
 
 	/**
