@@ -42,6 +42,9 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class DisplayImage implements ImgExport, Calibrateable
 {
+	// TODO: this is ugly, but otherwise the service is shutdown while the ImageJVirtualStack is still displayed and crashes when scrolling through the stack
+	final static ExecutorService service = DeconViews.createExecutorService();
+
 	final boolean virtualDisplay;
 
 	String unit = "px";
@@ -150,12 +153,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 			final double min,
 			final double max )
 	{
-		final ExecutorService service = DeconViews.createExecutorService();
-		try {
-			return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
-		} finally {
-			service.shutdown();
-		}
+		return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
 	}
 
 	@SuppressWarnings("unchecked")
