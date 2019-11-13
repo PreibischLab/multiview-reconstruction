@@ -40,8 +40,8 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.XmlIoSequenceDescription;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
+import net.preibisch.legacy.io.IOFunctions;
 
 @ImgLoaderIo( format = "split.multiresolutionimgloader", type = SplitMultiResolutionImgLoader.class )
 public class XmlIoSplitMultiResolutionImgLoader implements XmlIoBasicImgLoader< SplitMultiResolutionImgLoader >

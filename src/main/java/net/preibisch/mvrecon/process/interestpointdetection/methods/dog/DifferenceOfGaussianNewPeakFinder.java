@@ -35,9 +35,9 @@ import mpicbg.imglib.image.Image;
 import mpicbg.imglib.multithreading.SimpleMultiThreading;
 import mpicbg.imglib.outofbounds.OutOfBoundsStrategyFactory;
 import mpicbg.imglib.type.numeric.real.FloatType;
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.segmentation.InteractiveIntegral;
-import mpicbg.spim.segmentation.SimplePeak;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.segmentation.InteractiveIntegral;
+import net.preibisch.legacy.segmentation.SimplePeak;
 
 public class DifferenceOfGaussianNewPeakFinder extends DifferenceOfGaussianReal1< FloatType >
 {

@@ -34,6 +34,7 @@ import javax.swing.JOptionPane;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.CreateFromCorresponding_Detections;
@@ -51,7 +52,6 @@ import net.preibisch.mvrecon.process.interestpointremoval.InteractiveProjections
 
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetable
 {

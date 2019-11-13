@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise;
 
 import java.awt.Font;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
@@ -34,7 +35,6 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.
 
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class GeometricHashingGUI extends PairwiseGUI
 {

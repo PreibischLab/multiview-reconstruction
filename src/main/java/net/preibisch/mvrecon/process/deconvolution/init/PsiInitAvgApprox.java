@@ -29,10 +29,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 
 public class PsiInitAvgApprox implements PsiInit

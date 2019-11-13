@@ -36,11 +36,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.io.TextFileAccess;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
-
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.io.TextFileAccess;
 
 public class DHMMetaData
 {

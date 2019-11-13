@@ -37,12 +37,12 @@ import java.awt.event.TextListener;
 import java.io.File;
 import java.util.ArrayList;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.cluster.MergeClusterJobs;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.io.IOFunctions;
 
 public class Merge_Cluster_Jobs implements PlugIn
 {

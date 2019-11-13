@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.swing.JMenuItem;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Visualize_Detections;
 import net.preibisch.mvrecon.fiji.plugin.Visualize_Detections.Params;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -36,7 +37,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class VisualizeDetectionsPopup extends JMenuItem implements ExplorerWindowSetable
 {

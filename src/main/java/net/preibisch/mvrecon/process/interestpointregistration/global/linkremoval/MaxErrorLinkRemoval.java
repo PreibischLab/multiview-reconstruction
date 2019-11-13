@@ -28,6 +28,7 @@ import java.util.HashSet;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -35,7 +36,6 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 {

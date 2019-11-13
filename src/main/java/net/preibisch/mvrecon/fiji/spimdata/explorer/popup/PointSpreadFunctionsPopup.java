@@ -34,8 +34,8 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Assign;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Average;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Extract;

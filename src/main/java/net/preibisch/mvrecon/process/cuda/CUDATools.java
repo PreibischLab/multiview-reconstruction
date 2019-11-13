@@ -27,9 +27,8 @@ import ij.gui.GenericDialog;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
-
-import mpicbg.spim.io.IOFunctions;
 
 public class CUDATools
 {

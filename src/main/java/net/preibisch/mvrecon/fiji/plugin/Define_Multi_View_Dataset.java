@@ -27,6 +27,7 @@ import java.awt.Choice;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.datasetmanager.DHM;
@@ -48,7 +49,6 @@ import ij.ImageJ;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import mpicbg.spim.io.IOFunctions;
 
 public class Define_Multi_View_Dataset implements PlugIn
 {

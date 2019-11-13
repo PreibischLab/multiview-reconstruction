@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import net.imglib2.util.Util;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.gauss3.Gauss3;
@@ -37,6 +36,7 @@ import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.deconvolution.util.FusedNonZeroRandomAccess;
 import net.preibisch.mvrecon.process.deconvolution.util.FusedNonZeroRandomAccessibleInterval;

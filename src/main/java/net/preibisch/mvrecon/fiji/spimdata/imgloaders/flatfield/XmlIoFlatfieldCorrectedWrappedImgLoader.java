@@ -21,8 +21,8 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.util.Pair;
+import net.preibisch.legacy.io.IOFunctions;
 
 
 @ImgLoaderIo(format = "spimreconstruction.wrapped.flatfield.default", type = DefaultFlatfieldCorrectionWrappedImgLoader.class)
