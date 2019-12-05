@@ -79,21 +79,22 @@ public class PSF_Assign implements PlugIn
 
 		assign(result.getData(), SpimData2.getAllViewIdsSorted(result.getData(),
 			result.getViewSetupsToProcess(), result.getTimePointsToProcess()), result
-				.getClusterExtension(), result.getXMLFileName());
+				.getClusterExtension(), result.getXMLFileName(), true);
 	}
 	
 	public static boolean assign(
 		final SpimData2 spimData,
 		final Collection< ? extends ViewId > viewCollection)
 	{
-		return assign(spimData, viewCollection, null, null);
+		return assign(spimData, viewCollection, null, null, false);
 	}
 
 	public static boolean assign(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewCollection,
 			final String clusterExtension,
-			final String xmlFileName)
+			final String xmlFileName,
+			final boolean saveXml )
 	{
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 		viewIds.addAll( viewCollection );
@@ -112,8 +113,6 @@ public class PSF_Assign implements PlugIn
 
 		final int assignType = defaultAssignType = gd.getNextChoiceIndex();
 		
-		final boolean save = clusterExtension != null && !clusterExtension.isEmpty() && xmlFileName != null && !xmlFileName.isEmpty();
-
 		if ( assignType == 0 ) // "Assign existing PSF to all selected views"
 		{
 			final GenericDialog gd1 = new GenericDialog( "Assign existing PSF to views" );
@@ -143,7 +142,7 @@ public class PSF_Assign implements PlugIn
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' to " + Group.pvid( viewId ) );
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
-				if ( save )
+				if ( saveXml )
 					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 			}
 		}
@@ -178,13 +177,13 @@ public class PSF_Assign implements PlugIn
 					localFileName = psf.getFile();
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Local filename '" + localFileName + "' assigned" );
 					spimData.getPointSpreadFunctions().addPSF( viewId, psf );
-					if ( save )
+					if ( saveXml )
 						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 				}
 				else
 				{
 					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), localFileName ) );
-					if ( save )
+					if ( saveXml )
 						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 				}
 			}
@@ -303,7 +302,7 @@ public class PSF_Assign implements PlugIn
 
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
 						
-						if ( save )
+						if ( saveXml )
 							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 					}
 				}
@@ -393,7 +392,7 @@ public class PSF_Assign implements PlugIn
 
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
 						
-						if ( save )
+						if ( saveXml )
 							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 					}
 				}
