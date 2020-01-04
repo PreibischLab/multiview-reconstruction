@@ -58,21 +58,22 @@ public class PSF_Extract implements PlugIn
 		if ( !result.queryXML( "Dataset Fusion", true, true, true, true, true ) )
 			return;
 
-		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), result.getClusterExtension(), result.getXMLFileName() );
+		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), result.getClusterExtension(), result.getXMLFileName(), true );
 	}
 
 	public static boolean extract(
 		final SpimData2 spimData,
 		final Collection< ? extends ViewId > viewCollection )
 	{
-		return extract( spimData, viewCollection, null, null );
+		return extract( spimData, viewCollection, null, null, false );
 	}
 
 	public static boolean extract(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewCollection,
 			final String clusterExtension,
-			final String xmlFileName )
+			final String xmlFileName,
+			final boolean saveXml )
 	{
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 		viewIds.addAll( viewCollection );
@@ -154,8 +155,6 @@ public class PSF_Extract implements PlugIn
 
 		int count = 0;
 
-		final boolean save = clusterExtension != null && !clusterExtension.isEmpty() && xmlFileName != null && !xmlFileName.isEmpty();
-
 		for ( final ViewId viewId : viewIds )
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Extracting PSF for " + Group.pvid( viewId ) + " ... " );
@@ -171,7 +170,7 @@ public class PSF_Extract implements PlugIn
 
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData, viewId, psf.getPSF() ) );
 				
-				if ( save )
+				if ( saveXml )
 					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 			}
 		}
