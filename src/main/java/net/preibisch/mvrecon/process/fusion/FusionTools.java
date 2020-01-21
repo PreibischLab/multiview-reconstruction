@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
-import ij.ImagePlus;
 import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -72,7 +71,6 @@ import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -88,9 +86,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
-import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
@@ -102,6 +98,7 @@ import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
+// Display functions moved to FusionDisplayHelper
 public class FusionTools
 {
 	public static enum ImgDataType { VIRTUAL, CACHED, PRECOMPUTED };
@@ -486,95 +483,6 @@ public class FusionTools
 						new RealFloatConverter< T >(),
 						new FloatType() ), img );
 		}
-	}
-
-	public static ImagePlus displayVirtually( final RandomAccessibleInterval< FloatType > input )
-	{
-		return display( input, ImgDataType.VIRTUAL, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus displayVirtually( final RandomAccessibleInterval< FloatType > input, final double min, final double max )
-	{
-		return display( input, ImgDataType.VIRTUAL, min, max, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus displayCopy( final RandomAccessibleInterval< FloatType > input )
-	{
-		return display( input, ImgDataType.PRECOMPUTED, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus displayCopy( final RandomAccessibleInterval< FloatType > input, final double min, final double max )
-	{
-		return display( input, ImgDataType.PRECOMPUTED, min, max, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus displayCached(
-			final RandomAccessibleInterval< FloatType > input,
-			final int[] cellDim,
-			final int maxCacheSize )
-	{
-		return display( input, ImgDataType.CACHED, cellDim, maxCacheSize );
-	}
-
-	public static ImagePlus displayCached(
-			final RandomAccessibleInterval< FloatType > input,
-			 final double min,
-			 final double max,
-			final int[] cellDim,
-			final int maxCacheSize )
-	{
-		return display( input, ImgDataType.CACHED, min, max, cellDim, maxCacheSize );
-	}
-
-	public static ImagePlus displayCached( final RandomAccessibleInterval< FloatType > input )
-	{
-		return displayCached( input, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus displayCached( final RandomAccessibleInterval< FloatType > input, final double min, final double max )
-	{
-		return display( input, ImgDataType.CACHED, min, max, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus display(
-			final RandomAccessibleInterval< FloatType > input,
-			final ImgDataType imgType )
-	{
-		return display( input, imgType, DisplayFusedImagesPopup.cellDim, DisplayFusedImagesPopup.maxCacheSize );
-	}
-
-	public static ImagePlus display(
-			final RandomAccessibleInterval< FloatType > input,
-			final ImgDataType imgType,
-			final int[] cellDim,
-			final int maxCacheSize )
-	{
-		return display( input, imgType, 0, 255, cellDim, maxCacheSize );
-	}
-
-	public static ImagePlus display(
-			final RandomAccessibleInterval< FloatType > input,
-			final ImgDataType imgType,
-			final double min,
-			final double max,
-			final int[] cellDim,
-			final int maxCacheSize )
-	{
-		final RandomAccessibleInterval< FloatType > img;
-
-		if ( imgType == ImgDataType.CACHED )
-			img = cacheRandomAccessibleInterval( input, maxCacheSize, new FloatType(), cellDim );
-		else if ( imgType == ImgDataType.PRECOMPUTED )
-			img = copyImg( input, new ImagePlusImgFactory<>(), new FloatType(), null, true );
-		else
-			img = input;
-
-		// set ImageJ title according to fusion type
-		final String title = imgType == ImgDataType.CACHED ? 
-				"Fused, Virtual (cached) " : (imgType == ImgDataType.VIRTUAL ? 
-						"Fused, Virtual" : "Fused" );
-
-		return DisplayImage.getImagePlusInstance( img, true, title, min, max );
 	}
 
 	/**
@@ -1152,4 +1060,5 @@ public class FusionTools
 		}
 		catch ( InterruptedException ie ) { throw new RuntimeException(ie); }
 	}
+	
 }

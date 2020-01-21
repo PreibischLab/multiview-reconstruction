@@ -22,15 +22,13 @@
  */
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
-import fiji.util.gui.GenericDialogPlus;
-import ij.gui.GenericDialog;
-
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import mpicbg.spim.data.SpimData;
+import fiji.util.gui.GenericDialogPlus;
+import ij.gui.GenericDialog;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
@@ -46,7 +44,6 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -56,6 +53,7 @@ import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 
 public class MicroManager implements MultiViewDatasetDefinition
 {
@@ -127,7 +125,7 @@ public class MicroManager implements MultiViewDatasetDefinition
 		final SpimData2 spimData = new SpimData2( new File( directory ), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
 		if ( reader.applyAxis() )
-			Apply_Transformation.applyAxis( spimData );
+			TransformationTools.applyAxis( spimData );
 
 		try { reader.close(); } catch (IOException e) { IOFunctions.println( "Could not close file '" + mmFile.getAbsolutePath() + "': " + e ); }
 

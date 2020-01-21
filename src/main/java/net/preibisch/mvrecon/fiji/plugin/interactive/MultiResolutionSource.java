@@ -27,10 +27,10 @@ import net.imglib2.type.volatiles.VolatileFloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.boundingbox.BoundingBoxHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
-import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
@@ -121,7 +121,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		else
 			spimData = new XmlIoSpimData2( "" ).load( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" );
 
-		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
+		final BoundingBox boundingBox = BoundingBoxHelper.getBoundingBox( spimData, "My Bounding Box" );
 
 		if ( boundingBox == null )
 			return;

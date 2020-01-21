@@ -95,7 +95,6 @@ import net.preibisch.mvrecon.fiji.datasetmanager.grid.RegularTranformHelpers;
 import net.preibisch.mvrecon.fiji.datasetmanager.grid.RegularTranformHelpers.RegularTranslationParameters;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
-import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
@@ -113,6 +112,7 @@ import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
@@ -1098,7 +1098,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		// View Registrations should now be complete
 		// with translated tiles, we also have to take the center of rotation into account
 		if (applyAxis)
-			Apply_Transformation.applyAxisGrouped( data );
+			TransformationTools.applyAxisGrouped( data );
 
 		boolean resaveAsHDF5 = loadChoice == 0;
 		if (resaveAsHDF5)

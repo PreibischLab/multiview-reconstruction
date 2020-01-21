@@ -36,7 +36,7 @@ import mpicbg.imglib.multithreading.SimpleMultiThreading;
 import mpicbg.imglib.outofbounds.OutOfBoundsStrategyFactory;
 import mpicbg.imglib.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.legacy.segmentation.InteractiveIntegral;
+import net.preibisch.legacy.segmentation.Integral;
 import net.preibisch.legacy.segmentation.SimplePeak;
 
 public class DifferenceOfGaussianNewPeakFinder extends DifferenceOfGaussianReal1< FloatType >
@@ -63,7 +63,7 @@ public class DifferenceOfGaussianNewPeakFinder extends DifferenceOfGaussianReal1
 	public ArrayList<DifferenceOfGaussianPeak< FloatType>> findPeaks( final Image< FloatType > laPlace )
 	{
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Detecting peaks." );
-		simplePeaks = InteractiveIntegral.findPeaks( laPlace, (float)min );
+		simplePeaks = Integral.findPeaks( laPlace, (float)min );
 
 		return new ArrayList<DifferenceOfGaussianPeak< FloatType>>();
 	}

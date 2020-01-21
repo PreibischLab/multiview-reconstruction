@@ -31,8 +31,8 @@ import mpicbg.imglib.type.numeric.real.FloatType;
 import net.imglib2.img.Img;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.segmentation.DOM;
+import net.preibisch.legacy.segmentation.Integral;
 import net.preibisch.legacy.segmentation.IntegralImage3d;
-import net.preibisch.legacy.segmentation.InteractiveIntegral;
 import net.preibisch.legacy.segmentation.SimplePeak;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -124,7 +124,7 @@ public class ProcessDOM
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Extracting peaks (radius=" + radius1 + ", threshold=" + threshold + ")");					
 
 		// compute the maxima/minima
-		final ArrayList< SimplePeak > peaks = InteractiveIntegral.findPeaks( domImg, threshold );
+		final ArrayList< SimplePeak > peaks = Integral.findPeaks( domImg, threshold );
 		final ArrayList< InterestPoint > finalPeaks;
 		
 		if ( localization == 0 )

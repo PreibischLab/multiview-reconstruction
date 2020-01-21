@@ -22,29 +22,17 @@
  */
 package net.preibisch.legacy.segmentation;
 
-import ij.ImageJ;
-
-import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.preibisch.mvrecon.Threads;
-
-import mpicbg.imglib.algorithm.fft.FourierConvolution;
-import mpicbg.imglib.algorithm.integral.IntegralImageLong;
-import mpicbg.imglib.container.array.ArrayContainerFactory;
-import mpicbg.imglib.cursor.Cursor;
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 import mpicbg.imglib.cursor.LocalizableCursor;
-import mpicbg.imglib.function.Converter;
 import mpicbg.imglib.image.Image;
-import mpicbg.imglib.image.display.imagej.ImageJFunctions;
-import mpicbg.imglib.io.LOCI;
 import mpicbg.imglib.multithreading.Chunk;
 import mpicbg.imglib.multithreading.SimpleMultiThreading;
 import mpicbg.imglib.type.numeric.integer.LongType;
 import mpicbg.imglib.type.numeric.real.FloatType;
-import mpicbg.imglib.util.Util;
+import net.preibisch.mvrecon.Threads;
 
 public class DOM 
 {

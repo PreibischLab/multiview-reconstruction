@@ -22,10 +22,9 @@
  */
 package net.preibisch.legacy.segmentation;
 
-import ij.ImageJ;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ij.ImageJ;
 import mpicbg.imglib.algorithm.integral.IntegralImageLong;
 import mpicbg.imglib.container.array.Array;
 import mpicbg.imglib.container.array.ArrayContainerFactory;

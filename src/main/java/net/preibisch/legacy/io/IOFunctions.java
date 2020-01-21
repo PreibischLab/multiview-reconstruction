@@ -39,7 +39,6 @@ import ij.io.Opener;
 import ij.process.ImageProcessor;
 import mpicbg.models.AffineModel3D;
 import net.imglib2.Cursor;
-import net.imglib2.FinalRealInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
