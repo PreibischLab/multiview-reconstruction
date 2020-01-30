@@ -59,8 +59,8 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.ResaveTIFF;
+import net.preibisch.mvrecon.fiji.plugin.resave.ResaveTIFF.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -161,34 +161,6 @@ public class ExportSpimData2TIFF implements ImgExport
 			return false;
 		}
 	}
-
-	@Override
-	public boolean queryParameters( final FusionExportInterface fusion )
-	{
-		if ( Resave_TIFF.defaultPath == null )
-			Resave_TIFF.defaultPath = "";
-		
-		this.params = Resave_TIFF.getParameters();
-		
-		if ( this.params == null )
-			return false;
-
-		this.path = new File( new File( this.params.getXMLFile() ).getParent() );
-		this.saver = new Save3dTIFF( this.path.toString(), this.params.compress() );
-
-		// define new timepoints and viewsetups
-		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = defineNewViewSetups( fusion, fusion.getDownsampling(), fusion.getAnisotropyFactor() );
-		this.newTimepoints = newStructure.getA();
-		this.newViewSetups = newStructure.getB();
-
-		this.fusion = fusion; // we need it later to find the right new ViewId for a FusionGroup
-		this.newSpimData = createSpimData2( newTimepoints, newViewSetups, params );
-
-		return true;
-	}
-
-	@Override
-	public ImgExport newInstance() { return new ExportSpimData2TIFF(); }
 
 	@Override
 	public String getDescription() { return "Save as new XML Project (TIFF)"; }
@@ -362,12 +334,12 @@ public class ExportSpimData2TIFF implements ImgExport
 
 		try
 		{
-			timepoints = new TimePointsPattern( Resave_TIFF.listAllTimePoints( timepointsToProcess ) );
+			timepoints = new TimePointsPattern( ResaveTIFF.listAllTimePoints( timepointsToProcess ) );
 		}
 		catch (ParseException e)
 		{
 			IOFunctions.println( "Automatically created list of timepoints failed to parse. This should not happen, really :) -- " + e );
-			IOFunctions.println( "Here is the list: " + Resave_TIFF.listAllTimePoints( timepointsToProcess ) );
+			IOFunctions.println( "Here is the list: " + ResaveTIFF.listAllTimePoints( timepointsToProcess ) );
 			e.printStackTrace();
 			return null;
 		}

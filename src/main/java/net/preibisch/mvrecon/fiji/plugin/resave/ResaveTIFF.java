@@ -1,25 +1,3 @@
-/*-
- * #%L
- * Software for the reconstruction of multi-view microscopic acquisitions
- * like Selective Plane Illumination Microscopy (SPIM) Data.
- * %%
- * Copyright (C) 2012 - 2017 Multiview Reconstruction developers.
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 2 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/gpl-2.0.html>.
- * #L%
- */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
 import static mpicbg.spim.data.generic.sequence.ImgLoaderHints.LOAD_COMPLETELY;
@@ -40,10 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import bdv.export.ProgressWriter;
-import fiji.util.gui.GenericDialogPlus;
-import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.MissingViews;
@@ -56,14 +31,10 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
-import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -71,17 +42,8 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 
-public class Resave_TIFF implements PlugIn
-{
-	public static String defaultPath = null;
-	public static int defaultContainer = 1;
-	public static boolean defaultCompress = false;
-
-	public static void main( final String[] args )
-	{
-		new Resave_TIFF().run( null );
-	}
-
+public class ResaveTIFF {
+	
 	public static class Parameters
 	{
 		public ImgFactory< ? extends NativeType< ? > > imgFactory;
@@ -92,53 +54,7 @@ public class Resave_TIFF implements PlugIn
 		public String getXMLFile() { return xmlFile; }
 		public ImgFactory< ? extends NativeType< ? > > getImgFactory() { return imgFactory; }
 	}
-
-	@Override
-	public void run( final String arg0 )
-	{
-		final LoadParseQueryXML lpq = new LoadParseQueryXML();
-
-		if ( !lpq.queryXML( "Resaving as TIFF", "Resave", true, true, true, true, true ) )
-			return;
-
-		final ProgressWriter progressWriter = new ProgressWriterIJ();
-		progressWriter.out().println( "starting export..." );
-		
-		final Parameters params = getParameters();
-		
-		if ( params == null )
-			return;
-
-		final SpimData2 data = lpq.getData();
-		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( data, lpq.getViewSetupsToProcess(), lpq.getTimePointsToProcess() );
-
-		// write the TIFF's
-		writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter );
-
-		// write the XML
-		try
-		{
-			final Pair< SpimData2, List< String > > result = createXMLObject( data, viewIds, params );
-			progressWriter.setProgress( 0.95 );
-
-			// write the XML
-			lpq.getIO().save( result.getA(), new File( params.xmlFile ).getAbsolutePath() );
-
-			// copy the interest points if they exist
-			copyInterestPoints( data.getBasePath(), new File( params.xmlFile ).getParentFile(), result.getB() );
-		}
-		catch ( SpimDataException e )
-		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + params.xmlFile + "'." );
-			e.printStackTrace();
-		}
-		finally
-		{
-			progressWriter.setProgress( 1.00 );
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + params.xmlFile + "'." );
-		}
-	}
-
+	
 	public static void copyInterestPoints( final File srcBase, final File destBase, final List< String > filesToCopy )
 	{
 		// test if source and target directory are identical, if so stop
@@ -176,41 +92,7 @@ public class Resave_TIFF implements PlugIn
 			}
 		}
 	}
-
-	public static Parameters getParameters()
-	{
-		final GenericDialogPlus gd = new GenericDialogPlus( "Resave dataset as TIFF" );
-
-		if ( defaultPath == null )
-			defaultPath = LoadParseQueryXML.defaultXMLfilename;
-
-		PluginHelper.addSaveAsFileField( gd, "Select new XML", defaultPath, 80 );
-		//gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", defaultCompress );
-
-		gd.showDialog();
-		
-		if ( gd.wasCanceled() )
-			return null;
-
-		final Parameters params = new Parameters();
-
-		params.xmlFile = gd.getNextString();
-
-		if ( !params.xmlFile.endsWith( ".xml" ) )
-			params.xmlFile += ".xml";
-
-		defaultPath = LoadParseQueryXML.defaultXMLfilename = params.xmlFile;
-
-		params.compress = false; //defaultCompress = gd.getNextBoolean();
-
-		if ( defaultContainer == 0 )
-			params.imgFactory = new ArrayImgFactory< FloatType >();
-		else
-			params.imgFactory = new CellImgFactory< FloatType >();
-
-		return params;
-	}
-
+	
 	public static void writeTIFF( final SpimData spimData, final List< ViewId > viewIds, final String path, final boolean compress, final ProgressWriter progressWriter )
 	{
 		if ( compress )
@@ -262,8 +144,7 @@ public class Resave_TIFF implements PlugIn
 			progressWriter.setProgress( ((i-1) / (double)viewIds.size()) * 95.00  );
 		}
 	}
-
-
+	
 	public static Pair< SpimData2, List< String > > createXMLObject( final SpimData2 spimData, final List< ViewId > viewIds, final Parameters params )
 	{
 		int layoutTP = 0, layoutChannels = 0, layoutIllum = 0, layoutAngles = 0, layoutTiles = 0;
@@ -332,7 +213,7 @@ public class Resave_TIFF implements PlugIn
 
 		return t;
 	}
-
+	
 	public static void copyFolder( final File src, final File dest, final List< String > filesToCopy ) throws IOException
 	{
 		if ( src.isDirectory() )
@@ -368,7 +249,7 @@ public class Resave_TIFF implements PlugIn
 			}
 		}
 	}
-
+	
 	/**
 	 * Assembles a new SpimData2 based on the subset of timepoints and viewsetups as selected by the user.
 	 * The imgloader is still not set here.

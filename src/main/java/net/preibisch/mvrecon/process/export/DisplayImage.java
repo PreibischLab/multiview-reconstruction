@@ -35,7 +35,6 @@ import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -186,12 +185,6 @@ public class DisplayImage implements ImgExport, Calibrateable
 
 		return imp;
 	}
-
-	@Override
-	public boolean queryParameters( final FusionExportInterface fusion ) { return true; }
-
-	@Override
-	public ImgExport newInstance() { return new DisplayImage(); }
 
 	@Override
 	public String getDescription() { return "Display using ImageJ"; }

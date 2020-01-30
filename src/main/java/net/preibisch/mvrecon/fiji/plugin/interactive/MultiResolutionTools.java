@@ -27,10 +27,11 @@ import net.imglib2.type.volatiles.VolatileFloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
+//import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.FusionUtils;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
@@ -239,7 +240,7 @@ public class MultiResolutionTools
 	public static ArrayList< Pair< RandomAccessibleInterval< VolatileFloatType >, AffineTransform3D > > createVolatileRAIs(
 			final List< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > multiRes )
 	{
-		return createVolatileRAIs( multiRes, FusionGUI.maxCacheSize, FusionGUI.cellDim );
+		return createVolatileRAIs( multiRes, FusionUtils.maxCacheSize, FusionUtils.cellDim );
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< VolatileFloatType >, AffineTransform3D > > createVolatileRAIs(
@@ -253,9 +254,9 @@ public class MultiResolutionTools
 		{
 			final RandomAccessibleInterval< FloatType > cachedImg = FusionTools.cacheRandomAccessibleInterval(
 					virtualImg.getA(),
-					FusionGUI.maxCacheSize,
+					FusionUtils.maxCacheSize,
 					new FloatType(),
-					FusionGUI.cellDim );
+					FusionUtils.cellDim );
 
 			final RandomAccessibleInterval< VolatileFloatType > volatileImg = VolatileViews.wrapAsVolatile( cachedImg );
 			//DisplayImage.getImagePlusInstance( virtual, true, "ds="+ds, 0, 255 ).show();

@@ -455,6 +455,6 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 	@Override
 	public String toString()
 	{
-		return new LightSheetZ1().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return "Zeiss Lightsheet Z.1 Dataset Loader (Bioformats)" + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
 	}
 }

@@ -27,7 +27,6 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public interface ImgExport
@@ -83,16 +82,7 @@ public interface ImgExport
 			final double min,
 			final double max );
 	
-	/*
-	 * Query the necessary parameters for the fusion (new dialog can be made)
-	 * 
-	 * @return success? true or false
-	 */
-	public abstract boolean queryParameters( final FusionExportInterface fusion );
 
-
-	public abstract ImgExport newInstance();
-	
 	/**
 	 * @return - to be displayed in the generic dialog
 	 */

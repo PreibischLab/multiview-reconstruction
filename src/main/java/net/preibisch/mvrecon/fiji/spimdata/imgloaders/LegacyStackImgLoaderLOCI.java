@@ -22,17 +22,16 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.IJ;
-import ij.ImagePlus;
-import ij.io.Opener;
-import ij.process.ImageProcessor;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
+import ij.IJ;
+import ij.ImagePlus;
+import ij.io.Opener;
+import ij.process.ImageProcessor;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
@@ -57,8 +56,6 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.datasetmanager.StackListLOCI;
-
 import ome.units.quantity.Length;
 
 public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
@@ -628,7 +625,7 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 	@Override
 	public String toString()
 	{
-		return new StackListLOCI().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return "Manual Loader (Bioformats based)" + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
 	}
 
 }

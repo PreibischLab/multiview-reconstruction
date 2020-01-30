@@ -35,7 +35,7 @@ import net.imglib2.util.Util;
 import net.preibisch.mvrecon.process.cuda.Block;
 import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDAFourierConvolution;
-import net.preibisch.mvrecon.process.cuda.CUDATools;
+import net.preibisch.mvrecon.process.cuda.CudaUtils;
 import net.preibisch.mvrecon.process.deconvolution.DeconView;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
@@ -182,8 +182,8 @@ public class ComputeBlockSeqThreadCUDA extends ComputeBlockSeqThreadAbstract
 		// in-place CUDA convolution of tmp1 with kernel1 using CUDA
 		long time = System.currentTimeMillis();
 		cuda.convolution3DfftCUDAInPlace(
-				blockF, CUDATools.getCUDACoordinates( CUDAOutput.getImgSizeInt( tmp1 ) ),
-				kernel1F, CUDATools.getCUDACoordinates( CUDAOutput.getImgSizeInt( kernel1 ) ),
+				blockF, CudaUtils.getCUDACoordinates( CUDAOutput.getImgSizeInt( tmp1 ) ),
+				kernel1F, CudaUtils.getCUDACoordinates( CUDAOutput.getImgSizeInt( kernel1 ) ),
 				cudaDevice.getDeviceId() );
 
 		System.out.println( " block " + getId() + "(CUDA " + cudaDevice.getDeviceId() + "): compute " + (System.currentTimeMillis() - time) );
@@ -202,8 +202,8 @@ public class ComputeBlockSeqThreadCUDA extends ComputeBlockSeqThreadAbstract
 
 		// in-place CUDA convolution of tmp2 with kernel2 using CUDA
 		cuda.convolution3DfftCUDAInPlace(
-				blockF, CUDATools.getCUDACoordinates( CUDAOutput.getImgSizeInt( tmp2 ) ),
-				kernel2F, CUDATools.getCUDACoordinates( CUDAOutput.getImgSizeInt( kernel2 ) ),
+				blockF, CudaUtils.getCUDACoordinates( CUDAOutput.getImgSizeInt( tmp2 ) ),
+				kernel2F, CudaUtils.getCUDACoordinates( CUDAOutput.getImgSizeInt( kernel2 ) ),
 				cudaDevice.getDeviceId() );
 	}
 }

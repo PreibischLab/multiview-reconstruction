@@ -8,16 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import bdv.export.WriteSequenceToHdf5;
-import ij.ImageJ;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHints;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
-import mpicbg.spim.data.sequence.SequenceDescription;
-import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
@@ -28,7 +23,6 @@ import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -36,9 +30,6 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
@@ -459,27 +450,27 @@ public class MultiResolutionFlatfieldCorrectionWrappedImgLoader
 		return downsampled;
 	}
 
-	public static void main(String[] args)
-	{
-		GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 > lpq = new GenericLoadParseQueryXML<>(
-				new XmlIoSpimData2( "" ) );
-		lpq.queryXML();
-		SpimData2 data = lpq.getData();
-
-		// this will crash if il is not multires
-		MultiResolutionImgLoader il = (MultiResolutionImgLoader) data.getSequenceDescription().getImgLoader();
-		MultiResolutionFlatfieldCorrectionWrappedImgLoader ffcil = new MultiResolutionFlatfieldCorrectionWrappedImgLoader(
-				il );
-		ffcil.setDarkImage( new ViewId( 0, 0 ), new File( "/Users/david/desktop/ff.tif" ) );
-
-		data.getSequenceDescription().setImgLoader( ffcil );
-
-		new ImageJ();
-
-		RandomAccessibleInterval< FloatType > image = ( (MultiResolutionImgLoader) data.getSequenceDescription()
-				.getImgLoader() ).getSetupImgLoader( 0 ).getFloatImage( 0, 1, false );
-		ImageJFunctions.show( image );
-	}
+//	public static void main(String[] args)
+//	{
+//		GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 > lpq = new GenericLoadParseQueryXML<>(
+//				new XmlIoSpimData2( "" ) );
+//		lpq.queryXML();
+//		SpimData2 data = lpq.getData();
+//
+//		// this will crash if il is not multires
+//		MultiResolutionImgLoader il = (MultiResolutionImgLoader) data.getSequenceDescription().getImgLoader();
+//		MultiResolutionFlatfieldCorrectionWrappedImgLoader ffcil = new MultiResolutionFlatfieldCorrectionWrappedImgLoader(
+//				il );
+//		ffcil.setDarkImage( new ViewId( 0, 0 ), new File( "/Users/david/desktop/ff.tif" ) );
+//
+//		data.getSequenceDescription().setImgLoader( ffcil );
+//
+//		new ImageJ();
+//
+//		RandomAccessibleInterval< FloatType > image = ( (MultiResolutionImgLoader) data.getSequenceDescription()
+//				.getImgLoader() ).getSetupImgLoader( 0 ).getFloatImage( 0, 1, false );
+//		ImageJFunctions.show( image );
+//	}
 
 	@Override
 	public boolean isCached()

@@ -45,7 +45,6 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
-import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 
 public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 {
@@ -190,6 +189,6 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 	@Override
 	public String toString()
 	{
-		return new MicroManager().getTitle() + ", ImgFactory=ArrayImgFactory";
+		return "MicroManager diSPIM Dataset" + ", ImgFactory=ArrayImgFactory";
 	}
 }

@@ -60,11 +60,10 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
-import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.ResaveHDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.GenericResaveHDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.GenericResaveHDF5.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -78,21 +77,22 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class ExportSpimData2HDF5 implements ImgExport
 {
-	private FusionExportInterface fusion;
+	public static String defaultXMLfilename = "";
+	protected FusionExportInterface fusion;
 
-	private List< TimePoint > newTimepoints;
+	protected List< TimePoint > newTimepoints;
 
-	private List< ViewSetup > newViewSetups;
+	protected List< ViewSetup > newViewSetups;
 
-	private Parameters params;
+	protected Parameters params;
 
-	private SpimData2 spimData;
+	protected SpimData2 spimData;
 
-	private Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo;
+	protected Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo;
 
-	private HashMap< ViewId, Partition > viewIdToPartition;
+	protected HashMap< ViewId, Partition > viewIdToPartition;
 
-	private final ProgressWriter progressWriter = new ProgressWriterIJ();
+	protected final ProgressWriter progressWriter = new ProgressWriterIJ();
 
 	@Override
 	public boolean finish()
@@ -116,47 +116,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		}
 	}
 
-	@Override
-	public boolean queryParameters( final FusionExportInterface fusion )
-	{
-		this.fusion = fusion;
-
-		// define new timepoints and viewsetups
-		final Pair< List< TimePoint >, List< ViewSetup > > newStructure = ExportSpimData2TIFF.defineNewViewSetups( fusion, fusion.getDownsampling(), fusion.getAnisotropyFactor() );
-		this.newTimepoints = newStructure.getA();
-		this.newViewSetups = newStructure.getB();
-
-		System.out.println( this + " " + fusion );
-
-		perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( newViewSetups );
-
-		String fn = LoadParseQueryXML.defaultXMLfilename;
-		if ( fn.endsWith( ".xml" ) )
-			fn = fn.substring( 0, fn.length() - ".xml".length() );
-		for ( int i = 0;; ++i )
-		{
-			Generic_Resave_HDF5.lastExportPath = String.format( "%s-f%d.xml", fn, i );
-			if ( !new File( Generic_Resave_HDF5.lastExportPath ).exists() )
-				break;
-		}
-
-		boolean is16bit = fusion.getPixelType() == 1;
-
-		final int firstviewSetupId = newViewSetups.get( 0 ).getId();
-		params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, getDescription(), is16bit );
-
-		if ( params == null )
-		{
-			System.out.println( "abort " );
-			return false;
-		}
-
-		Pair< SpimData2, HashMap< ViewId, Partition > > init = initSpimData( newTimepoints, newViewSetups, params, perSetupExportMipmapInfo );
-		this.spimData = init.getA();
-		viewIdToPartition = init.getB();
-
-		return true;
-	}
+	
 
 	protected static Pair< SpimData2, HashMap< ViewId, Partition > > initSpimData(
 			final List< TimePoint > newTimepoints,
@@ -315,12 +275,6 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return true;
 	}
 
-	@Override
-	public ImgExport newInstance()
-	{
-		System.out.println( "newInstance()" );
-		return new ExportSpimData2HDF5();
-	}
 
 	@Override
 	public String getDescription()

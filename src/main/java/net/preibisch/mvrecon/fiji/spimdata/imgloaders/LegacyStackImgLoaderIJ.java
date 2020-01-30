@@ -22,15 +22,13 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.ImagePlus;
-import ij.ImageStack;
-import ij.gui.GenericDialog;
-import ij.io.Opener;
-import ij.process.ImageProcessor;
-
 import java.io.File;
 import java.util.Date;
 
+import ij.ImagePlus;
+import ij.ImageStack;
+import ij.io.Opener;
+import ij.process.ImageProcessor;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
@@ -46,15 +44,12 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.datasetmanager.StackListImageJ;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
-import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.plugin.resave.GenericResaveHDF5.Parameters;
 import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
 
 public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 {
-	Parameters params = null;
+	protected Parameters params = null;
 
 	public LegacyStackImgLoaderIJ(
 			final File path, final String fileNamePattern, final ImgFactory< ? extends NativeType< ? > > imgFactory,
@@ -247,8 +242,8 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 			is32bit = true;
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Image '" + file + "' is 32bit, opening as 16bit with scaling" );
 
-			if ( params == null )
-				params = queryParameters();
+//			if ( params == null )
+//				params = queryParameters();
 
 			if ( params == null )
 				return null;
@@ -364,51 +359,8 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 	@Override
 	public String toString()
 	{
-		return new StackListImageJ().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return "Manual Loader (TIFF only, ImageJ Opener)" + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
 	}
 
-	protected static Parameters queryParameters()
-	{
-		final GenericDialog gd = new GenericDialog( "Opening 32bit TIFF as 16bit" );
-
-		gd.addMessage( "You are trying to open 32-bit images as 16-bit (resaving as HDF5 maybe). Please define how to convert to 16bit.", GUIHelper.mediumstatusfont );
-		gd.addMessage( "Note: This dialog will only show up once for the first image.", GUIHelper.mediumstatusfont );
-		gd.addChoice( "Convert_32bit", Generic_Resave_HDF5.convertChoices, Generic_Resave_HDF5.convertChoices[ Generic_Resave_HDF5.defaultConvertChoice ] );
-
-		gd.showDialog();
-
-		if ( gd.wasCanceled() )
-			return null;
-
-		Generic_Resave_HDF5.defaultConvertChoice = gd.getNextChoiceIndex();
-
-		if ( Generic_Resave_HDF5.defaultConvertChoice == 2 )
-		{
-			if ( Double.isNaN( Generic_Resave_HDF5.defaultMin ) )
-				Generic_Resave_HDF5.defaultMin = 0;
-
-			if ( Double.isNaN( Generic_Resave_HDF5.defaultMax ) )
-				Generic_Resave_HDF5.defaultMax = 5;
-
-			final GenericDialog gdMinMax = new GenericDialog( "Define min/max" );
-
-			gdMinMax.addNumericField( "Min_Intensity_for_16bit_conversion", Generic_Resave_HDF5.defaultMin, 1 );
-			gdMinMax.addNumericField( "Max_Intensity_for_16bit_conversion", Generic_Resave_HDF5.defaultMax, 1 );
-			gdMinMax.addMessage( "Note: the typical range for multiview deconvolution is [0 ... 10] & for fusion the same as the input intensities., ",GUIHelper.mediumstatusfont );
-
-			gdMinMax.showDialog();
-
-			if ( gdMinMax.wasCanceled() )
-				return null;
-
-			Generic_Resave_HDF5.defaultMin = gdMinMax.getNextNumber();
-			Generic_Resave_HDF5.defaultMax = gdMinMax.getNextNumber();
-		}
-		else
-		{
-			Generic_Resave_HDF5.defaultMin = Generic_Resave_HDF5.defaultMax = Double.NaN;
-		}
-
-		return new Parameters( false, null, null, null, null, false, false, 0, 0, false, 0, Generic_Resave_HDF5.defaultConvertChoice, Generic_Resave_HDF5.defaultMin, Generic_Resave_HDF5.defaultMax );
-	}
+	
 }

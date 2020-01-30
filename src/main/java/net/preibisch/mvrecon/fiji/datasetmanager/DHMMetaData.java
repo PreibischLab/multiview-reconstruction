@@ -44,7 +44,9 @@ import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 public class DHMMetaData
 {
 	File directory;
-	double calX, calY, calZ;
+	public double calX;
+	public double calY;
+	public double calZ;
 	String calUnit;
 	boolean compareAllSizes;
 

@@ -19,8 +19,8 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.img.list.ListLocalizingCursor;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.FusionUtils;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonrigidIP;
 
 public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
@@ -68,7 +68,7 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 							this.controlPointDistance,
 							this.alpha,
 							ips ),
-					FusionGUI.maxCacheSize,
+					FusionUtils.maxCacheSize,
 					new NumericAffineModel3D(),
 					new int[] { 3, 3, 3 } );
 		}
