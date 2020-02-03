@@ -24,10 +24,8 @@ package net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement;
 
 import java.util.List;
 
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.TileOrAngleInfo;
-
 import loci.formats.IFormatReader;
+import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil;
 
 public interface TileOrAngleRefiner
 {

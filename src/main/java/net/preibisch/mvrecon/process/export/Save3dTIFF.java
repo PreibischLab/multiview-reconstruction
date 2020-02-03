@@ -29,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
-import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
 import ij.VirtualStack;
 import ij.io.FileInfo;
@@ -41,9 +40,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
-//import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
-//import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Save3dTIFF implements ImgExport, Calibrateable

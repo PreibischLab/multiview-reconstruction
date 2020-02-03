@@ -25,7 +25,6 @@ import net.imglib2.Point;
 import net.imglib2.RealLocalizable;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
-import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Util;
 
 public class RigidWarp2D implements WarpFunction

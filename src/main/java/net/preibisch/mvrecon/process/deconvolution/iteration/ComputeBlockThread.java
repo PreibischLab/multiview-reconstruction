@@ -22,12 +22,8 @@
  */
 package net.preibisch.mvrecon.process.deconvolution.iteration;
 
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.numeric.real.FloatType;
-import net.preibisch.mvrecon.process.cuda.Block;
-import net.preibisch.mvrecon.process.deconvolution.DeconView;
 
 /**
  * Executes one Lucy-Richardson iteration on one specifc block.

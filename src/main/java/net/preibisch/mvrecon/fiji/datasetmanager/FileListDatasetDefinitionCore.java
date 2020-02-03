@@ -22,7 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
-import java.awt.Color;
+//import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -43,7 +42,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
-import ij.gui.GenericDialog;
+//import ij.gui.GenericDialog;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
@@ -59,7 +58,6 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.AngleInfo;
@@ -68,7 +66,6 @@ import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.T
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
@@ -378,40 +375,6 @@ public class FileListDatasetDefinitionCore
 				return true;
 		return false;
 	}
-
-
-	public static String getColoredHtmlFromPattern(String pattern, boolean withRootTag)
-	{
-		final StringBuilder sb = new StringBuilder();
-		if (withRootTag)
-			sb.append( "<html>" );
-		int n = 0;
-		for (int i = 0; i<pattern.length(); i++)
-		{
-			if (pattern.charAt( i ) == '{')
-			{
-				Color col = getColorN( n++ );
-				sb.append( "<span style=\"color: rgb("+ col.getRed() + "," + col.getGreen() + "," + col.getBlue()   +")\">{" );
-			}
-			else if (pattern.charAt( i ) == '}')
-				sb.append( "}</span>");
-			else
-				sb.append( pattern.charAt( i ) );
-		}
-		if (withRootTag)
-			sb.append( "</html>" );
-		return sb.toString();
-	}
-	
-	public static Color getColorN(long n)
-	{
-		Iterator< ARGBType > iterator = ColorStream.iterator();
-		ARGBType c = new ARGBType();
-		for (int i = 0; i<n+43; i++)
-			for (int j = 0; j<3; j++)
-				c = iterator.next();
-		return new Color( ARGBType.red( c.get() ), ARGBType.green( c.get() ), ARGBType.blue( c.get() ) );
-	}
 	
 	public static Pair<String, String> splitIntoPrefixAndPattern(FilenamePatternDetector detector)
 	{
@@ -468,17 +431,6 @@ public class FileListDatasetDefinitionCore
 		String sPattern = String.join( "/", pattern );
 		
 		return new ValuePair< String, String >( sPath, sPattern );
-	}
-	
-	
-	public static void main(String[] args)
-	{
-		//new FileListDatasetDefinition().createDataset();
-		//new WildcardFileListChooser().getFileList().forEach( f -> System.out.println( f.getAbsolutePath() ) );
-		GenericDialog gd = new GenericDialog( "A" );
-		gd.addMessage( getColoredHtmlFromPattern( "a{b}c{d}e{aaaaaaaaaa}aa{bbbbbbbbbbbb}ccccc{ddddddd}", true ) );
-		System.out.println( getColoredHtmlFromPattern( "a{b}c{d}e", false ) );
-		gd.showDialog();
 	}
 
 }

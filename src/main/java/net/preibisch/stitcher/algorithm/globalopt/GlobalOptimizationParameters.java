@@ -21,7 +21,6 @@
  */
 package net.preibisch.stitcher.algorithm.globalopt;
 
-import ij.gui.GenericDialog;
 
 public class GlobalOptimizationParameters
 {
@@ -40,21 +39,6 @@ public class GlobalOptimizationParameters
 		TWO_ROUND
 	}
 
-	private final static String[] methodDescriptions = {
-			"Simple One-Round",
-			"One-Round with iterative dropping of bad links",
-			"Two-Round using Metadata to align unconnected Tiles"
-	};
-
-	private final static String[] methodDescriptionsSimple = {
-			"Do not find wrong links nor handle not connected tiles",
-			"Wrong link identification only, STRICT",
-			"Wrong link identification only, RELAXED",
-			"Identify wrong links and handle unconnected tiles, STRICT",
-			"Identify wrong links and handle unconnected tiles, RELAXED",
-			"Show full options dialog"
-	};
-
 	public GlobalOptType method;
 	public double relativeThreshold;
 	public double absoluteThreshold;
@@ -71,63 +55,5 @@ public class GlobalOptimizationParameters
 		this.absoluteThreshold = absoluteThreshold;
 		this.method = method;
 		this.showExpertGrouping = showExpertGrouping;
-	}
-
-	public static GlobalOptimizationParameters askUserForSimpleParameters()
-	{
-		// ask user for parameters
-		final GenericDialog gd = new GenericDialog( "Global optimization options" );
-
-		gd.addChoice( "Global_optimization_strategy", methodDescriptionsSimple, methodDescriptionsSimple[ defaultSimple ] );
-
-		gd.showDialog();
-
-		if (gd.wasCanceled())
-			return null;
-
-		final int selected = gd.getNextChoiceIndex();
-
-		if ( selected == 5 )
-			return askUserForParameters( false );
-		else if ( selected == 0 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.SIMPLE, false );
-		else if ( selected == 1 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.ITERATIVE, false );
-		else if ( selected == 2 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.ITERATIVE, false );
-		else if ( selected == 3 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND, false );
-		else //if ( selected == 4 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.TWO_ROUND, false );
-	}
-
-	public static GlobalOptimizationParameters askUserForParameters(boolean askForGrouping)
-	{
-		// ask user for parameters
-		final GenericDialog gd = new GenericDialog("Global optimization options");
-		gd.addChoice( "Global_optimization_strategy", methodDescriptions, methodDescriptions[ defaultGlobalOpt ] );
-		gd.addNumericField( "relative error threshold", 2.5, 3 );
-		gd.addNumericField( "absolute error threshold", 3.5, 3 );
-		if (askForGrouping )
-			gd.addCheckbox( "show_expert_grouping_options", defaultExpertGrouping );
-		gd.showDialog();
-
-		if (gd.wasCanceled())
-			return null;
-
-		final double relTh = gd.getNextNumber();
-		final double absTh = gd.getNextNumber();
-		final int methodIdx = defaultGlobalOpt = gd.getNextChoiceIndex();
-		final boolean expertGrouping = askForGrouping ? gd.getNextBoolean() : false;
-
-		final GlobalOptType method;
-		if (methodIdx == 0)
-			method = GlobalOptType.SIMPLE;
-		else if (methodIdx == 1)
-			method = GlobalOptType.ITERATIVE;
-		else
-			method = GlobalOptType.TWO_ROUND;
-
-		return new GlobalOptimizationParameters(relTh, absTh, method, expertGrouping);
 	}
 }

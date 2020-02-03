@@ -40,9 +40,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.base.Strings;
 
 import ij.IJ;
 import ij.io.OpenDialog;
@@ -76,7 +73,6 @@ import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.CZITileOrAng
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.NikonND2TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
-
 import ome.units.quantity.Length;
 
 

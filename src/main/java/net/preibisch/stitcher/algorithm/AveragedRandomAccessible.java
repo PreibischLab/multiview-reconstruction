@@ -25,11 +25,9 @@ import java.util.ArrayList;
 
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
-import net.imglib2.Point;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.Sampler;
-import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 
 // maybe hardcode for 2,3 channels AverageRandomAccess2Channels and AverageRandomAccess3Channels

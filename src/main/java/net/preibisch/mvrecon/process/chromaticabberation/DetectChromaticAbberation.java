@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import ij.ImageJ;
-import mpicbg.models.AffineModel3D;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.TranslationModel3D;
 import mpicbg.spim.data.SpimDataException;
@@ -49,8 +48,6 @@ import net.preibisch.mvrecon.process.interestpointregistration.TransformationToo
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwiseTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.geometrichashing.GeometricHashingPairwise;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.icp.IterativeClosestPointPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.icp.IterativeClosestPointParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.ransac.RANSACParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.rgldm.RGLDMPairwise;

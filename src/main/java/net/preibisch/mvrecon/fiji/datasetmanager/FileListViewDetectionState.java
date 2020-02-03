@@ -23,15 +23,10 @@
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.security.auth.Destroyable;
 
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.sequence.Angle;
@@ -43,10 +38,7 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.AngleInfo;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.ChannelInfo;
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.CheckResult;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.TileInfo;
 
 public class FileListViewDetectionState
 {

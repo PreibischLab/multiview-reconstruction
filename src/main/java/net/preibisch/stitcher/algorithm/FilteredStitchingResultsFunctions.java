@@ -3,7 +3,6 @@ package net.preibisch.stitcher.algorithm;
 import net.imglib2.RealPoint;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.PairwiseStitchingResult;
-import net.preibisch.stitcher.algorithm.FilteredStitchingResultsFunctions.Filter;
 
 public class FilteredStitchingResultsFunctions {
 	public static interface Filter

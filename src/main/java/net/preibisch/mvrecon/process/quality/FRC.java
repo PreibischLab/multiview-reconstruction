@@ -1,5 +1,13 @@
 package net.preibisch.mvrecon.process.quality;
 
+import java.awt.Color;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Arrays;
+
+import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
+import org.apache.commons.math3.util.FastMath;
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -9,15 +17,6 @@ import ij.measure.ResultsTable;
 import ij.process.FHT;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-
-import java.awt.Color;
-import java.io.File;
-import java.io.FilenameFilter;
-import java.util.ArrayList;
-import java.util.Arrays;
-
-import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
-import org.apache.commons.math3.util.FastMath;
 
 /**
  * @author Alex Herbert

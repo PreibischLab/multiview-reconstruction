@@ -21,7 +21,6 @@
  */
 package net.preibisch.stitcher.algorithm.globalopt;
 
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;

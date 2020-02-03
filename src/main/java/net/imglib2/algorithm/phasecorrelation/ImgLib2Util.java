@@ -22,28 +22,23 @@
 package net.imglib2.algorithm.phasecorrelation;
 
 
+import java.io.File;
+import java.util.ArrayList;
+
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.io.Opener;
 import ij.process.ImageProcessor;
-
-import java.io.File;
-import java.util.ArrayList;
-
-import edu.mines.jtk.dsp.FftComplex;
 import net.imglib2.Cursor;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.algorithm.fft2.FFTMethods;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.view.Views;
 
 public class ImgLib2Util
 {

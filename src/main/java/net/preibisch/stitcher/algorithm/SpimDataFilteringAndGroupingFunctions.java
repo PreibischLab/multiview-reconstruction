@@ -21,7 +21,6 @@ import mpicbg.spim.data.sequence.TimePoint;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
-import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class SpimDataFilteringAndGroupingFunctions< AS extends AbstractSpimData< ? > > {

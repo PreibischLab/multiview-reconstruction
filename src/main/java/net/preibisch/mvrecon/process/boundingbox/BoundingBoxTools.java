@@ -29,7 +29,6 @@ import java.util.List;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
-import net.imglib2.Interval;
 import net.imglib2.RealInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;

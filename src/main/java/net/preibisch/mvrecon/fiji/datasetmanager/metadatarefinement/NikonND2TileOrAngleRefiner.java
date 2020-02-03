@@ -25,11 +25,8 @@ package net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement;
 import java.util.List;
 
 import loci.formats.IFormatReader;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.TileOrAngleInfo;
-
-import ome.xml.meta.MetadataRetrieve;
 
 public class NikonND2TileOrAngleRefiner implements TileOrAngleRefiner
 {
