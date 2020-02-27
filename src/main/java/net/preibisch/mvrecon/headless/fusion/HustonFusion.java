@@ -30,6 +30,7 @@ import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -43,6 +44,8 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.type.logic.BitType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
@@ -63,6 +66,101 @@ public class HustonFusion
 		new ImageJ();
 		String dir = "/groups/scicompsoft/home/preibischs/Desktop/huston";
 
+		fuseAdvanced( dir );
+	}
+
+	public static void fuseAdvanced( final String dir )
+	{
+		final Img< UnsignedByteType > mask1 = load( new File( dir, "mask_tp_0_vs_1.tif" ) );
+		final Img< UnsignedByteType > mask2 = load( new File( dir, "mask_tp_0_vs_2.tif" ) );
+
+		final Img< UnsignedByteType > vs0 = load( new File( dir, "AFFINE_fused_tp_0_vs_0.tif" ) );
+		final Img< UnsignedByteType > vs1 = load( new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ) );
+		final Img< UnsignedByteType > vs2 = load( new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ) );
+
+		final RandomAccessibleInterval< BitType > weight0 = Views.interval( new ConstantRandomAccessible<BitType>( new BitType( true ), vs0.numDimensions() ), vs0 );
+		final Img< BitType > weight1 = new ImagePlusImgFactory<BitType>( new BitType() ).create( vs0 );
+		final Img< BitType > weight2 = new ImagePlusImgFactory<BitType>( new BitType() ).create( vs0 );
+
+		ImageJFunctions.show( weight0 );
+		SimpleMultiThreading.threadHaltUnClean();
+		
+		final long numPixels = Views.iterable( vs0 ).size();
+		final int nThreads = Threads.numThreads();
+		final int dist = 100;
+
+
+		final Img< UnsignedByteType > img = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
+
+		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numPixels );
+		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+
+		final AtomicInteger progress = new AtomicInteger( 0 );
+
+		for ( final ImagePortion portion : portions )
+		{
+			tasks.add( new Callable< Void >()
+			{
+				@Override
+				public Void call() throws Exception
+				{
+					fuseSimple( portion.getStartPosition(), portion.getLoopSize(), vs0, vs1, vs2, mask1, mask2, img, dist );
+
+					IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
+
+					return null;
+				}
+			});
+		}
+
+		IJ.showProgress( 0.01 );
+
+		FusionTools.execTasks( tasks, nThreads, "fuse image" );
+
+		((ImagePlusImg)img).getImagePlus().show();
+	}
+
+	public static <T extends RealType< T >>void computeWeightImage(
+			final long start,
+			final long loopSize,
+			final Img< UnsignedByteType > vs,
+			final Img< UnsignedByteType > mask,
+			final Img< T > weight,
+			final int dist,
+			final int imageId )
+	{
+		if ( imageId == 0 )
+			throw new RuntimeException( "id=0 is always one" );
+
+		final Cursor<T> cW = weight.cursor();
+		final Cursor<UnsignedByteType> cV = vs.cursor();
+
+		cW.jumpFwd( start );
+		cV.jumpFwd( start );
+
+		final RandomAccess< UnsignedByteType > r = Views.extendZero(vs).randomAccess();
+
+		final RandomAccess< UnsignedByteType > m = mask.randomAccess();
+
+		for ( long l = 0; l < loopSize; ++l )
+		{
+			int v = cV.next().get();
+
+			m.setPosition(cV.getIntPosition(0), 0);
+			m.setPosition(cV.getIntPosition(1), 1);
+			if ( m.get().get() > 0 && ( v > 0 || !isOutside( cV, r, dist ) ) )
+			{
+				cW.next().setOne();
+			}
+			else
+			{
+				cW.next().setZero();
+			}
+		}
+	}
+
+	public static void fuseSimple( final String dir )
+	{
 		final Img< UnsignedByteType > mask1 = load( new File( dir, "mask_tp_0_vs_1.tif" ) );
 		final Img< UnsignedByteType > mask2 = load( new File( dir, "mask_tp_0_vs_2.tif" ) );
 
@@ -88,7 +186,7 @@ public class HustonFusion
 				@Override
 				public Void call() throws Exception
 				{
-					fuse( portion.getStartPosition(), portion.getLoopSize(), vs0, vs1, vs2, mask1, mask2, img, dist );
+					fuseSimple( portion.getStartPosition(), portion.getLoopSize(), vs0, vs1, vs2, mask1, mask2, img, dist );
 
 					IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
 
@@ -100,60 +198,11 @@ public class HustonFusion
 		IJ.showProgress( 0.01 );
 
 		FusionTools.execTasks( tasks, nThreads, "fuse image" );
-		/*
-		final Cursor<UnsignedByteType> i0 = img.cursor();
 
-		final Cursor<UnsignedByteType> c0 = vs0.cursor();
-		final Cursor<UnsignedByteType> c1 = vs1.cursor();
-		final Cursor<UnsignedByteType> c2 = vs2.cursor();
-
-		final RandomAccess< UnsignedByteType > r0 = Views.extendZero(vs0).randomAccess();
-		final RandomAccess< UnsignedByteType > r1 = Views.extendZero(vs1).randomAccess();
-		final RandomAccess< UnsignedByteType > r2 = Views.extendZero(vs2).randomAccess();
-		
-		final int dist = 100;
-
-		long countPx = 0;
-		long sizePx = img.size();
-
-		while ( i0.hasNext() )
-		{
-			int v0 = c0.next().get();
-			int v1 = c1.next().get();
-			int v2 = c2.next().get();
-
-			long avg = 0;
-			int count = 0;
-
-			if ( v0 > 0 || !isOutside( c0, r0, dist ) )
-			{
-				avg += v0;
-				++count;
-			}
-
-			if ( v1 > 0 || !isOutside( c1, r1, dist ) )
-			{
-				avg += v1;
-				++count;
-			}
-
-			if ( v2 > 0 || !isOutside( c2, r2, dist ) )
-			{
-				avg += v2;
-				++count;
-			}
-
-			i0.next().set( count );
-			
-			if ( ++countPx % 1000000 == 0 )
-				System.out.println( countPx / (double)sizePx );
-		}
-		*/
-		
 		((ImagePlusImg)img).getImagePlus().show();
 	}
 
-	private static final void fuse(
+	private static final void fuseSimple(
 			final long start,
 			final long loopSize,
 			final Img< UnsignedByteType > vs0,
@@ -165,7 +214,6 @@ public class HustonFusion
 			final int dist )
 	{
 		final Cursor<UnsignedByteType> i0 = img.cursor();
-
 		final Cursor<UnsignedByteType> c0 = vs0.cursor();
 		final Cursor<UnsignedByteType> c1 = vs1.cursor();
 		final Cursor<UnsignedByteType> c2 = vs2.cursor();
@@ -214,13 +262,10 @@ public class HustonFusion
 				++count;
 			}
 
-			i0.next().set( count );
-			/*
 			if ( count > 0 )
 				i0.next().set( Math.round( (float)avg/(float)count ) );
 			else
 				i0.fwd();
-				*/
 		}		
 	}
 	
