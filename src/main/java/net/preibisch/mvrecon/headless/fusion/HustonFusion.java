@@ -28,6 +28,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import bdv.util.ConstantRandomAccessible;
@@ -39,7 +42,19 @@ import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.Sampler;
+import net.imglib2.algorithm.morphology.distance.DistanceTransform;
+import net.imglib2.algorithm.morphology.distance.DistanceTransform.DISTANCE_TYPE;
+import net.imglib2.algorithm.morphology.distance.EuclidianDistanceAnisotropic;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.Converters;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.converter.readwrite.RealDoubleSamplerConverter;
+import net.imglib2.converter.readwrite.RealFloatSamplerConverter;
+import net.imglib2.converter.readwrite.SamplerConverter;
+import net.imglib2.converter.readwrite.WriteConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
@@ -47,6 +62,7 @@ import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
@@ -61,40 +77,164 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
 public class HustonFusion
 {
-	public static void main( String[] args )
+	public static void main( String[] args ) throws InterruptedException, ExecutionException
 	{
 		new ImageJ();
 		String dir = "/groups/scicompsoft/home/preibischs/Desktop/huston";
 
-		fuseAdvanced( dir );
+		//fuseSimple(dir);
+		//fuseAdvanced( dir );
 	}
 
 	public static void fuseAdvanced( final String dir )
 	{
-		final Img< UnsignedByteType > mask1 = load( new File( dir, "mask_tp_0_vs_1.tif" ) );
-		final Img< UnsignedByteType > mask2 = load( new File( dir, "mask_tp_0_vs_2.tif" ) );
-
-		final Img< UnsignedByteType > vs0 = load( new File( dir, "AFFINE_fused_tp_0_vs_0.tif" ) );
-		final Img< UnsignedByteType > vs1 = load( new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ) );
-		final Img< UnsignedByteType > vs2 = load( new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ) );
-
-		final RandomAccessibleInterval< BitType > weight0 = Views.interval( new ConstantRandomAccessible<BitType>( new BitType( true ), vs0.numDimensions() ), vs0 );
-		final Img< BitType > weight1 = new ImagePlusImgFactory<BitType>( new BitType() ).create( vs0 );
-		final Img< BitType > weight2 = new ImagePlusImgFactory<BitType>( new BitType() ).create( vs0 );
-
-		ImageJFunctions.show( weight0 );
-		SimpleMultiThreading.threadHaltUnClean();
-		
-		final long numPixels = Views.iterable( vs0 ).size();
-		final int nThreads = Threads.numThreads();
 		final int dist = 100;
 
+		final Img< UnsignedByteType > vs0 = load( new File( dir, "AFFINE_fused_tp_0_vs_0.tif" ) ); // low res
+		final Img< UnsignedByteType > vs1 = load( new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ) ); // high res
+		final Img< UnsignedByteType > vs2 = load( new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ) ); // mid res
 
-		final Img< UnsignedByteType > img = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
+		//final ImagePlusImg<UnsignedByteType, ? > dt1 = createDistanceTransform( new File( dir, "mask_tp_0_vs_1.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ), dist );
+		//final ImagePlusImg<UnsignedByteType, ? > dt2 = createDistanceTransform( new File( dir, "mask_tp_0_vs_2.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ), dist );
+
+		final Img< UnsignedByteType > dt1 = load( new File( dir, "AFFINE_DT_fused_tp_0_vs_1.tif" ) );
+		final Img< UnsignedByteType > dt2 = load( new File( dir, "AFFINE_DT_fused_tp_0_vs_2.tif" ) );
+		
+		final RandomAccessibleInterval< DoubleType > w0 = Views.interval( new ConstantRandomAccessible<>( new DoubleType(1), vs0.numDimensions() ), vs0 );
+		final RandomAccessibleInterval< DoubleType > w1 = blendDT( dt1, 20 );
+		final RandomAccessibleInterval< DoubleType > w2 = blendDT( dt2, 20 );
+		
+		ImageJFunctions.show( dt2 ).setTitle( "DT");
+		ImageJFunctions.show( blendDT( dt2, 20 ) ).setTitle("blend_DT");
+		
+		final Img< UnsignedByteType > fused = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
+		final Img< UnsignedByteType > weights = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
+		
+		final RandomAccessibleInterval< DoubleType > weightsD =
+				new WriteConvertedRandomAccessibleInterval<UnsignedByteType, DoubleType >( weights, new UnsignedByteDoubleSamplerConverter( 3 ) );
+
+		//((ImagePlusImg)img).getImagePlus().show();
+	}
+
+	public static void fuse( final Img< UnsignedByteType > fused, final Img< UnsignedByteType > weights )
+	{
+		final Cursor<UnsignedByteType> cF = fused.cursor();
+		final Cursor<UnsignedByteType> cW = weights.cursor();
+	
+	}
+
+	/*
+	private static final void fuseAdvanced(
+			final long start,
+			final long loopSize,
+			final Img< UnsignedByteType > vs0,
+			final Img< UnsignedByteType > vs1,
+			final Img< UnsignedByteType > vs2,
+			final Img< UnsignedByteType > mask1,
+			final Img< UnsignedByteType > mask2,
+			final Img< UnsignedByteType > img,
+			final int dist )
+	{
+		final Cursor<UnsignedByteType> i0 = img.cursor();
+		final Cursor<UnsignedByteType> c0 = vs0.cursor();
+		final Cursor<UnsignedByteType> c1 = vs1.cursor();
+		final Cursor<UnsignedByteType> c2 = vs2.cursor();
+
+		c0.jumpFwd( start );
+		c1.jumpFwd( start );
+		c2.jumpFwd( start );
+		i0.jumpFwd( start );
+
+		final RandomAccess< UnsignedByteType > r0 = Views.extendZero(vs0).randomAccess();
+		final RandomAccess< UnsignedByteType > r1 = Views.extendZero(vs1).randomAccess();
+		final RandomAccess< UnsignedByteType > r2 = Views.extendZero(vs2).randomAccess();
+
+		final RandomAccess< UnsignedByteType > m1 = mask1.randomAccess();
+		final RandomAccess< UnsignedByteType > m2 = mask2.randomAccess();
+
+		for ( long l = 0; l < loopSize; ++l )
+		{
+			int v0 = c0.next().get();
+			int v1 = c1.next().get();
+			int v2 = c2.next().get();
+
+			long avg = 0;
+			int count = 0;
+
+			
+			//if ( v0 > 0 || !isOutside( c0, r0, dist ) )
+			{
+				avg += v0;
+				++count;
+			}
+
+			m1.setPosition(c0.getIntPosition(0), 0);
+			m1.setPosition(c0.getIntPosition(1), 1);
+			if ( m1.get().get() > 0 && ( v1 > 0 || !isOutside( c1, r1, dist ) ) )
+			{
+				avg += v1;
+				++count;
+			}
+
+			m2.setPosition(c0.getIntPosition(0), 0);
+			m2.setPosition(c0.getIntPosition(1), 1);
+			if ( m2.get().get() > 0 && ( v2 > 0 || !isOutside( c2, r2, dist ) ) )
+			{
+				avg += v2;
+				++count;
+			}
+
+			if ( count > 0 )
+				i0.next().set( Math.round( (float)avg/(float)count ) );
+			else
+				i0.fwd();
+		}		
+	}
+	*/
+	
+	public static < T extends RealType< T > > RandomAccessibleInterval< DoubleType > blendDT( final RandomAccessibleInterval<T> distanceTransformed )
+	{
+		return blendDT( distanceTransformed, FusionTools.defaultBlendingRange );
+	}
+
+	public static < T extends RealType< T > > RandomAccessibleInterval< DoubleType > blendDT( final RandomAccessibleInterval<T> distanceTransformed, final double blendingRange )
+	{
+		// static lookup table for the blending function
+		final double[] lookUp = new double[ 1001 ];
+
+		for ( double d = 0; d <= 1.0001; d = d + 0.001 )
+			lookUp[ indexFor( d ) ] = ( Math.cos( ( 1 - d ) * Math.PI ) + 1 ) / 2;
+
+		final Converter< T, DoubleType > conv = ( s, t ) -> {
+			
+			final double relDist = s.getRealDouble() / blendingRange;
+
+			if ( relDist < 1 )
+				t.set( lookUp[ indexFor( relDist ) ] ); //( Math.cos( ( 1 - relDist ) * Math.PI ) + 1 ) / 2;
+			else
+				t.setOne();
+		};		
+
+		return new ConvertedRandomAccessibleInterval<>( distanceTransformed, conv, new DoubleType() );
+	}
+
+	// static lookup table for the blending function
+	private static final int indexFor( final double d ) { return (int)Math.round( d * 1000.0 ); }
+
+	@SuppressWarnings("unchecked")
+	public static ImagePlusImg<UnsignedByteType, ? > createDistanceTransform( final File mask, final File fused, final int dist ) throws InterruptedException, ExecutionException
+	{
+		final int nThreads = Threads.numThreads();
+
+		final Img< UnsignedByteType > mask1 = load( mask );
+
+		final Img< UnsignedByteType > vs1 = load( fused );
+		final Img< UnsignedByteType > weight1 = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs1 );
+		
+		final long numPixels = Views.iterable( vs1 ).size();
 
 		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numPixels );
 		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
-
 		final AtomicInteger progress = new AtomicInteger( 0 );
 
 		for ( final ImagePortion portion : portions )
@@ -104,7 +244,7 @@ public class HustonFusion
 				@Override
 				public Void call() throws Exception
 				{
-					fuseSimple( portion.getStartPosition(), portion.getLoopSize(), vs0, vs1, vs2, mask1, mask2, img, dist );
+					computeWeightImage( portion.getStartPosition(), portion.getLoopSize(), vs1, mask1, weight1, dist );
 
 					IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
 
@@ -114,24 +254,34 @@ public class HustonFusion
 		}
 
 		IJ.showProgress( 0.01 );
+		FusionTools.execTasks( tasks, nThreads, "weight images" );
 
-		FusionTools.execTasks( tasks, nThreads, "fuse image" );
+		final ExecutorService es = Executors.newFixedThreadPool( nThreads );
 
-		((ImagePlusImg)img).getImagePlus().show();
+		final Converter< UnsignedByteType, UnsignedByteType > conv = ( s, t ) -> {
+			t.set( s.get() > 0.0 ? 255 : 0 );
+		};
+		
+		DistanceTransform.transform(
+				new ConvertedRandomAccessibleInterval<>( weight1, conv, new UnsignedByteType() ),
+				weight1,
+				DISTANCE_TYPE.L1,
+				es,
+				3 * nThreads );
+		
+		es.shutdown();
+
+		return ((ImagePlusImg<UnsignedByteType, ? > )weight1);
 	}
 
-	public static <T extends RealType< T >>void computeWeightImage(
+	private static <T extends RealType< T >>void computeWeightImage(
 			final long start,
 			final long loopSize,
 			final Img< UnsignedByteType > vs,
 			final Img< UnsignedByteType > mask,
 			final Img< T > weight,
-			final int dist,
-			final int imageId )
+			final int dist )
 	{
-		if ( imageId == 0 )
-			throw new RuntimeException( "id=0 is always one" );
-
 		final Cursor<T> cW = weight.cursor();
 		final Cursor<UnsignedByteType> cV = vs.cursor();
 
@@ -139,7 +289,6 @@ public class HustonFusion
 		cV.jumpFwd( start );
 
 		final RandomAccess< UnsignedByteType > r = Views.extendZero(vs).randomAccess();
-
 		final RandomAccess< UnsignedByteType > m = mask.randomAccess();
 
 		for ( long l = 0; l < loopSize; ++l )
