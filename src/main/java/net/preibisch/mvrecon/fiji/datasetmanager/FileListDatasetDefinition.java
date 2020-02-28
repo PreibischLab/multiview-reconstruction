@@ -73,7 +73,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 
-public class FileListDatasetDefinitionCore
+public class FileListDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 		
