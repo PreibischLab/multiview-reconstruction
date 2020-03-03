@@ -141,22 +141,10 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage(ViewId view, boolean normalize)
 	{
-		try
-		{
-			final RandomAccessibleInterval< FloatType > img = openImg( new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
-
-			if ( normalize )
-				normalize( img );
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	

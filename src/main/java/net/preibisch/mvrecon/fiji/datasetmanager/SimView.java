@@ -116,11 +116,6 @@ public class SimView implements MultiViewDatasetDefinition
 		final ImgLoader imgLoader = new SimViewImgLoader( sequenceDescription, meta.expDir, meta.filePattern, meta.type, meta.littleEndian );
 		sequenceDescription.setImgLoader( imgLoader );
 
-		new ImageJ();
-		ImageJFunctions.show( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( 0 ).getImage( 0 ) );
-		ImageJFunctions.show( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( 0 ).getFloatImage( 0, true ) );
-		SimpleMultiThreading.threadHaltUnClean();
-		
 		// get the minimal resolution of all calibrations
 		final double minResolution = Math.min( Math.min( meta.xStep, meta.yStep ), meta.zStep );
 
@@ -457,7 +452,14 @@ public class SimView implements MultiViewDatasetDefinition
 		if ( sd == null )
 			IOFunctions.println( "Failed to define dataset.");
 		else
+		{
+			new ImageJ();
+			ImageJFunctions.show( (RandomAccessibleInterval)sd.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 ).getImage( 0 ) );
+			ImageJFunctions.show( (RandomAccessibleInterval)sd.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 ).getImage( 100 ) );
+			ImageJFunctions.show( (RandomAccessibleInterval)sd.getSequenceDescription().getImgLoader().getSetupImgLoader( 1 ).getImage( 0 ) );
+
 			BigDataViewer.open(  sd, "", null, ViewerOptions.options() );
+		}
 	}
 
 }

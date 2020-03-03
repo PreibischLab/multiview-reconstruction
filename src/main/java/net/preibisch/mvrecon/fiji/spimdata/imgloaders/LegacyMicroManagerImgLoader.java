@@ -117,30 +117,10 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		try
-		{
-			final MultipageTiffReader r = new MultipageTiffReader( mmFile );
-
-			final ArrayImg< FloatType, ? > img = ArrayImgs.floats( r.width(), r.height(), r.depth() );
-			final BasicViewDescription< ? > vd = sequenceDescription.getViewDescriptions().get( view );
-
-			populateImage( img, vd, r );
-
-			if ( normalize )
-				normalize( img );
-
-			updateMetaDataCache( view, r.width(), r.height(), r.depth(), r.calX(), r.calY(), r.calZ() );
-
-			r.close();
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			IOFunctions.println( "Failed to load viewsetup=" + view.getViewSetupId() + " timepoint=" + view.getTimePointId() + ": " + e );
-			e.printStackTrace();
-			return null;
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	@Override

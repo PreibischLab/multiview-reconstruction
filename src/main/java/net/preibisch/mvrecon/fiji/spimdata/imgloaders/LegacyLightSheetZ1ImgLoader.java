@@ -85,22 +85,10 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		try
-		{
-			final Img< FloatType > img = openCZI( new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + cziFile + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
-
-			if ( normalize )
-				normalize( img );
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + cziFile + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	@Override

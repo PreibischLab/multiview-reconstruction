@@ -83,50 +83,10 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		final File file = getFile( view );
-
-		if ( file == null )
-			throw new RuntimeException( "Could not find file '" + file + "'." );
-
-		try
-		{
-			final CalibratedImg< FloatType > img = openLOCI( file, new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + file + "'" );
-
-			if ( normalize )
-			{
-				float min = Float.MAX_VALUE;
-				float max = -Float.MAX_VALUE;
-
-				for ( final FloatType t : img.getImg() )
-				{
-					final float v = t.get();
-
-					if ( v < min )
-						min = v;
-
-					if ( v > max )
-						max = v;
-				}
-
-				for ( final FloatType t : img.getImg() )
-					t.set( ( t.get() - min ) / ( max - min ) );
-
-			}
-
-			// update the MetaDataCache of the AbstractImgLoader
-			// this does not update the XML ViewSetup but has to be called explicitly before saving
-			updateMetaDataCache( view, (int)img.getImg().dimension( 0 ), (int)img.getImg().dimension( 1 ), (int)img.getImg().dimension( 2 ),
-					img.getCalX(), img.getCalY(), img.getCalZ() );
-
-			return img.getImg();
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + file + "':\n" + e );
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	/**
