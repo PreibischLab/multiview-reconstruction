@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
+import java.awt.Font;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -19,7 +20,13 @@ public class SimView implements MultiViewDatasetDefinition
 {
 	public static String defaultDir = "";
 	public static String defaultItem = "";
-	
+	public static boolean defaultModifyStackSize = false;
+	public static boolean defaultModifyCal = false;
+
+	public static String[] types = {"8-bit", "16-bit Signed", "16-bit Unsigned", "32-bit Signed", "32-bit Unsigned" };
+	public static int defaultType = 2;
+	public static boolean defaultLittleEndian = true;
+
 	@Override
 	public SpimData2 createDataset()
 	{
@@ -56,10 +63,63 @@ public class SimView implements MultiViewDatasetDefinition
 		//
 		// Parse MetaData
 		// 
-		SimViewMetaData metaData = parseMetaData( rootDir, expDir );
-		
+		final SimViewMetaData metaData = parseMetaData( rootDir, expDir );
+
+		if ( metaData == null )
+		{
+			IOFunctions.println( "Failed to load metadata." );
+			return null;
+		}
+
+		//
+		// user input
+		//
+		if ( !showDialogs( metaData ) )
+			return null;
+
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	protected boolean showDialogs( final SimViewMetaData meta )
+	{
+		GenericDialog gd = new GenericDialog( "SimView Properties" );
+
+		gd.addMessage( "Angles (" + meta.numAngles + " present)", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+
+		gd.addMessage( "Channels (" + meta.numChannels + " present)", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gd.addMessage( "" );
+
+		for ( int c = 0; c < meta.numChannels; ++c )
+			gd.addStringField( "Channel_" + meta.channels[ c ] + ":", Integer.toString( meta.metaDataChannels[ c ].wavelength ) );
+
+		gd.addMessage( "Timepoints (" + meta.numTimePoints + " present)", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+
+		gd.addMessage( "Stack Sizes", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gd.addNumericField("X_size", meta.stackSize[ 0 ], 0 );
+		gd.addNumericField("Y_size", meta.stackSize[ 1 ], 0 );
+		gd.addNumericField("Z_size", meta.stackSize[ 2 ], 0 );
+		gd.addChoice("Image_type:", types, types[ defaultType ]);
+		gd.addCheckbox("Little-endian byte order", defaultLittleEndian );
+
+		gd.addMessage( "" );
+
+		gd.addMessage( "Calibration", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gd.addCheckbox( "Modify_calibration", defaultModifyCal );
+		gd.addMessage( "Pixel Distance X (guessed): " + meta.xStep + " um" );
+		gd.addMessage( "Pixel Distance Y (guessed): " + meta.yStep + " um" );
+		gd.addMessage( "Pixel Distance Z: " + meta.zStep + " um"  );
+
+		gd.addMessage( "Additional Meta Data", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gd.addMessage( "Acquisition Objective: " + meta.metaDataChannels[ 0 ].metadataHash.getOrDefault("detection_objective", "<not stored>"), new Font( Font.SANS_SERIF, Font.ITALIC, 11 ) );
+		gd.addMessage( "Specimen Name: " + meta.metaDataChannels[ 0 ].specimen_name, new Font( Font.SANS_SERIF, Font.ITALIC, 11 ) );
+		gd.addMessage( "Time Stamp: " + meta.metaDataChannels[ 0 ].timestamp, new Font( Font.SANS_SERIF, Font.ITALIC, 11 ) );
+
+		gd.showDialog();
+		if ( gd.wasCanceled() )
+			return false;
+
+		return true;
 	}
 
 	protected SimViewMetaData parseMetaData( final File rootDir, final File expDir )
@@ -161,8 +221,11 @@ public class SimView implements MultiViewDatasetDefinition
 			for ( final String angle : metaData.angles )
 				IOFunctions.println( angle );
 		}
-		
-		return metaData;
+
+		if ( metaData.assignGlobalValues() )
+			return metaData;
+		else
+			return null;
 	}
 	
 	public static class DirectoryFilter implements FilenameFilter
