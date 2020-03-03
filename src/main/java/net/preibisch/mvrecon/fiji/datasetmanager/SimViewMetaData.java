@@ -10,11 +10,26 @@ import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
+import mpicbg.spim.data.sequence.IntegerPattern;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
 
 public class SimViewMetaData
 {
+	final public static char TIMEPOINT_PATTERN = 't';
+	final public static char CHANNEL_PATTERN = 'c';
+	final public static char CAM_PATTERN = 'm';
+	final public static char ANGLE_PATTERN = 'a';
+
+	public static class Pattern
+	{
+		public String replaceTimepoints = null, replaceChannels = null, replaceCams = null, replaceAngles = null;
+		public int numDigitsTimepoints = 0, numDigitsChannels = 0, numDigitsCams = 0, numDigitsAngles = 0;		
+	}
+
+	public String filePattern = "";
+	public Pattern patternParser = null;
+
 	File rootDir, expDir;
 	String[] baseXMLs; // relative to expDir
 
@@ -30,8 +45,130 @@ public class SimViewMetaData
 
 	double xStep = 0.4125, yStep = 0.4125;
 	double zStep = 1;
+	String unit = " um";
+
 	int numCameras = 0;
 	long[] stackSize = null;
+	int type = 2; //{"8-bit", "16-bit Signed", "16-bit Unsigned" };
+	boolean littleEndian = true;
+
+	public void buildDefaultFilePattern()
+	{
+		builFilePattern( "SPC00_TM{ttttt}_ANG{aaa}_CM{m}_CHN{cc}_PH0.stack" );
+	}
+	
+	public void builFilePattern( final String filePattern )
+	{
+		this.filePattern = filePattern;
+		this.patternParser = buildPatternParser( filePattern );
+	}
+
+	public static Pattern buildPatternParser( final String filePattern )
+	{
+		final Pattern p = new Pattern();
+
+		p.replaceCams = IntegerPattern.getReplaceString( filePattern, CAM_PATTERN );
+		p.numDigitsCams = p.replaceCams.length() - 2;
+
+		p.replaceChannels = IntegerPattern.getReplaceString( filePattern, CHANNEL_PATTERN );
+		p.numDigitsChannels = p.replaceChannels.length() - 2;
+
+		p.replaceTimepoints = IntegerPattern.getReplaceString( filePattern, TIMEPOINT_PATTERN );
+		p.numDigitsTimepoints = p.replaceTimepoints.length() - 2;
+
+		p.replaceAngles = IntegerPattern.getReplaceString( filePattern, ANGLE_PATTERN );
+		p.numDigitsAngles = p.replaceAngles.length() - 2;
+
+		return p;
+	}
+
+	public static String[] getFileNamesFor( String fileNames, 
+			final String replaceTimepoints, final String replaceChannels, 
+			final String replaceCams, final String replaceAngles,
+			final int tpName, final int chName, final int camName, final int angleName,
+			final int numDigitsTP, final int numDigitsCh, final int numDigitsCam, final int numDigitsAngle )
+	{
+		String[] fileName = fileNames.split( ";" );
+		
+		for ( int i = 0; i < fileName.length; ++i )
+		{
+			if ( replaceTimepoints != null )
+				fileName[ i ] = fileName[ i ].replace( replaceTimepoints, StackList.leadingZeros( Integer.toString( tpName ), numDigitsTP ) );
+	
+			if ( replaceChannels != null )
+				fileName[ i ] = fileName[ i ].replace( replaceChannels, StackList.leadingZeros( Integer.toString( chName ), numDigitsCh ) );
+	
+			if ( replaceCams != null )
+				fileName[ i ] = fileName[ i ].replace( replaceCams, StackList.leadingZeros( Integer.toString( camName ), numDigitsCam ) );
+	
+			if ( replaceAngles != null )
+				fileName[ i ] = fileName[ i ].replace( replaceAngles, StackList.leadingZeros( Integer.toString( angleName ), numDigitsAngle ) );
+			
+		}
+		return fileName;
+	}
+
+	public boolean isValidFilePattern()
+	{
+		boolean present = true;
+
+		IOFunctions.println( "Testing if all files are present ... " );
+
+		for ( int tp = 0; tp < numTimePoints; ++tp )
+		{
+			final File tpFolder = new File( expDir, getTimepointString( tp ) );
+
+			for ( int angle = 0; angle < numAngles; ++angle )
+			{
+				final File angleFolder = new File( tpFolder, getAngleString( angle ) );
+
+				for ( int cam = 0; cam < numCameras; ++cam )
+				{
+					for ( int ch = 0; ch < numChannels; ++ch )
+					{
+						final File rawFile = new File( angleFolder, 
+								getFileNamesFor(
+										this.filePattern,
+										patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles,
+										tp,ch, cam, angle,
+										patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles)[0] );
+						
+						if ( !rawFile.exists() )
+						{
+							IOFunctions.println( "File MISSING: " + rawFile.getAbsolutePath() );
+							present = false;
+						}
+						
+					}
+				}
+			}
+		}
+
+		if ( present )
+			IOFunctions.println( "All files found." );
+
+		return present;
+	}
+
+	public static int getTimepointInt( final String tp )
+	{
+		return Integer.parseInt(tp.substring(2)); //e.g. TM00012
+	}
+
+	public static int getAngleInt( final String angle )
+	{
+		return Integer.parseInt(angle.substring(3)); //e.g. ANG000
+	}
+
+	public static String getTimepointString( final int tp )
+	{
+		return "TM" + StackList.leadingZeros( Integer.toString( tp ), 5 ); //e.g. TM00012
+	}
+
+	public static String getAngleString( final int angle )
+	{
+		return "ANG" + StackList.leadingZeros( Integer.toString( angle ), 3 ); //e.g. ANG000
+	}
 
 	/**
 	 * assigns global metadata
@@ -68,6 +205,8 @@ public class SimViewMetaData
 						return false;						
 					}
 
+		buildDefaultFilePattern();
+
 		return true;
 	}
 
@@ -87,7 +226,7 @@ public class SimViewMetaData
 
 		HashMap<String , String > metadataHash;
 	}
-
+	
 	public static SimViewChannel parseSimViewXML( final File file ) throws JDOMException, IOException
 	{
 		final SimViewChannel metaData = new SimViewChannel();
