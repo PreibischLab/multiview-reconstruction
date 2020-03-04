@@ -22,6 +22,7 @@ import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -29,6 +30,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimViewMetaData;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimViewMetaData.Pattern;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType >
 {
@@ -117,7 +119,9 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 
 		if ( type == 0 )
 		{
-			final RandomAccessibleInterval< UnsignedByteType > img = ImageJFunctions.wrap( imp );
+			RandomAccessibleInterval< UnsignedByteType > img = ImageJFunctions.wrap( imp );
+
+			img = fixSizeIfNecessary( img, vs.getSize(), view );
 
 			if ( img == null )
 				throw new RuntimeException( "Could not load '" + rawFile.getAbsolutePath() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
@@ -127,13 +131,81 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 		}
 		else
 		{
-			final RandomAccessibleInterval< UnsignedShortType > img = ImageJFunctions.wrap( imp );
+			RandomAccessibleInterval< UnsignedShortType > img = ImageJFunctions.wrap( imp );
+
+			img = fixSizeIfNecessary( img, vs.getSize(), view );
 
 			if ( img == null )
 				throw new RuntimeException( "Could not load '" + rawFile.getAbsolutePath() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
 
 			return img;
 		}
+	}
+
+	public static < T extends RealType < T > > RandomAccessibleInterval< T > fixSizeIfNecessary(
+			RandomAccessibleInterval< T > img,
+			final Dimensions dim,
+			final ViewId viewId )
+	{
+		while ( img.numDimensions() < dim.numDimensions() )
+		{
+			IOFunctions.println( "BIG WARNING: dimensionality of ViewId " + Group.pvid( viewId ) + " is wrong, adjusting it manually." );
+			IOFunctions.println( "BIG WARNING: dimensionality should be: " + dim.numDimensions() + ", but is: " + img.numDimensions() );
+
+			final long[] max = new long[ img.numDimensions() + 1 ];
+
+			for ( int d = 0; d < img.numDimensions(); ++d )
+				max[ d ] = img.dimension( d ) - 1;
+
+			max[ max.length - 1 ] = 0;
+
+			img = Views.interval( Views.addDimension( img ), new long[ img.numDimensions() + 1 ], max );
+		}
+
+		while ( img.numDimensions() > dim.numDimensions())
+		{
+			throw new RuntimeException( "different dimensionalities not supported." );
+		}
+
+		boolean same = true;
+
+		for ( int d = 0; d < img.numDimensions(); ++d )
+			if ( img.dimension( d ) != dim.dimension( d ) )
+				same = false;
+
+		if ( !same )
+		{
+			IOFunctions.println( "BIG WARNING: image of ViewId " + Group.pvid( viewId ) + " has a different size, adjusting it manually." );
+			IOFunctions.println( "BIG WARNING: dimensions should be: " + printDimensions( dim ) + ", but are: " + printDimensions( img ) );
+
+			final long[] max = new long[ dim.numDimensions() ];
+
+			for ( int d = 0; d < img.numDimensions(); ++d )
+				max[ d ] = dim.dimension( d ) - 1;
+			
+			return Views.interval( Views.extendZero( img ), new long[ dim.numDimensions() ], max );
+		}
+		else
+		{
+			return img;
+		}
+	}
+
+	public static String printDimensions( final Dimensions dim )
+	{
+		String out = "(Dimensions empty)";
+
+		if ( dim == null || dim.numDimensions() == 0 )
+			return out;
+
+		out = "(" + dim.dimension( 0 );
+
+		for ( int i = 1; i < dim.numDimensions(); i++ )
+			out += ", " + dim.dimension( i );
+
+		out += ")";
+
+		return out;
 	}
 
 	@Override
