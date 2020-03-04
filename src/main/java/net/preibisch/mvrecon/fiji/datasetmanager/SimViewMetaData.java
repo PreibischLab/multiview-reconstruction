@@ -1,7 +1,9 @@
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -13,6 +15,7 @@ import org.jdom2.input.SAXBuilder;
 import mpicbg.spim.data.sequence.IntegerPattern;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.datasetmanager.SimView.DirectoryFilter;
 
 public class SimViewMetaData
 {
@@ -21,14 +24,18 @@ public class SimViewMetaData
 	final public static char CAM_PATTERN = 'm';
 	final public static char ANGLE_PATTERN = 'a';
 
+	final public static char PLANE_PATTERN = 'p';
+
 	public static class Pattern
 	{
-		public String replaceTimepoints = null, replaceChannels = null, replaceCams = null, replaceAngles = null;
-		public int numDigitsTimepoints = 0, numDigitsChannels = 0, numDigitsCams = 0, numDigitsAngles = 0;		
+		public String replaceTimepoints = null, replaceChannels = null, replaceCams = null, replaceAngles = null, replacePlanes = null;
+		public int numDigitsTimepoints = 0, numDigitsChannels = 0, numDigitsCams = 0, numDigitsAngles = 0, numDigitsPlanes = 0;
 	}
 
 	public String filePattern = "";
 	public Pattern patternParser = null;
+
+	boolean isPlanar = false;
 
 	File rootDir, expDir;
 	String[] baseXMLs; // relative to expDir
@@ -52,9 +59,142 @@ public class SimViewMetaData
 	int type = 2; //{"8-bit", "16-bit Signed", "16-bit Unsigned" };
 	boolean littleEndian = true;
 
+	public static SimViewMetaData parseMetaData( final File rootDir, final File expDir )
+	{
+		final SimViewMetaData metaData = new SimViewMetaData();
+		metaData.rootDir = rootDir;
+		metaData.expDir = expDir;
+
+		//
+		// get #timepoints from the sorted directory list
+		//
+		String[] dirs = expDir.list( new DirectoryFilter( "TM" ) );
+
+		if ( dirs.length == 0 )
+		{
+			IOFunctions.println( expDir.getAbsolutePath() + " contains no subdirectories with experiments." );
+			return null;
+		}
+		else
+		{
+			Arrays.sort( dirs );
+
+			metaData.numTimePoints = dirs.length;
+			metaData.timePoints = dirs;
+
+			IOFunctions.println( "Found " + metaData.numTimePoints + " timepoints: " + metaData.timePoints[ 0 ] + " >>> " + metaData.timePoints[ metaData.timePoints.length - 1] + "." );
+		}
+
+		//
+		// get #channels from the XML files in the first timepoint
+		//
+		final File firstTP = new File( expDir, metaData.timePoints[ 0 ] );
+		dirs = firstTP.list( new FilenameFilter()
+		{
+			@Override
+			public boolean accept(final File dir, final String name)
+			{
+				return name.toLowerCase().startsWith( "ch" ) && name.toLowerCase().endsWith( ".xml");
+			}
+		});
+
+		if ( dirs.length == 0 )
+		{
+			IOFunctions.println( expDir.getAbsolutePath() + " contains no XML files." );
+			return null;
+		}
+		else
+		{
+			Arrays.sort( dirs );
+
+			metaData.numChannels = dirs.length;
+			metaData.metaDataChannels = new SimViewChannel[ metaData.numChannels ];
+			metaData.channels = dirs;
+			metaData.baseXMLs = new String[ dirs.length ];
+
+			IOFunctions.println( "Found " + metaData.numChannels + " channels: " );
+
+			for ( int c = 0; c < metaData.numChannels; ++c )
+			{
+				metaData.baseXMLs[ c ] = new File( metaData.timePoints[ 0 ], metaData.channels[ c ] ).getPath();
+				metaData.channels[ c ] = metaData.channels[ c ].substring( 0, metaData.channels[ c ].toLowerCase().lastIndexOf(".xml") );
+
+				IOFunctions.println();
+				IOFunctions.println( "channel " + metaData.channels[ c ] );
+				IOFunctions.println( "baseXML " + metaData.baseXMLs[ c ] );
+
+				try
+				{
+					metaData.metaDataChannels[ c ] = SimViewMetaData.parseSimViewXML( new File( expDir, metaData.baseXMLs[ c ] ) );
+				}
+				catch (JDOMException | IOException e)
+				{
+					IOFunctions.println( "Failed to parse XML: " + e );
+					IOFunctions.println( "Stopping." );
+					e.printStackTrace();
+					return null;
+				}
+			}
+
+			//
+			// get #rotation angles from the directory structure
+			//
+			dirs = firstTP.list( new FilenameFilter()
+			{
+				@Override
+				public boolean accept(final File dir, final String name)
+				{
+					return name.toLowerCase().startsWith( "ang" ) && new File( dir, name ).isDirectory();
+				}
+			});
+
+			Arrays.sort( dirs );
+			metaData.numAngles = dirs.length;
+			metaData.angles = dirs;
+			
+			IOFunctions.println();
+			IOFunctions.println( "Found " + metaData.numAngles + " angles: " );
+
+			for ( final String angle : metaData.angles )
+				IOFunctions.println( angle );
+
+			//
+			// test if it is saved as planar images
+			//
+			final File angleFolder = new File( firstTP, getAngleString( 0 ) );
+
+			dirs = angleFolder.list( new FilenameFilter()
+			{
+				@Override
+				public boolean accept(final File dir, final String name)
+				{
+					return name.toLowerCase().startsWith( "spc" );
+				}
+			});
+
+			if ( dirs[ 0 ].toLowerCase().contains( "_pln" ) )
+			{
+				metaData.isPlanar = true;
+				IOFunctions.println( "Acquistion is planar: " + dirs[ 0 ] );
+			}
+			else
+			{
+				metaData.isPlanar = false;
+			}
+		}
+
+		if ( metaData.assignGlobalValues() )
+			return metaData;
+		else
+			return null;
+	}
+
 	public void buildDefaultFilePattern()
 	{
-		builFilePattern( "SPC00_TM{ttttt}_ANG{aaa}_CM{m}_CHN{cc}_PH0.stack" );
+		if ( isPlanar )
+			builFilePattern( "SPC00_TM{ttttt}_ANG{aaa}_CM{m}_CHN{cc}_PH0_PLN{pppp}.tif" );
+		else
+			builFilePattern( "SPC00_TM{ttttt}_ANG{aaa}_CM{m}_CHN{cc}_PH0.stack" );
 	}
 	
 	public void builFilePattern( final String filePattern )
@@ -79,14 +219,17 @@ public class SimViewMetaData
 		p.replaceAngles = IntegerPattern.getReplaceString( filePattern, ANGLE_PATTERN );
 		p.numDigitsAngles = p.replaceAngles.length() - 2;
 
+		p.replacePlanes = IntegerPattern.getReplaceString( filePattern, PLANE_PATTERN );
+		if ( p.replacePlanes != null )
+			p.numDigitsPlanes = p.replacePlanes.length() - 2;
+
 		return p;
 	}
 
 	public static String[] getFileNamesFor( String fileNames, 
-			final String replaceTimepoints, final String replaceChannels, 
-			final String replaceCams, final String replaceAngles,
-			final int tpName, final int chName, final int camName, final int angleName,
-			final int numDigitsTP, final int numDigitsCh, final int numDigitsCam, final int numDigitsAngle )
+			final String replaceTimepoints, final String replaceChannels, final String replaceCams, final String replaceAngles, final String replacePlanes,
+			final int tpName, final int chName, final int camName, final int angleName, final int planeName,
+			final int numDigitsTP, final int numDigitsCh, final int numDigitsCam, final int numDigitsAngle, final int numDigitsPlane )
 	{
 		String[] fileName = fileNames.split( ";" );
 		
@@ -103,7 +246,9 @@ public class SimViewMetaData
 	
 			if ( replaceAngles != null )
 				fileName[ i ] = fileName[ i ].replace( replaceAngles, StackList.leadingZeros( Integer.toString( angleName ), numDigitsAngle ) );
-			
+
+			if ( replacePlanes != null )
+				fileName[ i ] = fileName[ i ].replace( replacePlanes, StackList.leadingZeros( Integer.toString( planeName ), numDigitsPlane ) );
 		}
 		return fileName;
 	}
@@ -126,19 +271,40 @@ public class SimViewMetaData
 				{
 					for ( int ch = 0; ch < numChannels; ++ch )
 					{
-						final File rawFile = new File( angleFolder, 
-								getFileNamesFor(
-										this.filePattern,
-										patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles,
-										tp,ch, cam, angle,
-										patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles)[0] );
-						
-						if ( !rawFile.exists() )
+						if ( isPlanar )
 						{
-							IOFunctions.println( "File MISSING: " + rawFile.getAbsolutePath() );
-							present = false;
+							for ( int plane = 0; plane < stackSize[ 2 ]; ++plane )
+							{
+								final File rawFile = new File( angleFolder, 
+										getFileNamesFor(
+												this.filePattern,
+												patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, patternParser.replacePlanes,
+												tp,ch, cam, angle, plane,
+												patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, patternParser.numDigitsPlanes )[0] );
+								
+								if ( !rawFile.exists() )
+								{
+									IOFunctions.println( "File MISSING: " + rawFile.getAbsolutePath() );
+									present = false;
+								}
+
+							}
 						}
-						
+						else
+						{
+							final File rawFile = new File( angleFolder, 
+									getFileNamesFor(
+											this.filePattern,
+											patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, patternParser.replacePlanes,
+											tp,ch, cam, angle, 0,
+											patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, patternParser.numDigitsPlanes )[0] );
+							
+							if ( !rawFile.exists() )
+							{
+								IOFunctions.println( "File MISSING: " + rawFile.getAbsolutePath() );
+								present = false;
+							}
+						}
 					}
 				}
 			}
@@ -202,7 +368,7 @@ public class SimViewMetaData
 					if ( stackSize[ d ] != metaDataChannels[ i ].stackSizes[ c ][ d ] )
 					{
 						IOFunctions.println( "stackSize inconsistent, " + Util.printCoordinates( this.stackSize ) + "!= " + Util.printCoordinates(  metaDataChannels[ i ].stackSizes[ c ] ) + ".");
-						return false;						
+						return false;
 					}
 
 		buildDefaultFilePattern();

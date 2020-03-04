@@ -89,7 +89,7 @@ public class SimView implements MultiViewDatasetDefinition
 		//
 		// Parse MetaData
 		// 
-		final SimViewMetaData meta = parseMetaData( rootDir, expDir );
+		final SimViewMetaData meta = SimViewMetaData.parseMetaData( rootDir, expDir );
 
 		if ( meta == null )
 		{
@@ -237,112 +237,6 @@ public class SimView implements MultiViewDatasetDefinition
 		return true;
 	}
 
-	protected SimViewMetaData parseMetaData( final File rootDir, final File expDir )
-	{
-		final SimViewMetaData metaData = new SimViewMetaData();
-		metaData.rootDir = rootDir;
-		metaData.expDir = expDir;
-
-		//
-		// get #timepoints from the sorted directory list
-		//
-		String[] dirs = expDir.list( new DirectoryFilter( "TM" ) );
-
-		if ( dirs.length == 0 )
-		{
-			IOFunctions.println( expDir.getAbsolutePath() + " contains no subdirectories with experiments." );
-			return null;
-		}
-		else
-		{
-			Arrays.sort( dirs );
-
-			metaData.numTimePoints = dirs.length;
-			metaData.timePoints = dirs;
-
-			IOFunctions.println( "Found " + metaData.numTimePoints + " timepoints: " + metaData.timePoints[ 0 ] + " >>> " + metaData.timePoints[ metaData.timePoints.length - 1] + "." );
-		}
-
-		//
-		// get #channels from the XML files in the first timepoint
-		//
-		final File firstTP = new File( expDir, metaData.timePoints[ 0 ] );
-		dirs = firstTP.list( new FilenameFilter()
-		{
-			@Override
-			public boolean accept(final File dir, final String name)
-			{
-				return name.toLowerCase().endsWith( ".xml");
-			}
-		});
-
-		if ( dirs.length == 0 )
-		{
-			IOFunctions.println( expDir.getAbsolutePath() + " contains no XML files." );
-			return null;
-		}
-		else
-		{
-			Arrays.sort( dirs );
-
-			metaData.numChannels = dirs.length;
-			metaData.metaDataChannels = new SimViewChannel[ metaData.numChannels ];
-			metaData.channels = dirs;
-			metaData.baseXMLs = new String[ dirs.length ];
-
-			IOFunctions.println( "Found " + metaData.numChannels + " channels: " );
-
-			for ( int c = 0; c < metaData.numChannels; ++c )
-			{
-				metaData.baseXMLs[ c ] = new File( metaData.timePoints[ 0 ], metaData.channels[ c ] ).getPath();
-				metaData.channels[ c ] = metaData.channels[ c ].substring( 0, metaData.channels[ c ].toLowerCase().lastIndexOf(".xml") );
-
-				IOFunctions.println();
-				IOFunctions.println( "channel " + metaData.channels[ c ] );
-				IOFunctions.println( "baseXML " + metaData.baseXMLs[ c ] );
-
-				try
-				{
-					metaData.metaDataChannels[ c ] = SimViewMetaData.parseSimViewXML( new File( expDir, metaData.baseXMLs[ c ] ) );
-				}
-				catch (JDOMException | IOException e)
-				{
-					IOFunctions.println( "Failed to parse XML: " + e );
-					IOFunctions.println( "Stopping." );
-					e.printStackTrace();
-					return null;
-				}
-			}
-
-			//
-			// get #rotation angles from the directory structure
-			//
-			dirs = firstTP.list( new FilenameFilter()
-			{
-				@Override
-				public boolean accept(final File dir, final String name)
-				{
-					return name.toLowerCase().startsWith( "ang" ) && new File( dir, name ).isDirectory();
-				}
-			});
-
-			Arrays.sort( dirs );
-			metaData.numAngles = dirs.length;
-			metaData.angles = dirs;
-			
-			IOFunctions.println();
-			IOFunctions.println( "Found " + metaData.numAngles + " angles: " );
-			
-			for ( final String angle : metaData.angles )
-				IOFunctions.println( angle );
-		}
-
-		if ( metaData.assignGlobalValues() )
-			return metaData;
-		else
-			return null;
-	}
-	
 	public static class DirectoryFilter implements FilenameFilter
 	{
 		private final String startsWith;
