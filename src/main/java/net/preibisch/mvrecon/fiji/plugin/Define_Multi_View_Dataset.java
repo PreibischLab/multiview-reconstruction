@@ -27,6 +27,12 @@ import java.awt.Choice;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 
+import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
+import ij.ImageJ;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
+import ij.plugin.PlugIn;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
@@ -43,13 +49,6 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.MyMultiLineLabel;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-
-import fiji.util.gui.GenericDialogPlus;
-import ij.IJ;
-import ij.ImageJ;
-import ij.gui.DialogListener;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
 
 public class Define_Multi_View_Dataset implements PlugIn
 {

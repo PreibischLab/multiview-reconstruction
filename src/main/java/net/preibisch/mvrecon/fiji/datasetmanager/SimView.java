@@ -31,7 +31,6 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimViewMetaData.SimViewChannel;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
@@ -230,9 +229,9 @@ public class SimView implements MultiViewDatasetDefinition
 
 		meta.filePattern = gd.getNextString();
 
-		meta.xStep = (int)Math.round( gd.getNextNumber() );
-		meta.yStep = (int)Math.round( gd.getNextNumber() );
-		meta.zStep = (int)Math.round( gd.getNextNumber() );
+		meta.xStep = gd.getNextNumber();
+		meta.yStep = gd.getNextNumber();
+		meta.zStep = gd.getNextNumber();
 		meta.unit = gd.getNextString();
 		
 		return true;
