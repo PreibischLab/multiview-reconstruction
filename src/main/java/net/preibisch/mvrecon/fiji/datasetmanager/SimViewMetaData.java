@@ -261,10 +261,14 @@ public class SimViewMetaData
 
 		for ( int tp = 0; tp < numTimePoints; ++tp )
 		{
+			IOFunctions.println( "Testing timepoint " + getTimepointString( tp ) );
+
 			final File tpFolder = new File( expDir, getTimepointString( tp ) );
 
 			for ( int angle = 0; angle < numAngles; ++angle )
 			{
+				IOFunctions.println( "Testing timepoint " + getAngleString( angle ) );
+
 				final File angleFolder = new File( tpFolder, getAngleString( angle ) );
 
 				for ( int cam = 0; cam < numCameras; ++cam )
@@ -287,7 +291,6 @@ public class SimViewMetaData
 									IOFunctions.println( "File MISSING: " + rawFile.getAbsolutePath() );
 									present = false;
 								}
-
 							}
 						}
 						else
@@ -295,9 +298,9 @@ public class SimViewMetaData
 							final File rawFile = new File( angleFolder, 
 									getFileNamesFor(
 											this.filePattern,
-											patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, patternParser.replacePlanes,
+											patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, null,
 											tp,ch, cam, angle, 0,
-											patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, patternParser.numDigitsPlanes )[0] );
+											patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, 0 )[0] );
 							
 							if ( !rawFile.exists() )
 							{

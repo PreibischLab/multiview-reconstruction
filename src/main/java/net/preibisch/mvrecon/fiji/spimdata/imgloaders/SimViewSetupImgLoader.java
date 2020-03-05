@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Date;
 
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.io.FileInfo;
 import ij.plugin.Raw;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -86,15 +87,8 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 
 		final File tpFolder = new File( expDir, SimViewMetaData.getTimepointString( t.getId() ) );
 		final File angleFolder = new File( tpFolder, SimViewMetaData.getAngleString( angle ) );
-				
-		final File rawFile = new File( angleFolder, 
-				SimViewMetaData.getFileNamesFor(
-						this.filePattern,
-						patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles,
-						t.getId(), c.getId(), cam, angle,
-						patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles)[0] );
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading file " + rawFile.getAbsolutePath() );
+		final ImagePlus imp;
 
 		final FileInfo fi = new FileInfo();
 		if ( type == 0 )
@@ -106,16 +100,55 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 			
 		fi.width = (int)vs.getSize().dimension( 0 );
 		fi.height = (int)vs.getSize().dimension( 1 );
-		fi.nImages = (int)vs.getSize().dimension( 2 );
-		fi.intelByteOrder = true;
+		fi.intelByteOrder = littleEndian;
 
-		System.out.println( fi );
+		if ( patternParser.replacePlanes == null )
+		{
+			final File rawFile = new File( angleFolder,
+					SimViewMetaData.getFileNamesFor(
+							this.filePattern,
+							patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, null,
+							t.getId(), c.getId(), cam, angle, 0,
+							patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, 0)[0] );
 
-		//final VirtualStack virtual = new FileInfoVirtualStack(fi);
-		final ImagePlus imp = Raw.open( rawFile.getAbsolutePath(), fi );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading file " + rawFile.getAbsolutePath() );
 
-		if ( imp == null )
-			throw new RuntimeException( "Could not load '" + rawFile.getAbsolutePath() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
+			fi.nImages = (int)vs.getSize().dimension( 2 );
+
+			System.out.println( fi );
+
+			//final VirtualStack virtual = new FileInfoVirtualStack(fi);
+			imp = Raw.open( rawFile.getAbsolutePath(), fi );
+
+			if ( imp == null )
+				throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + " file=" + rawFile.getAbsolutePath() );
+		}
+		else
+		{
+			fi.nImages = 1;
+			System.out.println( fi );
+
+			final ImageStack stack = new ImageStack( fi.width, fi.height );
+
+			for ( int plane = 0; plane < vs.getSize().dimension( 2 ); ++plane )
+			{
+				final File rawFile = new File( angleFolder, 
+						SimViewMetaData.getFileNamesFor(
+								this.filePattern,
+								patternParser.replaceTimepoints, patternParser.replaceChannels, patternParser.replaceCams, patternParser.replaceAngles, patternParser.replacePlanes,
+								t.getId(), c.getId(), cam, angle, plane,
+								patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, patternParser.numDigitsPlanes )[0] );
+
+				final ImagePlus impPlane = Raw.open( rawFile.getAbsolutePath(), fi );
+
+				if ( impPlane == null )
+					throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + " file=" + rawFile.getAbsolutePath() );
+
+				stack.addSlice( impPlane.getProcessor() );
+			}
+
+			imp = new ImagePlus( "planes", stack );
+		}
 
 		if ( type == 0 )
 		{
@@ -124,7 +157,7 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 			img = fixSizeIfNecessary( img, vs.getSize(), view );
 
 			if ( img == null )
-				throw new RuntimeException( "Could not load '" + rawFile.getAbsolutePath() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
+				throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
 
 			final Converter<UnsignedByteType, UnsignedShortType> conv = new RealUnsignedShortConverter<UnsignedByteType>( 0, 255 );
 			return new ConvertedRandomAccessibleInterval< UnsignedByteType, UnsignedShortType >( img, conv, new UnsignedShortType() );
@@ -136,7 +169,7 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 			img = fixSizeIfNecessary( img, vs.getSize(), view );
 
 			if ( img == null )
-				throw new RuntimeException( "Could not load '" + rawFile.getAbsolutePath() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
+				throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
 
 			return img;
 		}
