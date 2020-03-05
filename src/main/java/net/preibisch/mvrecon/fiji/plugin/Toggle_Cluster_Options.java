@@ -24,7 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import mpicbg.spim.io.IOFunctions;
+import net.preibisch.legacy.io.IOFunctions;
 
 public class Toggle_Cluster_Options implements PlugIn
 {

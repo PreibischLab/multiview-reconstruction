@@ -56,7 +56,6 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
@@ -72,6 +71,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 
@@ -141,22 +141,10 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage(ViewId view, boolean normalize)
 	{
-		try
-		{
-			final RandomAccessibleInterval< FloatType > img = openImg( new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
-
-			if ( normalize )
-				normalize( img );
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	

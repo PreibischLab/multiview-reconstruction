@@ -25,9 +25,9 @@ package net.preibisch.mvrecon.process.cuda;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
 import net.imglib2.util.Util;
+import net.preibisch.legacy.io.IOFunctions;
 
 public class BlockGeneratorFixedSizePrecise implements BlockGenerator< Block >
 {

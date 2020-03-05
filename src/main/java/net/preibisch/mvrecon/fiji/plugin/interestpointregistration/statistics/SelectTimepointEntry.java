@@ -30,9 +30,9 @@ import javax.swing.AbstractAction;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
-import mpicbg.spim.io.IOFunctions;
-
 import org.jfree.chart.ChartPanel;
+
+import net.preibisch.legacy.io.IOFunctions;
 
 public class SelectTimepointEntry extends AbstractAction 
 {

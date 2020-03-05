@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.BDVBoundingBoxGUI;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.BoundingBoxGUI;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.MaximumBoundingBoxGUI;
@@ -41,7 +42,6 @@ import ij.ImageJ;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class Define_Bounding_Box implements PlugIn
 {

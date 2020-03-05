@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.segmentation.InteractiveIntegral;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dom.DoM;
@@ -37,8 +39,6 @@ import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.segmentation.InteractiveIntegral;
 
 
 public class DifferenceOfMeanGUI extends DifferenceOfGUI

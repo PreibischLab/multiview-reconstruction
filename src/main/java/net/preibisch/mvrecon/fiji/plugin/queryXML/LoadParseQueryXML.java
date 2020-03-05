@@ -27,6 +27,7 @@ import ij.ImageJ;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.plugin.Define_Multi_View_Dataset;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -41,7 +42,6 @@ import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewSetup;
-import mpicbg.spim.io.IOFunctions;
 
 public class LoadParseQueryXML extends GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 >
 {

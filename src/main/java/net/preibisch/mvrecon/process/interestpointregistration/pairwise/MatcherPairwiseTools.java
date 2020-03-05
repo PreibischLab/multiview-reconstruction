@@ -34,9 +34,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;

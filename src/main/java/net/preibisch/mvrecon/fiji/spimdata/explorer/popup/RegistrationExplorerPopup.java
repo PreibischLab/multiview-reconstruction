@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JMenuItem;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
@@ -35,7 +36,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.registration.RegistrationExp
 
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
-import mpicbg.spim.io.IOFunctions;
 
 public class RegistrationExplorerPopup extends JMenuItem implements ExplorerWindowSetable
 {

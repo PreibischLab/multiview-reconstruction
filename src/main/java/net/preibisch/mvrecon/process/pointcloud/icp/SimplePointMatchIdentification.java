@@ -26,10 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mpicbg.models.Point;
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 
 public class SimplePointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >

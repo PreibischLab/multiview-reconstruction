@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.segmentation.InteractiveDoG;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -43,8 +45,6 @@ import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.segmentation.InteractiveDoG;
 
 public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericDialogAppender
 {

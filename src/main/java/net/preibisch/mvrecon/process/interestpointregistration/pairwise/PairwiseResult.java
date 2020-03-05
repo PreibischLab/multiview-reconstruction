@@ -25,10 +25,9 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise;
 import java.util.Date;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 
 public class PairwiseResult< I extends InterestPoint >
 {

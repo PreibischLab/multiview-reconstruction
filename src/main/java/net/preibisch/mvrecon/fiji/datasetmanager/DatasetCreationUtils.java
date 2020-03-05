@@ -14,8 +14,8 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.preibisch.legacy.io.IOFunctions;
 
 public class DatasetCreationUtils
 {

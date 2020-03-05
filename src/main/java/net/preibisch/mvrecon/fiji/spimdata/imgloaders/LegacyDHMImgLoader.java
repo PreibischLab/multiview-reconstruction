@@ -36,7 +36,6 @@ import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayCursor;
@@ -47,6 +46,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.legacy.io.IOFunctions;
 
 public class LegacyDHMImgLoader extends AbstractImgLoader
 {
@@ -97,29 +97,10 @@ public class LegacyDHMImgLoader extends AbstractImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
-		final Dimensions d = vd.getViewSetup().getSize();
-		final VoxelDimensions dv = vd.getViewSetup().getVoxelSize();
-
-		final ArrayImg< FloatType, ? > img = ArrayImgs.floats( d.dimension( 0 ), d.dimension( 1 ), d.dimension(  2 ) );
-
-		final String ampOrPhaseDir;
-
-		if ( vd.getViewSetup().getAttribute( Channel.class ).getId() == ampChannelId )
-			ampOrPhaseDir = amplitudeDir;
-		else if ( vd.getViewSetup().getAttribute( Channel.class ).getId() ==  phaseChannelId )
-			ampOrPhaseDir = phaseDir;
-		else
-			throw new RuntimeException( "viewSetupId=" + view.getViewSetupId() + " is not Amplitude nor phase." );
-
-		populateImage( img, directory, stackDir, ampOrPhaseDir, zPlanes, timepoints.get( view.getTimePointId() ), extension );
-
 		if ( normalize )
-			normalize( img );
-
-		updateMetaDataCache( view, (int)d.dimension( 0 ), (int)d.dimension( 1 ), (int)d.dimension( 2 ), dv.dimension( 0 ), dv.dimension( 1 ), dv.dimension( 2 ) );
-
-		return img;
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	@Override

@@ -62,10 +62,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.util.Util;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 

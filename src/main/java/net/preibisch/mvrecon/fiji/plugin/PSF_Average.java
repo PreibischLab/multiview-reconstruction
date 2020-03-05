@@ -31,10 +31,10 @@ import java.util.List;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -100,6 +100,9 @@ public class PSF_Average implements PlugIn
 	{
 		final Img< FloatType > avgPSF = averagePSF( spimData, viewIds );
 
+		if ( avgPSF == null )
+			return false;
+
 		if ( subtractMinProjections )
 			PSFExtraction.removeMinProjections( avgPSF );
 
@@ -148,6 +151,12 @@ public class PSF_Average implements PlugIn
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could NOT find psf for " + Group.pvid( viewId ) );
 			}
+		}
+
+		if ( psfs.isEmpty() )
+		{
+			IOFunctions.println( "No PSFs available. Stopping." );
+			return null;
 		}
 
 		final Img< FloatType > avgPSF =  PSFCombination.computeAverageImage( psfs.values(), new ArrayImgFactory< FloatType >(), true );

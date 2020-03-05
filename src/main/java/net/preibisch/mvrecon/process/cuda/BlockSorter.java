@@ -28,9 +28,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.util.Util;
+import net.preibisch.legacy.io.IOFunctions;
 
 /**
  * We need to sort blocks in a way so consecutive ones are not influenced by their predecessors

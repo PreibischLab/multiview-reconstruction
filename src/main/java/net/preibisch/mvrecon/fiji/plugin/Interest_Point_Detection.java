@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfGaussianGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfMeanGUI;
@@ -47,7 +48,6 @@ import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 /**
  * Plugin to detect interest points, store them on disk, and link them into the XML

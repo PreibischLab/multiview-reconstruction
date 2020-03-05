@@ -25,14 +25,13 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 import java.util.ArrayList;
 import java.util.List;
 
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.ransac.RANSAC;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.ransac.RANSACParameters;
-
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 
 public class GeometricHashingPairwise< I extends InterestPoint > implements MatcherPairwise< I >
 {

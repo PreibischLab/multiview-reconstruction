@@ -25,12 +25,12 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.KDTree;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.TranslationInvariantLocalCoordinateSystemPointDescriptor;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;

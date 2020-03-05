@@ -34,7 +34,6 @@ import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayCursor;
 import net.imglib2.img.array.ArrayImg;
@@ -44,6 +43,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 
@@ -117,30 +117,10 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		try
-		{
-			final MultipageTiffReader r = new MultipageTiffReader( mmFile );
-
-			final ArrayImg< FloatType, ? > img = ArrayImgs.floats( r.width(), r.height(), r.depth() );
-			final BasicViewDescription< ? > vd = sequenceDescription.getViewDescriptions().get( view );
-
-			populateImage( img, vd, r );
-
-			if ( normalize )
-				normalize( img );
-
-			updateMetaDataCache( view, r.width(), r.height(), r.depth(), r.calX(), r.calY(), r.calZ() );
-
-			r.close();
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			IOFunctions.println( "Failed to load viewsetup=" + view.getViewSetupId() + " timepoint=" + view.getTimePointId() + ": " + e );
-			e.printStackTrace();
-			return null;
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+		else
+			return AbstractImgLoader.convertVirtual( getImage( view ) );
 	}
 
 	@Override

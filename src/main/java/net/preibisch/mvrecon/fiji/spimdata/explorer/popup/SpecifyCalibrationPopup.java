@@ -30,6 +30,7 @@ import java.util.List;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Specify_Calibration;
 import net.preibisch.mvrecon.fiji.plugin.Specify_Calibration.Cal;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
@@ -38,7 +39,6 @@ import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class SpecifyCalibrationPopup extends JMenuItem implements ExplorerWindowSetable
 {

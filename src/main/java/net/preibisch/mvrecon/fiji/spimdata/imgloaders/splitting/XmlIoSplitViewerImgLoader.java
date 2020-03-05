@@ -42,9 +42,9 @@ import mpicbg.spim.data.generic.sequence.ImgLoaders;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.XmlIoSequenceDescription;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.preibisch.legacy.io.IOFunctions;
 
 @ImgLoaderIo( format = "split.viewerimgloader", type = SplitViewerImgLoader.class )
 public class XmlIoSplitViewerImgLoader implements XmlIoBasicImgLoader< SplitViewerImgLoader >

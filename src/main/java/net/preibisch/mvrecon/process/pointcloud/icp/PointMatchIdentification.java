@@ -25,8 +25,8 @@ package net.preibisch.mvrecon.process.pointcloud.icp;
 
 import java.util.List;
 
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.RealLocalizable;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;
 

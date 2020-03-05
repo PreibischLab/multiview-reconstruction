@@ -25,9 +25,9 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 import java.util.ArrayList;
 import java.util.List;
 
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;

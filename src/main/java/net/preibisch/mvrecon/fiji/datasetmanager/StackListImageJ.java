@@ -28,9 +28,9 @@ import ij.io.Opener;
 import java.io.File;
 
 import mpicbg.spim.data.sequence.SequenceDescription;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.type.NativeType;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 

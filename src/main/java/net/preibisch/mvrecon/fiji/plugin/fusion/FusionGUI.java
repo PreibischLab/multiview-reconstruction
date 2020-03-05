@@ -41,11 +41,11 @@ import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -215,17 +215,17 @@ public class FusionGUI implements FusionExportInterface
 			gd.addChoice( "Bounding_Box", choices, choices[ defaultBB ] );
 		else
 			gd.addChoice( "Bounding_Box", choicesForMacro, choicesForMacro[ defaultBB ] );
-		boundingBoxChoice = (Choice)gd.getChoices().lastElement();
+		boundingBoxChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
-		downsampleField = (TextField)gd.getNumericFields().lastElement();
+		downsampleField = PluginHelper.isHeadless() ? null : (TextField)gd.getNumericFields().lastElement();
 
 		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
-		pixelTypeChoice = (Choice)gd.getChoices().lastElement();
+		pixelTypeChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 		gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
-		cachingChoice = (Choice)gd.getChoices().lastElement();
+		cachingChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 
 		gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
@@ -233,7 +233,7 @@ public class FusionGUI implements FusionExportInterface
 		if ( enableNonRigid )
 		{
 			this.nrgui.addQuery( gd );
-			nonrigidChoice = (Choice)gd.getChoices().lastElement();
+			nonrigidChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 		}
 		else
 		{
@@ -243,7 +243,7 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
 		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
-		contentbasedCheckbox = (Checkbox)gd.getCheckboxes().lastElement();
+		contentbasedCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
 
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
@@ -251,7 +251,7 @@ public class FusionGUI implements FusionExportInterface
 		if ( avgAnisoF > 1.01 ) // for numerical instabilities (computed upon instantiation)
 		{
 			gd.addCheckbox( "Preserve_original data anisotropy (shrink image " + TransformationTools.f.format( avgAnisoF ) + " times in z) ", defaultPreserveAnisotropy );
-			anisoCheckbox = (Checkbox)gd.getCheckboxes().lastElement();
+			anisoCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
 			gd.addMessage(
 					"WARNING: Enabling this means to 'shrink' the dataset in z the same way the input\n" +
 					"images were scaled. Only use this if this is not a multiview dataset.", GUIHelper.smallStatusFont, GUIHelper.warning );
@@ -262,7 +262,7 @@ public class FusionGUI implements FusionExportInterface
 		}
 
 		gd.addChoice( "Produce one fused image for", splittingTypes, splittingTypes[ defaultSplittingType ] );
-		splitChoice = (Choice)gd.getChoices().lastElement();
+		splitChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
 

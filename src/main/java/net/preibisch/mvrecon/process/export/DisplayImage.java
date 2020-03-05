@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.exception.ImgLibException;
@@ -35,6 +34,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -42,6 +42,9 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class DisplayImage implements ImgExport, Calibrateable
 {
+	// TODO: this is ugly, but otherwise the service is shutdown while the ImageJVirtualStack is still displayed and crashes when scrolling through the stack
+	final static ExecutorService service = DeconViews.createExecutorService();
+
 	final boolean virtualDisplay;
 
 	String unit = "px";
@@ -150,12 +153,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 			final double min,
 			final double max )
 	{
-		final ExecutorService service = DeconViews.createExecutorService();
-		try {
-			return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
-		} finally {
-			service.shutdown();
-		}
+		return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
 	}
 
 	@SuppressWarnings("unchecked")

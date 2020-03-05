@@ -51,10 +51,7 @@ public class SplitSetupImgLoader< T > implements SetupImgLoader< T >
 		// TODO: this is stupid, remove capablitity to get FloatType images!
 		if ( normalize )
 		{
-			final Img< FloatType > img2 = new CellImgFactory<>( new FloatType() ).create( img );
-			FusionTools.copyImg( img, img2, null );
-			AbstractImgLoader.normalize( img2 );
-			return img2;
+			return AbstractImgLoader.normalizeVirtual( img );
 		}
 		else
 		{

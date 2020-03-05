@@ -37,11 +37,11 @@ import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.FinalInterval;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
@@ -77,12 +77,24 @@ public class PSF_Assign implements PlugIn
 		if ( !result.queryXML( "Dataset Fusion", true, true, true, true, true ) )
 			return;
 
-		assign( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
+		assign(result.getData(), SpimData2.getAllViewIdsSorted(result.getData(),
+			result.getViewSetupsToProcess(), result.getTimePointsToProcess()), result
+				.getClusterExtension(), result.getXMLFileName(), true);
+	}
+	
+	public static boolean assign(
+		final SpimData2 spimData,
+		final Collection< ? extends ViewId > viewCollection)
+	{
+		return assign(spimData, viewCollection, null, null, false);
 	}
 
 	public static boolean assign(
 			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewCollection )
+			final Collection< ? extends ViewId > viewCollection,
+			final String clusterExtension,
+			final String xmlFileName,
+			final boolean saveXml )
 	{
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 		viewIds.addAll( viewCollection );
@@ -100,7 +112,7 @@ public class PSF_Assign implements PlugIn
 			return false;
 
 		final int assignType = defaultAssignType = gd.getNextChoiceIndex();
-
+		
 		if ( assignType == 0 ) // "Assign existing PSF to all selected views"
 		{
 			final GenericDialog gd1 = new GenericDialog( "Assign existing PSF to views" );
@@ -130,6 +142,8 @@ public class PSF_Assign implements PlugIn
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' to " + Group.pvid( viewId ) );
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+				if ( saveXml )
+					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 			}
 		}
 		else if ( assignType == 1 ) // "Assign new PSF to all selected views"
@@ -163,10 +177,14 @@ public class PSF_Assign implements PlugIn
 					localFileName = psf.getFile();
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Local filename '" + localFileName + "' assigned" );
 					spimData.getPointSpreadFunctions().addPSF( viewId, psf );
+					if ( saveXml )
+						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 				}
 				else
 				{
 					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), localFileName ) );
+					if ( saveXml )
+						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 				}
 			}
 		}
@@ -283,6 +301,9 @@ public class PSF_Assign implements PlugIn
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' from " +  Group.pvid( corresponding ) + " to " + Group.pvid( viewId ) );
 
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+						
+						if ( saveXml )
+							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 					}
 				}
 			}
@@ -370,6 +391,9 @@ public class PSF_Assign implements PlugIn
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' from " +  Group.pvid( corresponding ) + " to " + Group.pvid( viewId ) );
 
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+						
+						if ( saveXml )
+							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 					}
 				}
 			}

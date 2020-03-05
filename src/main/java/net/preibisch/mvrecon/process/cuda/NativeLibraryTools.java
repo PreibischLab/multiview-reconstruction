@@ -32,9 +32,8 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
-
-import mpicbg.spim.io.IOFunctions;
 
 public class NativeLibraryTools
 {

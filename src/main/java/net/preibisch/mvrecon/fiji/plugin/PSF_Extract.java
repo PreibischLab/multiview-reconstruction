@@ -30,8 +30,8 @@ import java.util.List;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.type.numeric.real.FloatType;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -58,12 +58,22 @@ public class PSF_Extract implements PlugIn
 		if ( !result.queryXML( "Dataset Fusion", true, true, true, true, true ) )
 			return;
 
-		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ) );
+		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), result.getClusterExtension(), result.getXMLFileName(), true );
+	}
+
+	public static boolean extract(
+		final SpimData2 spimData,
+		final Collection< ? extends ViewId > viewCollection )
+	{
+		return extract( spimData, viewCollection, null, null, false );
 	}
 
 	public static boolean extract(
 			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewCollection )
+			final Collection< ? extends ViewId > viewCollection,
+			final String clusterExtension,
+			final String xmlFileName,
+			final boolean saveXml )
 	{
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 		viewIds.addAll( viewCollection );
@@ -159,6 +169,9 @@ public class PSF_Extract implements PlugIn
 					psf.removeMinProjections();
 
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData, viewId, psf.getPSF() ) );
+				
+				if ( saveXml )
+					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
 			}
 		}
 

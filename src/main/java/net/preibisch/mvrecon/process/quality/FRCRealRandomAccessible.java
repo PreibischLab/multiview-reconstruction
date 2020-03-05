@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ij.IJ;
 import ij.process.FloatProcessor;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -55,6 +54,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 

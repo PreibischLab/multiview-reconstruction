@@ -9,7 +9,6 @@ import bdv.ViewerSetupImgLoader;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
@@ -30,6 +29,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
@@ -136,27 +136,10 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final boolean normalize, final ImgLoaderHint... hints )
 	{
-		if ( MultiResolutionSetupImgLoader.class.isInstance( underlyingSetupImgLoader ) )
-		{
-			final RandomAccessibleInterval< FloatType > img = Views.zeroMin( Views.interval( ((MultiResolutionSetupImgLoader<?>)underlyingSetupImgLoader).getFloatImage( timepointId, false, hints ), interval ) );
-	
-			// TODO: this is stupid, remove capablitity to get FloatType images!
-			if ( normalize )
-			{
-				final Img< FloatType > img2 = new CellImgFactory<>( new FloatType() ).create( img );
-				FusionTools.copyImg( img, img2, null );
-				AbstractImgLoader.normalize( img2 );
-				return img2;
-			}
-			else
-			{
-				return img;
-			}
-		}
+		if ( normalize )
+			return AbstractImgLoader.normalizeVirtual( getImage( timepointId, hints ) );
 		else
-		{
-			throw new RuntimeException( "not supported." );
-		}
+			return AbstractImgLoader.convertVirtual( getImage( timepointId, hints ) );
 	}
 
 	@Override

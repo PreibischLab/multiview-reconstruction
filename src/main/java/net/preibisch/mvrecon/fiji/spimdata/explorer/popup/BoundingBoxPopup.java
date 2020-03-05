@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Define_Bounding_Box;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
@@ -36,7 +37,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 
 public class BoundingBoxPopup extends JMenuItem implements ExplorerWindowSetable
 {

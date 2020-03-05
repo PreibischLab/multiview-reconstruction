@@ -37,7 +37,7 @@ import org.jdom2.Element;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.XmlIoSingleton;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
+import net.preibisch.legacy.io.IOFunctions;
 
 public class XmlIoPointSpreadFunctions extends XmlIoSingleton< PointSpreadFunctions >
 {

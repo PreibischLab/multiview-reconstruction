@@ -24,9 +24,9 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 
 import java.util.ArrayList;
 
-import mpicbg.spim.mpicbg.PointMatchGeneric;
 import net.imglib2.KDTree;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
+import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.AbstractPointDescriptor;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.SimplePointDescriptor;

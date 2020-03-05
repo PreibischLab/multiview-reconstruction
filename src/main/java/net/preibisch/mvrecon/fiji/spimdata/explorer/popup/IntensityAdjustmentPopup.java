@@ -32,7 +32,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Intensity_Adjustment;
 import net.preibisch.mvrecon.fiji.plugin.RemoveIntensity_Adjustment;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;

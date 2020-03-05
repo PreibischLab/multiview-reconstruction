@@ -30,8 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.io.TextFileAccess;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.io.TextFileAccess;
 
 /**
  * A list of interest points for a certain label, can save and load from textfile as specified in the XML

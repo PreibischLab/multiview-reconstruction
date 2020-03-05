@@ -25,6 +25,8 @@ package net.preibisch.mvrecon.process.interestpointdetection;
 import java.util.ArrayList;
 import java.util.Date;
 
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.legacy.segmentation.SimplePeak;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointValue;
@@ -34,8 +36,6 @@ import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussianPeak;
 import mpicbg.imglib.algorithm.scalespace.SubpixelLocalization;
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.real.FloatType;
-import mpicbg.spim.io.IOFunctions;
-import mpicbg.spim.segmentation.SimplePeak;
 
 public class Localization
 {

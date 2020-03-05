@@ -34,8 +34,8 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.IOFunctions;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Assign;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Average;
 import net.preibisch.mvrecon.fiji.plugin.PSF_Extract;
@@ -196,12 +196,21 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 					{
 						for ( final ViewId v : views )
 						{
-							DisplayImage.getImagePlusInstance(
-								spimData.getPointSpreadFunctions().getPointSpreadFunctions().get( v ).getPSFCopy(),
-								false,
-								"PSF " + Group.pvid( v ),
-								Double.NaN,
-								Double.NaN ).show();;
+							final PointSpreadFunction psf = spimData.getPointSpreadFunctions().getPointSpreadFunctions().get( v );
+
+							if ( psf == null )
+							{
+								IOFunctions.println( "No PSF assigned to view " + Group.pvid( v ) );
+							}
+							else
+							{
+								DisplayImage.getImagePlusInstance(
+									psf.getPSFCopy(),
+									false,
+									"PSF " + Group.pvid( v ),
+									Double.NaN,
+									Double.NaN ).show();
+							}
 						}
 					}
 					else

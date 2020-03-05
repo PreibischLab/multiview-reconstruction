@@ -34,7 +34,11 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
@@ -166,6 +170,47 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 		return updated;
 	}
 
+	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> convertVirtual( final RandomAccessibleInterval< T > img )
+	{
+		return new ConvertedRandomAccessibleInterval<T, FloatType>(
+				img,
+				new RealFloatConverter<T>(),
+				new FloatType() );		
+	}
+
+	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtual( final RandomAccessibleInterval< T > img )
+	{
+		double min = Double.MAX_VALUE;
+		double max = -Double.MAX_VALUE;
+
+		for ( final T t : Views.flatIterable( img ) )
+		{
+			final double v = t.getRealDouble();
+
+			if ( v < min )
+				min = v;
+
+			if ( v > max )
+				max = v;
+		}
+
+		final float minf = (float)min;
+		final float maxf = (float)max;
+		
+		return new ConvertedRandomAccessibleInterval<T, FloatType>(
+				img,
+				new Converter<T, FloatType>()
+				{
+					@Override
+					public void convert( final T input, final FloatType output)
+					{
+						output.set( ( input.getRealFloat() - minf ) / ( maxf - minf ) );
+					}
+				},
+				new FloatType() );		
+	}
+
+	/*
 	public static final void normalize( final RandomAccessibleInterval< FloatType > img )
 	{
 		float min = Float.MAX_VALUE;
@@ -185,4 +230,5 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 		for ( final FloatType t : Views.flatIterable( img ) )
 			t.set( ( t.get() - min ) / ( max - min ) );
 	}
+	*/
 }
