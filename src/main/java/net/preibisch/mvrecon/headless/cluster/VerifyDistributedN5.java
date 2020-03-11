@@ -12,12 +12,12 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
 import bdv.img.n5.BdvN5Format;
+import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class VerifyDistributedN5
@@ -29,11 +29,11 @@ public class VerifyDistributedN5
 		System.out.println( "Loading input XML: " + arg.getInputXMLPath());
 		final SpimData2 data = new XmlIoSpimData2( "" ).load( arg.getInputXMLPath() );
 
-		if ( !N5ImgLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) )
+		if ( !N5ImageLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) )
 			throw new RuntimeException( "This is not an XML that is based on an N5 ImgLoader." );
 
-		final N5ImgLoader imgloader = (N5ImgLoader)data.getSequenceDescription().getImgLoader();
-		final String n5File = imgloader.getContainerPath();
+		final N5ImageLoader imgloader = (N5ImageLoader)data.getSequenceDescription().getImgLoader();
+		final String n5File = imgloader.getN5File().getAbsolutePath();
 
 		final N5FSWriter n5 = new N5FSWriter( n5File );
 

@@ -44,6 +44,7 @@ import bdv.export.ProposeMipmaps;
 import bdv.export.WriteSequenceToHdf5;
 import bdv.export.ExportScalePyramid;
 import bdv.export.n5.WriteSequenceToN5;
+import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -63,7 +64,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.MicroManagerImgLoader;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable
 {
@@ -305,7 +305,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5File.getParentFile(), filesToCopy );
 
 						// replace imgLoader
-						newSpimData.getSequenceDescription().setImgLoader( new N5ImgLoader( n5File.getAbsolutePath(), newSpimData.getSequenceDescription() ) );
+						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5File, newSpimData.getSequenceDescription() ) );
 						newSpimData.setBasePath( n5File.getParentFile() );
 
 						// replace the spimdata object

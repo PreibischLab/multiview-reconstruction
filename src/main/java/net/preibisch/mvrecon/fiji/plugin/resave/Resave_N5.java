@@ -28,6 +28,7 @@ import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
 import bdv.export.n5.WriteSequenceToN5;
 import bdv.img.n5.BdvN5Format;
+import bdv.img.n5.N5ImageLoader;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimDataException;
@@ -39,7 +40,6 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
 import net.preibisch.mvrecon.headless.resave.HeadlessParseQueryXML;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -123,7 +123,7 @@ public class Resave_N5 implements PlugIn
 			}
 		}
 
-		sdReduced.getSequenceDescription().setImgLoader( new N5ImgLoader( n5Params.n5File.getAbsolutePath(), sdReduced.getSequenceDescription() ) );
+		sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5File, sdReduced.getSequenceDescription() ) );
 		sdReduced.setBasePath( n5Params.xmlFile.getParentFile() );
 
 		if ( n5Params.saveXML )
