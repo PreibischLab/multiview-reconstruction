@@ -14,7 +14,7 @@ import org.kohsuke.args4j.Option;
 import bdv.img.n5.BdvN5Format;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
+import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.n5.N5ImgLoader;
@@ -40,7 +40,7 @@ public class VerifyDistributedN5
 		final ArrayList< ViewId > views = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().keySet() );
 		Collections.sort( views );
 
-		final String finishedAttribute = new Resave_N5.SimpleClusterResaveParameters().finishedAttribute;
+		final String finishedAttribute = N5Parameters.finishedAttrib;
 
 		boolean allSaved = true;
 		int countNotSaved = 0;

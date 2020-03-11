@@ -15,7 +15,7 @@ import org.kohsuke.args4j.Option;
 
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.io.TextFileAccess;
+import net.preibisch.legacy.io.TextFileAccess;
 import net.preibisch.mvrecon.Version;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
