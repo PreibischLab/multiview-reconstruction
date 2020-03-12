@@ -90,7 +90,12 @@ public class Resave_N5 implements PlugIn
 				n5Params.proposedMipmaps.keySet().forEach( k -> {
 					ExportMipmapInfo exportMipmapInfo = n5Params.proposedMipmaps.get( k );
 					for (int[] row : exportMipmapInfo.getSubdivisions())
-						Arrays.fill( row, 64 );
+					{
+						Arrays.fill( row, N5Parameters.defaultBlockSize );
+						row[ 0 ] = N5Parameters.defaultBlockSizeXY;
+						if ( row.length >= 2 )
+							row[ 1 ] = N5Parameters.defaultBlockSizeXY;
+					}
 				});
 			}
 
@@ -366,9 +371,11 @@ public class Resave_N5 implements PlugIn
 
 	public static void main(String[] args)
 	{
+		/*
 		new ImageJ();
 		new Resave_N5().run( null );
 		SimpleMultiThreading.threadHaltUnClean();
+		*/
 
 		final Arguments parsedArgs = new Arguments( args );
 

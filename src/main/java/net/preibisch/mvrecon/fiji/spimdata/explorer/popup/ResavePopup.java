@@ -274,6 +274,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					{
 						//final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
 
+						panel.saveXML();
+
 						final N5Parameters n5params = N5Parameters.getParamtersIJ(
 								panel.xml(),
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),

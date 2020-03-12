@@ -25,9 +25,9 @@ public class N5Parameters
 {
 	public static String[] compressions = new String[]{ "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz" };
 	public static int defaultBlockSize = 64;
+	public static int defaultBlockSizeXY = 128;
 	public static int defaultCompression = 1;
 	public static int defaultNumThreads = Runtime.getRuntime().availableProcessors();
-
 
 	public File xmlFile, n5File;
 
@@ -63,7 +63,12 @@ public class N5Parameters
 
 		// block size should be bigger than hdf5
 		for ( final int[] row : autoMipmapSettings.getSubdivisions() )
+		{
 			Arrays.fill( row, defaultBlockSize );
+			row[ 0 ] = N5Parameters.defaultBlockSizeXY;
+			if ( row.length >= 2 )
+				row[ 1 ] = N5Parameters.defaultBlockSizeXY;
+		}
 
 		final GenericDialogPlus gdp = new GenericDialogPlus( "Options" );
 
