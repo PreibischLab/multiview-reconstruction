@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -55,8 +56,10 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.Parameters;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -269,44 +272,25 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					// --- N5 ---
 					else if (index == 4)
 					{
-						final String n5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".n5";
-						final File n5File = new File( n5Filename );
+						//final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
 
-						final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
-						final Map< Integer, ExportMipmapInfo > proposedMipmaps = ProposeMipmaps.proposeMipmaps( sdReduced.getSequenceDescription() );
+						final N5Parameters n5params = N5Parameters.getParamtersIJ(
+								panel.xml(),
+								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
+								true );
 
-						// crude overwrite of block size
-						proposedMipmaps.keySet().forEach( k -> {
-							ExportMipmapInfo exportMipmapInfo = proposedMipmaps.get( k );
-							for (int[] row : exportMipmapInfo.getSubdivisions())
-								Arrays.fill( row, 64 );
-						});
+						if ( n5params == null )
+							return;
 
-						try
-						{
-							WriteSequenceToN5.writeN5File(
-									sdReduced.getSequenceDescription(),
-									proposedMipmaps,
-									new GzipCompression(), // TODO: make user-settable
-									n5File,
-									new ExportScalePyramid.DefaultLoopbackHeuristic(),
-									null, //TODO: afterEachPlane,
-									Runtime.getRuntime().availableProcessors(), // TODO: better numWorkers?
-									progressWriter );
-						}
-						catch ( IOException e )
-						{
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+						Resave_N5.resaveN5( data, viewIds, n5params );
 
 						// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 						final List< String > filesToCopy = new ArrayList< String >();
-						final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5File.getParentFile(), filesToCopy );
+						final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), filesToCopy );
 
 						// replace imgLoader
-						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5File, newSpimData.getSequenceDescription() ) );
-						newSpimData.setBasePath( n5File.getParentFile() );
+						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5File, newSpimData.getSequenceDescription() ) );
+						newSpimData.setBasePath( n5params.n5File.getParentFile() );
 
 						// replace the spimdata object
 						panel.setSpimData( newSpimData );

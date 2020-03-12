@@ -53,7 +53,7 @@ public class Resave_N5 implements PlugIn
 		if ( !xml.queryXML( "Resaving as N5", "Resave", true, true, true, true, true ) )
 			return;
 
-		final N5Parameters n5params = N5Parameters.getParamtersIJ( xml.getXMLFileName(), xml.getViewSetupsToProcess() );
+		final N5Parameters n5params = N5Parameters.getParamtersIJ( xml.getXMLFileName(), xml.getViewSetupsToProcess(), false );
 
 		if ( n5params == null )
 			return;
@@ -62,7 +62,6 @@ public class Resave_N5 implements PlugIn
 		for ( final TimePoint tp : xml.getTimePointsToProcess() )
 			for ( final ViewSetup vs : xml.getViewSetupsToProcess() )
 				vidsToProcess.add( new ViewId( tp.getId(), vs.getId() ) );
-
 
 		resaveN5( xml.getData(), vidsToProcess, n5params );
 	}

@@ -5,7 +5,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -46,15 +45,20 @@ public class N5Parameters
 
 	public static N5Parameters getParamtersIJ(
 			final String xmlFileName,
-			final List< ViewSetup > setupsToProcess )
+			final Collection< ViewSetup > setupsToProcess,
+			final boolean localOnly )
 	{
 		final N5Parameters n5params = new N5Parameters();
 
-		n5params.xmlFile = new File( xmlFileName.replace( ".xml", "-n5.xml" ) ); //new File(xml.getXMLFileName().replace( ".xml", "-n5.xml" ));
-		n5params.n5File = new File( xmlFileName.replace( ".xml", ".n5" ));
+		if ( localOnly )
+			n5params.xmlFile = new File( xmlFileName );
+		else
+			n5params.xmlFile = new File( xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + "-n5.xml" ); //.replace( ".xml", "-n5.xml" ) );
+
+		n5params.n5File = new File( xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".n5" ); //.replace( ".xml", ".n5" ));
 
 		final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setupsToProcess ); //xml.getViewSetupsToProcess() );
-		final int firstviewSetupId = setupsToProcess.get( 0 ).getId();// xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
+		final int firstviewSetupId = setupsToProcess.iterator().next().getId();// xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
 		final ExportMipmapInfo autoMipmapSettings = perSetupExportMipmapInfo.get( firstviewSetupId );
 
 		// block size should be bigger than hdf5
@@ -63,18 +67,22 @@ public class N5Parameters
 
 		final GenericDialogPlus gdp = new GenericDialogPlus( "Options" );
 
-		gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
-		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
+		if ( !localOnly )
+			gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
 
+		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
 		gdp.addStringField( "Subsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
 		gdp.addStringField( "N5_block_sizes", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
 
-		gdp.addMessage( "Cluster-related options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
-		gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
-		gdp.addFileField( "Output_XML", n5params.xmlFile.getAbsolutePath(), 75 );
-		gdp.addFileField( "Output_N5", n5params.n5File.getAbsolutePath(), 75 );
-		gdp.addCheckbox( "Write_XML", true );
-		gdp.addCheckbox( "Write_data", true );
+		if ( !localOnly )
+		{
+			gdp.addMessage( "Cluster-related options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+			gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
+			gdp.addFileField( "Output_XML", n5params.xmlFile.getAbsolutePath(), 75 );
+			gdp.addFileField( "Output_N5", n5params.n5File.getAbsolutePath(), 75 );
+			gdp.addCheckbox( "Write_XML", true );
+			gdp.addCheckbox( "Write_data", true );
+		}
 
 		gdp.showDialog();
 
@@ -83,16 +91,24 @@ public class N5Parameters
 
 		final int compression = defaultCompression = gdp.getNextChoiceIndex();
 
-		String subsampling = gdp.getNextString();
-		String chunkSizes = gdp.getNextString();
+		final String subsampling = gdp.getNextString();
+		final String chunkSizes = gdp.getNextString();
 
 		n5params.numCellCreatorThreads = defaultNumThreads = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
 
-		n5params.xmlFile = new File(gdp.getNextString());
-		n5params.n5File = new File(gdp.getNextString());
-
-		n5params.saveXML = gdp.getNextBoolean();
-		n5params.saveData = gdp.getNextBoolean();
+		if ( localOnly )
+		{
+			n5params.saveXML = true;
+			n5params.saveData = true;
+		}
+		else
+		{
+			n5params.xmlFile = new File(gdp.getNextString());
+			n5params.n5File = new File(gdp.getNextString());
+	
+			n5params.saveXML = gdp.getNextBoolean();
+			n5params.saveData = gdp.getNextBoolean();
+		}
 
 		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"
 			n5params.compression = new Bzip2Compression();

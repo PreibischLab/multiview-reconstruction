@@ -26,6 +26,7 @@ import ij.plugin.PlugIn;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -137,7 +138,7 @@ public class Resave_HDF5 implements PlugIn
 		progressWriter.out().println( "done" );
 	}
 
-	public static Map< Integer, ExportMipmapInfo > proposeMipmaps( final List< ? extends BasicViewSetup > viewsetups )
+	public static Map< Integer, ExportMipmapInfo > proposeMipmaps( final Collection< ? extends BasicViewSetup > viewsetups )
 	{
 		final HashMap< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = new HashMap< Integer, ExportMipmapInfo >();
 		for ( final BasicViewSetup setup : viewsetups )
