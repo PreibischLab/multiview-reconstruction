@@ -62,6 +62,7 @@ import javax.swing.JLabel;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
+import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import ij.io.DirectoryChooser;
@@ -97,10 +98,13 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePattern
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -118,7 +122,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
-	public static final String[] loadChoices = new String[] {"Re-save as multiresolution HDF5", "Load raw data virtually (with caching)", "Load raw data"};
+	public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
 	
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
@@ -1033,7 +1037,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			return null;
 
 		final int loadChoice = gdSave.getNextChoiceIndex();
-		final boolean useVirtualLoader = loadChoice == 1;
+		final boolean useVirtualLoader = loadChoice == 2; //"Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"
 		// re-build the SpimData if user explicitly doesn't want virtual loading
 		if (!useVirtualLoader)
 			data = buildSpimData( state, useVirtualLoader );
@@ -1117,7 +1121,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			
 			Generic_Resave_HDF5.writeHDF5( data, params, progressWriter );
 			
-			System.out.println( "HDF5 resave finished." );
+			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): HDF5 resave finished." );
 			
 			net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
 
@@ -1126,7 +1130,43 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			data = result.getA();
 		}
-		
+
+		boolean resaveAsN5 = loadChoice == 1;
+		if (resaveAsN5)
+		{
+			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
+			Collections.sort( viewIds );
+
+			final File xmlFile = new File( chosenPath.getAbsolutePath(), "dataset.xml" );
+
+			final SequenceDescription sd = data.getSequenceDescription();
+
+			final N5Parameters n5params = N5Parameters.getParamtersIJ(
+					xmlFile.getAbsolutePath(),
+					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
+					true );
+
+			if ( n5params == null )
+				return null;
+
+			n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
+
+			Resave_N5.resaveN5( data, viewIds, n5params );
+
+			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
+			final List< String > filesToCopy = new ArrayList< String >();
+			final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), filesToCopy );
+
+			// replace imgLoader
+			newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5File, newSpimData.getSequenceDescription() ) );
+			newSpimData.setBasePath( n5params.n5File.getParentFile() );
+
+			// replace the spimdata object
+			data = newSpimData;
+
+			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): N5 resave finished." );
+		}
+
 		if (gridMoveType == 1)
 		{
 			data.gridMoveRequested = true;

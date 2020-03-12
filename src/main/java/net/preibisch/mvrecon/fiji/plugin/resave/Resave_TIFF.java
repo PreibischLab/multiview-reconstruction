@@ -381,7 +381,7 @@ public class Resave_TIFF implements PlugIn
 	 * @param basePath - the base path
 	 * @return new SpimData
 	 */
-	public static SpimData2 assemblePartialSpimData2( final SpimData2 spimData, final List< ViewId > viewIds, final File basePath, final List< String > filesToCopy )
+	public static SpimData2 assemblePartialSpimData2( final SpimData2 spimData, final List< ? extends ViewId > viewIds, final File basePath, final List< String > filesToCopy )
 	{
 		final TimePoints timepoints;
 

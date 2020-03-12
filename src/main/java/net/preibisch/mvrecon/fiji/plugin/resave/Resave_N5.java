@@ -69,7 +69,7 @@ public class Resave_N5 implements PlugIn
 
 	public static void resaveN5(
 			final SpimData2 data,
-			final Collection<ViewId> vidsToResave,
+			final Collection<? extends ViewId> vidsToResave,
 			final N5Parameters n5Params )
 	{
 		final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, vidsToResave.stream().collect( Collectors.toList() ) );
