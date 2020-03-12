@@ -27,7 +27,7 @@ public class N5Parameters
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
 	public static int defaultCompression = 1;
-	public static int defaultNumThreads = Runtime.getRuntime().availableProcessors();
+	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 );
 
 	public File xmlFile, n5File;
 
@@ -79,10 +79,13 @@ public class N5Parameters
 		gdp.addStringField( "Subsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
 		gdp.addStringField( "N5_block_sizes", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
 
-		if ( !localOnly )
+		if ( localOnly )
+		{
+			gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
+		}
+		else
 		{
 			gdp.addMessage( "Cluster-related options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
-			gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
 			gdp.addFileField( "Output_XML", n5params.xmlFile.getAbsolutePath(), 75 );
 			gdp.addFileField( "Output_N5", n5params.n5File.getAbsolutePath(), 75 );
 			gdp.addCheckbox( "Write_XML", true );
