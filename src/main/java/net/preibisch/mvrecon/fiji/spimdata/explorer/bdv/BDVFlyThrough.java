@@ -37,6 +37,7 @@ public class BDVFlyThrough
 	public static String defaultPath = "";
 	public static int interpolateSteps = 100;
 	public static double defaultSigma = 0;
+	public static boolean goBackToInitialTransform = true;
 
 	public static String[] interpolationMethods = new String[] { "Linear",  "Linear with Smoothing", "Cubic Spline" };
 	public static int defaultMethod = 2;
@@ -119,12 +120,19 @@ public class BDVFlyThrough
 			return;
 		}
 
+		final ArrayList< AffineTransform3D > viewerTransformsLocal = new ArrayList<>();
+
+		for ( int i = 0; i < viewerTransforms.size(); ++i )
+			viewerTransformsLocal.add( viewerTransforms.get( i ).copy() );
+
 		if ( !skipDialog )
 		{
 			final GenericDialogPlus gd = new GenericDialogPlus( "Options for movie recording" );
 			gd.addDirectoryField( "Movie directory", defaultPath, 45 );
 			gd.addNumericField( "Interpolation steps between keypoints", interpolateSteps, 0 );
 			gd.addChoice( "Transformation_interpolation method", interpolationMethods, interpolationMethods[ defaultMethod ] );
+			gd.addCheckbox( "Go_back to initial transform", goBackToInitialTransform );
+			gd.addMessage( "" );
 			gd.addCheckbox( "Show_scalebar", defaultScalebar );
 			gd.addCheckbox( "Show_boxes", defaultBoxes );
 
@@ -135,6 +143,7 @@ public class BDVFlyThrough
 			defaultPath = gd.getNextString();
 			interpolateSteps = (int)Math.round( gd.getNextNumber() );
 			defaultMethod = gd.getNextChoiceIndex();
+			goBackToInitialTransform = gd.getNextBoolean();
 			defaultScalebar = gd.getNextBoolean();
 			defaultBoxes = gd.getNextBoolean();
 
@@ -149,9 +158,12 @@ public class BDVFlyThrough
 
 				defaultSigma = Math.max( 0, gd2.getNextNumber() );
 			}
+
+			if ( goBackToInitialTransform )
+				viewerTransformsLocal.add( viewerTransformsLocal.get( 0 ).copy() );
 		}
 
-		IOFunctions.println( "Recording images for " + viewerTransforms.size() + " transforms, interpolated with " + interpolateSteps + " steps using '" + interpolationMethods[ defaultMethod ] + "' in between to directory " + defaultPath );
+		IOFunctions.println( "Recording images for " + viewerTransformsLocal.size() + " transforms, interpolated with " + interpolateSteps + " steps using '" + interpolationMethods[ defaultMethod ] + "' in between to directory " + defaultPath );
 
 
 		final ViewerPanel viewer = bdv.getViewer();
@@ -179,7 +191,7 @@ public class BDVFlyThrough
 				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 
-		final ArrayList< AffineTransform3D > transforms = interpolateTransforms( viewerTransforms, defaultMethod == 2, defaultSigma, interpolateSteps );
+		final ArrayList< AffineTransform3D > transforms = interpolateTransforms( viewerTransformsLocal, defaultMethod == 2, defaultSigma, interpolateSteps );
 
 		IJ.showProgress( 0.0 );
 
