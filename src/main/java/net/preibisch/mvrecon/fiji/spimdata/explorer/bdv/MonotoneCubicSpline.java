@@ -46,7 +46,7 @@ public class MonotoneCubicSpline
 		return createMonotoneCubicSpline( x, y );
 	}
 
-	/**
+	/*
 	 * Creates a monotone cubic spline from a given set of control points.
 	 * 
 	 * The spline is guaranteed to pass through each control point exactly. Moreover, assuming the control points are
@@ -122,7 +122,7 @@ public class MonotoneCubicSpline
 		return new MonotoneCubicSpline(x, y, m);
 	}
 
-	/**
+	/*
 	 * Interpolates the value of Y = f(X) for given X. Clamps X to the domain of the spline.
 	 * 
 	 * @param x
