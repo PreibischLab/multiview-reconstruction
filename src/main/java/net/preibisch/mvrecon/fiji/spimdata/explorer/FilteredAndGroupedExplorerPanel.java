@@ -54,6 +54,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerInfoBox;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.BDVFlyThrough;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
@@ -629,6 +630,69 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 				if ( arg0.getKeyCode() == 157 )
 					appleKeyDown = true;
 			}
+		} );
+	}
+
+	private boolean enableFlyThrough = false;
+
+	protected void addScreenshot()
+	{
+		table.addKeyListener( new KeyListener()
+		{
+			@Override
+			public void keyPressed(final KeyEvent arg0)
+			{
+				if ( arg0.getKeyChar() == 'E' )
+				{
+					enableFlyThrough = true;
+
+					IOFunctions.println( "EASTER EGG activated." );
+					IOFunctions.println( "You can now record a fly-through, press 'a' to add the current view as keypoint, 'x' to remove all keypoints and 's' to start recording!" );
+					IOFunctions.println( "'S' makes a screenshot with a user-defined resolution" );
+				}
+
+				if ( enableFlyThrough )
+				{
+					final boolean bdvRunning = bdvPopup().bdvRunning() && !(bdvPopup().bdv == null);
+
+					if ( arg0.getKeyChar() == 's' )
+						if (bdvRunning)
+							new Thread( new Runnable()
+							{
+								@Override
+								public void run()
+								{ BDVFlyThrough.record( bdvPopup().bdv ); }
+							} ).start();
+						else
+							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
+	
+					if ( arg0.getKeyChar() == 'a' )
+						if (bdvRunning)
+							BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv );
+						else
+							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
+	
+					if ( arg0.getKeyChar() == 'x' )
+						BDVFlyThrough.clearAllViewerTransform();
+
+					if ( arg0.getKeyChar() == 'S' )
+						if (bdvRunning)
+							new Thread( new Runnable()
+							{
+								@Override
+								public void run()
+								{ BDVFlyThrough.renderScreenshot( bdvPopup().bdv ); }
+							} ).start();
+						else
+							IOFunctions.println("Please open BigDataViewer to make a screenshot.");
+				}
+			}
+
+			@Override
+			public void keyReleased(final KeyEvent arg0) {}
+
+			@Override
+			public void keyTyped(final KeyEvent arg0){}
 		} );
 	}
 
