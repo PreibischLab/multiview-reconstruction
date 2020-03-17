@@ -47,6 +47,8 @@ public class CreateN5Scripts
 	public static String jobFileNameEnding = ".sh";
 	public static String filePrefix = "#!/bin/sh";
 
+	public static ClusterSubmission sub = new ClusterSubmissionJanelia();
+
 	public static void main( String[] args ) throws SpimDataException, IOException, InterruptedException
 	{
 		final Arguments arg = new Arguments( args );
@@ -100,6 +102,7 @@ public class CreateN5Scripts
 			if ( data.getSequenceDescription().getMissingViews().getMissingViews().contains( v ) )
 				continue;
 
+			String jobName = "N5_" + v.getTimePointId() + "_" + v.getViewSetupId();
 			String jobFilename = jobFileNamePrefix + v.getTimePointId() + "_" + v.getViewSetupId() + jobFileNameEnding;
 			PrintWriter file = TextFileAccess.openFileWrite( new File( jobFilename ) );
 			file.println( filePrefix );
@@ -107,9 +110,10 @@ public class CreateN5Scripts
 			file.close();
 			new File( jobFilename ).setExecutable( true );
 
-			f.println( getQSubCommand() + " " + jobFilename );
+			f.println( sub.getSubmissionCommand( jobName, jobFilename ) );
 		}
 
+		String jobName = "N5_XML";
 		String jobFilename = jobFileNamePrefix + "makeXML" + jobFileNameEnding;
 		PrintWriter file = TextFileAccess.openFileWrite( new File( jobFilename ) );
 		file.println( filePrefix );
@@ -117,7 +121,7 @@ public class CreateN5Scripts
 		file.close();
 		new File( jobFilename ).setExecutable( true );
 
-		f.println( getQSubCommand() + " " + jobFilename );
+		f.println( sub.getSubmissionCommand( jobName, jobFilename ) );
 
 		f.close();
 		new File( submitScript ).setExecutable( true );
@@ -132,11 +136,6 @@ public class CreateN5Scripts
 		String line = "";
 		while ( (line=buf.readLine()) != null )
 			System.out.println(line);
-	}
-
-	public static String getQSubCommand()
-	{
-		return "qsub -l h_vmem=34G";
 	}
 
 	public static String getCommand( final ViewId v, final String jarFile, final String resaveXML )
