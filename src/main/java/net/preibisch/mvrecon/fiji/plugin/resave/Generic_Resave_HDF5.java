@@ -201,7 +201,8 @@ public class Generic_Resave_HDF5 implements PlugIn
 			return perSetupExportMipmapInfo;
 		}
 		else
-			return ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
+			return Resave_HDF5.proposeMipmaps( spimData.getSequenceDescription().getViewSetups().values() );
+			//return ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
 	}
 
 	public static ArrayList< Partition > getPartitions( final AbstractSpimData< ? > spimData, final Parameters params )

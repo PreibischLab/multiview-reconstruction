@@ -84,7 +84,7 @@ public class Resave_N5 implements PlugIn
 			if ( n5Params.proposedMipmaps == null )
 			{
 				// propose downsampling
-				n5Params.proposedMipmaps = ProposeMipmaps.proposeMipmaps( sdReduced.getSequenceDescription() );
+				n5Params.proposedMipmaps = Resave_HDF5.proposeMipmaps( sdReduced.getSequenceDescription().getViewSetupsOrdered() );
 
 				// crude overwrite of block size (should be bigger than for normal hdf5)
 				n5Params.proposedMipmaps.keySet().forEach( k -> {
