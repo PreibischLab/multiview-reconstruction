@@ -148,7 +148,7 @@ public class Resave_HDF5 implements PlugIn
 			// Sometimes this is negative (not sure what's going on there)
 			for ( int l = 0; l < mi.getNumLevels(); ++l )
 				if ( mi.getSubdivisions()[l][2] < 0 )
-					mi.getSubdivisions()[l][2] = 16;
+					mi.getSubdivisions()[l][2] = 32;
 
 			// 2d case
 			if ( setup.hasSize() && setup.getSize().dimension( 2 ) == 1 )
