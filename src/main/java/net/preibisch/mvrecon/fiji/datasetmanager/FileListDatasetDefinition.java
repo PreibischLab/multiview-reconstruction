@@ -51,6 +51,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -124,7 +125,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 	public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
-	
+
+	public static boolean windowsHack = true;
+
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
 	{
@@ -161,9 +164,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			sb.append( "</html>" );
 			return sb.toString();
 		}
-		
-		
-		
+
 		@Override
 		public List< File > getFileList()
 		{
@@ -187,13 +188,11 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 				num.addTextListener( new TextListener()
 				{
-
 					@Override
 					public void textValueChanged(TextEvent e)
 					{
 						String path = ((TextField)pan.getComponent( 0 )).getText();
 
-						System.out.println(path);
 						if (path.endsWith( File.separator ))
 							path = path.substring( 0, path.length() - File.separator.length() );
 
@@ -206,14 +205,33 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						gdp.validate();
 					}
 				} );
+
+				final AtomicBoolean autoset = new AtomicBoolean( false );
 
 				((TextField)pan.getComponent( 0 )).addTextListener( new TextListener()
 				{
-
 					@Override
 					public void textValueChanged(TextEvent e)
 					{
+						if ( autoset.get() == true )
+						{
+							autoset.set( false );
+
+							return;
+						}
+
 						String path = ((TextField)pan.getComponent( 0 )).getText();
+
+						// if macro recorder is running and we are on windows
+						if ( windowsHack && ij.plugin.frame.Recorder.record && System.getProperty("os.name").toLowerCase().contains( "win" ) )
+						{
+							while( path.contains( "\\" ))
+								path = path.replace( "\\", "/" );
+						}
+
+						autoset.set( true );
+						((TextField)pan.getComponent( 0 )).setText( path ); // will lead to a recursive call of textValueChanged(TextEvent e)
+
 						if (path.endsWith( File.separator ))
 							path = path.substring( 0, path.length() - File.separator.length() );
 
@@ -226,6 +244,13 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						gdp.validate();
 					}
 				} );
+			}
+
+			if ( windowsHack && ij.plugin.frame.Recorder.record && System.getProperty("os.name").toLowerCase().contains( "win" ) )
+			{
+				gdp.addMessage( "Warning: we are on Windows and the Macro Recorder is on, replacing all instances of '\\' with '/'\n"
+						+ "   Disable it by opening the script editor, language beanshell, call:\n"
+						+ "   net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinition.windowsHack = false;", GUIHelper.smallStatusFont, Color.RED );
 			}
 
 			GUIHelper.addScrollBars( gdp );
