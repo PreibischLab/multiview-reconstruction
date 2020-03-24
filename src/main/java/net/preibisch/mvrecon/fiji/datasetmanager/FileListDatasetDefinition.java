@@ -227,10 +227,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						{
 							while( path.contains( "\\" ))
 								path = path.replace( "\\", "/" );
-						}
 
-						autoset.set( true );
-						((TextField)pan.getComponent( 0 )).setText( path ); // will lead to a recursive call of textValueChanged(TextEvent e)
+							autoset.set( true );
+							((TextField)pan.getComponent( 0 )).setText( path ); // will lead to a recursive call of textValueChanged(TextEvent e)
+						}
 
 						if (path.endsWith( File.separator ))
 							path = path.substring( 0, path.length() - File.separator.length() );
