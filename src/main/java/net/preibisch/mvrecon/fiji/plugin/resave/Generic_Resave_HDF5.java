@@ -240,21 +240,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		final ArrayList< Partition > partitions = getPartitions( spimData, params );
 		AbstractSequenceDescription< ?, ?, ? > seq = spimData.getSequenceDescription();
 
-		LoopbackHeuristic lbh;
-
-		try
-		{
-			if ( seq.getViewSetupsOrdered().get( 0 ).getSize().dimension( 2 ) == 1 )
-				lbh = new LoopBack2d();
-			else
-				lbh = new DefaultLoopbackHeuristic();
-		}
-		catch ( Exception e )
-		{
-			lbh = new LoopBack2d();
-		}
-
-		IOFunctions.println( "Loopbackheuristic: " + lbh.getClass().getName() );
+		final LoopbackHeuristic lbh = new DefaultLoopbackHeuristic();
 
 		if ( partitions != null )
 		{
