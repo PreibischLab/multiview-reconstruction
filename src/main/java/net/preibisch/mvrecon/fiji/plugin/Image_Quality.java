@@ -162,7 +162,7 @@ public class Image_Quality implements PlugIn
 				final FRCRealRandomAccessible< FloatType > frc =
 						FRCTools.computeFRC( viewId, imgLoader, quality.getFRCStepSize(), quality.getFFTSize(), quality.getUseRelativeFRC(), quality.getUseSmoothLocalFRC() );
 
-				data.add( new ValuePair<>( frc.getRandomAccessibleInterval(), vr.getModel() ) );
+				data.add( new ValuePair<>( frc.getRandomAccessibleInterval(), transform ) );
 			}
 
 			final RandomAccessibleInterval< FloatType > virtualQuality = FRCTools.fuseRAIs( data, quality.getDownsampling(), quality.getBoundingBox(), 1 );
