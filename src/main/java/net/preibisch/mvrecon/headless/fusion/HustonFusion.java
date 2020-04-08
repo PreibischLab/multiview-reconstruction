@@ -24,8 +24,6 @@ package net.preibisch.mvrecon.headless.fusion;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -37,41 +35,25 @@ import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
-import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.Sampler;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform.DISTANCE_TYPE;
-import net.imglib2.algorithm.morphology.distance.EuclidianDistanceAnisotropic;
 import net.imglib2.converter.Converter;
-import net.imglib2.converter.Converters;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
-import net.imglib2.converter.readwrite.RealDoubleSamplerConverter;
-import net.imglib2.converter.readwrite.RealFloatSamplerConverter;
-import net.imglib2.converter.readwrite.SamplerConverter;
-import net.imglib2.converter.readwrite.WriteConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
-import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyStackImgLoaderIJ;
-import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
-import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
@@ -80,10 +62,10 @@ public class HustonFusion
 	public static void main( String[] args ) throws InterruptedException, ExecutionException
 	{
 		new ImageJ();
-		String dir = "/groups/scicompsoft/home/preibischs/Desktop/huston";
+		String dir = "/home/preibischs/huston";
 
 		//fuseSimple(dir);
-		//fuseAdvanced( dir );
+		fuseAdvanced( dir );
 	}
 
 	public static void fuseAdvanced( final String dir )
@@ -104,23 +86,90 @@ public class HustonFusion
 		final RandomAccessibleInterval< DoubleType > w1 = blendDT( dt1, 20 );
 		final RandomAccessibleInterval< DoubleType > w2 = blendDT( dt2, 20 );
 		
-		ImageJFunctions.show( dt2 ).setTitle( "DT");
-		ImageJFunctions.show( blendDT( dt2, 20 ) ).setTitle("blend_DT");
-		
-		final Img< UnsignedByteType > fused = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
-		final Img< UnsignedByteType > weights = new ImagePlusImgFactory<UnsignedByteType>( new UnsignedByteType() ).create( vs0 );
-		
-		final RandomAccessibleInterval< DoubleType > weightsD =
-				new WriteConvertedRandomAccessibleInterval<UnsignedByteType, DoubleType >( weights, new UnsignedByteDoubleSamplerConverter( 3 ) );
+		//ImageJFunctions.show( dt2 ).setTitle( "DT");
+		ImageJFunctions.show( blendDT( dt1, 20 ) ).setTitle("blend_DT1");
+		ImageJFunctions.show( blendDT( dt2, 20 ) ).setTitle("blend_DT2");
+		//SimpleMultiThreading.threadHaltUnClean();
 
-		//((ImagePlusImg)img).getImagePlus().show();
+		final Img< FloatType > fused = new ImagePlusImgFactory<FloatType>( new FloatType() ).create( vs0 );
+
+		fuse(fused, vs0, vs1, vs2, w0, w1, w2);
+		((ImagePlusImg)fused).getImagePlus().show();
 	}
 
-	public static void fuse( final Img< UnsignedByteType > fused, final Img< UnsignedByteType > weights )
+	public static < T extends RealType<T> > void fuse(
+			final RandomAccessibleInterval< FloatType > fused,
+			final RandomAccessibleInterval< T > vs0, final RandomAccessibleInterval< T > vs1, final RandomAccessibleInterval< T > vs2,
+			final RandomAccessibleInterval< DoubleType > weight0, final RandomAccessibleInterval< DoubleType > weight1, final RandomAccessibleInterval< DoubleType > weight2 )
 	{
-		final Cursor<UnsignedByteType> cF = fused.cursor();
-		final Cursor<UnsignedByteType> cW = weights.cursor();
-	
+		final long numPixels = Views.iterable( fused ).size();
+		final int nThreads = Threads.numThreads();
+		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numPixels );
+		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+
+		final AtomicInteger progress = new AtomicInteger( 0 );
+
+		for ( final ImagePortion portion : portions )
+		{
+			tasks.add( new Callable< Void >()
+			{
+				@Override
+				public Void call() throws Exception
+				{
+					final Cursor< FloatType > cursor = Views.iterable( fused ).localizingCursor();
+					final RandomAccess< T > i0 = vs0.randomAccess();
+					final RandomAccess< T > i1 = vs1.randomAccess();
+					final RandomAccess< T > i2 = vs2.randomAccess();
+
+					final RandomAccess< DoubleType > w0 = weight0.randomAccess();
+					final RandomAccess< DoubleType > w1 = weight1.randomAccess();
+					final RandomAccess< DoubleType > w2 = weight2.randomAccess();
+
+					cursor.jumpFwd( portion.getStartPosition() );
+
+					for ( long l = 0; l < portion.getLoopSize(); ++l )
+					{
+						final FloatType t = cursor.next();
+
+						i0.setPosition( cursor );
+						i1.setPosition( cursor );
+						i2.setPosition( cursor );
+
+						w0.setPosition( cursor );
+						w1.setPosition( cursor );
+						w2.setPosition( cursor );
+
+						final double we1 = w1.get().getRealDouble();
+						final double we2 = w2.get().getRealDouble();
+
+						final double we0;
+
+						// only use the low resolution image if none of the high-res images contributes
+						if ( we1 + we2 < 0.2 )
+						{
+							we0 = 0.2 - (we1+we2);
+						}
+						else
+						{
+							we0 = 0;
+						}
+						
+						final double i = ( i0.get().getRealDouble() * we0 + i1.get().getRealDouble() * we1 + i2.get().getRealDouble() * we2 ) /
+								(we0 + we1 + we2 );
+						
+						t.set((float)i);
+					}
+
+					IJ.showProgress( (double)progress.incrementAndGet() / tasks.size() );
+
+					return null;
+				}
+			});
+		}
+
+		FusionTools.execTasks( tasks, nThreads, "copy image" );
+		
+		IJ.showProgress( 0.01 );
 	}
 
 	/*
