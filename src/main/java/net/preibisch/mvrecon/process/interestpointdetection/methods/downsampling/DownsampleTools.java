@@ -31,18 +31,27 @@ import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
+import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
+import net.imglib2.IterableInterval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
@@ -476,7 +485,7 @@ public class DownsampleTools
 					"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
 			if ( openCompletely )
-				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false, LOAD_COMPLETELY );
+				input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, false );
 			else
 				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false );
 		}
@@ -520,6 +529,65 @@ public class DownsampleTools
 			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
 
 		return input;
+	}
+
+	// TODO: REMOVE IMGLIB1 stuff!!
+	// required by legacy code that wraps to imglib1
+	public static Img<FloatType> openCompletely( final MultiResolutionSetupImgLoader< ? > loader, final int timepointId, final int level, final boolean normalize )
+	{
+		final RandomAccessibleInterval img = loader.getImage( timepointId, level );
+
+		final Img< FloatType > floatImg = new CellImgFactory<FloatType>( new FloatType() ).create( img );
+
+		// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
+		copyFromToMultithreaded( ( RandomAccessibleInterval ) img, floatImg );
+
+		if ( normalize )
+			// normalize the image to 0...1
+			normalize( floatImg );
+
+		return floatImg;
+	}
+
+	// TODO: Remove when RealTypeConvertes.copyFromTo has multithreading support
+	public static void copyFromToMultithreaded(
+			final RandomAccessible< ? extends RealType< ? > > source,
+			final RandomAccessibleInterval< ? extends RealType< ? > > destination )
+	{
+		final IntervalView< ? extends RealType< ? > > sourceInterval = Views.interval( source, destination );
+		final RealType< ? > s = net.imglib2.util.Util.getTypeFromInterval( sourceInterval );
+		final RealType< ? > d = net.imglib2.util.Util.getTypeFromInterval( destination );
+		final Converter< RealType< ? >, RealType< ? > > copy = RealTypeConverters.getConverter( s, d );
+		LoopBuilder.setImages( sourceInterval, destination ).multiThreaded().forEachPixel( copy::convert );
+	}
+
+	private static float[] getMinMax( final IterableInterval< FloatType > img )
+	{
+		float currentMax = img.firstElement().get();
+		float currentMin = currentMax;
+		for ( final FloatType t : img )
+		{
+			final float f = t.get();
+			if ( f > currentMax )
+				currentMax = f;
+			else if ( f < currentMin )
+				currentMin = f;
+		}
+
+		return new float[] { currentMin, currentMax };
+	}
+
+	/**
+	 * normalize img to 0...1 in place
+	 */
+	public static void normalize( final IterableInterval< FloatType > img )
+	{
+		final float[] minmax = getMinMax( img );
+		final float min = minmax[ 0 ];
+		final float max = minmax[ 1 ];
+		final float scale = ( float ) ( 1.0 / ( max - min ) );
+		for ( final FloatType t : img )
+			t.set( ( t.get() - min ) * scale );
 	}
 
 	private static final boolean contains( final int i, final int[] values )
