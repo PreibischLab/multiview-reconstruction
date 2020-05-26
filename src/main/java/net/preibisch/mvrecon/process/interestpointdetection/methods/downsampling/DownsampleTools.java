@@ -496,7 +496,8 @@ public class DownsampleTools
 					"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
 					"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-			if ( openCompletely )
+			// we only need to do the complete opening when we do not perform additional downsampling below
+			if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
 			{
 				// TODO: only needed by ImgLib1 legacy code, remove that!
 				input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
@@ -511,7 +512,8 @@ public class DownsampleTools
 		}
 		else
 		{
-			if ( openCompletely )
+			// we only need to do the complete opening when we do not perform additional downsampling below
+			if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
 			{
 				// TODO: only needed by ImgLib1 legacy code, remove that!
 				input = openCompletely( imgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), openAsFloat, false );
@@ -562,6 +564,7 @@ public class DownsampleTools
 			mipMapTransform.concatenate( additonalDS );
 		}
 
+		// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
 		for ( ;dsx > 1; dsx /= 2 )
 			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
 
