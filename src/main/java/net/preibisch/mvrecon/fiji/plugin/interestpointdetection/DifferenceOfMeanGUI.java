@@ -32,14 +32,13 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dom.DoM;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dom.DoMParameters;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-
 
 public class DifferenceOfMeanGUI extends DifferenceOfGUI
 {

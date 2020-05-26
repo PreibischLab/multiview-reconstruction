@@ -48,7 +48,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools.ImgDataType;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSetable
 {

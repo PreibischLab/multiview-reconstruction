@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling;
+package net.preibisch.mvrecon.process.downsampling;
 
 import java.util.ArrayList;
 import java.util.Vector;

@@ -47,7 +47,7 @@ import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 

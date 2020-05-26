@@ -59,7 +59,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 

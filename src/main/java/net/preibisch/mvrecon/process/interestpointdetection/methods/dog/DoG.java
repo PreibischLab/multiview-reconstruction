@@ -37,7 +37,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 public class DoG
 {

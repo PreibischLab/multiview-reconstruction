@@ -37,7 +37,7 @@ import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 import ij.ImagePlus;
