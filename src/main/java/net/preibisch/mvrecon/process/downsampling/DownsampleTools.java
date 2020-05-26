@@ -451,6 +451,7 @@ public class DownsampleTools
 			final boolean openAsFloat,
 			final boolean openCompletely ) // only for ImgLib1 legacy code
 	{
+
 		if ( !transformOnly )
 			IOFunctions.println(
 				"(" + new Date(System.currentTimeMillis()) + "): "
@@ -458,7 +459,7 @@ public class DownsampleTools
 
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
-		long dsz = downsampleFactors[2];
+		long dsz = (downsampleFactors.length > 2) ? downsampleFactors[ 2 ] : 1;
 
 		RandomAccessibleInterval input = null;
 
