@@ -82,8 +82,7 @@ public class DoG
 								dog.imgloader,
 								vd,
 								correctCoordinates,
-								dog.downsampleXY,
-								dog.downsampleZ,
+								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
 								true,   //openAsFloat
 								true ); //openCompletely
 

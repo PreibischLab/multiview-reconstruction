@@ -81,8 +81,7 @@ public class DoM
 						dom.imgloader,
 						vd,
 						correctCoordinates,
-						dom.downsampleXY,
-						dom.downsampleZ,
+						new long[] { dom.downsampleXY, dom.downsampleXY, dom.downsampleZ },
 						true,   //openAsFloat
 						true ); //openCompletely
 

@@ -475,8 +475,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			spimData.getSequenceDescription().getImgLoader(),
 			viewDescription,
 			new AffineTransform3D(),
-			downsampleXY,
-			downsampleZ,
+			new long[] { downsampleXY, downsampleXY, downsampleZ },
 			true,   //openAsFloat
 			true ); //openCompletely
 
