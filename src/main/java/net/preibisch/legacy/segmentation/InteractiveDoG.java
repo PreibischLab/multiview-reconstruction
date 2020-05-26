@@ -530,7 +530,7 @@ public class InteractiveDoG implements PlugIn
 	    final Label sigmaText2 = new Label( "Sigma 2 = " + this.sigma2, Label.CENTER );
 	    	    
 	    final Label thresholdText = new Label( "Threshold = " + this.threshold, Label.CENTER );
-	    final Button apply = new Button( "Apply to Stack (will take some time)" );
+//	    final Button apply = new Button( "Apply to Stack (will take some time)" );
 	    final Button button = new Button( "Done" );
 	    final Button cancel = new Button( "Cancel" );
 	    
@@ -576,9 +576,9 @@ public class InteractiveDoG implements PlugIn
 	    c.insets = new Insets(0,125,0,75);
 	    frame.add( max, c );
 
-	    ++c.gridy;
-	    c.insets = new Insets(0,75,0,75);
-	    frame.add( apply, c );
+//	    ++c.gridy;
+//	    c.insets = new Insets(0,75,0,75);
+//	    frame.add( apply, c );
 
 	    ++c.gridy;
 	    c.insets = new Insets(10,150,0,150);
@@ -594,7 +594,7 @@ public class InteractiveDoG implements PlugIn
 	    threshold.addAdjustmentListener( new ThresholdListener( thresholdText, thresholdMin, thresholdMax ) );
 	    button.addActionListener( new FinishedButtonListener( frame, false ) );
 	    cancel.addActionListener( new FinishedButtonListener( frame, true ) );
-		apply.addActionListener( new ApplyButtonListener() );
+//		apply.addActionListener( new ApplyButtonListener() );
 		min.addItemListener( new MinListener() );
 		max.addItemListener( new MaxListener() );
 		sigma2Enable.addItemListener( new EnableListener( sigma2, sigmaText2 ) );

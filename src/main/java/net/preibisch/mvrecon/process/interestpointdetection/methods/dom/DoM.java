@@ -83,7 +83,8 @@ public class DoM
 						correctCoordinates,
 						dom.downsampleXY,
 						dom.downsampleZ,
-						true );
+						true,   //openAsFloat
+						true ); //openCompletely
 
 				final Image< FloatType > img = ImgLib2.wrapFloatToImgLib1(
 						(Img< net.imglib2.type.numeric.real.FloatType >) input );

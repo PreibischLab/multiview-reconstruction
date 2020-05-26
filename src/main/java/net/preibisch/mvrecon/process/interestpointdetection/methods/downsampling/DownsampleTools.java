@@ -45,6 +45,7 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -57,7 +58,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
 public class DownsampleTools
 {
-	protected static final int[] ds = { 1, 2, 4, 8 };
+	protected static final int[] ds = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
 	/**
 	 * Opens the image at an appropriate resolution for the provided transformation and concatenates an extra transform 
@@ -416,22 +417,26 @@ public class DownsampleTools
 	}
 
 	/**
-	 * 
+	 * Opens the image at a specified downsampling level (e.g. 4,4,1). It finds the closest available mipmap level and then downsamples
+	 * to reach the target level
+	 *
 	 * @param imgLoader the imgloader
 	 * @param vd the view description
 	 * @param mipMapTransform - will be filled if downsampling is performed, otherwise identity transform
 	 * @param downsampleXY - specify which downsampling (e.g. 1,2,4,8 )
 	 * @param downsampleZ - specify which downsampling (e.g. 1,2,4,8 )
-	 * @param openCompletely - whether to try to open the file entirely
+	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
+	 * @param openCompletely - whether to try to open the file entirely (only required by legacy ImgLib1 code!!!)
 	 * @return opened image
 	 */
-	public static RandomAccessibleInterval< FloatType > openAndDownsample(
+	public static RandomAccessibleInterval openAndDownsample(
 			final ImgLoader imgLoader,
 			final ViewDescription vd,
 			final AffineTransform3D mipMapTransform,
 			final int downsampleXY,
 			final int downsampleZ,
-			final boolean openCompletely )
+			final boolean openAsFloat,
+			final boolean openCompletely ) // only for ImgLib1 legacy code
 	{
 		IOFunctions.println(
 				"(" + new Date(System.currentTimeMillis()) + "): "
@@ -447,7 +452,7 @@ public class DownsampleTools
 		int dsy = downsampleXY;
 		int dsz = downsampleZ;
 
-		RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input = null;
+		RandomAccessibleInterval input = null;
 
 		if ( ( dsx > 1 || dsy > 1 || dsz > 1 ) && MultiResolutionImgLoader.class.isInstance( imgLoader ) )
 		{
@@ -485,26 +490,54 @@ public class DownsampleTools
 					"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
 			if ( openCompletely )
-				input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, false );
+			{
+				input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
+			}
 			else
-				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false );
+			{
+				if ( openAsFloat )
+					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false );
+				else
+					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
+			}
 		}
 		else
 		{
 			if ( openCompletely )
-				input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false, LOAD_COMPLETELY );
+			{
+				if ( openAsFloat )
+					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false, LOAD_COMPLETELY );
+				else
+					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), LOAD_COMPLETELY );
+			}
 			else
-				input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false );
+			{
+				if ( openAsFloat )
+					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false );
+				else
+					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
+			}
 
 			mipMapTransform.identity();
 		}
 
-		final ImgFactory< FloatType > f;
+		ImgFactory  f = null;
 
 		if ( Img.class.isInstance( input ))
-			f = ((Img<FloatType>)input).factory();
-		else
-			f = new CellImgFactory<FloatType>( new FloatType());
+		{
+			// factory is not implemented for e.g. LazyCellImg yet
+			try
+			{
+				f = ((Img)input).factory();
+			}
+			catch (UnsupportedOperationException e) {}
+		}
+
+		if ( f == null )
+		{
+			final NativeType< ? > t = Util.getTypeFromInterval( input );
+			f = new CellImgFactory( t );
+		}
 
 		// the additional downsampling (performed below)
 		final AffineTransform3D additonalDS = new AffineTransform3D();
@@ -531,22 +564,87 @@ public class DownsampleTools
 		return input;
 	}
 
+	// only adjusts the transformation, no image loaded
+	public static void openAndDownsampleAdjustTransformation(
+			final BasicImgLoader imgLoader,
+			final ViewId vd,
+			long[] downsampleFactors,
+			final AffineTransform3D t )
+	{
+		long dsx = downsampleFactors[0];
+		long dsy = downsampleFactors[1];
+		long dsz = downsampleFactors[2];
+
+		if ( ( dsx > 1 || dsy > 1 || dsz > 1 ) && MultiResolutionImgLoader.class.isInstance( imgLoader ) )
+		{
+			MultiResolutionImgLoader mrImgLoader = ( MultiResolutionImgLoader ) imgLoader;
+
+			double[][] mipmapResolutions = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getMipmapResolutions();
+
+			int bestLevel = 0;
+			for ( int level = 0; level < mipmapResolutions.length; ++level )
+			{
+				double[] factors = mipmapResolutions[ level ];
+
+				// this fails if factors are not ints
+				final int fx = (int)Math.round( factors[ 0 ] );
+				final int fy = (int)Math.round( factors[ 1 ] );
+				final int fz = (int)Math.round( factors[ 2 ] );
+
+				if ( fx <= dsx && fy <= dsy && fz <= dsz && contains( fx, ds ) && contains( fy, ds ) && contains( fz, ds ) )
+					bestLevel = level;
+			}
+
+			final int fx = (int)Math.round( mipmapResolutions[ bestLevel ][ 0 ] );
+			final int fy = (int)Math.round( mipmapResolutions[ bestLevel ][ 1 ] );
+			final int fz = (int)Math.round( mipmapResolutions[ bestLevel ][ 2 ] );
+
+			t.set( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
+
+			dsx /= fx;
+			dsy /= fy;
+			dsz /= fz;
+		}
+		else
+		{
+			t.identity();
+		}
+
+		// fix scaling
+		t.set( t.get( 0, 0 ) * dsx, 0, 0 );
+		t.set( t.get( 1, 1 ) * dsy, 1, 1 );
+		t.set( t.get( 2, 2 ) * dsz, 2, 2 );
+	}
+
 	// TODO: REMOVE IMGLIB1 stuff!!
 	// required by legacy code that wraps to imglib1
-	public static Img<FloatType> openCompletely( final MultiResolutionSetupImgLoader< ? > loader, final int timepointId, final int level, final boolean normalize )
+	public static Img<FloatType> openCompletely( final MultiResolutionSetupImgLoader< ? > loader, final int timepointId, final int level, final boolean openAsFloat, final boolean normalize )
 	{
 		final RandomAccessibleInterval img = loader.getImage( timepointId, level );
 
-		final Img< FloatType > floatImg = new CellImgFactory<FloatType>( new FloatType() ).create( img );
+		if ( openAsFloat )
+		{
+			final Img< FloatType > floatImg = new CellImgFactory<FloatType>( new FloatType() ).create( img );
 
-		// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
-		copyFromToMultithreaded( ( RandomAccessibleInterval ) img, floatImg );
+			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
+			copyFromToMultithreaded( img, floatImg );
 
-		if ( normalize )
-			// normalize the image to 0...1
-			normalize( floatImg );
+			if ( normalize )
+				// normalize the image to 0...1
+				normalize( floatImg );
 
-		return floatImg;
+			return floatImg;
+		}
+		else
+		{
+			final NativeType< ? > t = Util.getTypeFromInterval( img );
+			final Img completeImg = new CellImgFactory( t ).create( img );
+
+			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
+			copyFromToMultithreaded( img, completeImg );
+
+			return completeImg;
+		}
 	}
 
 	// TODO: Remove when RealTypeConvertes.copyFromTo has multithreading support

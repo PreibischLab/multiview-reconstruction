@@ -477,13 +477,18 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			new AffineTransform3D(),
 			downsampleXY,
 			downsampleZ,
-			true );
+			true,   //openAsFloat
+			true ); //openCompletely
 
 		if ( img == null )
 		{
 			IOFunctions.println( "View not found: " + viewDescription );
 			return null;
 		}
+
+		// TODO: in the future when the interactive DoG does not copy & normalize anyways
+		//IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Caching input image ... "  );
+		//img = FusionTools.cacheRandomAccessibleInterval( img, FusionGUI.maxCacheSize, new FloatType(), FusionGUI.cellDim );
 
 		if ( sameMinMax )
 		{

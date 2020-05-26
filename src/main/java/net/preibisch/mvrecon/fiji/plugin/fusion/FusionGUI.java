@@ -68,7 +68,7 @@ public class FusionGUI implements FusionExportInterface
 {
 	public static int defaultCache = 2;
 	public static int[] cellDim = new int[]{ 10, 10, 10 };
-	public static int maxCacheSize = 1000000;
+	public static int maxCacheSize = Integer.MAX_VALUE;
 
 	public static double defaultDownsampling = 1.0;
 	public static int defaultBB = 0;

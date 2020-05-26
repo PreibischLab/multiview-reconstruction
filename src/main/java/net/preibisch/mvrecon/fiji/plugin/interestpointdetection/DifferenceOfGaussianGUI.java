@@ -226,7 +226,7 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		idog.setMaxIntensityImage( maxIntensity ); // if is Double.NaN will be ignored
 
 		idog.run( null );
-		
+
 		while ( !idog.isFinished() )
 		{
 			try
