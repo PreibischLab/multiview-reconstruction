@@ -176,12 +176,20 @@ public class DownsampleTools
 				for ( int d = 0; d < usedDownsampleFactors.length; ++d )
 					usedDownsampleFactors[ d ] = mipmapResolutions[ bestLevel ][ d ];
 
+			IOFunctions.println(
+					"(" + new Date(System.currentTimeMillis()) + "): "
+					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + bestLevel + ", [" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + "]" );
+
 			return new ValuePair<>(
 					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), bestLevel ),
 					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 		}
 		else
 		{
+			IOFunctions.println(
+					"(" + new Date(System.currentTimeMillis()) + "): "
+					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + 0 + ", [1 x 1 x 1]" );
+
 			return new ValuePair<>( imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() ), null );
 		}
 	}
@@ -428,6 +436,7 @@ public class DownsampleTools
 	 * @param vd the view id
 	 * @param mipMapTransform - will be filled if downsampling is performed, otherwise identity transform
 	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
 	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
 	 * @param openCompletely - whether to try to open the file entirely (only required by legacy ImgLib1 code!!!)
 	 * @return opened image
@@ -438,21 +447,14 @@ public class DownsampleTools
 			final ViewId vd,
 			final AffineTransform3D mipMapTransform,
 			long[] downsampleFactors,
+			final boolean transformOnly,
 			final boolean openAsFloat,
 			final boolean openCompletely ) // only for ImgLib1 legacy code
 	{
-		IOFunctions.println(
+		if ( !transformOnly )
+			IOFunctions.println(
 				"(" + new Date(System.currentTimeMillis()) + "): "
-				+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + ")" );
-
-		if ( downsampleFactors[ 0 ] > 1 )
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() )  + "): Downsampling in X " + downsampleFactors[ 0 ] + "x ..." );
-
-		if ( downsampleFactors[ 1 ] > 1 )
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() )  + "): Downsampling in Y " + downsampleFactors[ 1 ] + "x ..." );
-
-		if ( downsampleFactors[ 2 ] > 1 )
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() )  + "): Downsampling in Z " + downsampleFactors[ 2 ] + "x ..." );
+				+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + "), downsampling: " + Util.printCoordinates( downsampleFactors ) );
 
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
@@ -491,61 +493,54 @@ public class DownsampleTools
 			dsy /= fy;
 			dsz /= fz;
 
-			IOFunctions.println(
-					"(" + new Date(System.currentTimeMillis()) + "): " +
-					"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
-					"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
+			if ( !transformOnly )
+			{
+				IOFunctions.println(
+						"(" + new Date(System.currentTimeMillis()) + "): " +
+						"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
+						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-			// we only need to do the complete opening when we do not perform additional downsampling below
-			if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
-			{
-				// TODO: only needed by ImgLib1 legacy code, remove that!
-				input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
-			}
-			else
-			{
-				if ( openAsFloat )
-					input = AbstractImgLoader.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
+				// we only need to do the complete opening when we do not perform additional downsampling below
+				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
+				{
+					// TODO: only needed by ImgLib1 legacy code, remove that!
+					input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
+				}
 				else
-					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
+				{
+					if ( openAsFloat )
+						input = AbstractImgLoader.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
+					else
+						input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
+				}
 			}
 		}
 		else
 		{
-			// we only need to do the complete opening when we do not perform additional downsampling below
-			if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
+			if ( !transformOnly )
 			{
-				// TODO: only needed by ImgLib1 legacy code, remove that!
-				input = openCompletely( imgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), openAsFloat, false );
-			}
-			else
-			{
-				if ( openAsFloat )
-					input = AbstractImgLoader.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
+				IOFunctions.println(
+						"(" + new Date(System.currentTimeMillis()) + "): " +
+						"Using precomputed Multiresolution Images [1x1x1], " +
+						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
+
+				// we only need to do the complete opening when we do not perform additional downsampling below
+				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
+				{
+					// TODO: only needed by ImgLib1 legacy code, remove that!
+					input = openCompletely( imgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), openAsFloat, false );
+				}
 				else
-					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
+				{
+					if ( openAsFloat )
+						input = AbstractImgLoader.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
+					else
+						input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
+				}
 			}
 
 			if ( mipMapTransform != null )
 				mipMapTransform.identity();
-		}
-
-		ImgFactory  f = null;
-
-		if ( Img.class.isInstance( input ))
-		{
-			// factory is not implemented for e.g. LazyCellImg yet
-			try
-			{
-				f = ((Img)input).factory();
-			}
-			catch (UnsupportedOperationException e) {}
-		}
-
-		if ( f == null )
-		{
-			final NativeType< ? > t = Util.getTypeFromInterval( input );
-			f = new CellImgFactory( t );
 		}
 
 		if ( mipMapTransform != null )
@@ -564,15 +559,36 @@ public class DownsampleTools
 			mipMapTransform.concatenate( additonalDS );
 		}
 
-		// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
-		for ( ;dsx > 1; dsx /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+		if ( !transformOnly )
+		{
+			ImgFactory  f = null;
 
-		for ( ;dsy > 1; dsy /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+			if ( Img.class.isInstance( input ))
+			{
+				// factory is not implemented for e.g. LazyCellImg yet
+				try
+				{
+					f = ((Img)input).factory();
+				}
+				catch (UnsupportedOperationException e) {}
+			}
 
-		for ( ;dsz > 1; dsz /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+			if ( f == null )
+			{
+				final NativeType< ? > t = Util.getTypeFromInterval( input );
+				f = new CellImgFactory( t );
+			}
+
+			// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
+			for ( ;dsx > 1; dsx /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+
+			for ( ;dsy > 1; dsy /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+
+			for ( ;dsz > 1; dsz /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+		}
 
 		return input;
 	}

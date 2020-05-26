@@ -82,6 +82,7 @@ public class DoM
 						vd,
 						correctCoordinates,
 						new long[] { dom.downsampleXY, dom.downsampleXY, dom.downsampleZ },
+						false,  //transformOnly
 						true,   //openAsFloat
 						true ); //openCompletely
 

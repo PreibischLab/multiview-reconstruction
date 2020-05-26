@@ -83,6 +83,7 @@ public class DoG
 								vd,
 								correctCoordinates,
 								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
+								false,  //transformOnly
 								true,   //openAsFloat
 								true ); //openCompletely
 
