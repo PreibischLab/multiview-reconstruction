@@ -141,26 +141,29 @@ public class Resave_HDF5 implements PlugIn
 	public static Map< Integer, ExportMipmapInfo > proposeMipmaps( final Collection< ? extends BasicViewSetup > viewsetups )
 	{
 		final HashMap< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = new HashMap< Integer, ExportMipmapInfo >();
+
 		for ( final BasicViewSetup setup : viewsetups )
-		{
-			final ExportMipmapInfo mi = ProposeMipmaps.proposeMipmaps( setup );
-
-			// Sometimes this is negative (not sure what's going on there)
-			for ( int l = 0; l < mi.getNumLevels(); ++l )
-				if ( mi.getSubdivisions()[l][2] < 0 )
-					mi.getSubdivisions()[l][2] = 32;
-
-			// 2d case
-			if ( setup.hasSize() && setup.getSize().dimension( 2 ) == 1 )
-				for ( int l = 0; l < mi.getNumLevels(); ++l )
-					mi.getSubdivisions()[l][2] = 1;
-
-			perSetupExportMipmapInfo.put( setup.getId(), mi );
-		}
+			perSetupExportMipmapInfo.put( setup.getId(), proposeMipmaps( setup ) );
 
 		return perSetupExportMipmapInfo;
 	}
 
+	public static ExportMipmapInfo proposeMipmaps( final BasicViewSetup setup )
+	{
+		final ExportMipmapInfo mi = ProposeMipmaps.proposeMipmaps( setup );
+
+		// Sometimes this is negative (not sure what's going on there)
+		for ( int l = 0; l < mi.getNumLevels(); ++l )
+			if ( mi.getSubdivisions()[l][2] < 0 )
+				mi.getSubdivisions()[l][2] = 32;
+
+		// 2d case
+		if ( setup.hasSize() && setup.getSize().dimension( 2 ) == 1 )
+			for ( int l = 0; l < mi.getNumLevels(); ++l )
+				mi.getSubdivisions()[l][2] = 1;
+
+		return mi;
+	}
 
 	public static boolean loadDimensions( final SpimData2 spimData, final List< ViewSetup > viewsetups )
 	{

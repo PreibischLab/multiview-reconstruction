@@ -57,6 +57,7 @@ import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
 import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
+import net.preibisch.mvrecon.process.export.SaveN5;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -117,6 +118,7 @@ public class FusionGUI implements FusionExportInterface
 
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
+		staticImgExportAlgorithms.add( new SaveN5() );
 		staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
 		staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
 		staticImgExportAlgorithms.add( new AppendSpimData2HDF5() );
