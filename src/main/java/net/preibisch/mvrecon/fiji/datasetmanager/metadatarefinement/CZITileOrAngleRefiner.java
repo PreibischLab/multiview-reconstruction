@@ -69,16 +69,28 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionX #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionX #" + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|X #" + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|X #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			infoT.locationX = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
 
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionY #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionY #"  + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|Y #" + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|Y #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			infoT.locationY = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
 
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionZ #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionZ #" + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|Z #" + ( i+1 ) );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Experiment|AcquisitionBlock|TilesSetup|PositionGroup|Position|Z #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			infoT.locationZ = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
 			
 			
