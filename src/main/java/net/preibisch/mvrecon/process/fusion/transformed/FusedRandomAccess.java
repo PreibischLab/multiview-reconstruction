@@ -72,6 +72,10 @@ public class FusedRandomAccess extends AbstractLocalizableInt implements RandomA
 		for ( int j = 0; j < numImages; ++j )
 		{
 			final double weight = w[ j ].get().getRealDouble();
+
+			if ( weight == 0 )
+				continue;
+
 			final double intensity = i[ j ].get().getRealDouble();
 
 			sumI += intensity * weight;
@@ -81,7 +85,7 @@ public class FusedRandomAccess extends AbstractLocalizableInt implements RandomA
 		if ( sumW > 0 )
 			value.set( (float)( sumI / sumW ) );
 		else
-			value.set(  0 );
+			value.set( 0 );
 
 		return value;
 	}
