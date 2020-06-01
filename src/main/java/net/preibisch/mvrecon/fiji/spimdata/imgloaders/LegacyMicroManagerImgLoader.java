@@ -46,6 +46,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
+import util.ImgLib2Tools;
 
 public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 {
@@ -118,9 +119,9 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
 		else
-			return AbstractImgLoader.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	@Override

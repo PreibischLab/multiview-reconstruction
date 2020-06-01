@@ -67,7 +67,7 @@ public class Localization
 		return peaks2;
 	}
 
-	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final Image< FloatType > domImg, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity )
+	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final Image< FloatType > domImg, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity, final int numThreads )
 	{
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using quadratic n-dimensional fit");
 
@@ -76,12 +76,11 @@ public class Localization
 		for ( final SimplePeak peak : peaks )
 			if ( ( peak.isMax && findMax ) || ( peak.isMin && findMin ) )
 				peakList.add( new DifferenceOfGaussianPeak<FloatType>( peak.location, new FloatType( peak.intensity ), SpecialPoint.MAX ) );
-		
 
 		final SubpixelLocalization<FloatType> spl = new SubpixelLocalization<FloatType>( domImg, peakList );
 		spl.setAllowMaximaTolerance( true );
 		spl.setMaxNumMoves( 10 );
-		spl.setNumThreads( Threads.numThreads() );
+		spl.setNumThreads( numThreads );
 
 		if ( !spl.checkInput() || !spl.process() )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Warning! Failed to compute subpixel localization " + spl.getErrorMessage() );

@@ -58,7 +58,7 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
+import util.ImgLib2Tools;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 {
@@ -231,9 +231,9 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 				ImgLoaderHint... hints)
 		{
 			if ( normalize )
-				return AbstractImgLoader.normalizeVirtual( getImage( timepointId, hints ) );
+				return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
 			else
-				return AbstractImgLoader.convertVirtual( getImage( timepointId, hints ) );
+				return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
 		}
 
 		@Override

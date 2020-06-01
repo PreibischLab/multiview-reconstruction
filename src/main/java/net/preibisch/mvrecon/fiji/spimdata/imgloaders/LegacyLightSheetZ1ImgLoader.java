@@ -22,12 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.IJ;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import ij.IJ;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
@@ -58,6 +57,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.headless.definedataset.LightSheetZ1MetaData;
+import util.ImgLib2Tools;
 
 public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 {
@@ -86,9 +86,9 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
 		else
-			return AbstractImgLoader.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	@Override

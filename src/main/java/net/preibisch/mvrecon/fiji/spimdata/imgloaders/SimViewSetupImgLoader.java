@@ -32,6 +32,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimViewMetaData;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimViewMetaData.Pattern;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.ImgLib2Tools;
 
 public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType >
 {
@@ -65,9 +66,9 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 	public RandomAccessibleInterval<FloatType> getFloatImage( final int timepointId, final boolean normalize, ImgLoaderHint... hints )
 	{
 		if ( normalize )
-			return AbstractImgLoader.normalizeVirtual( getImage( timepointId, hints ) );
+			return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
 		else
-			return AbstractImgLoader.convertVirtual( getImage( timepointId, hints ) );
+			return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
 	}
 
 	@Override

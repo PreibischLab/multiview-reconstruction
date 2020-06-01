@@ -170,46 +170,6 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 		return updated;
 	}
 
-	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> convertVirtual( final RandomAccessibleInterval< T > img )
-	{
-		return new ConvertedRandomAccessibleInterval<T, FloatType>(
-				img,
-				new RealFloatConverter<T>(),
-				new FloatType() );		
-	}
-
-	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtual( final RandomAccessibleInterval< T > img )
-	{
-		double min = Double.MAX_VALUE;
-		double max = -Double.MAX_VALUE;
-
-		for ( final T t : Views.flatIterable( img ) )
-		{
-			final double v = t.getRealDouble();
-
-			if ( v < min )
-				min = v;
-
-			if ( v > max )
-				max = v;
-		}
-
-		final float minf = (float)min;
-		final float maxf = (float)max;
-		
-		return new ConvertedRandomAccessibleInterval<T, FloatType>(
-				img,
-				new Converter<T, FloatType>()
-				{
-					@Override
-					public void convert( final T input, final FloatType output)
-					{
-						output.set( ( input.getRealFloat() - minf ) / ( maxf - minf ) );
-					}
-				},
-				new FloatType() );		
-	}
-
 	/*
 	public static final void normalize( final RandomAccessibleInterval< FloatType > img )
 	{

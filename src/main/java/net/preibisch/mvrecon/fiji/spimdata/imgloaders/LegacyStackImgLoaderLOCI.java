@@ -60,6 +60,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListLOCI;
 
 import ome.units.quantity.Length;
+import util.ImgLib2Tools;
 
 public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 {
@@ -84,9 +85,9 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
 		else
-			return AbstractImgLoader.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	/**

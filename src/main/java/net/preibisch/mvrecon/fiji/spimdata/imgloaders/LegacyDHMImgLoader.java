@@ -22,14 +22,13 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.ImagePlus;
-import ij.io.Opener;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ij.ImagePlus;
+import ij.io.Opener;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -47,6 +46,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
+import util.ImgLib2Tools;
 
 public class LegacyDHMImgLoader extends AbstractImgLoader
 {
@@ -98,9 +98,9 @@ public class LegacyDHMImgLoader extends AbstractImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return AbstractImgLoader.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
 		else
-			return AbstractImgLoader.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	@Override
