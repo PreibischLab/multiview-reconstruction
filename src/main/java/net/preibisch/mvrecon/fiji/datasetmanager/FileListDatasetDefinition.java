@@ -65,6 +65,7 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
 import ij.gui.GenericDialog;
 import ij.io.DirectoryChooser;
 import mpicbg.spim.data.generic.base.Entity;
@@ -99,8 +100,8 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePattern
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
@@ -666,6 +667,12 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		}
 
 		List<File> files = chooser.getFileList();
+		// exit here if files is empty, e.g. when there was a typo in path
+		if (files.size() < 1)
+		{
+			IJ.log("" + new Date(System.currentTimeMillis()) + " - ERROR: No file(s) found at the specified location, quitting.");
+			return null;
+		}
 
 		FileListViewDetectionState state = new FileListViewDetectionState();
 		FileListDatasetDefinitionUtil.detectViewsInFiles( files, state);

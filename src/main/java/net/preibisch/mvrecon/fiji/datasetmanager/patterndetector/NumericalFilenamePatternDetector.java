@@ -75,8 +75,13 @@ public class NumericalFilenamePatternDetector implements FilenamePatternDetector
 		return sb.toString();
 	}
 	
-	public static String maxPrefix(Iterable<String> strings)
+	public static String maxPrefix(List<String> strings)
 	{
+
+		// return default empty String prefix on empty input
+		if (strings.size() < 1)
+			return "";
+
 		int maxIdx = 0;
 		while (true)
 		{
