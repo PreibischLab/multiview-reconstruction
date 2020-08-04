@@ -94,12 +94,12 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
  */
 public class InteractiveDoG implements PlugIn
 {
-	final int extraSize = 40;
+	protected final int extraSize = 40;
 	final int scrollbarSize = 1000;
 		
-	float sigma = 0.5f;
-	float sigma2 = 0.5f;
-	float threshold = 0.0001f;
+	protected float sigma = 0.5f;
+	protected float sigma2 = 0.5f;
+	protected float threshold = 0.0001f;
 	
 	// steps per octave
 	public static int standardSensitivity = 4;
@@ -110,16 +110,16 @@ public class InteractiveDoG implements PlugIn
 	float sigmaMax = 10f;
 	int sigmaInit = 300;
 
-	float thresholdMin = 0.0001f;
-	float thresholdMax = 1f;
-	int thresholdInit = 500;
+	protected float thresholdMin = 0.0001f;
+	protected float thresholdMax = 1f;
+	protected int thresholdInit = 500;
 
 	double minIntensityImage = Double.NaN;
 	double maxIntensityImage = Double.NaN;
 
 	SliceObserver sliceObserver;
 	RoiListener roiListener;
-	ImagePlus imp;
+	protected ImagePlus imp;
 	int channel = 0;
 	Rectangle rectangle;
 	Image<FloatType> img;
@@ -129,7 +129,7 @@ public class InteractiveDoG implements PlugIn
 	Color originalColor = new Color( 0.8f, 0.8f, 0.8f );
 	Color inactiveColor = new Color( 0.95f, 0.95f, 0.95f );
 	public Rectangle standardRectangle;
-	boolean isComputing = false;
+	protected boolean isComputing = false;
 	boolean isStarted = false;
 	boolean enableSigma2 = false;
 	boolean sigma2IsAdjustable = true;
