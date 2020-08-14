@@ -72,7 +72,7 @@ public class InteractiveSmFISH extends InteractiveDoG
 		{
 			final double x = entry.getA()[ 0 ];
 			final double y = entry.getA()[ 1 ];
-			final double p = entry.getA()[ 3 ];
+			final float p = (float)entry.getA()[ 3 ];
 			final float i = (float)entry.getA()[ 4 ];
 
 			final int dist = entry.getB();
@@ -83,7 +83,7 @@ public class InteractiveSmFISH extends InteractiveDoG
 				final OvalRoi or = new OvalRoi( Util.round( x - sigma ), Util.round( y - sigma ), Util.round( sigma*2 ), Util.round( sigma*2 ) );
 				or.setStrokeColor( Color.green );
 				
-				or.setStrokeColor( new Color( 1.0f - i, i, 0, 1 ));
+				or.setStrokeColor( new Color( 1.0f - p, i, 0, 1 ));
 				
 				o.add( or );
 			}

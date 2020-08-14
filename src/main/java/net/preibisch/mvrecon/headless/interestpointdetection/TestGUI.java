@@ -27,6 +27,7 @@ public class TestGUI
 		double maxI = -Double.MAX_VALUE;
 
 		double minP = Double.MAX_VALUE;
+		double maxP = -Double.MAX_VALUE;
 
 		while ( in.ready() )
 		{
@@ -43,13 +44,21 @@ public class TestGUI
 			maxI = Math.max( i, maxI );
 
 			minP = Math.min( p, minP );
+			maxP = Math.max( p, maxP );
 
 			entries.add( new double[] { x, y, z, p, i } );
 		}
 
 		System.out.println( minI + ", " + maxI );
-		System.out.println( minP );
+		System.out.println( minP + ", " + maxP );
 		in.close();
+
+		if ( maxP > 1.0 )
+		{
+			System.out.println( "Normalizing p to 0 ... 1 " );
+			for ( final double[] entry : entries )
+				entry[ 3 ] = ( entry[ 3 ] - 0 ) / ( maxP - 0 );
+		}
 
 		return entries;
 	}
@@ -58,7 +67,7 @@ public class TestGUI
 	{
 		new ImageJ();
 
-		ArrayList< double[] > entries = readCSV("/Users/spreibi/Documents/BIMSB/Projects/Dosage Compensation/N2_352-1.csv");
+		ArrayList< double[] > entries = readCSV("/Users/spreibi/Documents/BIMSB/Projects/Dosage Compensation/raw_output.csv");
 		final ImagePlus imp = new ImagePlus("/Users/spreibi/Documents/BIMSB/Projects/Dosage Compensation/N2_352_ch0.tif");
 
 		//ArrayList< double[] > entries = readCSV("/Users/spreibi/Documents/Janelia/Projects/Srini smFISH/results_superv_a.csv");
