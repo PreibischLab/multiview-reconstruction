@@ -234,4 +234,18 @@ public class NumericAffineTransform3D implements NumericType< NumericAffineTrans
 		i -= decrement;
 		baseIndex -= 12*decrement;
 	}
+
+	@Override
+	public void pow( final NumericAffineTransform3D c )
+	{
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, Math.pow( getAtBase( j ), c.getAtBase( j ) ) );
+	}
+
+	@Override
+	public void pow( final double c)
+	{
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, Math.pow( getAtBase( j ), c ) );
+	}
 }
