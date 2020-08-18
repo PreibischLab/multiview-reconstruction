@@ -31,10 +31,13 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import util.ImgLib1Convert;
@@ -74,7 +77,7 @@ public class DoG
 	 *
 	 * @return a list of interest points
 	 */
-	public static < T extends RealType< T > > List< InterestPoint > findInterestPoints(
+	public static < T extends RealType< T > & NativeType< T > > List< InterestPoint > findInterestPoints(
 			final RandomAccessibleInterval< T > input,
 			final double sigma,
 			final double threshold,
@@ -85,28 +88,21 @@ public class DoG
 			final int numThreads )
 	{
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
-		final ImgLib1Convert convert = new ImgLib1Convert( input, service );
 
 		//
 		// compute Difference-of-Gaussian (includes normalization)
 		//
-		List< InterestPoint > ips = ProcessDOG.compute(
-				null, null, false, 0, // CUDA parameters
-				service,
-				numThreads,
-				convert,
-				(float)sigma, (float) threshold,
+		List< InterestPoint > ips = DoGImgLib2.computeDoG(
+				input,
+				null,
+				sigma,
+				threshold,
 				1, // 0 = no subpixel localization, 1 = quadratic fit
-				0.5,
-				0.5,
-				0.5,
 				findMin,
 				findMax,
 				minIntensity,
 				maxIntensity,
-				false );
-
-		convert.imglib1Img().close();
+				service );
 
 		//if ( dog.limitDetections )
 		//	ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
@@ -116,8 +112,8 @@ public class DoG
 		{
 			for ( int d = 0; d < input.numDimensions(); ++d )
 			{
-				ip.getL()[ d ] += convert.min()[ d ];
-				ip.getW()[ d ] += convert.min()[ d ];
+				ip.getL()[ d ] += input.min( d );
+				ip.getW()[ d ] += input.min( d );
 			}
 		}
 
@@ -153,29 +149,40 @@ public class DoG
 								correctCoordinates,
 								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
 								false,  //transformOnly
-								true,   //openAsFloat
-								true ); //openCompletely
+								false,   //openAsFloat
+								false ); //openCompletely
 
-				final ImgLib1Convert convert = new ImgLib1Convert( input, dog.service );
+				List< InterestPoint > ips;
 
-				//
-				// compute Difference-of-Gaussian (includes normalization)
-				//
-				List< InterestPoint > ips = ProcessDOG.compute(
-						dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
-						dog.service,
-						Threads.numThreads(),
-						convert,
-						(float) dog.sigma, (float) dog.threshold,
-						dog.localization,
-						Math.min( dog.imageSigmaX, (float) dog.sigma ),
-						Math.min( dog.imageSigmaY, (float) dog.sigma ),
-						Math.min( dog.imageSigmaZ, (float) dog.sigma ),
-						dog.findMin, dog.findMax, dog.minIntensity,
-						dog.maxIntensity,
-						dog.limitDetections );
-
-				convert.imglib1Img().close();
+				if ( dog.cuda == null )
+				{
+					ips = DoGImgLib2.computeDoG(input, null, dog.sigma, dog.threshold, dog.localization, dog.findMin, dog.findMax, dog.minIntensity,
+						dog.maxIntensity, dog.service );
+				}
+				else
+				{
+					
+					final ImgLib1Convert convert = new ImgLib1Convert( input, dog.service );
+	
+					//
+					// compute Difference-of-Gaussian (includes normalization)
+					//
+					ips = ProcessDOG.compute(
+							dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
+							dog.service,
+							Threads.numThreads(),
+							convert,
+							(float) dog.sigma, (float) dog.threshold,
+							dog.localization,
+							Math.min( dog.imageSigmaX, (float) dog.sigma ),
+							Math.min( dog.imageSigmaY, (float) dog.sigma ),
+							Math.min( dog.imageSigmaZ, (float) dog.sigma ),
+							dog.findMin, dog.findMax, dog.minIntensity,
+							dog.maxIntensity,
+							dog.limitDetections );
+	
+					convert.imglib1Img().close();
+				}
 
 				if ( dog.limitDetections )
 					ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
