@@ -14,13 +14,10 @@ import net.preibisch.legacy.segmentation.InteractiveDoG;
 
 public class InteractiveSmFISH extends InteractiveDoG
 {
-	// display +- range
-	final int range = 2;
-
 	final ArrayList< double[] > entries;
 	final HashMap< Integer, ArrayList< Pair< double[], Integer > > > visibleEntries;
 
-	public InteractiveSmFISH( final ImagePlus imp, final ArrayList< double[] > entries )
+	public InteractiveSmFISH( final ImagePlus imp, final ArrayList< double[] > entries, final int range )
 	{
 		super( imp );
 
