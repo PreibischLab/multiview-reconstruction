@@ -162,8 +162,13 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 							return;
 						else if (choice == JOptionPane.YES_OPTION)
 						{
+							IOFunctions.println( "OK, saving ALL " + data.getSequenceDescription().getViewDescriptions().size() + "views." );
 							viewIds.clear();
 							viewIds.addAll( data.getSequenceDescription().getViewDescriptions().keySet() );
+						}
+						else
+						{
+							IOFunctions.println( "Saving " + viewIds.size() + " of " + data.getSequenceDescription().getViewDescriptions().size() + " views.");
 						}
 					}
 					
