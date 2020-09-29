@@ -74,7 +74,7 @@ public class DoGImgLib2
 		ImageJFunctions.show( input2d ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
 	}
 
-	public static < T extends RealType< T > & NativeType<T> > ArrayList< InterestPoint > computeDoG(
+	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
 			final RandomAccessibleInterval< T > input,
 			final RandomAccessibleInterval< T > mask,
 			final double sigma,
