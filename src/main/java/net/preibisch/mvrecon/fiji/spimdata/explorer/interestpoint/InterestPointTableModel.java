@@ -312,7 +312,7 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 			{
 				final BigDataViewer bdv = bdvPopup.getBDV();
 				interestPointOverlay = new InterestPointOverlay( bdv.getViewer(), interestPointSources );
-				bdv.getViewer().addRenderTransformListener( interestPointOverlay );
+				bdv.getViewer().addTransformListener( interestPointOverlay );
 				bdv.getViewer().getDisplay().addOverlayRenderer( interestPointOverlay );
 				bdvPopup.updateBDV();
 			}
