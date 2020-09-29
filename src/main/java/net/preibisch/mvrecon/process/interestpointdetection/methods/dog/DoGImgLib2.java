@@ -32,6 +32,7 @@ import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
@@ -64,6 +65,13 @@ public class DoGImgLib2
 		final RandomAccessibleInterval< FloatType > mask = Views.interval(new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), input.numDimensions() ), input );
 
 		computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService() );
+
+		final RandomAccessibleInterval< FloatType > input2d = Views.hyperSlice(input, 2, 50 );
+
+		final ArrayList<InterestPoint> points = 
+				computeDoG(input2d, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService() );
+
+		ImageJFunctions.show( input2d ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
 	}
 
 	public static < T extends RealType< T > & NativeType<T> > ArrayList< InterestPoint > computeDoG(
