@@ -74,6 +74,27 @@ public class DoGImgLib2
 		ImageJFunctions.show( input2d ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
 	}
 
+	public static < T extends RealType< T > > int radiusDoG( final double sigma )
+	{
+		final float k = LaPlaceFunctions.computeK( 4 );
+		final int steps = 3;
+
+		//
+		// Compute the Sigmas for the gaussian convolution
+		//
+		final float imageSigma = 0.5f;
+
+		final float[] sigmaStepsX = LaPlaceFunctions.computeSigma( steps, k, (float)sigma );
+		final float[] sigmaStepsDiffX = LaPlaceFunctions.computeSigmaDiff( sigmaStepsX, imageSigma );
+
+		final double sigma1 = sigmaStepsDiffX[0];
+		final double sigma2 = sigmaStepsDiffX[1];
+
+		final double[][] halfkernels = Gauss3.halfkernels( new double[] { Math.max( sigma1, sigma2 ) });
+
+		return halfkernels[ 0 ].length - 1;
+	}
+
 	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
 			final RandomAccessibleInterval< T > input,
 			final RandomAccessibleInterval< T > mask,
