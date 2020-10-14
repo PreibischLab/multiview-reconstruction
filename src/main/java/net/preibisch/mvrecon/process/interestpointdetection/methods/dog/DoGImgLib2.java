@@ -199,8 +199,6 @@ public class DoGImgLib2
 
 		final RandomAccessibleInterval< FloatType > dogCached = FusionTools.cacheRandomAccessibleInterval( dog, Integer.MAX_VALUE, new FloatType(), blockSize );
 
-		//ImageJFunctions.show( dogCached );
-
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
 		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue );
@@ -253,14 +251,16 @@ public class DoGImgLib2
 	{
 		final long[] min= new long[ input.numDimensions() ];
 		input.min( min );
+
 		final WeightedGaussRA< T > weightedgauss =
 				new WeightedGaussRA<>(
+						min,
 						Views.extendMirrorSingle( input ),
 						Views.extendZero( mask ),
 						type.createVariable(),
 						sigma );
 
-		final RandomAccessibleInterval<T> gauss = Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss );
+		final RandomAccessibleInterval<T> gauss = Views.translate( Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss ), min );
 		//final Cache< ?, ? > gradientCache = ((CachedCellImg< ?, ? >)gradient).getCache();
 
 		return gauss;
@@ -269,7 +269,6 @@ public class DoGImgLib2
 		//copy(gauss, output);
 		//FusionTools.copyImg( (RandomAccessibleInterval)gauss, (RandomAccessibleInterval)output, DeconViews.createExecutorService() );
 		//return output;
-		
 	}
 
 	public static ArrayList<SimplePeak> findPeaks( final RandomAccessibleInterval< FloatType > laPlace, final RandomAccessibleInterval< FloatType > laPlaceMask, final float minValue )
@@ -339,16 +338,17 @@ public class DoGImgLib2
 			        	final FloatType centerValue = center.next();
 			        	final Neighborhood< FloatType > neighborhood = neighborhoodCursor.next();
 			        	
-			        	// it can never be a desired peak if its outside the mask
+			        	// it can never be a desired peak if its outside the mask (or any pixel of the 3x3..3 neighborhood
                 		if ( centerMask != null )
                 		{
 			        		centerMask.fwd();
+			        		final Neighborhood< FloatType > neighborhoodMask = neighborhoodCursorMask.next();
 
 			        		if ( centerMask.get().get() <= 0.0 )
                 				continue;
                 			
                 			boolean outside = false;
-                			for ( final FloatType value : neighborhoodCursorMask.next() )
+                			for ( final FloatType value : neighborhoodMask )
                 				if ( value.get() <= 0 )
                 				{
                 					outside = true;
