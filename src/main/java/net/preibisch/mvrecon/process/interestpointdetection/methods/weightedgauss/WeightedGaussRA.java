@@ -30,11 +30,11 @@
 
 package net.preibisch.mvrecon.process.interestpointdetection.methods.weightedgauss;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import net.imglib2.Cursor;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccess;
@@ -44,9 +44,7 @@ import net.imglib2.Sampler;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.gauss3.SeparableSymmetricConvolution;
 import net.imglib2.exception.IncompatibleTypeException;
-import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
@@ -62,9 +60,11 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 {
 	final T type;
 	final private double[] sigmas;
+	final long[] globalMin;
 	final private RandomAccessible<T> source, weight;
 
 	public WeightedGaussRA(
+			final long[] min,
 			final RandomAccessible<T> source,
 			final RandomAccessible<T> weight,
 			final T type,
@@ -72,10 +72,13 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 	{
 		this.source = source;
 		this.weight = weight;
+		this.globalMin = min;
 		this.type = type;
 		this.sigmas = sigmas;
 	}
 
+	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
+	// (but the actual interval to process in many blocks sits somewhere else) 
 	@Override
 	public void accept( final RandomAccessibleInterval<T> output )
 	{
@@ -84,22 +87,27 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 			final WeightedRandomAccessible< T > weightedSource = new WeightedRandomAccessible< T >( source, weight, type );
 
 			final long[] min= new long[ output.numDimensions() ];
-			output.min( min );
+			for ( int d = 0; d < min.length; ++d )
+				min[ d ] = globalMin[ d ] + output.min( d );
 
 			final RandomAccessibleInterval< T > sourceTmp = Views.translate( new ArrayImgFactory<>(type).create( output ), min );
 			final RandomAccessibleInterval< T > weightTmp = Views.translate( new ArrayImgFactory<>(type).create( output ), min );
+
+			final ExecutorService service = Executors.newSingleThreadExecutor();
 
 			SeparableSymmetricConvolution.convolve(
 					Gauss3.halfkernels(sigmas),
 					weightedSource,
 					sourceTmp,
-					Executors.newSingleThreadExecutor());
+					service );
 
 			SeparableSymmetricConvolution.convolve(
 					Gauss3.halfkernels(sigmas),
 					weight,
 					weightTmp,
-					Executors.newSingleThreadExecutor());
+					service );
+
+			service.shutdown();
 
 			final Cursor< T > i = Views.flatIterable( Views.interval( source, sourceTmp ) ).cursor();
 			final Cursor< T > s = Views.flatIterable( sourceTmp ).cursor();
