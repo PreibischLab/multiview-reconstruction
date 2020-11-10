@@ -24,6 +24,12 @@ package net.preibisch.mvrecon.headless.fusion;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -35,9 +41,21 @@ import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import mpicbg.models.Affine1D;
+import mpicbg.models.AffineModel1D;
+import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.InterpolatedAffineModel1D;
+import mpicbg.models.Model;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.Point;
+import mpicbg.models.PointMatch;
+import mpicbg.models.Tile;
+import mpicbg.models.TileConfiguration;
+import mpicbg.models.TranslationModel1D;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform.DISTANCE_TYPE;
 import net.imglib2.converter.Converter;
@@ -46,11 +64,13 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyStackImgLoaderIJ;
@@ -76,6 +96,19 @@ public class HustonFusion
 		final Img< UnsignedByteType > vs1 = load( new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ) ); // high res
 		final Img< UnsignedByteType > vs2 = load( new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ) ); // mid res
 
+		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs0 ), vs0 );
+		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs1 ), vs1 );
+		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs2 ), vs2 );
+
+		final ArrayList< Img< UnsignedByteType > > imgs = new ArrayList<>();
+		imgs.add( vs0 );
+		imgs.add( vs1 );
+		imgs.add( vs2 );
+
+		final HashMap< Integer, AffineModel1D > intensities = adjustIntensities( imgs, 10000 );
+
+		//System.exit( 0 );
+
 		//final ImagePlusImg<UnsignedByteType, ? > dt1 = createDistanceTransform( new File( dir, "mask_tp_0_vs_1.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ), dist );
 		//final ImagePlusImg<UnsignedByteType, ? > dt2 = createDistanceTransform( new File( dir, "mask_tp_0_vs_2.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ), dist );
 
@@ -91,17 +124,223 @@ public class HustonFusion
 		ImageJFunctions.show( blendDT( dt2, 20 ) ).setTitle("blend_DT2");
 		//SimpleMultiThreading.threadHaltUnClean();
 
-		final Img< FloatType > fused = new ImagePlusImgFactory<FloatType>( new FloatType() ).create( vs0 );
+		final ImagePlusImg< FloatType, ? > fused = new ImagePlusImgFactory<FloatType>( new FloatType() ).create( vs0 );
 
-		fuse(fused, vs0, vs1, vs2, w0, w1, w2);
-		((ImagePlusImg)fused).getImagePlus().show();
+		fuse( fused, vs0, vs1, vs2, w0, w1, w2, intensities.get( 0 ), intensities.get( 1 ), intensities.get( 2 ) );
+		fused.getImagePlus().show();
+	}
+
+	public static final HashMap< Integer, AffineModel1D > adjustIntensities( final List< Img< UnsignedByteType > > imgs, final int maxMatches )
+	{
+		final HashMap< Pair< Integer, Integer >, ArrayList< PointMatch > > intensityMatches = new HashMap<>();
+
+		final Random rnd = new Random( 344 );
+
+		for ( int i = 0; i < imgs.size() - 1; ++i )
+		{
+			for ( int j = i + 1; j < imgs.size(); ++j )
+			{
+				// corresponding intensity values
+				final ArrayList< PointMatch > localMatches = new ArrayList<>();
+
+				final Cursor< UnsignedByteType > cursorI = Views.flatIterable( imgs.get( i ) ).cursor();
+				final Cursor< UnsignedByteType > cursorJ = Views.flatIterable( imgs.get( j ) ).cursor();
+
+				while ( cursorI.hasNext() )
+				{
+					final int valueI = cursorI.next().get();
+					final int valueJ = cursorJ.next().get();
+
+					if ( valueI > 0 && valueJ > 0 && rnd.nextInt( 10000 ) == 0 )
+							localMatches.add(
+									new PointMatch(
+											new Point( new double[] { valueI } ),
+											new Point( new double[] { valueJ } ) ) );
+				}
+
+				System.out.println( i + "-" + j + ": Found " + localMatches.size() + " corresponding measures." );
+
+				if ( localMatches.size() > 0 )
+					intensityMatches.put( new ValuePair< Integer, Integer >( i, j ), localMatches );
+			}
+		}
+
+		// cut every pair to a max number of matches
+		for ( final Entry< Pair< Integer, Integer >, ArrayList< PointMatch > > matches : intensityMatches.entrySet() )
+		{
+			while ( matches.getValue().size() > maxMatches )
+				matches.getValue().remove( rnd.nextInt( matches.getValue().size() ) );
+
+			System.out.println( matches.getKey().getA() + "-" + matches.getKey().getB() + ": Found " + matches.getValue().size() + " corresponding measures." );
+		}
+
+		// global optimization
+		final HashMap< Integer, AffineModel1D > models =
+				globalOpt(
+						intensityMatches,
+						//new InterpolatedAffineModel1D<AffineModel1D, TranslationModel1D >( new AffineModel1D(), new TranslationModel1D(), 0.1 ),
+						new AffineModel1D(),
+						//new TranslationModel1D(),
+						0.01,
+						100 ); 
+
+		System.out.println();
+		System.out.println();
+
+		for ( final Entry< Pair< Integer, Integer >, ArrayList< PointMatch > > matches : intensityMatches.entrySet() )
+		{
+			System.out.println( matches.getKey().getA() + "-" + matches.getKey().getB() );
+
+			for ( final PointMatch pm : matches.getValue() )
+			{
+				if ( rnd.nextInt( 300 ) > 0 )
+					continue;
+
+				final double[] p1 = pm.getP1().getL().clone();
+				final double[] p2 = pm.getP2().getL().clone();
+	
+				models.get( matches.getKey().getA() ).applyInPlace( p1 );
+				models.get( matches.getKey().getB() ).applyInPlace( p2 );
+	
+				System.out.println( p1[ 0 ] + " == " + p2[ 0 ] );
+			}
+		}
+
+		return models;
+		
+	}
+
+	private final static void addPointMatches( final List< ? extends PointMatch > correspondences, final Tile< ? > tileA, final Tile< ? > tileB )
+	{
+		final ArrayList< PointMatch > pm = new ArrayList<>();
+		pm.addAll( correspondences );
+
+		if ( correspondences.size() > 0 )
+		{
+			tileA.addMatches( pm );
+			tileB.addMatches( PointMatch.flip( pm ) );
+			tileA.addConnectedTile( tileB );
+			tileB.addConnectedTile( tileA );
+		}
+	}
+
+	public static < M extends Model< M > & Affine1D< M > > HashMap< Integer, AffineModel1D > globalOpt(
+			final HashMap< Pair< Integer, Integer >, ArrayList< PointMatch > > intensityMatches,
+			final M model,
+			final double maxError,
+			final int maxIterations )
+	{
+		final HashSet< Integer > ids = new HashSet<>();
+
+		for ( final Pair< Integer, Integer > id : intensityMatches.keySet() )
+		{
+			ids.add( id.getA() );
+			ids.add( id.getB() );
+		}
+
+		// assemble a list of all tiles
+		final HashMap< Integer, Tile< M > > tiles = new HashMap<>();
+
+		for ( final int id : ids )
+			tiles.put( id, new Tile<>( model.copy() ) );
+
+		for ( final Entry< Pair< Integer, Integer >, ArrayList< PointMatch > > entry : intensityMatches.entrySet() )
+			if ( entry.getValue().size() > 0 )
+				addPointMatches(
+						entry.getValue(),
+						tiles.get( entry.getKey().getA() ),
+						tiles.get( entry.getKey().getB() ) );
+
+		// create a new tileconfiguration organizing the global optimization
+		final TileConfiguration tc = new TileConfiguration();
+
+		for ( final int id : ids )
+		{
+			final Tile< M > tile = tiles.get( id );
+
+			if ( tile.getConnectedTiles().size() > 0 || tc.getFixedTiles().contains( tile ) )
+				tc.addTile( tile );
+		}
+
+		// fix a random tile
+		tc.fixTile( tiles.get( ids.iterator().next() ) );
+
+		try 
+		{
+			int unaligned = tc.preAlign().size();
+			if ( unaligned > 0 )
+				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+			else
+				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+
+			tc.optimize( maxError, maxIterations, 200 );
+
+			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size() +  " view-tiles:" );
+			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
+			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
+			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+		}
+		catch (NotEnoughDataPointsException e)
+		{
+			System.out.println( "Global optimization failed: " + e );
+			e.printStackTrace();
+		}
+		catch (IllDefinedDataPointsException e)
+		{
+			System.out.println( "Global optimization failed: " + e );
+			e.printStackTrace();
+		}
+
+		final HashMap< Integer, AffineModel1D > result = new HashMap<>();
+
+		final double[] array = new double[ 2 ];
+		double minOffset = Double.MAX_VALUE;
+
+		for ( final int id : ids )
+		{
+			final Tile< M > tile = tiles.get( id );
+			tile.getModel().toArray( array );
+
+			minOffset = Math.min( minOffset, array[ 1 ] );
+		}
+
+		System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Min offset (will be corrected to avoid negative intensities: " + minOffset );
+		System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Intensity adjustments:" );
+
+		for ( final int id : ids )
+		{
+			final Tile< M > tile = tiles.get( id );
+			tile.getModel().toArray( array );
+			array[ 1 ] -= minOffset;
+			final AffineModel1D modelView = new AffineModel1D();
+			modelView.set( array[ 0 ], array[ 1 ] );
+			result.put( id, modelView );
+
+			System.out.println( id + ": " + Util.printCoordinates( array )  );
+		}
+
+		return result;
 	}
 
 	public static < T extends RealType<T> > void fuse(
 			final RandomAccessibleInterval< FloatType > fused,
 			final RandomAccessibleInterval< T > vs0, final RandomAccessibleInterval< T > vs1, final RandomAccessibleInterval< T > vs2,
-			final RandomAccessibleInterval< DoubleType > weight0, final RandomAccessibleInterval< DoubleType > weight1, final RandomAccessibleInterval< DoubleType > weight2 )
+			final RandomAccessibleInterval< DoubleType > weight0, final RandomAccessibleInterval< DoubleType > weight1, final RandomAccessibleInterval< DoubleType > weight2,
+			final AffineModel1D int0, final AffineModel1D int1, final AffineModel1D int2 )
 	{
+		final double[] data = new double[ 2 ];
+		int0.toArray( data );
+		final double m0_0 = data[ 0 ];
+		final double m1_0 = data[ 1 ];
+
+		int1.toArray( data );
+		final double m0_1 = data[ 0 ];
+		final double m1_1 = data[ 1 ];
+
+		int2.toArray( data );
+		final double m0_2 = data[ 0 ];
+		final double m1_2 = data[ 1 ];
+
 		final long numPixels = Views.iterable( fused ).size();
 		final int nThreads = Threads.numThreads();
 		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numPixels );
@@ -147,14 +386,14 @@ public class HustonFusion
 						// only use the low resolution image if none of the high-res images contributes
 						if ( we1 + we2 < 0.2 )
 						{
-							we0 = 0.2 - (we1+we2);
+							we0 = ( 0.2 - (we1+we2) );
 						}
 						else
 						{
 							we0 = 0;
 						}
 						
-						final double i = ( i0.get().getRealDouble() * we0 + i1.get().getRealDouble() * we1 + i2.get().getRealDouble() * we2 ) /
+						final double i = ( ( i0.get().getRealDouble() * m0_0 + m1_0 ) * we0 + ( i1.get().getRealDouble() * m0_1 + m1_1 ) * we1 + ( i2.get().getRealDouble() * m0_2 + m1_2 ) * we2 ) /
 								(we0 + we1 + we2 );
 						
 						t.set((float)i);
