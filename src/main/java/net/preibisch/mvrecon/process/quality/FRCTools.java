@@ -32,8 +32,7 @@ public class FRCTools
 			final BasicImgLoader imgLoader,
 			final int zStepSize,
 			final int fftSize,
-			final boolean relative,
-			final boolean smooth )
+			final boolean relative )
 	{
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading view " +  Group.pvid( viewId ) + " ..." );
 
@@ -42,7 +41,7 @@ public class FRCTools
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Computing FRC for " +  Group.pvid( viewId ) + " ..." );
 
-		final FRCRealRandomAccessible< FloatType > frc = distributeGridFRC( input, 0.1, zStepSize, fftSize, relative, smooth, FRCRealRandomAccessible.relativeFRCDist, null );
+		final FRCRealRandomAccessible< FloatType > frc = distributeGridFRC( input, 0.1, zStepSize, fftSize, relative, FRCRealRandomAccessible.relativeFRCDist, null );
 		//DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), true, "Fused, Virtual", Double.NaN, Double.NaN ).show();
 
 		return frc;
@@ -103,7 +102,7 @@ public class FRCTools
 		return new FinalDimensions( dim );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > fixedGridFRC( final RandomAccessibleInterval< FloatType > input, final int distanceXY, final int distanceZ, final int fhtSqSize, final boolean relative, final int zMinDist, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -113,10 +112,10 @@ public class FRCTools
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, service );
 	}
 
-	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean relative, final boolean smooth, final int zMinDist, final ExecutorService service )
+	public static FRCRealRandomAccessible< FloatType > distributeGridFRC( final RandomAccessibleInterval< FloatType > input, final double overlapTolerance, final int distanceZ, final int fhtSqSize, final boolean relative, final int zMinDist, final ExecutorService service )
 	{
 		final ArrayList< Point > locations = new ArrayList<>();
 
@@ -127,7 +126,7 @@ public class FRCTools
 			for ( final Pair< Long, Long > xy : xyPositions )
 				locations.add( new Point( xy.getA(), xy.getB(), z ) );
 
-		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, smooth, service );
+		return new FRCRealRandomAccessible<>( input, locations, fhtSqSize, relative, service );
 	}
 
 	public static ArrayList< Pair< Long, Long > > fixedGridXY( final Interval interval, final long distance )

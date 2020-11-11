@@ -22,12 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.IJ;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import ij.IJ;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
@@ -58,6 +57,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.headless.definedataset.LightSheetZ1MetaData;
+import util.ImgLib2Tools;
 
 public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 {
@@ -85,22 +85,10 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
-		try
-		{
-			final Img< FloatType > img = openCZI( new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + cziFile + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
-
-			if ( normalize )
-				normalize( img );
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + cziFile + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
-		}
+		if ( normalize )
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
+		else
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	@Override

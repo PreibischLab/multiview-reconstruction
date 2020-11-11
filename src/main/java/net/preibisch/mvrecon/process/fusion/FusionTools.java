@@ -98,7 +98,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -1038,6 +1038,20 @@ public class FusionTools
 	 */
 	public static boolean normalizeImage( final RandomAccessibleInterval< FloatType > img, final float min, final float max )
 	{
+		return normalizeImage( img, min, max, null );
+	}
+
+	/**
+	 * Normalizes the image to the range [0...1]
+	 * 
+	 * @param img - the image to normalize
+	 * @param min - min value
+	 * @param max - max value
+	 * @param service - the ExecutorService (can be null)
+	 * @return - normalized array
+	 */
+	public static boolean normalizeImage( final RandomAccessibleInterval< FloatType > img, final float min, final float max, final ExecutorService service )
+	{
 		final float diff = max - min;
 
 		if ( Float.isNaN( diff ) || Float.isInfinite(diff) || diff == 0 )
@@ -1052,7 +1066,13 @@ public class FusionTools
 		final Vector< ImagePortion > portions = divideIntoPortions( iterable.size() );
 
 		// set up executor service
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		final ExecutorService taskExecutor;
+
+		if ( service == null )
+			taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		else
+			taskExecutor = service;
+
 		final ArrayList< Callable< String > > tasks = new ArrayList< Callable< String > >();
 
 		for ( final ImagePortion portion : portions )
@@ -1090,8 +1110,10 @@ public class FusionTools
 			return false;
 		}
 
-		taskExecutor.shutdown();
-		
+		// was locally created
+		if ( service == null )
+			taskExecutor.shutdown();
+
 		return true;
 	}
 

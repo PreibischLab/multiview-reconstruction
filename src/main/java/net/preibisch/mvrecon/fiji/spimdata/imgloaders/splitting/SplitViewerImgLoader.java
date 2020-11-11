@@ -112,7 +112,8 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 						maxNumLevels = resolutions.length;
 				}
 
-				final BlockingFetchQueues< Callable< ? > > queue = new BlockingFetchQueues<>( maxNumLevels );
+				final int numFetcherThreads = 1;
+				final BlockingFetchQueues< Callable< ? > > queue = new BlockingFetchQueues<>( maxNumLevels, numFetcherThreads );
 				cache = new VolatileGlobalCellCache( queue );
 			}
 		}

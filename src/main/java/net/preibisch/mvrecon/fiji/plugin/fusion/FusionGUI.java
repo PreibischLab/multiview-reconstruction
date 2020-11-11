@@ -60,7 +60,7 @@ import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -68,7 +68,7 @@ public class FusionGUI implements FusionExportInterface
 {
 	public static int defaultCache = 2;
 	public static int[] cellDim = new int[]{ 10, 10, 10 };
-	public static int maxCacheSize = 1000000;
+	public static int maxCacheSize = Integer.MAX_VALUE;
 
 	public static double defaultDownsampling = 1.0;
 	public static int defaultBB = 0;

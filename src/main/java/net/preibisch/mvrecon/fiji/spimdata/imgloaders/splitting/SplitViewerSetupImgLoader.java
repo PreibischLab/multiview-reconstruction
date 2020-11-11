@@ -17,8 +17,6 @@ import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.Converters;
-import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
@@ -30,8 +28,7 @@ import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
+import util.ImgLib2Tools;
 
 public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType >, MultiResolutionSetupImgLoader< UnsignedShortType >
 {
@@ -136,27 +133,10 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final boolean normalize, final ImgLoaderHint... hints )
 	{
-		if ( MultiResolutionSetupImgLoader.class.isInstance( underlyingSetupImgLoader ) )
-		{
-			final RandomAccessibleInterval< FloatType > img = Views.zeroMin( Views.interval( ((MultiResolutionSetupImgLoader<?>)underlyingSetupImgLoader).getFloatImage( timepointId, false, hints ), interval ) );
-	
-			// TODO: this is stupid, remove capablitity to get FloatType images!
-			if ( normalize )
-			{
-				final Img< FloatType > img2 = new CellImgFactory<>( new FloatType() ).create( img );
-				FusionTools.copyImg( img, img2, null );
-				AbstractImgLoader.normalize( img2 );
-				return img2;
-			}
-			else
-			{
-				return img;
-			}
-		}
+		if ( normalize )
+			return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
 		else
-		{
-			throw new RuntimeException( "not supported." );
-		}
+			return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
 	}
 
 	@Override

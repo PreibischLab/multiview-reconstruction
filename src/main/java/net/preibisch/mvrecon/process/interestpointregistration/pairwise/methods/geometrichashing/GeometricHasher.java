@@ -142,7 +142,9 @@ public class GeometricHasher< I extends InterestPoint >
 				}
 				catch ( NoSuitablePointsException e )
 				{
-					e.printStackTrace();
+					// exceptions are thrown here when two identical points exist and no local coordinate system can be built
+					// TOOD: why do identical points exist?
+					//e.printStackTrace();
 				}
 			}
 		}

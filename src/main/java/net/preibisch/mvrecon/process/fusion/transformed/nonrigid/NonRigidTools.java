@@ -55,7 +55,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 

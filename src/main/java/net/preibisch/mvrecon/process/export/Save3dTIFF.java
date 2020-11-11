@@ -52,7 +52,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	public static String defaultPath = null;
 	public static String defaultFN = "";
 
-	String path, fnAddition;
+	String path, fnAddition = defaultFN;
 	boolean compress;
 
 	String unit = "px";

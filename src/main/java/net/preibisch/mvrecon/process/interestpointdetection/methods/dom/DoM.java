@@ -36,7 +36,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 /**
  * Created by schmied on 01/07/15.
@@ -81,9 +81,10 @@ public class DoM
 						dom.imgloader,
 						vd,
 						correctCoordinates,
-						dom.downsampleXY,
-						dom.downsampleZ,
-						true );
+						new long[] { dom.downsampleXY, dom.downsampleXY, dom.downsampleZ },
+						false,  //transformOnly
+						true,   //openAsFloat
+						true ); //openCompletely
 
 				final Image< FloatType > img = ImgLib2.wrapFloatToImgLib1(
 						(Img< net.imglib2.type.numeric.real.FloatType >) input );

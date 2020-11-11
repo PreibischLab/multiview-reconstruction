@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling;
+package net.preibisch.mvrecon.process.downsampling;
 
 import java.util.ArrayList;
 import java.util.Vector;
@@ -35,11 +35,14 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.iterator.ZeroMinIntervalIterator;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
@@ -48,6 +51,45 @@ import net.preibisch.mvrecon.process.fusion.ImagePortion;
 
 public class Downsample
 {
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static < T extends RealType<T> > RandomAccessibleInterval< T > downsample(
+			RandomAccessibleInterval< T > input,
+			final long[] downsampleFactors )
+	{
+		long dsx = downsampleFactors[0];
+		long dsy = downsampleFactors[1];
+		long dsz = (downsampleFactors.length > 2) ? downsampleFactors[ 2 ] : 1;
+
+		ImgFactory  f = null;
+
+		if ( Img.class.isInstance( input ))
+		{
+			// factory is not implemented for e.g. LazyCellImg yet
+			try
+			{
+				f = ((Img)input).factory();
+			}
+			catch (UnsupportedOperationException e) {}
+		}
+
+		if ( f == null )
+		{
+			final NativeType< ? > t = (NativeType)Util.getTypeFromInterval( input );
+			f = new CellImgFactory( t );
+		}
+
+		for ( ;dsx > 1; dsx /= 2 )
+			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+
+		for ( ;dsy > 1; dsy /= 2 )
+			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+
+		for ( ;dsz > 1; dsz /= 2 )
+			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+
+		return input;
+	}
+
 	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory )
 	{
 		final boolean[] downsampleInDim = new boolean[ input.numDimensions() ];

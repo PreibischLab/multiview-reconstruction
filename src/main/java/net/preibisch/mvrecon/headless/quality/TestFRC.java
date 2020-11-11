@@ -80,7 +80,7 @@ public class TestFRC
 		final int zMinDist = FRCRealRandomAccessible.relativeFRCDist;
 		final int distanceZ = 1;
 
-		final FRCRealRandomAccessible< FloatType > frcList = FRCTools.distributeGridFRC( input, 0.1, distanceZ, 256, true, true, zMinDist, null );
+		final FRCRealRandomAccessible< FloatType > frcList = FRCTools.distributeGridFRC( input, 0.1, distanceZ, 256, true, zMinDist, null );
 		final PointSampleList< FloatType > qualityList = frcList.getQualityList();
 
 		final HashMap<Integer, Double> zLocations = new HashMap<Integer, Double>();
@@ -166,7 +166,7 @@ public class TestFRC
 
 	public static void testFRC( final Img< FloatType > input )
 	{
-		final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, 256, true, true, FRCRealRandomAccessible.relativeFRCDist, null );
+		final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, 256, true, FRCRealRandomAccessible.relativeFRCDist, null );
 		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, false, FRCRealRandomAccessible.relativeFRCDist, null );
 
 		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();

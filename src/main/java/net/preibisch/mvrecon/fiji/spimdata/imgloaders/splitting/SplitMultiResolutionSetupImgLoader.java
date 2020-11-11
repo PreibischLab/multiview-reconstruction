@@ -8,14 +8,11 @@ import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
+import util.ImgLib2Tools;
 
 public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionSetupImgLoader< T >
 {
@@ -77,10 +74,7 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 		// TODO: this is stupid, remove capablitity to get FloatType images!
 		if ( normalize )
 		{
-			final Img< FloatType > img2 = new CellImgFactory<>( new FloatType() ).create( img );
-			FusionTools.copyImg( img, img2, null );
-			AbstractImgLoader.normalize( img2 );
-			return img2;
+			return ImgLib2Tools.normalizeVirtual( img );
 		}
 		else
 		{

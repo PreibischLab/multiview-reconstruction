@@ -235,6 +235,8 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		addHelp();
 		addReCenterShortcut();
 
+		addScreenshot(); // 's' or 'S'
+
 		table.setPreferredScrollableViewportSize( new Dimension( 750, 300 ) );
 		table.getColumnModel().getColumn( 0 ).setPreferredWidth( 20 );
 		table.getColumnModel().getColumn( 1 ).setPreferredWidth( 15 );

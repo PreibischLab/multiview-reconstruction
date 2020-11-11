@@ -25,29 +25,27 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dog;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
-import mpicbg.imglib.image.Image;
 import mpicbg.imglib.outofbounds.OutOfBoundsStrategyMirrorFactory;
 import mpicbg.imglib.type.numeric.real.FloatType;
-import net.imglib2.img.Img;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.registration.bead.laplace.LaPlaceFunctions;
 import net.preibisch.legacy.segmentation.SimplePeak;
-import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
+import util.ImgLib1Convert;
 
 public class ProcessDOG
 {
 	/*
 	 * @param deviceList - a list of CUDA capable devices (or null if classic CPU computation in Java)
 	 * @param accurateCUDA - use accurate CUDA implementation (including out of bounds or not)
-	 * @param img - ImgLib1 image
-	 * @param imglib2img - ImgLib2 image (based on same image data as the ImgLib1 image, must be a wrap)
+	 * @param img - ImgLib1 and image (based on same image data, must be a wrap)
 	 * @param sigma
 	 * @param threshold
 	 * @param localization
@@ -65,8 +63,9 @@ public class ProcessDOG
 			final List< CUDADevice > deviceList,
 			final boolean accurateCUDA,
 			final double percentGPUMem,
-			final Image< FloatType > img,
-			final Img< net.imglib2.type.numeric.real.FloatType > imglib2img,
+			final ExecutorService service,
+			final int numThreads,
+			final ImgLib1Convert img,
 			final float sigma, 
 			final float threshold, 
 			final int localization,
@@ -93,7 +92,7 @@ public class ProcessDOG
 
 		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) || Double.isInfinite( minIntensity ) || Double.isInfinite( maxIntensity ) || minIntensity == maxIntensity )
 		{
-			final float[] minmax = FusionTools.minMax( imglib2img );
+			final float[] minmax = FusionTools.minMax( img.imglib2Img() );
 			min = minmax[ 0 ];
 			max = minmax[ 1 ];
 		}
@@ -106,7 +105,7 @@ public class ProcessDOG
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): min intensity = " + min + ", max intensity = " + max );
 
 		// normalize image
-		FusionTools.normalizeImage( imglib2img, min, max );
+		FusionTools.normalizeImage( img.imglib2Img(), min, max, service );
 
 		final float k = LaPlaceFunctions.computeK( 4 );
 		final float K_MIN1_INV = LaPlaceFunctions.computeKWeight(k);
@@ -131,12 +130,12 @@ public class ProcessDOG
 		DifferenceOfGaussianNewPeakFinder dog;
 		
 		if ( deviceList == null )
-			dog = new DifferenceOfGaussianNewPeakFinder( img, new OutOfBoundsStrategyMirrorFactory<FloatType>(), sigma1, sigma2, minInitialPeakValue, K_MIN1_INV );
+			dog = new DifferenceOfGaussianNewPeakFinder( img.imglib1Img(), new OutOfBoundsStrategyMirrorFactory<FloatType>(), sigma1, sigma2, minInitialPeakValue, K_MIN1_INV );
 		else
-			dog = new DifferenceOfGaussianCUDA( cuda, percentGPUMem, deviceList, img, imglib2img, accurateCUDA, sigma1, sigma2, minInitialPeakValue, K_MIN1_INV );
+			dog = new DifferenceOfGaussianCUDA( cuda, percentGPUMem, deviceList, img.imglib1Img(), img.imglib2Img(), accurateCUDA, sigma1, sigma2, minInitialPeakValue, K_MIN1_INV );
 
 		dog.setComputeConvolutionsParalell( false );
-		dog.setNumThreads( Threads.numThreads() );
+		dog.setNumThreads( numThreads );
 
 		// do quadratic fit??
 		if ( localization == 1 )
@@ -183,7 +182,7 @@ public class ProcessDOG
 		}
 		else if ( localization == 1 )
 		{
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, dog.getDoGImage(), findMin, findMax, minPeakValue, keepIntensity );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, dog.getDoGImage(), findMin, findMax, minPeakValue, keepIntensity, numThreads );
 			dog.getDoGImage().close();
 		}
 		else

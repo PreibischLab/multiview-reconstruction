@@ -51,6 +51,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -62,7 +63,9 @@ import javax.swing.JLabel;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
+import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
 import ij.gui.GenericDialog;
 import ij.io.DirectoryChooser;
 import mpicbg.spim.data.generic.base.Entity;
@@ -98,9 +101,12 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilena
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -118,9 +124,11 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
-	public static final String[] loadChoices = new String[] {"Re-save as multiresolution HDF5", "Load raw data virtually (with caching)", "Load raw data"};
+	public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
-	
+
+	public static boolean windowsHack = true;
+
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
 	{
@@ -157,9 +165,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			sb.append( "</html>" );
 			return sb.toString();
 		}
-		
-		
-		
+
 		@Override
 		public List< File > getFileList()
 		{
@@ -183,13 +189,11 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 				num.addTextListener( new TextListener()
 				{
-
 					@Override
 					public void textValueChanged(TextEvent e)
 					{
 						String path = ((TextField)pan.getComponent( 0 )).getText();
 
-						System.out.println(path);
 						if (path.endsWith( File.separator ))
 							path = path.substring( 0, path.length() - File.separator.length() );
 
@@ -202,14 +206,33 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						gdp.validate();
 					}
 				} );
+
+				final AtomicBoolean autoset = new AtomicBoolean( false );
 
 				((TextField)pan.getComponent( 0 )).addTextListener( new TextListener()
 				{
-
 					@Override
 					public void textValueChanged(TextEvent e)
 					{
+						if ( autoset.get() == true )
+						{
+							autoset.set( false );
+
+							return;
+						}
+
 						String path = ((TextField)pan.getComponent( 0 )).getText();
+
+						// if macro recorder is running and we are on windows
+						if ( windowsHack && ij.plugin.frame.Recorder.record && System.getProperty("os.name").toLowerCase().contains( "win" ) )
+						{
+							while( path.contains( "\\" ))
+								path = path.replace( "\\", "/" );
+
+							autoset.set( true );
+							((TextField)pan.getComponent( 0 )).setText( path ); // will lead to a recursive call of textValueChanged(TextEvent e)
+						}
+
 						if (path.endsWith( File.separator ))
 							path = path.substring( 0, path.length() - File.separator.length() );
 
@@ -222,6 +245,13 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						gdp.validate();
 					}
 				} );
+			}
+
+			if ( windowsHack && ij.plugin.frame.Recorder.record && System.getProperty("os.name").toLowerCase().contains( "win" ) )
+			{
+				gdp.addMessage( "Warning: we are on Windows and the Macro Recorder is on, replacing all instances of '\\' with '/'\n"
+						+ "   Disable it by opening the script editor, language beanshell, call:\n"
+						+ "   net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinition.windowsHack = false;", GUIHelper.smallStatusFont, Color.RED );
 			}
 
 			GUIHelper.addScrollBars( gdp );
@@ -637,6 +667,12 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		}
 
 		List<File> files = chooser.getFileList();
+		// exit here if files is empty, e.g. when there was a typo in path
+		if (files.size() < 1)
+		{
+			IJ.log("" + new Date(System.currentTimeMillis()) + " - ERROR: No file(s) found at the specified location, quitting.");
+			return null;
+		}
 
 		FileListViewDetectionState state = new FileListViewDetectionState();
 		FileListDatasetDefinitionUtil.detectViewsInFiles( files, state);
@@ -1033,7 +1069,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			return null;
 
 		final int loadChoice = gdSave.getNextChoiceIndex();
-		final boolean useVirtualLoader = loadChoice == 1;
+		final boolean useVirtualLoader = loadChoice == 2; //"Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"
 		// re-build the SpimData if user explicitly doesn't want virtual loading
 		if (!useVirtualLoader)
 			data = buildSpimData( state, useVirtualLoader );
@@ -1114,10 +1150,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			final ProgressWriter progressWriter = new ProgressWriterIJ();
 			progressWriter.out().println( "starting export..." );
-			
+
 			Generic_Resave_HDF5.writeHDF5( data, params, progressWriter );
 			
-			System.out.println( "HDF5 resave finished." );
+			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): HDF5 resave finished." );
 			
 			net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
 
@@ -1126,7 +1162,43 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			data = result.getA();
 		}
-		
+
+		boolean resaveAsN5 = loadChoice == 1;
+		if (resaveAsN5)
+		{
+			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
+			Collections.sort( viewIds );
+
+			final File xmlFile = new File( chosenPath.getAbsolutePath(), "dataset.xml" );
+
+			final SequenceDescription sd = data.getSequenceDescription();
+
+			final N5Parameters n5params = N5Parameters.getParamtersIJ(
+					xmlFile.getAbsolutePath(),
+					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
+					true );
+
+			if ( n5params == null )
+				return null;
+
+			n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
+
+			Resave_N5.resaveN5( data, viewIds, n5params );
+
+			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
+			final List< String > filesToCopy = new ArrayList< String >();
+			final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), filesToCopy );
+
+			// replace imgLoader
+			newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5File, newSpimData.getSequenceDescription() ) );
+			newSpimData.setBasePath( n5params.n5File.getParentFile() );
+
+			// replace the spimdata object
+			data = newSpimData;
+
+			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): N5 resave finished." );
+		}
+
 		if (gridMoveType == 1)
 		{
 			data.gridMoveRequested = true;

@@ -24,20 +24,23 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dog;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import ij.IJ;
-import mpicbg.imglib.image.Image;
-import mpicbg.imglib.type.numeric.real.FloatType;
-import mpicbg.imglib.wrapper.ImgLib2;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import util.ImgLib1Convert;
 
 public class DoG
 {
@@ -55,6 +58,66 @@ public class DoG
 		addInterestPoints( interestPoints, dog );
 
 		return interestPoints;
+	}
+
+	/**
+	 * finds all interest points and returns them as InterestPoints (which is a mpicbg Point and implements RealLocalizable),
+	 * by default returns world coordinates
+	 *
+	 * more parameters are omitted
+	 *
+	 * @param input - any RandomAccessibleInterval (Img will be casted only otherwise copied), non-FloatType will be converted, everything is normalized to 0...1 for processing
+	 * @param sigma - sigma for the DoG detection (try InteractiveDoG to figure out the right parameters)
+	 * @param threshold - threshold for the DoG detection (try InteractiveDoG to figure out the right parameters)
+	 * @param findMin - find intensity minima
+	 * @param findMax - fina intensity maxima
+	 * @param minIntensity - the min intensity for normalization to 0...1, if Double.NaN the value will be looked up
+	 * @param maxIntensity - the max intensity for normalization to 0...1, if Double.NaN the value will be looked up
+	 * @param numThreads - number of threads to use
+	 *
+	 * @return a list of interest points
+	 */
+	public static < T extends RealType< T > & NativeType< T > > List< InterestPoint > findInterestPoints(
+			final RandomAccessibleInterval< T > input,
+			final double sigma,
+			final double threshold,
+			final boolean findMin,
+			final boolean findMax,
+			final double minIntensity,
+			final double maxIntensity,
+			final int numThreads )
+	{
+		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
+
+		//
+		// compute Difference-of-Gaussian (includes normalization)
+		//
+		List< InterestPoint > ips = DoGImgLib2.computeDoG(
+				input,
+				null,
+				sigma,
+				threshold,
+				1, // 0 = no subpixel localization, 1 = quadratic fit
+				findMin,
+				findMax,
+				minIntensity,
+				maxIntensity,
+				service );
+
+		//if ( dog.limitDetections )
+		//	ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
+
+		// adjust detections for min coordinates of the RandomAccessibleInterval
+		for ( final InterestPoint ip : ips )
+		{
+			for ( int d = 0; d < input.numDimensions(); ++d )
+			{
+				ip.getL()[ d ] += input.min( d );
+				ip.getW()[ d ] += input.min( d );
+			}
+		}
+
+		return ips;
 	}
 
 	public static void addInterestPoints( final HashMap< ViewId, List< InterestPoint > > interestPoints, final DoGParameters dog )
@@ -77,35 +140,49 @@ public class DoG
 					continue;
 
 				final AffineTransform3D correctCoordinates = new AffineTransform3D();
+
+				@SuppressWarnings("unchecked")
 				final RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input =
 						DownsampleTools.openAndDownsample(
 								dog.imgloader,
 								vd,
 								correctCoordinates,
-								dog.downsampleXY,
-								dog.downsampleZ,
-								true );
+								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
+								false,  //transformOnly
+								false,   //openAsFloat
+								false ); //openCompletely
 
-				final Image< FloatType > img = ImgLib2
-						.wrapFloatToImgLib1( (Img< net.imglib2.type.numeric.real.FloatType >) input );
+				List< InterestPoint > ips;
 
-				//
-				// compute Difference-of-Gaussian
-				//
-				List< InterestPoint > ips = ProcessDOG.compute(
-						dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
-						img,
-						(Img< net.imglib2.type.numeric.real.FloatType >) input,
-						(float) dog.sigma, (float) dog.threshold,
-						dog.localization,
-						Math.min( dog.imageSigmaX, (float) dog.sigma ),
-						Math.min( dog.imageSigmaY, (float) dog.sigma ),
-						Math.min( dog.imageSigmaZ, (float) dog.sigma ),
-						dog.findMin, dog.findMax, dog.minIntensity,
-						dog.maxIntensity,
-						dog.limitDetections );
-
-				img.close();
+				if ( dog.cuda == null )
+				{
+					ips = DoGImgLib2.computeDoG(input, null, dog.sigma, dog.threshold, dog.localization, dog.findMin, dog.findMax, dog.minIntensity,
+						dog.maxIntensity, dog.service );
+				}
+				else
+				{
+					
+					final ImgLib1Convert convert = new ImgLib1Convert( input, dog.service );
+	
+					//
+					// compute Difference-of-Gaussian (includes normalization)
+					//
+					ips = ProcessDOG.compute(
+							dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
+							dog.service,
+							Threads.numThreads(),
+							convert,
+							(float) dog.sigma, (float) dog.threshold,
+							dog.localization,
+							Math.min( dog.imageSigmaX, (float) dog.sigma ),
+							Math.min( dog.imageSigmaY, (float) dog.sigma ),
+							Math.min( dog.imageSigmaZ, (float) dog.sigma ),
+							dog.findMin, dog.findMax, dog.minIntensity,
+							dog.maxIntensity,
+							dog.limitDetections );
+	
+					convert.imglib1Img().close();
+				}
 
 				if ( dog.limitDetections )
 					ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );

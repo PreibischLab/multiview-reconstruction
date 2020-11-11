@@ -77,7 +77,7 @@ public class LocalCoordinateSystemPointDescriptor < P extends Point > extends Ab
 	@Override
 	public Object fitMatches( final ArrayList<PointMatch> matches )  { return null; }
 	
-	public void buildLocalCoordinateSystem( final ArrayList< LinkedPoint< P > > neighbors, final boolean normalize )
+	public void buildLocalCoordinateSystem( final ArrayList< LinkedPoint< P > > neighbors, final boolean normalize ) throws NoSuitablePointsException 
 	{
 		// most distant point		
 		final Vector3d b = new Vector3d( neighbors.get( 0 ).getL() );
@@ -118,6 +118,9 @@ public class LocalCoordinateSystemPointDescriptor < P extends Point > extends Ab
 //		IOFunctions.println( "Normal vector (z-axis)" );
 //		IOFunctions.println( n );
 
+		if ( !Double.isFinite( n.x ) )
+			throw new NoSuitablePointsException( "Cannot compute cross product. You most likely have two or more identical points in the point cloud: " + b );
+
 		// check if the normal vector points into the direction of point c
 		if ( n.dot( c ) < 0 )
 		{
@@ -125,7 +128,7 @@ public class LocalCoordinateSystemPointDescriptor < P extends Point > extends Ab
 //			IOFunctions.println( "Negated normal vector (z-axis)" );
 //			IOFunctions.println( n );
 		}
-		
+
 		// get the inverse of the matrix that maps the vectors into the local coordinate system
 		// where the x-axis is vector(ad), the z-axis is n and the y-axis is cross-product(x,z)
 		final Vector3d y = new Vector3d();

@@ -59,7 +59,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -474,16 +474,21 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 		RandomAccessibleInterval< FloatType > img = DownsampleTools.openAndDownsample(
 			spimData.getSequenceDescription().getImgLoader(),
 			viewDescription,
-			new AffineTransform3D(),
-			downsampleXY,
-			downsampleZ,
-			true );
+			null,
+			new long[] { downsampleXY, downsampleXY, downsampleZ },
+			false,  //transformOnly
+			true,   //openAsFloat
+			true ); //openCompletely
 
 		if ( img == null )
 		{
 			IOFunctions.println( "View not found: " + viewDescription );
 			return null;
 		}
+
+		// TODO: in the future when the interactive DoG does not copy & normalize anyways
+		//IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Caching input image ... "  );
+		//img = FusionTools.cacheRandomAccessibleInterval( img, FusionGUI.maxCacheSize, new FloatType(), FusionGUI.cellDim );
 
 		if ( sameMinMax )
 		{

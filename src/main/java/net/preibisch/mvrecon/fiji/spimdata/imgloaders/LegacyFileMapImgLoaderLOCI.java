@@ -74,6 +74,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
+import util.ImgLib2Tools;
 
 
 public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
@@ -141,22 +142,10 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	@Override
 	public RandomAccessibleInterval< FloatType > getFloatImage(ViewId view, boolean normalize)
 	{
-		try
-		{
-			final RandomAccessibleInterval< FloatType > img = openImg( new FloatType(), view );
-
-			if ( img == null )
-				throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
-
-			if ( normalize )
-				normalize( img );
-
-			return img;
-		}
-		catch ( Exception e )
-		{
-			throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
-		}
+		if ( normalize )
+			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
+		else
+			return ImgLib2Tools.convertVirtual( getImage( view ) );
 	}
 
 	

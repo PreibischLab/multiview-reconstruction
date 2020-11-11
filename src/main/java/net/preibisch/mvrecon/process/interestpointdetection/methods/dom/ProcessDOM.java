@@ -34,6 +34,7 @@ import net.preibisch.legacy.segmentation.DOM;
 import net.preibisch.legacy.segmentation.IntegralImage3d;
 import net.preibisch.legacy.segmentation.InteractiveIntegral;
 import net.preibisch.legacy.segmentation.SimplePeak;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
@@ -130,7 +131,7 @@ public class ProcessDOM
 		if ( localization == 0 )
 			finalPeaks = Localization.noLocalization( peaks, findMin, findMax, keepIntensity );
 		else if ( localization == 1 )
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, domImg, findMin, findMax, threshold, keepIntensity );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, domImg, findMin, findMax, threshold, keepIntensity, Threads.numThreads() );
 		else
 			finalPeaks = Localization.computeGaussLocalization( peaks, domImg, ( radius2 + radius1 )/2.0, findMin, findMax, threshold, keepIntensity );
 

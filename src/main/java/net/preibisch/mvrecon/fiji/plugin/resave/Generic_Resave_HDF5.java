@@ -41,6 +41,8 @@ import java.util.Map;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
+import net.imglib2.RandomAccessibleInterval;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
@@ -56,8 +58,9 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.export.ProposeMipmaps;
 import bdv.export.SubTaskProgressWriter;
+import bdv.export.ExportScalePyramid.DefaultLoopbackHeuristic;
+import bdv.export.ExportScalePyramid.LoopbackHeuristic;
 import bdv.export.WriteSequenceToHdf5;
-import bdv.export.WriteSequenceToHdf5.DefaultLoopbackHeuristic;
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.hdf5.Partition;
 import bdv.spimdata.SpimDataMinimal;
@@ -201,7 +204,8 @@ public class Generic_Resave_HDF5 implements PlugIn
 			return perSetupExportMipmapInfo;
 		}
 		else
-			return ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
+			return Resave_HDF5.proposeMipmaps( spimData.getSequenceDescription().getViewSetups().values() );
+			//return ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
 	}
 
 	public static ArrayList< Partition > getPartitions( final AbstractSpimData< ? > spimData, final Parameters params )
@@ -219,11 +223,25 @@ public class Generic_Resave_HDF5 implements PlugIn
 			return null;
 	}
 
+	public static class LoopBack2d implements LoopbackHeuristic
+	{
+		@Override
+		public boolean decide( RandomAccessibleInterval< ? > originalImg,
+				int[] factorsToOriginalImg, int previousLevel,
+				int[] factorsToPreviousLevel, int[] chunkSize )
+		{
+			return false;
+		}
+	}
+
 	public static void writeHDF5( final AbstractSpimData< ? > spimData, final Parameters params, final ProgressWriter progressWriter )
 	{
 		Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = getPerSetupExportMipmapInfo( spimData, params );
 		final ArrayList< Partition > partitions = getPartitions( spimData, params );
 		AbstractSequenceDescription< ?, ?, ? > seq = spimData.getSequenceDescription();
+
+		final LoopbackHeuristic lbh = new DefaultLoopbackHeuristic();
+
 		if ( partitions != null )
 		{
 			for ( int i = 0; i < partitions.size(); ++i )
@@ -232,7 +250,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 				final ProgressWriter p = new SubTaskProgressWriter( progressWriter, 0, 0.95 * i / partitions.size() );
 				progressWriter.out().printf( "proccessing partition %d / %d\n", ( i + 1 ), partitions.size() );
 				if ( !params.onlyRunSingleJob || params.jobId == i + 1 )
-					WriteSequenceToHdf5.writeHdf5PartitionFile( seq, perSetupExportMipmapInfo, params.deflate, partition, new DefaultLoopbackHeuristic(), null, Threads.numThreads(), p );
+					WriteSequenceToHdf5.writeHdf5PartitionFile( seq, perSetupExportMipmapInfo, params.deflate, partition, lbh, null, Threads.numThreads(), p );
 			}
 			if ( !params.onlyRunSingleJob || params.jobId == 0 )
 				WriteSequenceToHdf5.writeHdf5PartitionLinkFile( seq, perSetupExportMipmapInfo, partitions, params.hdf5File );
@@ -240,7 +258,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		else
 		{
 			final ProgressWriter p = new SubTaskProgressWriter( progressWriter, 0, 0.95 );
-			WriteSequenceToHdf5.writeHdf5File( seq, perSetupExportMipmapInfo, params.deflate, params.hdf5File, new DefaultLoopbackHeuristic(), null, Threads.numThreads(), p );
+			WriteSequenceToHdf5.writeHdf5File( seq, perSetupExportMipmapInfo, params.deflate, params.hdf5File, lbh, null, Threads.numThreads(), p );
 		}
 	}
 

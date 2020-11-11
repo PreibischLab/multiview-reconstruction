@@ -27,6 +27,12 @@ import java.awt.Choice;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 
+import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
+import ij.ImageJ;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
+import ij.plugin.PlugIn;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
@@ -35,6 +41,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinition;
 import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 import net.preibisch.mvrecon.fiji.datasetmanager.MultiViewDatasetDefinition;
+import net.preibisch.mvrecon.fiji.datasetmanager.SimView;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackList;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListImageJ;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListLOCI;
@@ -42,13 +49,6 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.MyMultiLineLabel;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-
-import fiji.util.gui.GenericDialogPlus;
-import ij.IJ;
-import ij.ImageJ;
-import ij.gui.DialogListener;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
 
 public class Define_Multi_View_Dataset implements PlugIn
 {
@@ -68,6 +68,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 		staticDatasetDefinitions.add( new StackListLOCI() );
 		staticDatasetDefinitions.add( new StackListImageJ() );
 		staticDatasetDefinitions.add( new LightSheetZ1() );
+		staticDatasetDefinitions.add( new SimView() );
 		staticDatasetDefinitions.add( new MicroManager() );
 	}
 

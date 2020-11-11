@@ -22,6 +22,8 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
+import java.io.Serializable;
+
 import mpicbg.models.Point;
 import net.imglib2.RealLocalizable;
 
@@ -31,7 +33,7 @@ import net.imglib2.RealLocalizable;
  * @author Stephan Preibisch (stephan.preibisch@gmx.de)
  *
  */
-public class InterestPoint extends Point implements RealLocalizable
+public class InterestPoint extends Point implements RealLocalizable, Serializable
 {
 	private static final long serialVersionUID = 5615112297702152070L;
 

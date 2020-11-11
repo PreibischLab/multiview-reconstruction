@@ -58,7 +58,7 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
+import util.ImgLib2Tools;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 {
@@ -230,70 +230,10 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, boolean normalize,
 				ImgLoaderHint... hints)
 		{
-			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
-
-			final Dimensions size = vd.getViewSetup().getSize();
-
-			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
-
-			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
-			// use Memoizer to cache ReaderState for each File on disk
-			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
-			IFormatReader reader = null;
-			if (zGrouped)
-			{
-				final FileStitcher fs = new FileStitcher(true);
-				fs.setCanChangePattern( false );
-				reader = new Memoizer( fs , Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
-			}
+			if ( normalize )
+				return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
 			else
-			{
-				reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
-			}
-
-			RandomAccessibleInterval< FloatType > img = null;
-			try
-			{
-				img = new VirtualRAIFactoryLOCI().createVirtualCached( reader, imageSource.getA(),
-						imageSource.getB().getA(), imageSource.getB().getB(),
-						allTimepointsInSingleFiles ? 0 : timepointId, new FloatType(), size );
-			}
-			catch ( IncompatibleTypeException e )
-			{
-				e.printStackTrace();
-			}
-
-
-
-			boolean loadCompletelyRequested = false;
-			for (ImgLoaderHint hint : hints)
-				if (hint == ImgLoaderHints.LOAD_COMPLETELY)
-					loadCompletelyRequested = true;
-
-			// we need the whole image in memory if we want to normalize or load completely
-			if (normalize || loadCompletelyRequested)
-			{
-				long numPx = 1;
-				for (int d = 0; d < img.numDimensions(); d++)
-					numPx *= img.dimension( d );
-				
-				final ImgFactory< FloatType > imgFactory;
-				if (Math.log(numPx) / Math.log( 2 ) < 31)
-					imgFactory = new ArrayImgFactory<FloatType>();
-				else
-					imgFactory = new CellImgFactory<FloatType>();
-				
-				Img< FloatType > loadedImg = imgFactory.create( img, new FloatType() );
-				copy(Views.extendZero( img ), loadedImg);
-				
-				img = loadedImg;
-			}
-
-			if (normalize)
-				AbstractImgLoader.normalize( img );
-
-			return img;
+				return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
 		}
 
 		@Override

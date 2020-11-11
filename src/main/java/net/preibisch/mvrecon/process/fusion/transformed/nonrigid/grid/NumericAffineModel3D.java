@@ -233,4 +233,18 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 		i -= decrement;
 		baseIndex -= 12*decrement;
 	}
+
+	@Override
+	public void pow( final NumericAffineModel3D c )
+	{
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, Math.pow( getAtBase( j ), c.getAtBase( j ) ) );
+	}
+
+	@Override
+	public void pow( final double c )
+	{
+		for ( int j = 0; j < 12; ++j )
+			setAtBase( j, Math.pow( getAtBase( j ), c ) );
+	}
 }

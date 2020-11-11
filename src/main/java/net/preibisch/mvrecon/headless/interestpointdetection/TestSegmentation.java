@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
@@ -90,7 +91,7 @@ public class TestSegmentation
 		InterestPointTools.addInterestPoints( spimData, "beads", points, "DoM, sigma=2, downsample=2" );
 	}
 
-	public static void main( String[] args )
+	public static void main( String[] args ) throws SpimDataException
 	{
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		SpimData2 spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample() );

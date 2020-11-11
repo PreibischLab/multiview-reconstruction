@@ -94,12 +94,12 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
  */
 public class InteractiveDoG implements PlugIn
 {
-	final int extraSize = 40;
+	protected final int extraSize = 40;
 	final int scrollbarSize = 1000;
 		
-	float sigma = 0.5f;
-	float sigma2 = 0.5f;
-	float threshold = 0.0001f;
+	protected float sigma = 0.5f;
+	protected float sigma2 = 0.5f;
+	protected float threshold = 0.0001f;
 	
 	// steps per octave
 	public static int standardSensitivity = 4;
@@ -110,16 +110,16 @@ public class InteractiveDoG implements PlugIn
 	float sigmaMax = 10f;
 	int sigmaInit = 300;
 
-	float thresholdMin = 0.0001f;
-	float thresholdMax = 1f;
-	int thresholdInit = 500;
+	protected float thresholdMin = 0.0001f;
+	protected float thresholdMax = 1f;
+	protected int thresholdInit = 500;
 
 	double minIntensityImage = Double.NaN;
 	double maxIntensityImage = Double.NaN;
 
 	SliceObserver sliceObserver;
 	RoiListener roiListener;
-	ImagePlus imp;
+	protected ImagePlus imp;
 	int channel = 0;
 	Rectangle rectangle;
 	Image<FloatType> img;
@@ -129,7 +129,7 @@ public class InteractiveDoG implements PlugIn
 	Color originalColor = new Color( 0.8f, 0.8f, 0.8f );
 	Color inactiveColor = new Color( 0.95f, 0.95f, 0.95f );
 	public Rectangle standardRectangle;
-	boolean isComputing = false;
+	protected boolean isComputing = false;
 	boolean isStarted = false;
 	boolean enableSigma2 = false;
 	boolean sigma2IsAdjustable = true;
@@ -530,7 +530,7 @@ public class InteractiveDoG implements PlugIn
 	    final Label sigmaText2 = new Label( "Sigma 2 = " + this.sigma2, Label.CENTER );
 	    	    
 	    final Label thresholdText = new Label( "Threshold = " + this.threshold, Label.CENTER );
-	    final Button apply = new Button( "Apply to Stack (will take some time)" );
+//	    final Button apply = new Button( "Apply to Stack (will take some time)" );
 	    final Button button = new Button( "Done" );
 	    final Button cancel = new Button( "Cancel" );
 	    
@@ -576,9 +576,9 @@ public class InteractiveDoG implements PlugIn
 	    c.insets = new Insets(0,125,0,75);
 	    frame.add( max, c );
 
-	    ++c.gridy;
-	    c.insets = new Insets(0,75,0,75);
-	    frame.add( apply, c );
+//	    ++c.gridy;
+//	    c.insets = new Insets(0,75,0,75);
+//	    frame.add( apply, c );
 
 	    ++c.gridy;
 	    c.insets = new Insets(10,150,0,150);
@@ -594,7 +594,7 @@ public class InteractiveDoG implements PlugIn
 	    threshold.addAdjustmentListener( new ThresholdListener( thresholdText, thresholdMin, thresholdMax ) );
 	    button.addActionListener( new FinishedButtonListener( frame, false ) );
 	    cancel.addActionListener( new FinishedButtonListener( frame, true ) );
-		apply.addActionListener( new ApplyButtonListener() );
+//		apply.addActionListener( new ApplyButtonListener() );
 		min.addItemListener( new MinListener() );
 		max.addItemListener( new MaxListener() );
 		sigma2Enable.addItemListener( new EnableListener( sigma2, sigmaText2 ) );

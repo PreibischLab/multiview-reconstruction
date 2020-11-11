@@ -20,35 +20,45 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling;
-
-import static mpicbg.spim.data.generic.sequence.ImgLoaderHints.LOAD_COMPLETELY;
+package net.preibisch.mvrecon.process.downsampling;
 
 import java.util.Date;
 import java.util.List;
 
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
+import mpicbg.spim.data.generic.sequence.BasicSetupImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
-import mpicbg.spim.data.sequence.ViewDescription;
+import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
+import net.imglib2.IterableInterval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import util.ImgLib2Tools;
 
 public class DownsampleTools
 {
-	protected static final int[] ds = { 1, 2, 4, 8 };
+	protected static final int[] ds = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
 	/**
 	 * Opens the image at an appropriate resolution for the provided transformation and concatenates an extra transform 
@@ -58,6 +68,7 @@ public class DownsampleTools
 	 * @param m - WILL BE MODIFIED IF OPENED DOWNSAMPLED
 	 * @return - opened image
 	 */
+	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openDownsampled( final BasicImgLoader imgLoader, final ViewId viewId, final AffineTransform3D m )
 	{
 		return openDownsampled( imgLoader, viewId, m, null );
@@ -72,6 +83,7 @@ public class DownsampleTools
 	 * @param usedDownsampleFactors - which downsample factors were used to open the image (important for weights etc)
 	 * @return - opened image
 	 */
+	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openDownsampled( final BasicImgLoader imgLoader, final ViewId viewId, final AffineTransform3D m, final double[] usedDownsampleFactors )
 	{
 		final Pair< RandomAccessibleInterval, AffineTransform3D > opened = openDownsampled2( imgLoader, viewId, m, usedDownsampleFactors );
@@ -92,6 +104,7 @@ public class DownsampleTools
 	 * @param usedDownsampleFactors - which downsample factors were used to open the image (important for weights etc)
 	 * @return - opened image and the affine transform that needs to be concatenated
 	 */
+	@SuppressWarnings("rawtypes")
 	public static Pair< RandomAccessibleInterval, AffineTransform3D > openDownsampled2( final BasicImgLoader imgLoader, final ViewId viewId, final AffineTransform3D m, final double[] usedDownsampleFactors )
 	{
 		// have to go from input to output
@@ -164,12 +177,20 @@ public class DownsampleTools
 				for ( int d = 0; d < usedDownsampleFactors.length; ++d )
 					usedDownsampleFactors[ d ] = mipmapResolutions[ bestLevel ][ d ];
 
+			IOFunctions.println(
+					"(" + new Date(System.currentTimeMillis()) + "): "
+					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + bestLevel + ", [" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + "]" );
+
 			return new ValuePair<>(
 					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), bestLevel ),
 					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 		}
 		else
 		{
+			IOFunctions.println(
+					"(" + new Date(System.currentTimeMillis()) + "): "
+					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + 0 + ", [1 x 1 x 1]" );
+
 			return new ValuePair<>( imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() ), null );
 		}
 	}
@@ -344,6 +365,7 @@ public class DownsampleTools
 		return input;
 	}
 
+	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openAtLowestLevel(
 			final ImgLoader imgLoader,
 			final ViewId view )
@@ -351,6 +373,7 @@ public class DownsampleTools
 		return openAtLowestLevel( imgLoader, view, null );
 	}
 
+	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openAtLowestLevel(
 			final ImgLoader imgLoader,
 			final ViewId view,
@@ -407,38 +430,39 @@ public class DownsampleTools
 	}
 
 	/**
-	 * 
+	 * Opens the image at a specified downsampling level (e.g. 4,4,1). It finds the closest available mipmap level and then downsamples
+	 * to reach the target level
+	 *
 	 * @param imgLoader the imgloader
-	 * @param vd the view description
+	 * @param vd the view id
 	 * @param mipMapTransform - will be filled if downsampling is performed, otherwise identity transform
-	 * @param downsampleXY - specify which downsampling (e.g. 1,2,4,8 )
-	 * @param downsampleZ - specify which downsampling (e.g. 1,2,4,8 )
-	 * @param openCompletely - whether to try to open the file entirely
+	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
+	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
+	 * @param openCompletely - whether to try to open the file entirely (only required by legacy ImgLib1 code!!!)
 	 * @return opened image
 	 */
-	public static RandomAccessibleInterval< FloatType > openAndDownsample(
-			final ImgLoader imgLoader,
-			final ViewDescription vd,
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static RandomAccessibleInterval openAndDownsample(
+			final BasicImgLoader imgLoader,
+			final ViewId vd,
 			final AffineTransform3D mipMapTransform,
-			final int downsampleXY,
-			final int downsampleZ,
-			final boolean openCompletely )
+			long[] downsampleFactors,
+			final boolean transformOnly,
+			final boolean openAsFloat,
+			final boolean openCompletely ) // only for ImgLib1 legacy code
 	{
-		IOFunctions.println(
+
+		if ( !transformOnly )
+			IOFunctions.println(
 				"(" + new Date(System.currentTimeMillis()) + "): "
-				+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + ")" );
+				+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + "), downsampling: " + Util.printCoordinates( downsampleFactors ) );
 
-		if ( downsampleXY > 1 )
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() )  + "): Downsampling in XY " + downsampleXY + "x ..." );
+		long dsx = downsampleFactors[0];
+		long dsy = downsampleFactors[1];
+		long dsz = (downsampleFactors.length > 2) ? downsampleFactors[ 2 ] : 1;
 
-		if ( downsampleZ > 1 )
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() )  + "): Downsampling in Z " + downsampleZ + "x ..." );
-
-		int dsx = downsampleXY;
-		int dsy = downsampleXY;
-		int dsz = downsampleZ;
-
-		RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input = null;
+		RandomAccessibleInterval input = null;
 
 		if ( ( dsx > 1 || dsy > 1 || dsz > 1 ) && MultiResolutionImgLoader.class.isInstance( imgLoader ) )
 		{
@@ -464,62 +488,194 @@ public class DownsampleTools
 			final int fy = (int)Math.round( mipmapResolutions[ bestLevel ][ 1 ] );
 			final int fz = (int)Math.round( mipmapResolutions[ bestLevel ][ 2 ] );
 
-			mipMapTransform.set( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
+			if ( mipMapTransform != null )
+				mipMapTransform.set( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 
 			dsx /= fx;
 			dsy /= fy;
 			dsz /= fz;
 
-			IOFunctions.println(
-					"(" + new Date(System.currentTimeMillis()) + "): " +
-					"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
-					"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
+			if ( !transformOnly )
+			{
+				IOFunctions.println(
+						"(" + new Date(System.currentTimeMillis()) + "): " +
+						"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
+						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-			if ( openCompletely )
-				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false, LOAD_COMPLETELY );
-			else
-				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), bestLevel, false );
+				// we only need to do the complete opening when we do not perform additional downsampling below
+				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
+				{
+					// TODO: only needed by ImgLib1 legacy code, remove that!
+					input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
+				}
+				else
+				{
+					if ( openAsFloat )
+						input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
+					else
+						input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
+				}
+			}
 		}
 		else
 		{
-			if ( openCompletely )
-				input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false, LOAD_COMPLETELY );
-			else
-				input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false );
+			if ( !transformOnly )
+			{
+				IOFunctions.println(
+						"(" + new Date(System.currentTimeMillis()) + "): " +
+						"Using precomputed Multiresolution Images [1x1x1], " +
+						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-			mipMapTransform.identity();
+				// we only need to do the complete opening when we do not perform additional downsampling below
+				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
+				{
+					// TODO: only needed by ImgLib1 legacy code, remove that!
+					input = openCompletely( imgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), openAsFloat, false );
+				}
+				else
+				{
+					if ( openAsFloat )
+						input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
+					else
+						input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
+				}
+			}
+
+			if ( mipMapTransform != null )
+				mipMapTransform.identity();
 		}
 
-		final ImgFactory< FloatType > f;
+		if ( mipMapTransform != null )
+		{
+			// the additional downsampling (performed below)
+			final AffineTransform3D additonalDS = new AffineTransform3D();
+			additonalDS.set( dsx, 0.0, 0.0, 0.0, 0.0, dsy, 0.0, 0.0, 0.0, 0.0, dsz, 0.0 );
+	
+			// we need to concatenate since when correcting for the downsampling we first multiply by whatever
+			// the manual downsampling did, and just then by the scaling+offset of the HDF5
+			//
+			// Here is an example of what happens (note that the 0.5 pixel shift is not changed)
+			// HDF5 MipMap Transform   (2.0, 0.0, 0.0, 0.5, 0.0, 2.0, 0.0, 0.5, 0.0, 0.0, 2.0, 0.5)
+			// Additional Downsampling (4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0)
+			// Resulting model         (8.0, 0.0, 0.0, 0.5, 0.0, 8.0, 0.0, 0.5, 0.0, 0.0, 4.0, 0.5)
+			mipMapTransform.concatenate( additonalDS );
+		}
 
-		if ( Img.class.isInstance( input ))
-			f = ((Img<FloatType>)input).factory();
-		else
-			f = new CellImgFactory<FloatType>( new FloatType());
+		if ( !transformOnly )
+		{
+			ImgFactory  f = null;
 
-		// the additional downsampling (performed below)
-		final AffineTransform3D additonalDS = new AffineTransform3D();
-		additonalDS.set( dsx, 0.0, 0.0, 0.0, 0.0, dsy, 0.0, 0.0, 0.0, 0.0, dsz, 0.0 );
+			if ( Img.class.isInstance( input ))
+			{
+				// factory is not implemented for e.g. LazyCellImg yet
+				try
+				{
+					f = ((Img)input).factory();
+				}
+				catch (UnsupportedOperationException e) {}
+			}
 
-		// we need to concatenate since when correcting for the downsampling we first multiply by whatever
-		// the manual downsampling did, and just then by the scaling+offset of the HDF5
-		//
-		// Here is an example of what happens (note that the 0.5 pixel shift is not changed)
-		// HDF5 MipMap Transform   (2.0, 0.0, 0.0, 0.5, 0.0, 2.0, 0.0, 0.5, 0.0, 0.0, 2.0, 0.5)
-		// Additional Downsampling (4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0)
-		// Resulting model         (8.0, 0.0, 0.0, 0.5, 0.0, 8.0, 0.0, 0.5, 0.0, 0.0, 4.0, 0.5)
-		mipMapTransform.concatenate( additonalDS );
+			if ( f == null )
+			{
+				final NativeType< ? > t = Util.getTypeFromInterval( input );
+				f = new CellImgFactory( t );
+			}
 
-		for ( ;dsx > 1; dsx /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+			// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
+			for ( ;dsx > 1; dsx /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
 
-		for ( ;dsy > 1; dsy /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+			for ( ;dsy > 1; dsy /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
 
-		for ( ;dsz > 1; dsz /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+			for ( ;dsz > 1; dsz /= 2 )
+				input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+		}
 
 		return input;
+	}
+
+	// TODO: REMOVE IMGLIB1 stuff!!
+	// required by legacy code that wraps to imglib1
+	public static Img<FloatType> openCompletely( final MultiResolutionSetupImgLoader< ? > loader, final int timepointId, final int level, final boolean openAsFloat, final boolean normalize )
+	{
+		return openCompletely( loader.getImage( timepointId, level ), openAsFloat, normalize );
+	}
+
+	// TODO: REMOVE IMGLIB1 stuff!!
+	// required by legacy code that wraps to imglib1
+	public static Img<FloatType> openCompletely( final BasicSetupImgLoader< ? > loader, final int timepointId, final boolean openAsFloat, final boolean normalize )
+	{
+		return openCompletely( loader.getImage( timepointId ), openAsFloat, normalize );
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected static Img<FloatType> openCompletely( final RandomAccessibleInterval img, final boolean openAsFloat, final boolean normalize )
+	{
+		if ( openAsFloat )
+		{
+			final Img< FloatType > floatImg = new CellImgFactory<FloatType>( new FloatType() ).create( img );
+
+			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
+			copyFromToMultithreaded( img, floatImg );
+
+			if ( normalize )
+				// normalize the image to 0...1
+				normalize( floatImg );
+
+			return floatImg;
+		}
+		else
+		{
+			final NativeType< ? > t = Util.getTypeFromInterval( img );
+			final Img completeImg = new CellImgFactory( t ).create( img );
+
+			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
+			copyFromToMultithreaded( img, completeImg );
+
+			return completeImg;
+		}
+	}
+
+	// TODO: Remove when RealTypeConvertes.copyFromTo has multithreading support
+	public static void copyFromToMultithreaded(
+			final RandomAccessible< ? extends RealType< ? > > source,
+			final RandomAccessibleInterval< ? extends RealType< ? > > destination )
+	{
+		final IntervalView< ? extends RealType< ? > > sourceInterval = Views.interval( source, destination );
+		final RealType< ? > s = net.imglib2.util.Util.getTypeFromInterval( sourceInterval );
+		final RealType< ? > d = net.imglib2.util.Util.getTypeFromInterval( destination );
+		final Converter< RealType< ? >, RealType< ? > > copy = RealTypeConverters.getConverter( s, d );
+		LoopBuilder.setImages( sourceInterval, destination ).multiThreaded().forEachPixel( copy::convert );
+	}
+
+	private static float[] getMinMax( final IterableInterval< FloatType > img )
+	{
+		float currentMax = img.firstElement().get();
+		float currentMin = currentMax;
+		for ( final FloatType t : img )
+		{
+			final float f = t.get();
+			if ( f > currentMax )
+				currentMax = f;
+			else if ( f < currentMin )
+				currentMin = f;
+		}
+
+		return new float[] { currentMin, currentMax };
+	}
+
+	/**
+	 * normalize img to 0...1 in place
+	 */
+	public static void normalize( final IterableInterval< FloatType > img )
+	{
+		final float[] minmax = getMinMax( img );
+		final float min = minmax[ 0 ];
+		final float max = minmax[ 1 ];
+		final float scale = ( float ) ( 1.0 / ( max - min ) );
+		for ( final FloatType t : img )
+			t.set( ( t.get() - min ) * scale );
 	}
 
 	private static final boolean contains( final int i, final int[] values )

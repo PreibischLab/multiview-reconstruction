@@ -47,7 +47,7 @@ import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -57,7 +57,6 @@ public class QualityGUI implements FusionExportInterface
 	public static int defaultBB = 0;
 
 	public static boolean defaultUseRelativeFRC = true;
-	public static boolean defaultSmoothLocalFRC = false;
 	public static int defaultFFTSize = 512;
 	public static int defaultFRCStepSize = 20;
 
@@ -80,7 +79,6 @@ public class QualityGUI implements FusionExportInterface
 	protected boolean preserveAnisotropy = defaultPreserveAnisotropy;
 	protected double avgAnisoF;
 	protected boolean useRelativeFRC = defaultUseRelativeFRC;
-	protected boolean useSmoothLocalFRC = defaultSmoothLocalFRC;
 	protected int fftSize = defaultFFTSize;
 	protected int frcStepSize = defaultFRCStepSize;
 	protected int imgExport = defaultImgExportAlgorithm;
@@ -150,7 +148,6 @@ public class QualityGUI implements FusionExportInterface
 	public double getAnisotropyFactor() { return avgAnisoF; }
 
 	public boolean getUseRelativeFRC() { return useRelativeFRC; }
-	public boolean getUseSmoothLocalFRC() { return useSmoothLocalFRC; }
 	public int getFFTSize() { return fftSize; }
 	public int getFRCStepSize() { return frcStepSize; }
 
@@ -194,7 +191,6 @@ public class QualityGUI implements FusionExportInterface
 		gd.addMessage( "" );
 
 		gd.addCheckbox( "Relative_FRC", defaultUseRelativeFRC );
-		gd.addCheckbox( "Smooth_Local_FRC", defaultSmoothLocalFRC );
 		gd.addNumericField( "FRC_FFT_Size", defaultFFTSize, 0 );
 		gd.addNumericField( "FRC_Stepsize (z)", defaultFRCStepSize, 0 );
 		gd.addMessage( "" );
@@ -258,7 +254,6 @@ public class QualityGUI implements FusionExportInterface
 			avgAnisoF = Double.NaN;
 
 		useRelativeFRC = defaultUseRelativeFRC = gd.getNextBoolean();
-		useSmoothLocalFRC =defaultSmoothLocalFRC = gd.getNextBoolean();
 		fftSize = defaultFFTSize = Math.max( 16, (int)Math.round( gd.getNextNumber() ) );
 		frcStepSize = defaultFRCStepSize = Math.max( 1, (int)Math.round( gd.getNextNumber() ) );
 
@@ -271,7 +266,6 @@ public class QualityGUI implements FusionExportInterface
 		IOFunctions.println( "DownsampledBoundingBox: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "AnisotropyFactor: " + avgAnisoF );
 		IOFunctions.println( "Relative FRC: " + useRelativeFRC );
-		IOFunctions.println( "Smooth Local FRC: " + useSmoothLocalFRC );
 		IOFunctions.println( "FRC FFT Size: " + fftSize );
 		IOFunctions.println( "FRC Step Size (z): " + frcStepSize );
 		IOFunctions.println( "Split by: " + splittingTypes[ getSplittingType() ] );

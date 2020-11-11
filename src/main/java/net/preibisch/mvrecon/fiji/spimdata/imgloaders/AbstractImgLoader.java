@@ -34,7 +34,11 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
@@ -166,6 +170,7 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 		return updated;
 	}
 
+	/*
 	public static final void normalize( final RandomAccessibleInterval< FloatType > img )
 	{
 		float min = Float.MAX_VALUE;
@@ -185,4 +190,5 @@ public abstract class AbstractImgLoader implements LegacyImgLoader< UnsignedShor
 		for ( final FloatType t : Views.flatIterable( img ) )
 			t.set( ( t.get() - min ) / ( max - min ) );
 	}
+	*/
 }
