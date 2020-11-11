@@ -96,9 +96,9 @@ public class HustonFusion
 		final Img< UnsignedByteType > vs1 = load( new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ) ); // high res
 		final Img< UnsignedByteType > vs2 = load( new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ) ); // mid res
 
-		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs0 ), vs0 );
-		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs1 ), vs1 );
-		Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs2 ), vs2 );
+		//Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs0 ), vs0 );
+		//Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs1 ), vs1 );
+		//Gauss3.gauss( 1.0, Views.extendMirrorSingle( vs2 ), vs2 );
 
 		final ArrayList< Img< UnsignedByteType > > imgs = new ArrayList<>();
 		imgs.add( vs0 );
@@ -107,7 +107,7 @@ public class HustonFusion
 
 		final HashMap< Integer, AffineModel1D > intensities = adjustIntensities( imgs, 10000 );
 
-		//System.exit( 0 );
+		System.exit( 0 );
 
 		//final ImagePlusImg<UnsignedByteType, ? > dt1 = createDistanceTransform( new File( dir, "mask_tp_0_vs_1.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_1.tif" ), dist );
 		//final ImagePlusImg<UnsignedByteType, ? > dt2 = createDistanceTransform( new File( dir, "mask_tp_0_vs_2.tif" ), new File( dir, "AFFINE_fused_tp_0_vs_2.tif" ), dist );
@@ -182,7 +182,7 @@ public class HustonFusion
 						new AffineModel1D(),
 						//new TranslationModel1D(),
 						0.01,
-						100 ); 
+						1000 ); 
 
 		System.out.println();
 		System.out.println();
@@ -193,7 +193,7 @@ public class HustonFusion
 
 			for ( final PointMatch pm : matches.getValue() )
 			{
-				if ( rnd.nextInt( 300 ) > 0 )
+				if ( rnd.nextInt( 10 ) > 0 )
 					continue;
 
 				final double[] p1 = pm.getP1().getL().clone();
@@ -202,7 +202,7 @@ public class HustonFusion
 				models.get( matches.getKey().getA() ).applyInPlace( p1 );
 				models.get( matches.getKey().getB() ).applyInPlace( p2 );
 	
-				System.out.println( p1[ 0 ] + " == " + p2[ 0 ] );
+				System.out.println( pm.getP1().getL()[ 0 ] + "\t" + pm.getP2().getL()[ 0 ] + "\t" + p1[ 0 ] + "\t" + p2[ 0 ] );
 			}
 		}
 
