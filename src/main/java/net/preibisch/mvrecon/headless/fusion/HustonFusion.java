@@ -54,10 +54,13 @@ import mpicbg.models.TileConfiguration;
 import mpicbg.models.TranslationModel1D;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform.DISTANCE_TYPE;
+import net.imglib2.algorithm.neighborhood.Neighborhood;
+import net.imglib2.algorithm.neighborhood.RectangleShape;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -146,16 +149,40 @@ public class HustonFusion
 				final Cursor< UnsignedByteType > cursorI = Views.flatIterable( imgs.get( i ) ).cursor();
 				final Cursor< UnsignedByteType > cursorJ = Views.flatIterable( imgs.get( j ) ).cursor();
 
+				final RandomAccess< UnsignedByteType > raI = Views.extendMirrorSingle( imgs.get( i ) ).randomAccess();
+				final RandomAccess< UnsignedByteType > raJ = Views.extendMirrorSingle( imgs.get( j ) ).randomAccess();
+
 				while ( cursorI.hasNext() )
 				{
-					final int valueI = cursorI.next().get();
-					final int valueJ = cursorJ.next().get();
+					double valueI = cursorI.next().get();
+					double valueJ = cursorJ.next().get();
 
 					if ( valueI > 0 && valueJ > 0 && rnd.nextInt( 10000 ) == 0 )
-							localMatches.add(
-									new PointMatch(
-											new Point( new double[] { valueI } ),
-											new Point( new double[] { valueJ } ) ) );
+					{
+						/*
+						for ( int z = -2; z <= 2; ++z )
+							for ( int y = -2; y <= 2; ++y )
+								for ( int x = -2; x <= 2; ++x )
+								{
+									raI.setPosition( cursorI );
+									raI.move( z, 2 );
+									raI.move( y, 1 );
+									raI.move( x, 0 );
+									valueI = Math.max( valueI, raI.get().get() );
+									
+									raJ.setPosition( cursorJ );
+									raJ.move( z, 2 );
+									raJ.move( y, 1 );
+									raJ.move( x, 0 );
+									valueJ = Math.max( valueJ, raJ.get().get() );
+								}
+						 */
+
+						localMatches.add(
+								new PointMatch(
+										new Point( new double[] { valueI } ),
+										new Point( new double[] { valueJ } ) ) );
+					}
 				}
 
 				System.out.println( i + "-" + j + ": Found " + localMatches.size() + " corresponding measures." );
