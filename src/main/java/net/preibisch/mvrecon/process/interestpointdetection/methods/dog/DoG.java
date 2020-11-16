@@ -102,7 +102,8 @@ public class DoG
 				findMax,
 				minIntensity,
 				maxIntensity,
-				service );
+				service,
+				numThreads );
 
 		//if ( dog.limitDetections )
 		//	ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
@@ -153,23 +154,24 @@ public class DoG
 								false ); //openCompletely
 
 				List< InterestPoint > ips;
+				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
 
 				if ( dog.cuda == null )
 				{
 					ips = DoGImgLib2.computeDoG(input, null, dog.sigma, dog.threshold, dog.localization, dog.findMin, dog.findMax, dog.minIntensity,
-						dog.maxIntensity, dog.service );
+						dog.maxIntensity, service, Threads.numThreads() );
 				}
 				else
 				{
 					
-					final ImgLib1Convert convert = new ImgLib1Convert( input, dog.service );
+					final ImgLib1Convert convert = new ImgLib1Convert( input, service );
 	
 					//
 					// compute Difference-of-Gaussian (includes normalization)
 					//
 					ips = ProcessDOG.compute(
 							dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
-							dog.service,
+							service,
 							Threads.numThreads(),
 							convert,
 							(float) dog.sigma, (float) dog.threshold,
@@ -183,6 +185,8 @@ public class DoG
 	
 					convert.imglib1Img().close();
 				}
+
+				service.shutdown();
 
 				if ( dog.limitDetections )
 					ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );

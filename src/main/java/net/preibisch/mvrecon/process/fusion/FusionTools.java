@@ -893,13 +893,20 @@ public class FusionTools
 
 	public static < T extends RealType< T > > float[] minMax( final RandomAccessibleInterval< T > img )
 	{
+		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		final float[] minmax = minMax(img, taskExecutor);
+		taskExecutor.shutdown();
+		return minmax;
+	}
+
+	public static < T extends RealType< T > > float[] minMax( final RandomAccessibleInterval< T > img, final ExecutorService service )
+	{
 		final IterableInterval< T > iterable = Views.iterable( img );
 		
 		// split up into many parts for multithreading
 		final Vector< ImagePortion > portions = divideIntoPortions( iterable.size() );
 
 		// set up executor service
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
 		final ArrayList< Callable< float[] > > tasks = new ArrayList< Callable< float[] > >();
 
 		for ( final ImagePortion portion : portions )
@@ -936,7 +943,7 @@ public class FusionTools
 		try
 		{
 			// invokeAll() returns when all tasks are complete
-			final List< Future< float[] > > futures = taskExecutor.invokeAll( tasks );
+			final List< Future< float[] > > futures = service.invokeAll( tasks );
 			
 			for ( final Future< float[] > future : futures )
 			{
@@ -952,8 +959,6 @@ public class FusionTools
 			return null;
 		}
 
-		taskExecutor.shutdown();
-		
 		return new float[]{ min, max };
 	}
 

@@ -64,12 +64,12 @@ public class DoGImgLib2
 		final RandomAccessibleInterval< FloatType > input = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif"))  ;
 		final RandomAccessibleInterval< FloatType > mask = Views.interval(new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), input.numDimensions() ), input );
 
-		computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService() );
+		computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
 
 		final RandomAccessibleInterval< FloatType > input2d = Views.hyperSlice(input, 2, 50 );
 
 		final ArrayList<InterestPoint> points = 
-				computeDoG(input2d, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService() );
+				computeDoG(input2d, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
 
 		ImageJFunctions.show( input2d ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
 	}
@@ -105,7 +105,8 @@ public class DoGImgLib2
 			final boolean findMax,
 			final double minIntensity,
 			final double maxIntensity,
-			final ExecutorService service )
+			final ExecutorService service,
+			final int numThreads ) // for old imglib1-code
 	{
 		float initialSigma = (float)sigma;
 		
@@ -124,9 +125,9 @@ public class DoGImgLib2
 			final float[] minmax;
 			
 			if ( mask == null )
-				minmax = FusionTools.minMax( input );
+				minmax = FusionTools.minMax( input, service );
 			else
-				minmax = minMax( input, mask );
+				minmax = minMax( input, mask, service );
 
 			min = minmax[ 0 ];
 			max = minmax[ 1 ];
@@ -177,8 +178,8 @@ public class DoGImgLib2
 			gauss1 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
 			gauss2 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
 
-			Gauss3.gauss(sigma1, Views.extendMirrorSingle( inputFloat ), gauss1);
-			Gauss3.gauss(sigma2, Views.extendMirrorSingle( inputFloat ), gauss2);
+			Gauss3.gauss(sigma1, Views.extendMirrorSingle( inputFloat ), gauss1, service);
+			Gauss3.gauss(sigma2, Views.extendMirrorSingle( inputFloat ), gauss2, service);
 		}
 		else
 		{
@@ -201,7 +202,7 @@ public class DoGImgLib2
 
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
-		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue );
+		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue, service );
 
 		final ArrayList< InterestPoint > finalPeaks;
 
@@ -221,7 +222,7 @@ public class DoGImgLib2
 				for ( int d = 0; d < peak.location.length; ++d )
 					peak.location[ d ] -= minInterval[ d ];
 
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, imglib1, findMin, findMax, minPeakValue, true, Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 ) );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, imglib1, findMin, findMax, minPeakValue, true, numThreads );
 
 			// adjust detections for min coordinates of the RandomAccessibleInterval
 			for ( final InterestPoint ip : finalPeaks )
@@ -271,7 +272,7 @@ public class DoGImgLib2
 		//return output;
 	}
 
-	public static ArrayList<SimplePeak> findPeaks( final RandomAccessibleInterval< FloatType > laPlace, final RandomAccessibleInterval< FloatType > laPlaceMask, final float minValue )
+	public static ArrayList<SimplePeak> findPeaks( final RandomAccessibleInterval< FloatType > laPlace, final RandomAccessibleInterval< FloatType > laPlaceMask, final float minValue, final ExecutorService service )
 	{
 		final Interval interval = Intervals.expand( laPlace, -1 );
 
@@ -382,11 +383,11 @@ public class DoGImgLib2
 		// put together the list from the various threads	
 		final ArrayList<SimplePeak> dogPeaks = new ArrayList<SimplePeak>();
 
-		final ExecutorService taskExecutor = DeconViews.createExecutorService();
+		//final ExecutorService taskExecutor = DeconViews.createExecutorService();
 
 		try
 		{
-			for ( final Future< ArrayList< SimplePeak > > future : taskExecutor.invokeAll( tasks ) )
+			for ( final Future< ArrayList< SimplePeak > > future : service.invokeAll( tasks ) )
 				dogPeaks.addAll( future.get() );
 		}
 		catch ( InterruptedException | ExecutionException e )
@@ -394,7 +395,7 @@ public class DoGImgLib2
 			e.printStackTrace();
 		}
 
-		taskExecutor.shutdown();
+		//taskExecutor.shutdown();
 
 		return dogPeaks;
 	}
@@ -434,7 +435,7 @@ public class DoGImgLib2
 				pair -> pair.getB().set(pair.getA()));
 	}
 
-	public static < T extends RealType< T > > float[] minMax( final RandomAccessibleInterval< T > img, final RandomAccessibleInterval< T > mask )
+	public static < T extends RealType< T > > float[] minMax( final RandomAccessibleInterval< T > img, final RandomAccessibleInterval< T > mask, final ExecutorService service )
 	{
 		final IterableInterval< T > iterable = Views.iterable( img );
 
@@ -442,7 +443,7 @@ public class DoGImgLib2
 		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( iterable.size() );
 
 		// set up executor service
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		//final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
 		final ArrayList< Callable< float[] > > tasks = new ArrayList< Callable< float[] > >();
 
 		for ( final ImagePortion portion : portions )
@@ -484,7 +485,7 @@ public class DoGImgLib2
 		try
 		{
 			// invokeAll() returns when all tasks are complete
-			final List< Future< float[] > > futures = taskExecutor.invokeAll( tasks );
+			final List< Future< float[] > > futures = service.invokeAll( tasks );
 			
 			for ( final Future< float[] > future : futures )
 			{
@@ -500,7 +501,7 @@ public class DoGImgLib2
 			return null;
 		}
 
-		taskExecutor.shutdown();
+		//taskExecutor.shutdown();
 		
 		return new float[]{ min, max };
 	}

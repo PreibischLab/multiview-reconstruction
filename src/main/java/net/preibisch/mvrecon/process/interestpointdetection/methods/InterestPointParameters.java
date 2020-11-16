@@ -23,7 +23,6 @@
 package net.preibisch.mvrecon.process.interestpointdetection.methods;
 
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
@@ -32,8 +31,6 @@ public class InterestPointParameters
 {
 	public Collection< ViewDescription > toProcess;
 	public ImgLoader imgloader;
-
-	public ExecutorService service;
 
 	public double imageSigmaX = 0.5;
 	public double imageSigmaY = 0.5;
