@@ -142,6 +142,8 @@ public class DoG
 
 				final AffineTransform3D correctCoordinates = new AffineTransform3D();
 
+				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
+
 				@SuppressWarnings("unchecked")
 				final RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input =
 						DownsampleTools.openAndDownsample(
@@ -151,10 +153,10 @@ public class DoG
 								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
 								false,  //transformOnly
 								false,   //openAsFloat
-								false ); //openCompletely
+								false, //openCompletely
+								service );
 
 				List< InterestPoint > ips;
-				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
 
 				if ( dog.cuda == null )
 				{

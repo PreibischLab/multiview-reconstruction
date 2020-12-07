@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.downsampling;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -440,6 +441,7 @@ public class DownsampleTools
 	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
 	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
 	 * @param openCompletely - whether to try to open the file entirely (only required by legacy ImgLib1 code!!!)
+	 * @param service - the ExecutorService
 	 * @return opened image
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -450,7 +452,8 @@ public class DownsampleTools
 			long[] downsampleFactors,
 			final boolean transformOnly,
 			final boolean openAsFloat,
-			final boolean openCompletely ) // only for ImgLib1 legacy code
+			final boolean openCompletely,
+			final ExecutorService service ) // only for ImgLib1 legacy code
 	{
 
 		if ( !transformOnly )
@@ -583,13 +586,13 @@ public class DownsampleTools
 
 			// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
 			for ( ;dsx > 1; dsx /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+				input = Downsample.simple2x( input, f, new boolean[]{ true, false, false }, service );
 
 			for ( ;dsy > 1; dsy /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+				input = Downsample.simple2x( input, f, new boolean[]{ false, true, false }, service );
 
 			for ( ;dsz > 1; dsz /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+				input = Downsample.simple2x( input, f, new boolean[]{ false, false, true }, service );
 		}
 
 		return input;

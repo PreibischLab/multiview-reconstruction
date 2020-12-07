@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -48,6 +49,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -471,6 +473,9 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Opening and downsampling ... " );
 
+		final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
+
+		@SuppressWarnings("unchecked")
 		RandomAccessibleInterval< FloatType > img = DownsampleTools.openAndDownsample(
 			spimData.getSequenceDescription().getImgLoader(),
 			viewDescription,
@@ -478,7 +483,10 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			new long[] { downsampleXY, downsampleXY, downsampleZ },
 			false,  //transformOnly
 			true,   //openAsFloat
-			true ); //openCompletely
+			true, //openCompletely
+			service );
+
+		service.shutdown();
 
 		if ( img == null )
 		{

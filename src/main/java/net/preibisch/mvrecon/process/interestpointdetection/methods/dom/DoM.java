@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dom;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.real.FloatType;
@@ -34,6 +35,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
@@ -76,6 +78,9 @@ public class DoM
 
 				final AffineTransform3D correctCoordinates = new AffineTransform3D();
 
+				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
+
+				@SuppressWarnings("unchecked")
 				final RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input =
 					DownsampleTools.openAndDownsample(
 						dom.imgloader,
@@ -84,7 +89,10 @@ public class DoM
 						new long[] { dom.downsampleXY, dom.downsampleXY, dom.downsampleZ },
 						false,  //transformOnly
 						true,   //openAsFloat
-						true ); //openCompletely
+						true, //openCompletely
+						service );
+
+				service.shutdown();
 
 				final Image< FloatType > img = ImgLib2.wrapFloatToImgLib1(
 						(Img< net.imglib2.type.numeric.real.FloatType >) input );

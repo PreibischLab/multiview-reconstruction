@@ -54,7 +54,8 @@ public class Downsample
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static < T extends RealType<T> > RandomAccessibleInterval< T > downsample(
 			RandomAccessibleInterval< T > input,
-			final long[] downsampleFactors )
+			final long[] downsampleFactors,
+			final ExecutorService taskExecutor )
 	{
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
@@ -79,28 +80,28 @@ public class Downsample
 		}
 
 		for ( ;dsx > 1; dsx /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false } );
+			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false }, taskExecutor );
 
 		for ( ;dsy > 1; dsy /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false } );
+			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false }, taskExecutor );
 
 		for ( ;dsz > 1; dsz /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true } );
+			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true }, taskExecutor );
 
 		return input;
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory )
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final ExecutorService taskExecutor )
 	{
 		final boolean[] downsampleInDim = new boolean[ input.numDimensions() ];
 
 		for ( int d = 0; d < downsampleInDim.length; ++d )
 			downsampleInDim[ d ] = true;
 
-		return simple2x( input, imgFactory, downsampleInDim );
+		return simple2x( input, imgFactory, downsampleInDim, taskExecutor );
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final boolean[] downsampleInDim )
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final boolean[] downsampleInDim, final ExecutorService taskExecutor )
 	{
 		RandomAccessibleInterval< T > src = input;
 
@@ -118,14 +119,14 @@ public class Downsample
 				}
 
 				final Img< T > img = imgFactory.create( dim, Views.iterable( input ).firstElement() );
-				simple2x( src, img, d );
+				simple2x( src, img, d, taskExecutor );
 				src = img;
 			}
 
 		return src;
 	}
 
-	public static < T extends RealType< T > > void simple2x( final RandomAccessibleInterval<T> input, final RandomAccessibleInterval<T> output, final int d )
+	public static < T extends RealType< T > > void simple2x( final RandomAccessibleInterval<T> input, final RandomAccessibleInterval<T> output, final int d, final ExecutorService taskExecutor )
 	{
 		final int n = input.numDimensions();
 
@@ -150,7 +151,7 @@ public class Downsample
 		final Vector< ImagePortion > portions = FusionTools.divideIntoPortions( numLines );
 
 		// set up executor service
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		//final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
 		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
 
 		for ( final ImagePortion portion : portions )
@@ -219,8 +220,8 @@ public class Downsample
 			return;
 		}
 
-		taskExecutor.shutdown();
-		
+		//taskExecutor.shutdown();
+
 		return;
 	}
 
@@ -229,7 +230,7 @@ public class Downsample
 		final Img< FloatType > img;
 		
 		//img = OpenImg.open( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/img_Angle0.tif", new ArrayImgFactory< FloatType >() );
-		img = new ArrayImgFactory< FloatType >().create( new long[]{ 515,  231, 15 }, new FloatType() );
+		img = new ArrayImgFactory< FloatType >( new FloatType() ).create( new long[]{ 515,  231, 15 } );
 		
 		final Cursor< FloatType > c = img.localizingCursor();
 		
@@ -240,6 +241,8 @@ public class Downsample
 		
 		new ImageJ();
 		ImageJFunctions.show( img );
-		ImageJFunctions.show( simple2x( img, img.factory(), new boolean[]{ true, true, true } ) );
+		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
+		ImageJFunctions.show( simple2x( img, img.factory(), new boolean[]{ true, true, true }, taskExecutor ) );
+		taskExecutor.shutdown();
 	}
 }
