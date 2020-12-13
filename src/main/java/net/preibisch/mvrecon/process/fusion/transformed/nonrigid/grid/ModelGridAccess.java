@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid;
 
 import mpicbg.models.AffineModel3D;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
@@ -57,7 +58,10 @@ public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 
 		this.grid = grid;
 		this.model = new NumericAffineModel3D( new AffineModel3D() );
-		this.interpolated = Views.interpolate( grid, new NLinearInterpolatorFactory<>() ).realRandomAccess();
+		this.interpolated =
+				Views.interpolate(
+						(RandomAccessible< NumericAffineModel3D >)Views.extendValue( ( RandomAccessibleInterval ) grid, (Object) new NumericAffineModel3D() ),
+						new NLinearInterpolatorFactory<>() ).realRandomAccess();
 	}
 
 	@Override
@@ -224,8 +228,10 @@ public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 	}
 
 	@Override
-	public RealRandomAccess< NumericAffineModel3D > copyRealRandomAccess()
+	public ModelGridAccess copyRealRandomAccess()
 	{
-		return new ModelGridAccess( grid, min, controlPointDistance );
+		ModelGridAccess r = new ModelGridAccess( grid, min, controlPointDistance );
+		r.setPosition( this );
+		return r;
 	}
 }
