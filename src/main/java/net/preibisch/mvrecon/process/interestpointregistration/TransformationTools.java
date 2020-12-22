@@ -81,7 +81,7 @@ public class TransformationTools
 
 	public static void reCenterViews(final BigDataViewer viewer, final Collection<BasicViewDescription< ? >> selectedViews, final ViewRegistrations viewRegistrations)
 	{
-		AffineTransform3D currentViewerTransform = viewer.getViewer().getDisplay().getTransformEventHandler().getTransform().copy();
+		AffineTransform3D currentViewerTransform = viewer.getViewer().state().getViewerTransform();
 		final int cX = viewer.getViewer().getWidth() / 2; // size of the display area of the frame
 		final int cY = viewer.getViewer().getHeight() / 2; // size of the display area of the frame
 

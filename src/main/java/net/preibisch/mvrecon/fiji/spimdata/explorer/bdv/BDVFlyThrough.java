@@ -70,7 +70,7 @@ public class BDVFlyThrough
 
 	public static void addCurrentViewerTransform( final BigDataViewer bdv )
 	{
-		AffineTransform3D currentViewerTransform = bdv.getViewer().getDisplay().getTransformEventHandler().getTransform().copy();
+		AffineTransform3D currentViewerTransform = bdv.getViewer().state().getViewerTransform();
 		viewerTransforms.add( currentViewerTransform );
 		IOFunctions.println( "Added transform: " + currentViewerTransform  + ", #transforms=" + viewerTransforms.size() );
 	}
@@ -121,7 +121,7 @@ public class BDVFlyThrough
 		renderState.setViewerTransform( affine );
 
 		final MyRenderTarget target = new MyRenderTarget( width, height );
-		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
+		/*final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
 				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 
@@ -131,7 +131,7 @@ public class BDVFlyThrough
 		renderScalebar( showScaleBar ? new ScaleBarOverlayRenderer() : null, target, renderState, width, height );
 		renderBoxes( showBoxes ? new MultiBoxOverlayRenderer( width, height ) : null, target, renderState, width, height );
 
-		new ImagePlus( "BDV Screenshot", new ColorProcessor( target.bi ) ).show();
+		new ImagePlus( "BDV Screenshot", new ColorProcessor( target.bi ) ).show();*/
 	}
 
 	public static void record( final BigDataViewer bdv )
@@ -209,7 +209,7 @@ public class BDVFlyThrough
 		final MultiBoxOverlayRenderer boxRender = defaultBoxes ? new MultiBoxOverlayRenderer( width, height ) : null;
 
 		final MyRenderTarget target = new MyRenderTarget( width, height );
-		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
+		/*final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
 				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 
@@ -257,7 +257,7 @@ public class BDVFlyThrough
 
 		viewer.setCurrentViewerTransform( transforms.get( 0 ) );
 
-		IOFunctions.println( "Done" );
+		IOFunctions.println( "Done" );*/
 	}
 
 	protected static void renderScalebar( final ScaleBarOverlayRenderer scalebar, final MyRenderTarget target, final ViewerState renderState, final int width, final int height )
