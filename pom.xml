@@ -157,10 +157,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<!-- vistools temporary -->
 		<dependency>
-			<groupId>net.imglib2</groupId>
-			<artifactId>imglib2-ui</artifactId>
-		</dependency>
-		<dependency>
 			<!-- NB: dependency:analyze erroneously flags this, but it's required -->
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
