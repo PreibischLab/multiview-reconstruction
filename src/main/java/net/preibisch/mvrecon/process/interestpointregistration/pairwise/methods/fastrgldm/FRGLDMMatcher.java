@@ -97,7 +97,7 @@ public class FRGLDMMatcher< I extends InterestPoint >
 		for ( final Pair< I, I > pair : pairs )
 			correspondences.add( new PointMatchGeneric< I >( pair.getA(), pair.getB(), 1 ) );
 		
-		System.out.println( count +  " <> " + correspondences.size() );
+		//System.out.println( count +  " <> " + correspondences.size() );
 	}
 
 	public static < I extends InterestPoint > ArrayList< TranslationInvariantLocalCoordinateSystemPointDescriptor< I > > createLocalCoordinateSystemPointDescriptors( 
