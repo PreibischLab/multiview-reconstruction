@@ -101,6 +101,8 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<multiview-simulation.version>0.2.0</multiview-simulation.version>
 
+		<bigdataviewer-core.version>10.0.2</bigdataviewer-core.version>
+		<bigdataviewer-vistools.version>1.0.0-beta-23</bigdataviewer-vistools.version>
 <!-- 
 		<bigdataviewer-core.version>9.0.6</bigdataviewer-core.version>
 		<imglib2.version>5.9.0</imglib2.version>
@@ -154,10 +156,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		</dependency>
 
 		<!-- vistools temporary -->
-		<dependency>
-			<groupId>net.imglib2</groupId>
-			<artifactId>imglib2-ui</artifactId>
-		</dependency>
 		<dependency>
 			<!-- NB: dependency:analyze erroneously flags this, but it's required -->
 			<groupId>sc.fiji</groupId>

@@ -32,11 +32,14 @@ import javax.imageio.ImageIO;
 
 import bdv.BigDataViewer;
 import bdv.cache.CacheControl;
+import bdv.viewer.BasicViewerState;
 import bdv.viewer.ViewerPanel;
 import bdv.viewer.overlay.MultiBoxOverlayRenderer;
 import bdv.viewer.overlay.ScaleBarOverlayRenderer;
 import bdv.viewer.render.MultiResolutionRenderer;
-import bdv.viewer.state.ViewerState;
+import bdv.viewer.render.RenderTarget;
+import bdv.viewer.render.awt.BufferedImageRenderResult;
+import bdv.viewer.ViewerState;
 import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.ImagePlus;
@@ -46,8 +49,6 @@ import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.img.list.ListImg;
 import net.imglib2.img.list.ListLocalizingCursor;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.ui.PainterThread;
-import net.imglib2.ui.RenderTarget;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.NumericAffineTransform3D;
@@ -70,7 +71,7 @@ public class BDVFlyThrough
 
 	public static void addCurrentViewerTransform( final BigDataViewer bdv )
 	{
-		AffineTransform3D currentViewerTransform = bdv.getViewer().getDisplay().getTransformEventHandler().getTransform().copy();
+		AffineTransform3D currentViewerTransform = bdv.getViewer().state().getViewerTransform();
 		viewerTransforms.add( currentViewerTransform );
 		IOFunctions.println( "Added transform: " + currentViewerTransform  + ", #transforms=" + viewerTransforms.size() );
 	}
@@ -84,7 +85,7 @@ public class BDVFlyThrough
 	public static void renderScreenshot( final BigDataViewer bdv )
 	{
 		final ViewerPanel viewer = bdv.getViewer();
-		final ViewerState renderState = viewer.getState();
+		final ViewerState renderState = new BasicViewerState( viewer.state().snapshot() );
 		final int canvasW = viewer.getDisplay().getWidth();
 		final int canvasH = viewer.getDisplay().getHeight();
 
@@ -122,16 +123,17 @@ public class BDVFlyThrough
 
 		final MyRenderTarget target = new MyRenderTarget( width, height );
 		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
-				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
+				target, () -> {}, new double[] { 1 }, 0, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 
 		renderer.requestRepaint();
 		renderer.paint( renderState );
+		final BufferedImage bi = target.renderResult.getBufferedImage();
 
-		renderScalebar( showScaleBar ? new ScaleBarOverlayRenderer() : null, target, renderState, width, height );
-		renderBoxes( showBoxes ? new MultiBoxOverlayRenderer( width, height ) : null, target, renderState, width, height );
+		renderScalebar( showScaleBar ? new ScaleBarOverlayRenderer() : null, bi, renderState, width, height );
+		renderBoxes( showBoxes ? new MultiBoxOverlayRenderer( width, height ) : null, bi, renderState, width, height );
 
-		new ImagePlus( "BDV Screenshot", new ColorProcessor( target.bi ) ).show();
+		new ImagePlus( "BDV Screenshot", new ColorProcessor( bi ) ).show();
 	}
 
 	public static void record( final BigDataViewer bdv )
@@ -189,13 +191,13 @@ public class BDVFlyThrough
 
 
 		final ViewerPanel viewer = bdv.getViewer();
-		final ViewerState renderState = viewer.getState();
+		final ViewerState renderState = new BasicViewerState( viewer.state().snapshot() );
 		final int canvasW = viewer.getDisplay().getWidth();
 		final int canvasH = viewer.getDisplay().getHeight();
 
 		final int width = canvasW;
 		final int height = canvasH;
-		
+
 		final AffineTransform3D affine = new AffineTransform3D();
 		renderState.getViewerTransform( affine );
 		affine.set( affine.get( 0, 3 ) - canvasW / 2, 0, 3 );
@@ -210,7 +212,7 @@ public class BDVFlyThrough
 
 		final MyRenderTarget target = new MyRenderTarget( width, height );
 		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
-				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
+				target, () -> {}, new double[] { 1 }, 0, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 
 		final ArrayList< AffineTransform3D > transforms = interpolateTransforms( viewerTransformsLocal, defaultMethod == 2, defaultSigma, interpolateSteps );
@@ -233,16 +235,17 @@ public class BDVFlyThrough
 
 			renderer.requestRepaint();
 			renderer.paint( renderState );
+			final BufferedImage bi = target.renderResult.getBufferedImage();
 
-			renderScalebar( scalebar, target, renderState, width, height );
-			renderBoxes( boxRender, target, renderState, width, height );
+			renderScalebar( scalebar, bi, renderState, width, height );
+			renderBoxes( boxRender, bi, renderState, width, height );
 
 			try
 			{
 				final File file = new File( String.format( "%s/img-%05d.png", dir, i ) );
 				IOFunctions.println( "Writing file: " + file.getAbsolutePath() );
 
-				ImageIO.write( target.bi, "png", file );
+				ImageIO.write( bi, "png", file );
 			}
 			catch ( IOException e )
 			{
@@ -255,27 +258,27 @@ public class BDVFlyThrough
 
 		IJ.showProgress( 1.0 );
 
-		viewer.setCurrentViewerTransform( transforms.get( 0 ) );
+		viewer.state().setViewerTransform( transforms.get( 0 ) );
 
 		IOFunctions.println( "Done" );
 	}
 
-	protected static void renderScalebar( final ScaleBarOverlayRenderer scalebar, final MyRenderTarget target, final ViewerState renderState, final int width, final int height )
+	protected static void renderScalebar( final ScaleBarOverlayRenderer scalebar, final BufferedImage bi, final ViewerState renderState, final int width, final int height )
 	{
 		if ( scalebar != null )
 		{
-			final Graphics2D g2 = target.bi.createGraphics();
+			final Graphics2D g2 = bi.createGraphics();
 			g2.setClip( 0, 0, width, height );
 			scalebar.setViewerState( renderState );
 			scalebar.paint( g2 );
 		}
 	}
 
-	protected static void renderBoxes( final MultiBoxOverlayRenderer boxRender, final MyRenderTarget target, final ViewerState renderState, final int width, final int height )
+	protected static void renderBoxes( final MultiBoxOverlayRenderer boxRender, final BufferedImage bi, final ViewerState renderState, final int width, final int height )
 	{
 		if ( boxRender != null )
 		{
-			final Graphics2D g2 = target.bi.createGraphics();
+			final Graphics2D g2 = bi.createGraphics();
 			g2.setClip( 0, 0, width, height );
 			boxRender.setViewerState( renderState );
 			boxRender.paint( g2 );
@@ -368,9 +371,9 @@ public class BDVFlyThrough
 		}
 	}
 
-	static class MyRenderTarget implements RenderTarget
+	static class MyRenderTarget implements RenderTarget< BufferedImageRenderResult >
 	{
-		BufferedImage bi;
+		final BufferedImageRenderResult renderResult = new BufferedImageRenderResult();
 
 		final int width;
 		final int height;
@@ -382,11 +385,20 @@ public class BDVFlyThrough
 		}
 
 		@Override
-		public BufferedImage setBufferedImage( final BufferedImage bufferedImage )
+		public BufferedImageRenderResult getReusableRenderResult()
 		{
-			bi = bufferedImage;
-			return null;
+			return renderResult;
 		}
+
+		@Override
+		public BufferedImageRenderResult createRenderResult()
+		{
+			return new BufferedImageRenderResult();
+		}
+
+		@Override
+		public void setRenderResult( final BufferedImageRenderResult renderResult )
+		{}
 
 		@Override
 		public int getWidth()
