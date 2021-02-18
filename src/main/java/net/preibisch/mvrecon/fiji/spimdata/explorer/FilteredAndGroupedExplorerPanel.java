@@ -647,41 +647,62 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 					enableFlyThrough = true;
 
 					IOFunctions.println( "EASTER EGG activated." );
-					IOFunctions.println( "You can now record a fly-through, press 'a' to add the current view as keypoint, 'x' to remove all keypoints and 's' to start recording!" );
-					IOFunctions.println( "'S' makes a screenshot with a user-defined resolution" );
+					IOFunctions.println( "You can now record a fly-through: ");
+					IOFunctions.println( "   press 'a' to add the current view as keypoint" );
+					IOFunctions.println( "   press 'x' to remove all keypoints" );
+					IOFunctions.println( "   press 'd' to remove last keypoint" );
+					IOFunctions.println( "   press 'j' to jump with BDV to the last keypoint" );
+					IOFunctions.println( "   press 'r' to start recording!" );
+					IOFunctions.println( "   press 's' to save all keypoints" );
+					IOFunctions.println( "   press 'l' to load all keypoints" );
+					IOFunctions.println( "'R' makes a screenshot with a user-defined resolution" );
 				}
 
 				if ( enableFlyThrough )
 				{
 					final boolean bdvRunning = bdvPopup().bdvRunning() && !(bdvPopup().bdv == null);
 
-					if ( arg0.getKeyChar() == 's' )
+					if ( arg0.getKeyChar() == 'r' )
 						if (bdvRunning)
 							new Thread( new Runnable()
 							{
 								@Override
 								public void run()
-								{ BDVFlyThrough.record( bdvPopup().bdv ); }
+								{ BDVFlyThrough.record( bdvPopup().bdv.getViewer() ); }
 							} ).start();
 						else
 							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
 	
 					if ( arg0.getKeyChar() == 'a' )
 						if (bdvRunning)
-							BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv );
+							BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv.getViewer() );
 						else
 							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
 	
 					if ( arg0.getKeyChar() == 'x' )
 						BDVFlyThrough.clearAllViewerTransform();
 
-					if ( arg0.getKeyChar() == 'S' )
+					if ( arg0.getKeyChar() == 'd' )
+						BDVFlyThrough.deleteLastViewerTransform();
+
+					if ( arg0.getKeyChar() == 'j' )
+						BDVFlyThrough.jumpToLastViewerTransform( bdvPopup().bdv.getViewer() );
+
+					if ( arg0.getKeyChar() == 's' ) {
+						try { BDVFlyThrough.saveViewerTransforms(); } catch ( Exception e ) { IOFunctions.println( "couldn't save json: " + e ); }
+					}
+
+					if ( arg0.getKeyChar() == 'l' ){
+						try { BDVFlyThrough.loadViewerTransforms(); } catch ( Exception e ) { IOFunctions.println( "couldn't load json: " + e ); }
+					}
+
+					if ( arg0.getKeyChar() == 'R' )
 						if (bdvRunning)
 							new Thread( new Runnable()
 							{
 								@Override
 								public void run()
-								{ BDVFlyThrough.renderScreenshot( bdvPopup().bdv ); }
+								{ BDVFlyThrough.renderScreenshot( bdvPopup().bdv.getViewer() ); }
 							} ).start();
 						else
 							IOFunctions.println("Please open BigDataViewer to make a screenshot.");
