@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -77,23 +77,29 @@ import util.ImgLib2Tools;
 
 public class DoGImgLib2
 {
-	private static int[] blockSize = new int[] {32, 32, 32};
+	public static boolean silent = false;
+	private static int[] blockSize = new int[] {96, 96, 64};
 
 	public static void main ( String[] args )
 	{
 		new ImageJ();
 
-		final RandomAccessibleInterval< FloatType > input = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif"))  ;
+		final RandomAccessibleInterval< FloatType > input = IOFunctions.openAs32BitArrayImg( new File( "/groups/scicompsoft/home/preibischs/Documents/SPIM/spim_TL18_Angle0.tif"))  ;
 		final RandomAccessibleInterval< FloatType > mask = Views.interval(new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), input.numDimensions() ), input );
 
-		computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
+		//computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
 
-		final RandomAccessibleInterval< FloatType > input2d = Views.hyperSlice(input, 2, 50 );
+		//final RandomAccessibleInterval< FloatType > input2d = Views.hyperSlice(input, 2, 50 );
 
+		long time = System.currentTimeMillis();
+
+		// 1388x1040x81 = 116925120
 		final ArrayList<InterestPoint> points = 
-				computeDoG(input2d, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
+				computeDoG(input, mask, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 1 ), 1 );
 
-		ImageJFunctions.show( input2d ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
+		System.out.println( System.currentTimeMillis() - time );
+
+		ImageJFunctions.show( input ).setRoi( mpicbg.ij.util.Util.pointsToPointRoi(points) );
 	}
 
 	public static < T extends RealType< T > > int radiusDoG( final double sigma )
@@ -130,6 +136,23 @@ public class DoGImgLib2
 			final ExecutorService service,
 			final int numThreads ) // for old imglib1-code
 	{
+		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service, numThreads);
+	}
+
+	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
+			final RandomAccessibleInterval< T > input,
+			final RandomAccessibleInterval< T > mask,
+			final double sigma,
+			final double threshold,
+			final int localization,
+			final boolean findMin,
+			final boolean findMax,
+			final double minIntensity,
+			final double maxIntensity,
+			final int[] blockSize,
+			final ExecutorService service,
+			final int numThreads ) // for old imglib1-code
+	{
 		float initialSigma = (float)sigma;
 		
 		final float minPeakValue = (float)threshold;
@@ -160,7 +183,8 @@ public class DoGImgLib2
 			max = (float)maxIntensity;
 		}
 
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): min intensity = " + min + ", max intensity = " + max );
+		if ( !silent )
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): min intensity = " + min + ", max intensity = " + max );
 
 		// normalize image
 		final RandomAccessibleInterval< FloatType > inputFloat = ImgLib2Tools.normalizeVirtual( input, min, max );
@@ -184,7 +208,8 @@ public class DoGImgLib2
 			sigma2[ d ] = sigmaStepsDiffX[1];
 		}
 
-		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): computing DoG with (sigma=" + initialSigma + ", " +
+		if ( !silent )
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): computing DoG with (sigma=" + initialSigma + ", " +
 				"threshold=" + minPeakValue + ", sigma1=" + Util.printCoordinates( sigma1 ) + ", sigma2=" + Util.printCoordinates( sigma2 ) + ")" );
 
 		final long[] minInterval = new long[ inputFloat.numDimensions() ];
@@ -207,8 +232,8 @@ public class DoGImgLib2
 		{
 			maskFloat = ImgLib2Tools.convertVirtual( mask );
 
-			gauss1 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma1 );
-			gauss2 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma2 );
+			gauss1 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma1, blockSize );
+			gauss2 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma2, blockSize );
 		}
 
 		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()
@@ -220,9 +245,11 @@ public class DoGImgLib2
 			}
 		}, new FloatType() );
 
-		final RandomAccessibleInterval< FloatType > dogCached = FusionTools.cacheRandomAccessibleInterval( dog, Integer.MAX_VALUE, new FloatType(), blockSize );
+		//avoid double-caching for weighted gauss (i.e. mask != null)
+		final RandomAccessibleInterval< FloatType > dogCached = (mask == null) ? FusionTools.cacheRandomAccessibleInterval( dog, new FloatType(), blockSize ) : dog;
 
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
+		if ( !silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
 		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue, service );
 
@@ -237,12 +264,18 @@ public class DoGImgLib2
 			// TODO: remove last Imglib1 crap
 			final Img< FloatType > dogCopy = new ArrayImgFactory<>( new FloatType() ).create( dogCached );
 
+			if ( !silent )
+				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Mem-copying image." );
+
 			FusionTools.copyImg( Views.zeroMin( dogCached ), dogCopy, service );
 			final Image<mpicbg.imglib.type.numeric.real.FloatType> imglib1 = ImgLib2.wrapArrayFloatToImgLib1( dogCopy );
 
 			for ( final SimplePeak peak : peaks )
 				for ( int d = 0; d < peak.location.length; ++d )
 					peak.location[ d ] -= minInterval[ d ];
+
+			if ( !silent )
+				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Quadratic localization." );
 
 			finalPeaks = Localization.computeQuadraticLocalization( peaks, imglib1, findMin, findMax, minPeakValue, true, numThreads );
 
@@ -261,7 +294,8 @@ public class DoGImgLib2
 			finalPeaks = Localization.computeGaussLocalization( peaks, null, sigma, findMin, findMax, minPeakValue, true );
 		}
 		
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " peaks." );
+		if ( !silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " peaks." );
 
 		return finalPeaks;
 	}
@@ -270,7 +304,8 @@ public class DoGImgLib2
 			final RandomAccessibleInterval< T > input,
 			final RandomAccessibleInterval< T > mask,
 			final T type,
-			final double[] sigma )
+			final double[] sigma,
+			final int[] blockSize )
 	{
 		final long[] min= new long[ input.numDimensions() ];
 		input.min( min );
@@ -282,6 +317,8 @@ public class DoGImgLib2
 						Views.extendZero( mask ),
 						type.createVariable(),
 						sigma );
+
+		weightedgauss.total = new FinalInterval( input );
 
 		final RandomAccessibleInterval<T> gauss = Views.translate( Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss ), min );
 		//final Cache< ?, ? > gradientCache = ((CachedCellImg< ?, ? >)gradient).getCache();

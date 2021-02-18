@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -39,7 +39,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointValue;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 
@@ -222,7 +222,8 @@ public class InterestPointTools
 			}
 			else
 			{
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Limiting detections to " + maxDetections + ", type = " + limitDetectionChoice[ maxDetectionsTypeIndex ] );
+				if ( !DoGImgLib2.silent )
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Limiting detections to " + maxDetections + ", type = " + limitDetectionChoice[ maxDetectionsTypeIndex ] );
 
 				Collections.sort( list, new Comparator< InterestPoint >()
 				{
@@ -261,7 +262,8 @@ public class InterestPointTools
 					// median
 					final int median = list.size() / 2;
 					
-					IOFunctions.println( "Medium intensity: " + Math.abs( ((InterestPointValue)list.get( median )).getIntensity() ) );
+					if ( !DoGImgLib2.silent )
+						IOFunctions.println( "Medium intensity: " + Math.abs( ((InterestPointValue)list.get( median )).getIntensity() ) );
 					
 					final int from = median - maxDetections/2;
 					final int to = median + maxDetections/2;

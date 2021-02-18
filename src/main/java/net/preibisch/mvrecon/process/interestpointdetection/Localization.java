@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@ import net.preibisch.legacy.segmentation.SimplePeak;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointValue;
-
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
 import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussianPeak;
 import mpicbg.imglib.algorithm.scalespace.SubpixelLocalization;
@@ -41,7 +41,8 @@ public class Localization
 {
 	public static ArrayList< InterestPoint > noLocalization( final ArrayList< SimplePeak > peaks, final boolean findMin, final boolean findMax, final boolean keepIntensity )
 	{
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): NO subpixel localization" );
+		if ( !DoGImgLib2.silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): NO subpixel localization" );
 
 		final int n = peaks.get( 0 ).location.length;
 		final ArrayList< InterestPoint > peaks2 = new ArrayList< InterestPoint >();
@@ -69,7 +70,8 @@ public class Localization
 
 	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final Image< FloatType > domImg, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity, final int numThreads )
 	{
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using quadratic n-dimensional fit");
+		if ( !DoGImgLib2.silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using quadratic n-dimensional fit");
 
 		final ArrayList< DifferenceOfGaussianPeak<FloatType> > peakList = new ArrayList<DifferenceOfGaussianPeak<FloatType>>();
 

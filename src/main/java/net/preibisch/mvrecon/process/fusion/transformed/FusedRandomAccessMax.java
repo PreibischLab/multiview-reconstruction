@@ -31,7 +31,7 @@ import net.imglib2.RandomAccessible;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
-public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implements RandomAccess< FloatType >
+public class FusedRandomAccessMax extends AbstractLocalizableInt implements RandomAccess< FloatType >
 {
 	final List< ? extends RandomAccessible< FloatType > > images;
 
@@ -40,7 +40,7 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 
 	final FloatType value = new FloatType();
 
-	public FusedRandomAccessNoWeights(
+	public FusedRandomAccessMax(
 			final int n,
 			final List< ? extends RandomAccessible< FloatType > > images )
 	{
@@ -59,26 +59,26 @@ public class FusedRandomAccessNoWeights extends AbstractLocalizableInt implement
 	@Override
 	public FloatType get()
 	{
-		double sumI = 0;
+		double max = 0;
 
 		for ( int j = 0; j < numImages; ++j )
-			sumI +=  i[ j ].get().getRealDouble();
+			max = Math.max( max, i[ j ].get().getRealDouble() );
 
-		value.set( (float) sumI );
+		value.set( (float) max );
 
 		return value;
 	}
 
 	@Override
-	public FusedRandomAccessNoWeights copy()
+	public FusedRandomAccessMax copy()
 	{
 		return copyRandomAccess();
 	}
 
 	@Override
-	public FusedRandomAccessNoWeights copyRandomAccess()
+	public FusedRandomAccessMax copyRandomAccess()
 	{
-		final FusedRandomAccessNoWeights r = new FusedRandomAccessNoWeights( n, images );
+		final FusedRandomAccessMax r = new FusedRandomAccessMax( n, images );
 		r.setPosition( this );
 		return r;
 	}

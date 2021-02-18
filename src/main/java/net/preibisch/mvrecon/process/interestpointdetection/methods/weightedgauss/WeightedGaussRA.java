@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -36,10 +36,12 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.Sampler;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.gauss3.SeparableSymmetricConvolution;
+import net.imglib2.converter.Converters;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 /**
@@ -54,7 +56,9 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 	final T type;
 	final private double[] sigmas;
 	final long[] globalMin;
-	final private RandomAccessible<T> source, weight;
+	final private RandomAccessible<T> source, weight, weightedSource;
+
+	public Interval total;
 
 	public WeightedGaussRA(
 			final long[] min,
@@ -65,6 +69,7 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 	{
 		this.source = source;
 		this.weight = weight;
+		this.weightedSource = Converters.convert(source, weight, (i1,i2,o) -> o.setReal( i1.getRealDouble() * i2.getRealDouble() ), type.createVariable() );
 		this.globalMin = min;
 		this.type = type;
 		this.sigmas = sigmas;
@@ -77,7 +82,7 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 	{
 		try
 		{
-			final WeightedRandomAccessible< T > weightedSource = new WeightedRandomAccessible< T >( source, weight, type );
+			//long time = System.currentTimeMillis();
 
 			final long[] min= new long[ output.numDimensions() ];
 			for ( int d = 0; d < min.length; ++d )
@@ -86,7 +91,11 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 			final RandomAccessibleInterval< T > sourceTmp = Views.translate( new ArrayImgFactory<>(type).create( output ), min );
 			final RandomAccessibleInterval< T > weightTmp = Views.translate( new ArrayImgFactory<>(type).create( output ), min );
 
-			final ExecutorService service = Executors.newSingleThreadExecutor();
+			Gauss3.gauss(sigmas, weightedSource, sourceTmp, 1 );
+			Gauss3.gauss(sigmas, weight, weightTmp, 1 );
+
+			/*
+			final ExecutorService service = Executors.newFixedThreadPool( 1 );
 
 			SeparableSymmetricConvolution.convolve(
 					Gauss3.halfkernels(sigmas),
@@ -101,6 +110,17 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 					service );
 
 			service.shutdown();
+			*/
+
+			/*
+			Converters.convert( weightTmp, sourceTmp, (w,s,o) -> {
+				final double weight = w.getRealDouble();
+				if ( weight == 0 )
+					o.setReal( 0.0 );
+				else
+					o.setReal( s.getRealDouble() / weight );
+				}, type );
+			*/
 
 			final Cursor< T > i = Views.flatIterable( Views.interval( source, sourceTmp ) ).cursor();
 			final Cursor< T > s = Views.flatIterable( sourceTmp ).cursor();
@@ -123,175 +143,11 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 				}
 			}
 
+			//System.out.println( "computing: " + Util.printCoordinates( min ) + " [" + Util.printInterval( total ) + "] took " + (System.currentTimeMillis() - time ) );
 		}
 		catch (final IncompatibleTypeException e)
 		{
 			throw new RuntimeException(e);
-		}
-	}
-
-	public static class WeightedRandomAccessible< T extends RealType< T > > implements RandomAccessible< T >
-	{
-		final RandomAccessible< T > source, weight;
-		final T type;
-
-		public WeightedRandomAccessible(
-				final RandomAccessible< T > source,
-				final RandomAccessible< T > weight,
-				final T type )
-		{
-			this.source = source;
-			this.weight = weight;
-			this.type = type;
-		}
-
-		@Override
-		public int numDimensions()
-		{
-			return source.numDimensions();
-		}
-
-		@Override
-		public RandomAccess< T > randomAccess()
-		{
-			return new WeightedRandomAccess< T >( source.randomAccess(), weight.randomAccess(), type.createVariable() );
-		}
-
-		@Override
-		public RandomAccess< T > randomAccess( Interval interval )
-		{
-			return randomAccess();
-		}
-	}
-
-	public static class WeightedRandomAccess< T extends RealType< T > > implements RandomAccess< T >
-	{
-		final RandomAccess< T > source, weight;
-		final T type;
-
-		public WeightedRandomAccess(
-				final RandomAccess< T > source,
-				final RandomAccess< T > weight,
-				final T type )
-		{
-			this.source = source;
-			this.weight = weight;
-			this.type = type;
-		}
-
-		@Override
-		public T get()
-		{
-			type.setReal( source.get().getRealDouble() * weight.get().getRealDouble() );
-			return type;
-		}
-
-		@Override
-		public long getLongPosition( final int d )
-		{
-			return source.getLongPosition( d );
-		}
-
-		@Override
-		public int numDimensions()
-		{
-			return source.numDimensions();
-		}
-
-		@Override
-		public void fwd( final int d )
-		{
-			source.fwd( d );
-			weight.fwd( d );
-		}
-
-		@Override
-		public void bck( final int d )
-		{
-			source.bck( d );
-			weight.bck( d );
-		}
-
-		@Override
-		public void move( final int distance, final int d )
-		{
-			source.move( distance, d );
-			weight.move( distance, d );
-		}
-
-		@Override
-		public void move( final long distance, final int d )
-		{
-			source.move( distance, d );
-			weight.move( distance, d );
-		}
-
-		@Override
-		public void move( final Localizable distance )
-		{
-			source.move( distance );
-			weight.move( distance );
-		}
-
-		@Override
-		public void move( final int[] distance )
-		{
-			source.move( distance );
-			weight.move( distance );
-		}
-
-		@Override
-		public void move( final long[] distance )
-		{
-			source.move( distance );
-			weight.move( distance );
-		}
-
-		@Override
-		public void setPosition( final Localizable position )
-		{
-			source.setPosition( position );
-			weight.setPosition( position );
-		}
-
-		@Override
-		public void setPosition( final int[] position )
-		{
-			source.setPosition( position );
-			weight.setPosition( position );
-		}
-
-		@Override
-		public void setPosition( final long[] position )
-		{
-			source.setPosition( position );
-			weight.setPosition( position );
-		}
-
-		@Override
-		public void setPosition( final int position, final int d )
-		{
-			source.setPosition( position, d );
-			weight.setPosition( position, d );
-		}
-
-		@Override
-		public void setPosition( final long position, final int d )
-		{
-			source.setPosition( position, d );
-			weight.setPosition( position, d );
-		}
-
-		@Override
-		public Sampler< T > copy()
-		{
-			return copyRandomAccess();
-		}
-
-		@Override
-		public RandomAccess< T > copyRandomAccess()
-		{
-			return new WeightedRandomAccess<>( source.copyRandomAccess(), weight.copyRandomAccess(), type.createVariable() );
 		}
 	}
 }

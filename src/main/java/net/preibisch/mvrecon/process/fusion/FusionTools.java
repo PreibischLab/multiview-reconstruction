@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -63,6 +63,7 @@ import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CellLoader;
+import net.imglib2.cache.img.DiskCachedCellImgOptions.CacheType;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.cache.img.SingleCellArrayImg;
@@ -685,6 +686,14 @@ public class FusionTools
 
 	public static < T extends NativeType< T > > RandomAccessibleInterval< T > cacheRandomAccessibleInterval(
 			final RandomAccessibleInterval< T > input,
+			final T type,
+			final int... cellDim )
+	{
+		return cacheRandomAccessibleInterval( input, -1, type, cellDim );
+	}
+
+	public static < T extends NativeType< T > > RandomAccessibleInterval< T > cacheRandomAccessibleInterval(
+			final RandomAccessibleInterval< T > input,
 			final long maxCacheSize,
 			final T type,
 			final int... cellDim )
@@ -696,7 +705,13 @@ public class FusionTools
 		else
 			in = Views.zeroMin( input );
 		
-		final ReadOnlyCachedCellImgOptions options = new ReadOnlyCachedCellImgOptions().cellDimensions( cellDim ).maxCacheSize( maxCacheSize );
+		final ReadOnlyCachedCellImgOptions options;
+
+		if ( maxCacheSize > 0 )
+			options = new ReadOnlyCachedCellImgOptions().cellDimensions( cellDim ).maxCacheSize( maxCacheSize );
+		else
+			options = new ReadOnlyCachedCellImgOptions().cellDimensions( cellDim ).cacheType( CacheType.SOFTREF );
+
 		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory( options );
 
 		final CellLoader< T > loader = new CellLoader< T >()

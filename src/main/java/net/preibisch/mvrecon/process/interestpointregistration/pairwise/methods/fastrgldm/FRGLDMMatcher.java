@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2020 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2021 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -97,7 +97,7 @@ public class FRGLDMMatcher< I extends InterestPoint >
 		for ( final Pair< I, I > pair : pairs )
 			correspondences.add( new PointMatchGeneric< I >( pair.getA(), pair.getB(), 1 ) );
 		
-		System.out.println( count +  " <> " + correspondences.size() );
+		//System.out.println( count +  " <> " + correspondences.size() );
 	}
 
 	public static < I extends InterestPoint > ArrayList< TranslationInvariantLocalCoordinateSystemPointDescriptor< I > > createLocalCoordinateSystemPointDescriptors( 
