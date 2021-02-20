@@ -101,8 +101,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<multiview-simulation.version>0.2.0</multiview-simulation.version>
 
-		<bigdataviewer-core.version>10.0.2</bigdataviewer-core.version>
-		<bigdataviewer-vistools.version>1.0.0-beta-23</bigdataviewer-vistools.version>
+		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
+		<bigdataviewer-vistools.version>1.0.0-beta-28</bigdataviewer-vistools.version>
+		<bigdataviewer_fiji.version>6.2.1</bigdataviewer_fiji.version>
+		<imglib2-cache.version>1.0.0-beta-16</imglib2-cache.version>
 <!-- 
 		<bigdataviewer-core.version>9.0.6</bigdataviewer-core.version>
 		<imglib2.version>5.9.0</imglib2.version>
