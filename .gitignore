@@ -14,3 +14,5 @@
 # IntelliJ  #
 .idea/
 SPIM_Registration.iml
+
+*.iml

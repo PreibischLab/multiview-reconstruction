@@ -11,7 +11,7 @@
 
 	<groupId>net.preibisch</groupId>
 	<artifactId>multiview-reconstruction</artifactId>
-	<version>0.9.1-SNAPSHOT</version>
+	<version>1.1.2-SNAPSHOT</version>
 
 	<name>Multiview Reconstruction</name>
 	<description>Software for the reconstruction of multi-view microscopic acquisitions
@@ -100,7 +100,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<license.copyrightOwners>Multiview Reconstruction developers.</license.copyrightOwners>
 
 		<multiview-simulation.version>0.2.0</multiview-simulation.version>
-
+		<jackson.version>2.5.2</jackson.version>
 <!-- 
 		<bigdataviewer-core.version>9.0.6</bigdataviewer-core.version>
 		<imglib2.version>5.9.0</imglib2.version>
@@ -123,6 +123,23 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</repositories>
 
 	<dependencies>
+		<!--        Fix conflict     -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<!--         / Fix conflict     -->
 		<!-- BigDataViewer dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>
@@ -131,6 +148,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-core</artifactId>
+			<version>10.2.0</version>
 		</dependency>
 
 		<!-- Fiji dependencies -->
@@ -271,6 +289,19 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>n5</artifactId>
 			<version>2.1.1</version>
 		</dependency>
+
+		<!--		AWS related 		-->
+		<dependency>
+			<groupId>com.bigdistributor</groupId>
+			<artifactId>AWS_DataExchange</artifactId>
+			<version>0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-aws-s3</artifactId>
+			<version>3.2.1-SNAPSHOT</version>
+		</dependency>
+
 	</dependencies>
 	
 	<profiles>
