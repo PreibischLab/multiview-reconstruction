@@ -34,15 +34,17 @@ import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.array.ArrayCursor;
-import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
@@ -65,9 +67,9 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 
 	public File getFile() { return mmFile; }
 
-	final public static < T extends RealType< T > & NativeType< T > > void populateImage( final ArrayImg< T, ? > img, final BasicViewDescription< ? > vd, final MultipageTiffReader r )
+	final public static < T extends RealType< T > & NativeType< T > > void populateImage( final Img< T > img, final BasicViewDescription< ? > vd, final MultipageTiffReader r )
 	{
-		final ArrayCursor< T > cursor = img.cursor();
+		final Cursor< T > cursor = Views.flatIterable( img ).cursor();
 		
 		final int t = vd.getTimePoint().getId();
 		final int a = vd.getViewSetup().getAttribute( Angle.class ).getId();
@@ -131,8 +133,18 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 		{
 			final MultipageTiffReader r = new MultipageTiffReader( mmFile );
 
-			final ArrayImg< UnsignedShortType, ? > img = ArrayImgs.unsignedShorts( r.width(), r.height(), r.depth() );
+			final long w = r.width();
+			final long h = r.height();
+			final long d = r.depth();
+
 			final BasicViewDescription< ? > vd = sequenceDescription.getViewDescriptions().get( view );
+
+			final Img< UnsignedShortType > img;
+
+			if ( fitsIntoArrayImg( w, h, d ) )
+				img = ArrayImgs.unsignedShorts( w, d, h );
+			else
+				img = new CellImgFactory<>( new UnsignedShortType() ).create( new long[] { w, h, d }  );
 
 			populateImage( img, vd, r );
 
@@ -165,6 +177,27 @@ public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 		{
 			IOFunctions.println( "Failed to load metadata for viewsetup=" + view.getViewSetupId() + " timepoint=" + view.getTimePointId() + ": " + e );
 			e.printStackTrace();
+		}
+	}
+
+	public static boolean fitsIntoArrayImg( final long w, final long h, final long d )
+	{
+		long maxNumPixels = w * h * d;
+
+		int smallerLog2 = (int)Math.ceil( Math.log( maxNumPixels ) / Math.log( 2 ) );
+
+		String s = "Maximum number of pixels in any view: n=" + maxNumPixels + 
+				" (2^" + (smallerLog2-1) + " < n < 2^" + smallerLog2 + " px), ";
+
+		if ( smallerLog2 <= 31 )
+		{
+			//IOFunctions.println( s + "using ArrayImg." );
+			return true;
+		}
+		else
+		{
+			IOFunctions.println( s + "using CellImg." );
+			return false;
 		}
 	}
 
