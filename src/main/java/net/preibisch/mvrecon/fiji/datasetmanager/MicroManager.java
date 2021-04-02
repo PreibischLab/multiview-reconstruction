@@ -22,15 +22,13 @@
  */
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
-import fiji.util.gui.GenericDialogPlus;
-import ij.gui.GenericDialog;
-
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import mpicbg.spim.data.SpimData;
+import fiji.util.gui.GenericDialogPlus;
+import ij.gui.GenericDialog;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
@@ -39,6 +37,7 @@ import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MissingViews;
 import mpicbg.spim.data.sequence.SequenceDescription;
+import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
 import mpicbg.spim.data.sequence.ViewSetup;
@@ -146,9 +145,9 @@ public class MicroManager implements MultiViewDatasetDefinition
 		for ( int c = 0; c < meta.numChannels(); ++c )
 			channels.add( new Channel( c, meta.channelName( c ) ) );
 
-		final ArrayList< Illumination > illuminations = new ArrayList< Illumination >();
+		final ArrayList< Tile > tiles = new ArrayList<>();
 		for ( int i = 0; i < meta.numPositions(); ++i )
-			illuminations.add( new Illumination( i, String.valueOf( i ) ) );
+			tiles.add( new Tile( i, String.valueOf( i ) ) );
 
 		final ArrayList< Angle > angles = new ArrayList< Angle >();
 		for ( int a = 0; a < meta.numAngles(); ++a )
@@ -170,12 +169,12 @@ public class MicroManager implements MultiViewDatasetDefinition
 
 		final ArrayList< ViewSetup > viewSetups = new ArrayList< ViewSetup >();
 		for ( final Channel c : channels )
-			for ( final Illumination i : illuminations )
+			for ( final Tile t : tiles )
 				for ( final Angle a : angles )
 				{
 					final VoxelDimensions voxelSize = new FinalVoxelDimensions( meta.calUnit(), meta.calX(), meta.calY(), meta.calZ() );
 					final Dimensions dim = new FinalDimensions( new long[]{ meta.width(), meta.height(), meta.depth() } );
-					viewSetups.add( new ViewSetup( viewSetups.size(), null, dim, voxelSize, c, a, i ) );
+					viewSetups.add( new ViewSetup( viewSetups.size(), null, dim, voxelSize, t, c, a, new Illumination( 0 ) ) );
 				}
 
 		return viewSetups;
@@ -212,7 +211,7 @@ public class MicroManager implements MultiViewDatasetDefinition
 
 		if ( meta.numPositions() > 1 )
 		{
-			IOFunctions.println( "WARNING: " + meta.numPositions() + " stage positions detected. This will be imported as different illumination directions." );
+			IOFunctions.println( "WARNING: " + meta.numPositions() + " stage positions detected. This will be imported as different tiles." );
 			gd.addMessage( "" );
 		}
 
