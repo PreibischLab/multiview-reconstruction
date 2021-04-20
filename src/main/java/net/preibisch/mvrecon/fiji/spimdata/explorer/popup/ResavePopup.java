@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -226,20 +227,36 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					else if ( index == 2 || index == 3 ) // HDF5, compressed HDF5
 					{
 						final List< ViewSetup > setups = SpimData2.getAllViewSetupsSorted( data, viewIds );
-						
+
 						// load all dimensions if they are not known (required for estimating the mipmap layout)
 						Resave_HDF5.loadDimensions( data, setups );
 
 						panel.saveXML();
 
 						final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setups );
-						final int firstviewSetupId = data.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
+						final int firstviewSetupId = setups.get( 0 ).getId();
 						final ExportMipmapInfo autoMipmapSettings = perSetupExportMipmapInfo.get( firstviewSetupId );
 
 						final boolean compress = (index != 2);
 
-						final String hdf5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".h5";
-						final File hdf5File = new File( hdf5Filename );
+						String hdf5Filename = null;
+						File hdf5File;
+						int i = 1;
+
+						do
+						{
+							if ( hdf5Filename == null )
+								hdf5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".h5";
+							else
+								hdf5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".v" + (i++) + ".h5";
+
+							hdf5File = new File( hdf5Filename );
+	
+							if ( hdf5File.exists() )
+								IOFunctions.println( "HDF5 file exists, choosing a different name: " + hdf5File.getAbsolutePath() + ". Please do not forget to the delete the old file if you want." );
+
+						} while ( hdf5File.exists() );
+
 						IOFunctions.println( "HDF5 file: " + hdf5File.getAbsolutePath() );
 
 						final Generic_Resave_HDF5.Parameters params =
