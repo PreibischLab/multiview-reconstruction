@@ -22,25 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.fusion;
 
-import java.awt.Checkbox;
-import java.awt.Choice;
-import java.awt.Label;
-import java.awt.TextField;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimData;
+import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.Entity;
-import mpicbg.spim.data.sequence.Channel;
-import mpicbg.spim.data.sequence.Illumination;
-import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
-import mpicbg.spim.data.sequence.SetupImgLoader;
-import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.*;
 import net.imglib2.Interval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -49,20 +35,22 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
-import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
-import net.preibisch.mvrecon.process.export.DisplayImage;
-import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
-import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
-import net.preibisch.mvrecon.process.export.ImgExport;
-import net.preibisch.mvrecon.process.export.Save3dTIFF;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.export.*;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 
 public class FusionGUI implements FusionExportInterface
 {
@@ -130,6 +118,10 @@ public class FusionGUI implements FusionExportInterface
 	final protected SpimData2 spimData;
 	final List< ViewId > views;
 	final List< BoundingBox > allBoxes;
+
+	final private String[] processingTypes = new String[]{"Normal","Local Spark","AWS Spark"};
+	final private int defaultProcessingType = 0;
+
 
 	public FusionGUI( final SpimData2 spimData, final List< ViewId > views )
 	{
@@ -265,6 +257,8 @@ public class FusionGUI implements FusionExportInterface
 		splitChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 
 		gd.addChoice( "Fused_image", imgExportDescriptions, imgExportDescriptions[ defaultImgExportAlgorithm ] );
+
+		gd.addChoice("Processing",processingTypes,processingTypes[defaultProcessingType]);
 
 		gd.addMessage( "Estimated size: ", GUIHelper.largestatusfont, GUIHelper.good );
 		if ( !PluginHelper.isHeadless() )  label1 = (Label)gd.getMessage();
@@ -481,5 +475,12 @@ public class FusionGUI implements FusionExportInterface
 			return 2;
 		else
 			return 4;
+	}
+
+	public static void main(String[] args) throws SpimDataException {
+		String path="/Users/Marwan/Desktop/Task/data/hdf5/dataset.xml";
+		SpimData2 spimdata = new XmlIoSpimData2("").load(path);
+		List<ViewId> views = new ArrayList<>(spimdata.getSequenceDescription().getViewDescriptions().keySet());
+		new FusionGUI(spimdata,views).queryDetails();
 	}
 }
