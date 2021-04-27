@@ -22,16 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
-
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-
 import bdv.AbstractSpimSource;
 import bdv.BigDataViewer;
 import bdv.tools.InitializeViewerState;
@@ -44,6 +34,7 @@ import bdv.viewer.ViewerPanel;
 import bdv.viewer.state.SourceState;
 import bdv.viewer.state.ViewerState;
 import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -62,6 +53,14 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+
 
 public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicBDVPopup
 {
@@ -78,7 +77,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? >>, ? > panel )
 	{
 		this.panel = panel;
 		return this;

@@ -94,6 +94,8 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</ciManagement>
 
 	<properties>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
 		<package-name>net.preibisch.mvrecon</package-name>
 
 		<license.licenseName>gpl_v2</license.licenseName>
