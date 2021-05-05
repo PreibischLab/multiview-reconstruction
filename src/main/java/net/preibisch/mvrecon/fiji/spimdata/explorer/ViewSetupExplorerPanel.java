@@ -707,6 +707,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 		popups.add( new DisplayRawImagesPopup() );
 		popups.add( new DisplayFusedImagesPopup() );
 		popups.add( new VisualizeNonRigid() );
+		popups.add( new NeuroglancerPopup() );
 		popups.add( new MaxProjectPopup() );
 		popups.add( new Separator() );
 

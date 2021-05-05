@@ -129,6 +129,13 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</repositories>
 
 	<dependencies>
+
+		<!--		AWS			-->
+		<dependency>
+			<groupId>com.bigdistributor</groupId>
+			<artifactId>BigDistributor_AWS</artifactId>
+			<version>0.3-SNAPSHOT</version>
+		</dependency>
 		<!-- BigDataViewer dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>

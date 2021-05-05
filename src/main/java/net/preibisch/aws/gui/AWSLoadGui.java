@@ -15,6 +15,7 @@ public class AWSLoadGui {
     private final static String defaultPath = "data";
     private final static String defaultFileName = "dataset-n5.xml";
     private final static String defaultExtra = "interestpoints";
+    private final static String defaultRegion = "eu-central-1";
     private AWSLoadParseQueryXML result;
 
 
@@ -22,10 +23,12 @@ public class AWSLoadGui {
         final GenericDialogPlus gd = new GenericDialogPlus("AWS Input");
         gd.addFileField("Key: ", defaultKeyPath, 45);
         gd.addMessage("");
-        gd.addStringField("Bucket name: ", defaultBucketName, 30);
+        gd.addStringField("Input uri: ", defaultBucketName, 30);
         gd.addStringField("Path: ", defaultPath, 30);
         gd.addStringField("XML File: ", defaultFileName, 30);
         gd.addStringField("Extras: ", defaultExtra, 30);
+        gd.addStringField("Region: ", defaultRegion, 30);
+
         gd.showDialog();
 
         if (gd.wasCanceled())
@@ -36,14 +39,15 @@ public class AWSLoadGui {
         String path = gd.getNextString();
         String xmlFile = gd.getNextString();
         String extrasField = gd.getNextString();
+        String regionField = gd.getNextString();
 
         AWSLoadParseQueryXML result = null;
         AWSCredentialInstance.init(keyPath);
-        S3BucketInstance.init(AWSCredentialInstance.get(), Regions.EU_CENTRAL_1,bucketName);
+        S3BucketInstance.init(AWSCredentialInstance.get(), Regions.fromName(regionField),bucketName,path);
         String[] extras = new String[]{};
         if(!extrasField.isEmpty()) extras = extrasField.split(",");
 
-        AWSDataParam params = AWSDataParam.init(bucketName, path, xmlFile, Regions.EU_CENTRAL_1, extras);
+        AWSDataParam params = AWSDataParam.init(bucketName, path, xmlFile, Regions.fromName(regionField), extras);
            result = new AWSLoadParseQueryXML();
 
         try {

@@ -22,7 +22,7 @@ public class LoadSpimFromAWS {
 
         AWSCredentialInstance.init(AWS_DEFAULT.AWS_CREDENTIALS_PATH);
 
-        S3BucketInstance.init(AWSCredentialInstance.get(), Regions.EU_CENTRAL_1, AWS_DEFAULT.bucket_name);
+        S3BucketInstance.init(AWSCredentialInstance.get(), Regions.EU_CENTRAL_1, AWS_DEFAULT.bucket_name,"");
 
         AWSSpimLoader spimLoader = new AWSSpimLoader(S3BucketInstance.get(),"","dataset-n5.xml");
         SpimData2 data = spimLoader.getSpimdata();
