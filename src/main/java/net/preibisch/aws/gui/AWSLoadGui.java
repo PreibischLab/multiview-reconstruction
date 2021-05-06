@@ -9,12 +9,9 @@ import com.amazonaws.services.s3.AmazonS3URI;
 import com.bigdistributor.aws.data.CredentialConfig;
 import com.bigdistributor.aws.data.CredentialSupplier;
 import com.bigdistributor.aws.dataexchange.aws.s3.func.auth.AWSCredentialInstance;
-import com.bigdistributor.aws.dataexchange.aws.s3.func.bucket.S3BucketInstance;
 import com.bigdistributor.aws.spimloader.AWSSpimLoader;
-import com.bigdistributor.aws.utils.AWS_DEFAULT;
 import fiji.util.gui.GenericDialogPlus;
 import net.preibisch.aws.spimloader.AWSLoadParseQueryXML;
-import net.preibisch.aws.tools.AWSDataParam;
 import net.preibisch.aws.tools.TempFolder;
 
 
@@ -64,7 +61,7 @@ public class AWSLoadGui {
         if (!result.queryXML(s3client, TempFolder.get(),new AmazonS3URI(uri))) {
             return false;
         }
-        AWSDataParam.setCloudMode(true);
+//        AWSDataParam.setCloudMode(true);
         this.result = result;
 //
         return true;
