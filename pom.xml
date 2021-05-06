@@ -135,6 +135,12 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<groupId>com.bigdistributor</groupId>
 			<artifactId>BigDistributor_AWS</artifactId>
 			<version>0.3-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+						<groupId>net.preibisch</groupId>
+						<artifactId>multiview-reconstruction</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- BigDataViewer dependencies -->
 		<dependency>
