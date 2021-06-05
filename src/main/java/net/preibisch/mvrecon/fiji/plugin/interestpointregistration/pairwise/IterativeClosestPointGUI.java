@@ -23,15 +23,13 @@
 package net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise;
 
 import ij.gui.GenericDialog;
-
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.icp.IterativeClosestPointPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.icp.IterativeClosestPointParameters;
-
-import mpicbg.spim.data.sequence.ViewId;
 
 /**
  * Iterative closest point implementation
@@ -72,6 +70,9 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 
 		gd.addSlider( "Maximal_distance for correspondence (px)", 0.25, 40.0, IterativeClosestPointParameters.maxDistance );
 		gd.addNumericField( "Maximal_number of iterations", IterativeClosestPointParameters.maxIterations, 0 );
+		gd.addCheckbox( "Use_RANSAC (at every iteration)", IterativeClosestPointParameters.defaultUseRANSAC);
+		gd.addSlider( "Allowed_error_for_RANSAC (px)", 0.5, 100.0, IterativeClosestPointParameters.defaultMaxEpsionRANSAC );
+		gd.addNumericField( "RANSAC_iterations", IterativeClosestPointParameters.defaultNumIterationsRANSAC, 0 );
 	}
 
 	@Override
@@ -94,8 +95,11 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 
 		final double maxDistance = IterativeClosestPointParameters.maxDistance = gd.getNextNumber();
 		final int maxIterations = IterativeClosestPointParameters.maxIterations = (int)Math.round( gd.getNextNumber() );
+		final boolean useRANSAC = IterativeClosestPointParameters.defaultUseRANSAC = gd.getNextBoolean();
+		final double maxEpsilonRANSAC = IterativeClosestPointParameters.defaultMaxEpsionRANSAC = gd.getNextNumber();
+		final int numIterationsRANSAC = IterativeClosestPointParameters.defaultNumIterationsRANSAC = (int)Math.round( gd.getNextNumber() );
 
-		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations );
+		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations, useRANSAC, maxEpsilonRANSAC, numIterationsRANSAC );
 
 		return true;
 	}

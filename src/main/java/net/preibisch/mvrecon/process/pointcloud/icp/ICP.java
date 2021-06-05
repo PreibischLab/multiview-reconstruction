@@ -35,6 +35,7 @@ import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.RealLocalizable;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;
@@ -53,7 +54,11 @@ public class ICP < P extends RealLocalizable >
 	List< PointMatchGeneric< LinkedInterestPoint< P > > > pointMatches;
 	ArrayList< PointMatch > ambigousMatches;
 	PointMatchIdentification< P > pointMatchIdentifier;
-	
+
+	final boolean useRANSAC;
+	final double maxEpsilonRANSAC;
+	final int maxIterationsRANSAC;
+
 	double avgError, maxError;
 	int numMatches;
 	
@@ -65,8 +70,17 @@ public class ICP < P extends RealLocalizable >
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
 	 * @param pointMatchIdentifier - the {@link PointMatchIdentification} which defines how correspondences are established
+	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param maxEpsilonRANSAC - max error for RANSAC if used
+	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
-	public ICP( final List< P > target, final List< P > reference, final PointMatchIdentification< P > pointMatchIdentifier )
+	public ICP(
+			final List< P > target,
+			final List< P > reference,
+			final PointMatchIdentification< P > pointMatchIdentifier,
+			final boolean useRANSAC, 
+			final double maxEpsilonRANSAC,
+			final int maxIterationsRANSAC )
 	{
 		this.reference = new ArrayList<>();
 		this.target = new ArrayList<>();
@@ -92,6 +106,10 @@ public class ICP < P extends RealLocalizable >
 
 		this.pointMatchIdentifier = pointMatchIdentifier;
 
+		this.useRANSAC = useRANSAC;
+		this.maxEpsilonRANSAC = maxEpsilonRANSAC;
+		this.maxIterationsRANSAC = maxIterationsRANSAC;
+
 		this.avgError = -1;
 		this.maxError = -1;
 		this.numMatches = -1;
@@ -103,10 +121,19 @@ public class ICP < P extends RealLocalizable >
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
 	 * @param distanceThreshold - the maximal distance of {@link SimplePointMatchIdentification}, so that the nearest neighbor of a point is still counted as a corresponding point
+	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param maxEpsilonRANSAC - max error for RANSAC if used
+	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
-	public ICP( final List< P > target, final List< P > reference, final double distanceThreshold )
+	public ICP(
+			final List< P > target,
+			final List< P > reference,
+			final double distanceThreshold,
+			final boolean useRANSAC,
+			final double maxEpsilonRANSAC,
+			final int maxIterationsRANSAC )
 	{
-		this( target, reference, new SimplePointMatchIdentification< P >( distanceThreshold ) );
+		this( target, reference, new SimplePointMatchIdentification< P >( distanceThreshold ), useRANSAC, maxEpsilonRANSAC, maxIterationsRANSAC );
 	}
 
 	/**
@@ -114,10 +141,18 @@ public class ICP < P extends RealLocalizable >
 	 * 
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
+	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param maxEpsilonRANSAC - max error for RANSAC if used
+	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
-	public ICP( final List< P > target, final List< P > reference )
+	public ICP(
+			final List< P > target,
+			final List< P > reference,
+			final boolean useRANSAC, 
+			final double maxEpsilonRANSAC,
+			final int maxIterationsRANSAC )
 	{
-		this( target, reference, new SimplePointMatchIdentification<P>() );
+		this( target, reference, new SimplePointMatchIdentification<P>(), useRANSAC, maxEpsilonRANSAC, maxIterationsRANSAC );
 	}
 
 	/**
@@ -138,8 +173,21 @@ public class ICP < P extends RealLocalizable >
 			point.apply( lastModel );
 		
 		/* get corresponding points for ICP */
-		final List< PointMatchGeneric< LinkedInterestPoint< P > > > matches = pointMatchIdentifier.assignPointMatches( target, reference );
-		
+		final List< PointMatchGeneric< LinkedInterestPoint< P > > > candidates = pointMatchIdentifier.assignPointMatches( target, reference );
+
+		/* run RANSAC on the identified points if desired */
+		final List< PointMatchGeneric< LinkedInterestPoint< P > > > matches = new ArrayList<>();
+
+		if ( useRANSAC )
+		{
+			newModel.filterRansac( candidates, matches, maxIterationsRANSAC, maxEpsilonRANSAC, 0.0f );
+			//IOFunctions.println( "RANSAC: " + matches.size() + "/" + candidates.size() );
+		}
+		else
+		{
+			matches.addAll( candidates );
+		}
+
 		/* remove ambigous correspondences */
 		ambigousMatches = removeAmbigousMatches( matches );
 
