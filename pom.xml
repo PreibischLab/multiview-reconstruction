@@ -101,20 +101,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<multiview-simulation.version>0.2.0</multiview-simulation.version>
 
-		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
-		<bigdataviewer-vistools.version>1.0.0-beta-28</bigdataviewer-vistools.version>
-		<bigdataviewer_fiji.version>6.2.1</bigdataviewer_fiji.version>
-		<imglib2-cache.version>1.0.0-beta-16</imglib2-cache.version>
-<!-- 
-		<bigdataviewer-core.version>9.0.6</bigdataviewer-core.version>
-		<imglib2.version>5.9.0</imglib2.version>
-		<imglib2-cache.version>1.0.0-beta-13</imglib2-cache.version>
-		<imglib2-ij.version>2.0.0-beta-46</imglib2-ij.version>
-		<spim_data.version>2.2.3</spim_data.version>
-		<ui-behaviour.version>2.0.1</ui-behaviour.version>
-		<bigdataviewer-vistools.version>1.0.0-beta-19</bigdataviewer-vistools.version>
--->
-
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
