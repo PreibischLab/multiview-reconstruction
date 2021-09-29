@@ -1,4 +1,4 @@
-[![](https://travis-ci.org/PreibischLab/multiview-reconstruction.svg?branch=master)](https://travis-ci.org/PreibischLab/multiview-reconstruction)
+[![](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build-main.yml/badge.svg)](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build-main.yml)
 
 #  Introduction & Overview
 
