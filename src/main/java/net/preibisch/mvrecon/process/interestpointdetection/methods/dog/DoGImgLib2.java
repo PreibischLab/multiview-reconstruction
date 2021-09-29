@@ -54,6 +54,7 @@ import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -222,8 +223,16 @@ public class DoGImgLib2
 		{
 			maskFloat = null;
 
-			gauss1 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
-			gauss2 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
+			if ( Views.iterable( inputFloat ).size() < 2147483647 )
+			{
+				gauss1 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
+				gauss2 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
+			}
+			else
+			{
+				gauss1 = Views.translate( new CellImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
+				gauss2 = Views.translate( new CellImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
+			}
 
 			Gauss3.gauss(sigma1, Views.extendMirrorSingle( inputFloat ), gauss1, service);
 			Gauss3.gauss(sigma2, Views.extendMirrorSingle( inputFloat ), gauss2, service);
