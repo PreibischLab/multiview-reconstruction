@@ -26,6 +26,7 @@ import net.imglib2.img.NativeImg;
 import net.imglib2.img.basictypeaccess.DoubleAccess;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.Index;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.NativeTypeFactory;
 import net.imglib2.type.numeric.NumericType;
@@ -33,7 +34,8 @@ import net.imglib2.util.Fraction;
 
 public class NumericAffineTransform3D implements NumericType< NumericAffineTransform3D >, NativeType< NumericAffineTransform3D >
 {
-	private int i = 0;
+	final private Index i = new Index();
+	//private int i = 0;
 	private int baseIndex = 0; // i * 12;
 
 	final protected NativeImg< ?, ? extends DoubleAccess > img;
@@ -80,6 +82,9 @@ public class NumericAffineTransform3D implements NumericType< NumericAffineTrans
 				getAtBase( 4 ), getAtBase( 5 ), getAtBase( 6 ), getAtBase( 7 ),
 				getAtBase( 8 ), getAtBase( 9 ), getAtBase( 10 ), getAtBase( 11 ) );
 	}
+
+	@Override
+	public Index index() { return i; }
 
 	final protected double getAtBase( final int j )
 	{
@@ -219,41 +224,35 @@ public class NumericAffineTransform3D implements NumericType< NumericAffineTrans
 	@Override
 	public void updateIndex( final int i )
 	{
-		this.i = i;
+		this.i.set( i );
 		this.baseIndex = i * 12;
-	}
-
-	@Override
-	public int getIndex()
-	{
-		return i;
 	}
 
 	@Override
 	public void incIndex()
 	{
-		++i;
+		i.inc();
 		baseIndex += 12;
 	}
 
 	@Override
 	public void incIndex( final int increment )
 	{
-		i += increment;
+		i.inc(increment);
 		baseIndex += 12*increment;
 	}
 
 	@Override
 	public void decIndex()
 	{
-		--i;
+		i.dec();
 		baseIndex -= 12;
 	}
 
 	@Override
 	public void decIndex( int decrement )
 	{
-		i -= decrement;
+		i.dec(decrement);
 		baseIndex -= 12*decrement;
 	}
 

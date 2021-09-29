@@ -26,6 +26,7 @@ import mpicbg.models.AffineModel3D;
 import net.imglib2.img.NativeImg;
 import net.imglib2.img.basictypeaccess.DoubleAccess;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
+import net.imglib2.type.Index;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.NativeTypeFactory;
 import net.imglib2.type.numeric.NumericType;
@@ -33,7 +34,8 @@ import net.imglib2.util.Fraction;
 
 public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >, NativeType< NumericAffineModel3D >
 {
-	private int i = 0;
+	final private Index i = new Index();
+	//private int i = 0;
 	private int baseIndex = 0; // i * 12;
 
 	final protected NativeImg< ?, ? extends DoubleAccess > img;
@@ -71,6 +73,9 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 	{
 		this( new AffineModel3D() );
 	}
+
+	@Override
+	public Index index() { return i; }
 
 	protected void updateModelTmp()
 	{
@@ -218,41 +223,35 @@ public class NumericAffineModel3D implements NumericType< NumericAffineModel3D >
 	@Override
 	public void updateIndex( final int i )
 	{
-		this.i = i;
+		index().set( i );
 		this.baseIndex = i * 12;
-	}
-
-	@Override
-	public int getIndex()
-	{
-		return i;
 	}
 
 	@Override
 	public void incIndex()
 	{
-		++i;
+		i.inc();
 		baseIndex += 12;
 	}
 
 	@Override
 	public void incIndex( final int increment )
 	{
-		i += increment;
+		i.inc(increment);
 		baseIndex += 12*increment;
 	}
 
 	@Override
 	public void decIndex()
 	{
-		--i;
+		i.dec();
 		baseIndex -= 12;
 	}
 
 	@Override
 	public void decIndex( int decrement )
 	{
-		i -= decrement;
+		i.dec(decrement);
 		baseIndex -= 12*decrement;
 	}
 
