@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import ij.IJ;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.base.Entity;
@@ -248,12 +249,13 @@ public class FusionGUI implements FusionExportInterface
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
 
-		if ( avgAnisoF > 1.01 ) // for numerical instabilities (computed upon instantiation)
+		IJ.log( "avgAnisoF: " + avgAnisoF );
+		if ( avgAnisoF > 1.01 || avgAnisoF < 0.99 ) // for numerical instabilities (computed upon instantiation)
 		{
 			gd.addCheckbox( "Preserve_original data anisotropy (shrink image " + TransformationTools.f.format( avgAnisoF ) + " times in z) ", defaultPreserveAnisotropy );
 			anisoCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
 			gd.addMessage(
-					"WARNING: Enabling this means to 'shrink' the dataset in z the same way the input\n" +
+					"WARNING: Enabling this means to 'shrink' (or in rate case 'stretch') the dataset in z the same way the input\n" +
 					"images were scaled. Only use this if this is not a multiview dataset.", GUIHelper.smallStatusFont, GUIHelper.warning );
 		}
 		else
@@ -331,7 +333,7 @@ public class FusionGUI implements FusionExportInterface
 			adjustIntensities = defaultAdjustIntensities = gd.getNextBoolean();
 		else
 			adjustIntensities = false;
-		if ( avgAnisoF > 1.01 )
+		if ( avgAnisoF > 1.01 || avgAnisoF < 0.99 )
 			preserveAnisotropy = defaultPreserveAnisotropy = gd.getNextBoolean();
 		else
 			preserveAnisotropy = defaultPreserveAnisotropy = false;
