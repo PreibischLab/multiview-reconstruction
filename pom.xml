@@ -34,7 +34,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<developer>
 			<id>StephanPreibisch</id>
 			<name>Stephan Preibisch</name>
-			<url>https://imagej.net/User:StephanP</url>
+			<url>https://imagej.net/people/StephanPreibisch</url>
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -48,7 +48,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<developer>
 			<id>hoerldavid</id>
 			<name>David Hoerl</name>
-			<url>https://imagej.net/User:Davidhoerl</url>
+			<url>https://imagej.net/people/hoerldavid</url>
 			<roles>
 				<role>developer</role>
 				<role>debugger</role>
@@ -61,12 +61,12 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	<contributors>
 		<contributor>
 			<name>Tobias Pietzsch</name>
-			<url>https://imagej.net/User:Pietzsch</url>
+			<url>https://imagej.net/people/tpietzsch</url>
 			<properties><id>tpietzsch</id></properties>
 		</contributor>
 		<contributor>
 			<name>Curtis Rueden</name>
-			<url>https://imagej.net/User:Rueden</url>
+			<url>https://imagej.net/people/ctrueden</url>
 			<properties><id>ctrueden</id></properties>
 		</contributor>
 	</contributors>
@@ -74,7 +74,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	<mailingLists>
 		<mailingList>
 			<name>Image.sc Forum</name>
-			<archive>https://forum.image.sc/tags/multiview-reconstruction</archive>
+			<archive>https://forum.image.sc/tag/multiview-reconstruction</archive>
 		</mailingList>
 	</mailingLists>
 
