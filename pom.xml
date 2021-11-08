@@ -79,7 +79,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/PreibischLab/multiview-reconstruction</connection>
+		<connection>scm:git:https://github.com/PreibischLab/multiview-reconstruction</connection>
 		<developerConnection>scm:git:git@github.com:PreibischLab/multiview-reconstruction</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/PreibischLab/multiview-reconstruction</url>
