@@ -76,7 +76,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.CZITileOrAng
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.NikonND2TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
-
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import ome.units.quantity.Length;
 
 
@@ -948,7 +948,7 @@ public class FileListDatasetDefinitionUtil
 
 		if (reader == null)
 		{
-			reader = new ImageReader();
+			reader = BioformatsReaderUtils.createImageReaderWithSetupHooks();
 			reader.setMetadataStore( new OMEXMLMetadataImpl());
 		}
 
@@ -1045,7 +1045,7 @@ public class FileListDatasetDefinitionUtil
 		for (File file : files)
 			if (!usedFiles.contains( file.getAbsolutePath() ))
 			{
-				ImageReader reader = new ImageReader();
+				ImageReader reader = BioformatsReaderUtils.createImageReaderWithSetupHooks();
 				reader.setMetadataStore( new OMEXMLMetadataImpl() );
 				detectViewsInFile( 	file,
 									multiplicityMapInner,
@@ -1096,7 +1096,7 @@ public class FileListDatasetDefinitionUtil
 		
 		if (reader == null)
 		{
-			reader = new ImageReader();
+			reader = BioformatsReaderUtils.createImageReaderWithSetupHooks();
 			reader.setMetadataStore( new OMEXMLMetadataImpl());
 		}
 
