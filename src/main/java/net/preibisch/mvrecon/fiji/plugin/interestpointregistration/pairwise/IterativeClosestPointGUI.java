@@ -48,14 +48,14 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 	@Override
 	public IterativeClosestPointPairwise< InterestPoint > pairwiseMatchingInstance()
 	{
-		final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( model.getModel(), parameters );
+		final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( model.getModel() );
 		return new IterativeClosestPointPairwise< InterestPoint >( ip );
 	}
 
 	@Override
 	public MatcherPairwise< GroupedInterestPoint< ViewId > > pairwiseGroupedMatchingInstance()
 	{
-		final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( model.getModel(), parameters );
+		final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( model.getModel() );
 		return new IterativeClosestPointPairwise< GroupedInterestPoint< ViewId > >( ip );
 	}
 

@@ -134,7 +134,7 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 		{
 			result.setCandidates( ICP.unwrapPointMatches( icp.getPointMatches() ) );
 			result.setInliers( ICP.unwrapPointMatches( icp.getPointMatches() ), icp.getAverageError() );
-			result.setResult( System.currentTimeMillis(), "Found " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + " after " + i + " iterations" );
+			result.setResult( System.currentTimeMillis(), "Found " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + " after " + i + " iterations (minNumMatches=" + ip.getMinNumPoints() + ")" );
 		}
 		
 		return result;
