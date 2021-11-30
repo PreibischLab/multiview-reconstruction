@@ -124,6 +124,12 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 			result.setInliers( new ArrayList<>(), Double.NaN );
 			result.setResult( System.currentTimeMillis(), "No corresponding points." );
 		}
+		else if ( icp.getPointMatches().size() < ip.getMinNumPoints() )
+		{
+			result.setCandidates( new ArrayList<>() );
+			result.setInliers( new ArrayList<>(), Double.NaN );
+			result.setResult( System.currentTimeMillis(), "Not enough corresponding points found (only " + icp.getPointMatches().size() + "/" + ip.getMinNumPoints() +")." );
+		}
 		else
 		{
 			result.setCandidates( ICP.unwrapPointMatches( icp.getPointMatches() ) );
