@@ -163,7 +163,7 @@ public class SplittingTools
 
 					// only update interest points for present views
 					// oldVipl may be null for missing views
-					if (!spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
+					if (spimData.getSequenceDescription().getMissingViews() != null && !spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
