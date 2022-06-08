@@ -73,6 +73,7 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 		gd.addCheckbox( "Use_RANSAC (at every iteration)", IterativeClosestPointParameters.defaultUseRANSAC);
 		gd.addSlider( "Allowed_error_for_RANSAC (px)", 0.5, 100.0, IterativeClosestPointParameters.defaultMaxEpsionRANSAC );
 		gd.addNumericField( "RANSAC_iterations", IterativeClosestPointParameters.defaultNumIterationsRANSAC, 0 );
+		gd.addNumericField( "Minimal_number of required points", IterativeClosestPointParameters.defaultMinNumPoints, 0 );
 	}
 
 	@Override
@@ -98,8 +99,9 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 		final boolean useRANSAC = IterativeClosestPointParameters.defaultUseRANSAC = gd.getNextBoolean();
 		final double maxEpsilonRANSAC = IterativeClosestPointParameters.defaultMaxEpsionRANSAC = gd.getNextNumber();
 		final int numIterationsRANSAC = IterativeClosestPointParameters.defaultNumIterationsRANSAC = (int)Math.round( gd.getNextNumber() );
+		final int minNumPoints = IterativeClosestPointParameters.defaultMinNumPoints = (int)Math.round( gd.getNextNumber() );
 
-		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations, useRANSAC, maxEpsilonRANSAC, numIterationsRANSAC );
+		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations, useRANSAC, maxEpsilonRANSAC, numIterationsRANSAC, minNumPoints );
 
 		return true;
 	}

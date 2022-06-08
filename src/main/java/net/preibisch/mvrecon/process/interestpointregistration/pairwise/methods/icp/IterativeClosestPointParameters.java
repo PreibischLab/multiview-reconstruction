@@ -31,12 +31,14 @@ public class IterativeClosestPointParameters
 	public static boolean defaultUseRANSAC = true;
 	public static double defaultMaxEpsionRANSAC = maxDistance / 2.0;
 	public static int defaultNumIterationsRANSAC = 200;
+	public static int defaultMinNumPoints = 12;
 
 	private double d;
 	private int maxIt;
 	private boolean useRANSAC;
 	private double maxEpsilonRANSAC;
 	private int maxIterationsRANSAC;
+	private int minNumPoints;
 
 	private Model< ? > model = null;
 
@@ -46,7 +48,8 @@ public class IterativeClosestPointParameters
 			final int maxIterations,
 			final boolean useRANSAC, 
 			final double maxEpsilonRANSAC,
-			final int maxIterationsRANSAC )
+			final int maxIterationsRANSAC,
+			final int minNumPoints )
 	{
 		this.model = model;
 		this.d = maxDistance;
@@ -54,11 +57,19 @@ public class IterativeClosestPointParameters
 		this.useRANSAC = useRANSAC;
 		this.maxEpsilonRANSAC = maxEpsilonRANSAC;
 		this.maxIterationsRANSAC = maxIterationsRANSAC;
+		this.minNumPoints = minNumPoints;
+	}
+
+	public IterativeClosestPointParameters(
+			final Model< ? > model,
+			IterativeClosestPointParameters p )
+	{
+		this( model, p.getMaxDistance(), p.getMaxNumIterations(), p.useRANSAC(), p.getMaxEpsilonRANSAC(), p.getMaxIterationsRANSAC(), p.getMinNumPoints() );
 	}
 
 	public IterativeClosestPointParameters( final Model< ? > model )
 	{
-		this( model, maxDistance, maxIterations, defaultUseRANSAC, defaultMaxEpsionRANSAC, defaultNumIterationsRANSAC );
+		this( model, maxDistance, maxIterations, defaultUseRANSAC, defaultMaxEpsionRANSAC, defaultNumIterationsRANSAC, defaultMinNumPoints );
 	}
 
 	public Model< ? > getModel() { return model.copy(); }
@@ -67,4 +78,5 @@ public class IterativeClosestPointParameters
 	public boolean useRANSAC() { return useRANSAC; }
 	public double getMaxEpsilonRANSAC() { return maxEpsilonRANSAC; }
 	public int getMaxIterationsRANSAC() { return maxIterationsRANSAC; }
+	public int getMinNumPoints() { return minNumPoints; }
 }

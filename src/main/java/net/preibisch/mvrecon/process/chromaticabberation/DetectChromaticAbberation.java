@@ -88,7 +88,7 @@ public class DetectChromaticAbberation
 
 		final RANSACParameters rp = new RANSACParameters().setMinInlierFactor( 20 );
 		final RGLDMParameters dp = new RGLDMParameters( new TranslationModel3D(), 50, 2, 3, 1 );
-		final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( new TranslationModel3D(), 5.0, 100, false, 0, 0 );
+		//final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( new TranslationModel3D(), 5.0, 100, false, 0, 0, IterativeClosestPointParameters.defaultMinNumPoints );
 
 		for ( final Pair< Channel, Channel > channelPair: channelPairs )
 		{
