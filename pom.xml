@@ -102,6 +102,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<multiview-simulation.version>0.2.0</multiview-simulation.version>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<scijava.jvm.version>11</scijava.jvm.version>
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
 
@@ -113,6 +114,16 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>18.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-swing</artifactId>
+			<version>18.0.1</version>
+		</dependency>
 		<!-- BigDataViewer dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>

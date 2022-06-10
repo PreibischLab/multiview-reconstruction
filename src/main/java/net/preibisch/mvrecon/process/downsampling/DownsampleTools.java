@@ -580,7 +580,7 @@ public class DownsampleTools
 
 			if ( f == null )
 			{
-				final NativeType< ? > t = Util.getTypeFromInterval( input );
+				final NativeType< ? > t = (NativeType) Util.getTypeFromInterval( input );
 				f = new CellImgFactory( t );
 			}
 
@@ -630,7 +630,7 @@ public class DownsampleTools
 		}
 		else
 		{
-			final NativeType< ? > t = Util.getTypeFromInterval( img );
+			final NativeType< ? > t = (NativeType) Util.getTypeFromInterval( img );
 			final Img completeImg = new CellImgFactory( t ).create( img );
 
 			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
