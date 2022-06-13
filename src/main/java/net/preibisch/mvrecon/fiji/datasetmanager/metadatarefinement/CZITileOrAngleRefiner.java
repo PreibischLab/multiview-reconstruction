@@ -26,9 +26,11 @@ import java.util.List;
 
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackList;
+import ome.units.quantity.Length;
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.TileOrAngleInfo;
 
 import loci.formats.IFormatReader;
+import loci.formats.meta.MetadataRetrieve;
 
 public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 {
@@ -36,6 +38,8 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 	{
 		final int nSeries = r.getSeriesCount();
 		final int numDigits = Integer.toString( nSeries ).length();
+		
+		double[] referenceFramePosition = new double[] {0.0, 0.0, 0.0};
 		
 		for (int i = 0; i < infos.size(); i++)
 		{	
@@ -64,25 +68,59 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 				{
 					infoT.axis = null;
 				}
-			}			
+			}
+
+			final MetadataRetrieve mr = (MetadataRetrieve) r.getMetadataStore();
+
+			Length posX = mr.getPlanePositionX( i, 0 );
+			Length posY = mr.getPlanePositionY( i, 0 );
+			Length posZ = mr.getPlanePositionZ( i, 0 );
 			
+			Double pszX = (mr.getPixelsPhysicalSizeX( i ) != null) ? mr.getPixelsPhysicalSizeX( i ).value().doubleValue() : 1.0;
+			Double pszY = (mr.getPixelsPhysicalSizeY( i ) != null) ? mr.getPixelsPhysicalSizeY( i ).value().doubleValue() : 1.0;
+			Double pszZ = (mr.getPixelsPhysicalSizeZ( i ) != null) ? mr.getPixelsPhysicalSizeZ( i ).value().doubleValue() : 1.0;
+
+			// parse locations or default to 0.0
+			infoT.locationX = (posX != null) ? posX.value().doubleValue() * pszX : 0.0;
+			infoT.locationY = (posY != null) ? posY.value().doubleValue() * pszY : 0.0;
+			infoT.locationZ = (posZ != null) ? posZ.value().doubleValue() * pszZ : 0.0;
+
+			// NOTE: position of first image seems off
+			// if we have non-null locations that are not in unit "reference frame", we save them as the reference frame
+			// else, we add the offset of the previous reference frame ?
+			// FIXME: needs further testing to work correctly
+
+//			if ((posX != null) && !posX.unit().getSymbol().equals( "reference frame" ))
+//				referenceFramePosition[0] = infoT.locationX;
+//			else
+//				infoT.locationX = infoT.locationX + referenceFramePosition[0];
+//			
+//			if ((posY != null) && !posY.unit().getSymbol().equals( "reference frame" ))
+//				referenceFramePosition[1] = infoT.locationY;
+//			else
+//				infoT.locationY = infoT.locationY + referenceFramePosition[1];
+//			
+//			if ((posZ != null) && !posZ.unit().getSymbol().equals( "reference frame" ))
+//				referenceFramePosition[2] = infoT.locationZ;
+//			else
+//				infoT.locationZ = infoT.locationZ + referenceFramePosition[2];
+
+			// Old version (pre-LS7?) - will override previous results if the corresponding metadata values are present
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionX #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionX #" + ( i+1 ) );
-			infoT.locationX = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
+			infoT.locationX = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : infoT.locationX;
 
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionY #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionY #"  + ( i+1 ) );
-			infoT.locationY = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
+			infoT.locationY = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : infoT.locationY;
 
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionZ #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
 			if ( tmp == null )
 				tmp = r.getMetadataValue( "Information|Image|V|View|PositionZ #" + ( i+1 ) );
-			infoT.locationZ = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : 0.0;
-			
-			
-			
+			infoT.locationZ = (tmp != null) ?  Double.parseDouble( tmp.toString() )  : infoT.locationZ;
+
 		}
 		
 	}
