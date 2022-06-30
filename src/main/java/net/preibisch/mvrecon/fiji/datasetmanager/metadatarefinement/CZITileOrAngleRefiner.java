@@ -48,11 +48,14 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 			Object tmp = r.getMetadataValue("Information|Image|V|View|Offset #" + ( i+1 ));
 			if (tmp == null)
 				tmp = r.getMetadataValue("Information|Image|V|View|Offset #" + StackList.leadingZeros( Integer.toString( i + 1 ), numDigits ) );
-			
+
 			double angleT = (tmp != null) ?  Double.parseDouble( tmp.toString() ) : 0;			
 			infoT.angle = angleT;
 			
 			tmp = r.getMetadataValue( "Information|Image|V|AxisOfRotation #1" );
+			if (tmp == null)
+				tmp = r.getMetadataValue( "Information|Image|V|AxisOfRotation" );
+
 			if ( tmp != null && tmp.toString().trim().length() >= 5 )
 			{
 				//IOFunctions.println( "Rotation axis: " + tmp );

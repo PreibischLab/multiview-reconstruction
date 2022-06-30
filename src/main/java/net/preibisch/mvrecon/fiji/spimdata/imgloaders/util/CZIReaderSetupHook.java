@@ -8,6 +8,7 @@ import loci.formats.in.ZeissCZIReader;
 public class CZIReaderSetupHook implements BioformatsReaderSetupHook {
 
 	private boolean allowAutostitch = false;
+	private boolean relativePositions = true;
 	private static CZIReaderSetupHook instance = null;
 
 	private CZIReaderSetupHook() {}
@@ -25,6 +26,11 @@ public class CZIReaderSetupHook implements BioformatsReaderSetupHook {
 		this.allowAutostitch = allowAutostitch;
 	}
 
+	public void setRelativePositions(boolean relativePositions)
+	{
+		this.relativePositions = relativePositions;
+	}
+
 	@Override
 	public void runSetup(IFormatReader reader) {
 
@@ -38,6 +44,8 @@ public class CZIReaderSetupHook implements BioformatsReaderSetupHook {
 		if (options instanceof DynamicMetadataOptions) {
 			((DynamicMetadataOptions) options).setBoolean(
 					ZeissCZIReader.ALLOW_AUTOSTITCHING_KEY, allowAutostitch);
+			((DynamicMetadataOptions) options).setBoolean(
+					ZeissCZIReader.RELATIVE_POSITIONS_KEY, relativePositions);
 		} else {
 			System.err.println("WARNING: could not set CZI autostitching option.");
 		}
