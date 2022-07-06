@@ -38,14 +38,35 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 	{
 		final int nSeries = r.getSeriesCount();
 		final int numDigits = Integer.toString( nSeries ).length();
-		
+
+		double firstTileZ = 0.0;
+
+		// get grid position
+		// offset to add to all (relative) coordinates
 		double[] referenceFramePosition = new double[] {0.0, 0.0, 0.0};
-		
+		Object tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|X" );
+		if (tmp == null)
+			tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|X #1" );
+		if (tmp != null)
+			referenceFramePosition[0] = Double.parseDouble( tmp.toString() );
+
+		tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|Y" );
+		if (tmp == null)
+			tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|Y #1" );
+		if (tmp != null)
+			referenceFramePosition[1] = Double.parseDouble( tmp.toString() );
+
+		tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|Z" );
+		if (tmp == null)
+			tmp = r.getMetadataValue( "Information|Image|S|Scene|Position|Z #1" );
+		if (tmp != null)
+			referenceFramePosition[2] = Double.parseDouble( tmp.toString() );
+
 		for (int i = 0; i < infos.size(); i++)
 		{	
 			FileListDatasetDefinitionUtil.TileOrAngleInfo infoT = infos.get( i );
-			
-			Object tmp = r.getMetadataValue("Information|Image|V|View|Offset #" + ( i+1 ));
+
+			tmp = r.getMetadataValue("Information|Image|V|View|Offset #" + ( i+1 ));
 			if (tmp == null)
 				tmp = r.getMetadataValue("Information|Image|V|View|Offset #" + StackList.leadingZeros( Integer.toString( i + 1 ), numDigits ) );
 
@@ -58,7 +79,6 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 
 			if ( tmp != null && tmp.toString().trim().length() >= 5 )
 			{
-				//IOFunctions.println( "Rotation axis: " + tmp );
 				final String[] axes = tmp.toString().split( " " );
 
 				if ( Double.parseDouble( axes[ 0 ] ) == 1.0 )
@@ -78,7 +98,7 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 			Length posX = mr.getPlanePositionX( i, 0 );
 			Length posY = mr.getPlanePositionY( i, 0 );
 			Length posZ = mr.getPlanePositionZ( i, 0 );
-			
+
 			Double pszX = (mr.getPixelsPhysicalSizeX( i ) != null) ? mr.getPixelsPhysicalSizeX( i ).value().doubleValue() : 1.0;
 			Double pszY = (mr.getPixelsPhysicalSizeY( i ) != null) ? mr.getPixelsPhysicalSizeY( i ).value().doubleValue() : 1.0;
 			Double pszZ = (mr.getPixelsPhysicalSizeZ( i ) != null) ? mr.getPixelsPhysicalSizeZ( i ).value().doubleValue() : 1.0;
@@ -86,27 +106,18 @@ public class CZITileOrAngleRefiner implements TileOrAngleRefiner
 			// parse locations or default to 0.0
 			infoT.locationX = (posX != null) ? posX.value().doubleValue() * pszX : 0.0;
 			infoT.locationY = (posY != null) ? posY.value().doubleValue() * pszY : 0.0;
-			infoT.locationZ = (posZ != null) ? posZ.value().doubleValue() * pszZ : 0.0;
 
-			// NOTE: position of first image seems off
-			// if we have non-null locations that are not in unit "reference frame", we save them as the reference frame
-			// else, we add the offset of the previous reference frame ?
-			// FIXME: needs further testing to work correctly
+			// z location seems to be null for every tile except the first
+			// -> re-use z location from first tile for others
+			if (posZ != null)
+				firstTileZ = posZ.value().doubleValue() * pszZ;
+			infoT.locationZ = (posZ != null) ? posZ.value().doubleValue() * pszZ : firstTileZ;
 
-//			if ((posX != null) && !posX.unit().getSymbol().equals( "reference frame" ))
-//				referenceFramePosition[0] = infoT.locationX;
-//			else
-//				infoT.locationX = infoT.locationX + referenceFramePosition[0];
-//			
-//			if ((posY != null) && !posY.unit().getSymbol().equals( "reference frame" ))
-//				referenceFramePosition[1] = infoT.locationY;
-//			else
-//				infoT.locationY = infoT.locationY + referenceFramePosition[1];
-//			
-//			if ((posZ != null) && !posZ.unit().getSymbol().equals( "reference frame" ))
-//				referenceFramePosition[2] = infoT.locationZ;
-//			else
-//				infoT.locationZ = infoT.locationZ + referenceFramePosition[2];
+			// add grid offset to coordinates
+			infoT.locationX += referenceFramePosition[0];
+			infoT.locationY += referenceFramePosition[1];
+			infoT.locationZ += referenceFramePosition[2];
+
 
 			// Old version (pre-LS7?) - will override previous results if the corresponding metadata values are present
 			tmp = r.getMetadataValue( "Information|Image|V|View|PositionX #" + StackList.leadingZeros( Integer.toString( i+1 ), numDigits ) );
