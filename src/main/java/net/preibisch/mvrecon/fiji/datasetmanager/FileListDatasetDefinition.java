@@ -987,6 +987,54 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		final int gridMoveType = gd.getNextChoiceIndex();
 
+
+		// we have multiple Angles defined by a file pattern, but not by metadata
+		// give user the option to interpret pattern values as angles
+		// and query rotation axis manually 
+		if (state.getMultiplicityMap().get( Angle.class ).equals( CheckResult.SINGLE ) && fileVariableToUse.get( Angle.class ).size() == 1)
+		{
+			final GenericDialogPlus gdAnglesFromPattern = new GenericDialogPlus( "Parse Angles from file pattern" );
+
+			StringBuilder sbAngleInfo = new StringBuilder();
+			sbAngleInfo.append( "<html>No metadata for sample rotation found, but numeric patterns for Angle in filenames:" );
+			sbAngleInfo.append( "<ul>" );
+			for (String s: patternDetector.getValuesForVariable( fileVariableToUse.get( Angle.class ).get( 0 ) ) )
+				sbAngleInfo.append( "<li>" + s + "</li>" );
+			sbAngleInfo.append( "</ul>You can choose to interpret the pattern as rotation angles."
+					+ "<br/>Please check \"apply angle rotation\" in the next step to apply rotations to data immediately" );
+			sbAngleInfo.append( "</html>" );
+			addMessageAsJLabel( sbAngleInfo.toString(), gdAnglesFromPattern );
+
+			gdAnglesFromPattern.addCheckbox( "use_pattern_as_rotation", true );
+			gdAnglesFromPattern.addChoice( "rotation_axis", new String[] {"X", "Y", "Z"},  "Y" );
+			gdAnglesFromPattern.showDialog();
+
+			if (gdAnglesFromPattern.wasCanceled())
+				return null;
+
+			boolean usePatternRotation = gdAnglesFromPattern.getNextBoolean();
+			int rotationAxis = gdAnglesFromPattern.getNextChoiceIndex();
+
+			if (usePatternRotation)
+			{
+				// build new AngleInfo map (since we have no metadata, all values might point to the same instance)
+				HashMap< Integer, Object > angleInfosFromFilePattern = new HashMap<Integer, Object>();
+
+				// go through ids of AngleInfos and create new AngleInfo based on id and manually given rotation axis
+				state.getDetailMap().get(Angle.class).keySet().forEach( k -> {
+					AngleInfo angleInfoI = new AngleInfo();
+					angleInfoI.angle = (double) k;
+					angleInfoI.axis = rotationAxis;
+					angleInfosFromFilePattern.put( k, angleInfoI );
+				});
+
+				// clear old detail map and add updated AngleInfos
+				state.getDetailMap().get(Angle.class).clear();
+				state.getDetailMap().get(Angle.class).putAll( angleInfosFromFilePattern );
+
+			}
+		}
+
 		// we create a virtual SpimData at first
 		SpimData2 data = buildSpimData( state, true );
 

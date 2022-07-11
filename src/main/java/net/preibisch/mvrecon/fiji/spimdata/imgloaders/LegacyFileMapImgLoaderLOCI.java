@@ -74,6 +74,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import util.ImgLib2Tools;
 
 
@@ -206,7 +207,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		}
 		else
 		{
-			reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+			reader = new Memoizer( BioformatsReaderUtils.createImageReaderWithSetupHooks(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
 		}
 
 		reader.setId( fileForVId.getAbsolutePath() );
@@ -463,7 +464,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		});
 
 		// use an FileStitcher if we have grouped files (single z-planes per file)
-		final IFormatReader reader = filesArePatterns ? new FileStitcher( true ) : new ImageReader();
+		final IFormatReader reader = filesArePatterns ? new FileStitcher( true ) : BioformatsReaderUtils.createImageReaderWithSetupHooks();
 		if (filesArePatterns)
 			( (FileStitcher) reader ).setCanChangePattern( false );
 

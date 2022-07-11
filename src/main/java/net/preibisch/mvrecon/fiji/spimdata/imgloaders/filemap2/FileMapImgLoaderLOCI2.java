@@ -58,6 +58,7 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import util.ImgLib2Tools;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
@@ -160,7 +161,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			}
 			else
 			{
-				reader = new Memoizer( new ImageReader(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
+				reader = new Memoizer( BioformatsReaderUtils.createImageReaderWithSetupHooks(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
 			}
 
 			RandomAccessibleInterval< T > img = null;
