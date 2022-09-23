@@ -28,7 +28,10 @@ import java.util.Date;
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.integer.LongType;
 import mpicbg.imglib.type.numeric.real.FloatType;
+import mpicbg.imglib.wrapper.ImgLib1;
+import net.imglib2.FinalInterval;
 import net.imglib2.img.Img;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.segmentation.DOM;
 import net.preibisch.legacy.segmentation.IntegralImage3d;
@@ -131,9 +134,14 @@ public class ProcessDOM
 		if ( localization == 0 )
 			finalPeaks = Localization.noLocalization( peaks, findMin, findMax, keepIntensity );
 		else if ( localization == 1 )
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, domImg, findMin, findMax, threshold, keepIntensity, Threads.numThreads() );
+		{
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), findMin, findMax, threshold, true, Threads.numThreads() );
+			//finalPeaks = Localization.computeQuadraticLocalization( peaks, domImg, findMin, findMax, threshold, keepIntensity, Threads.numThreads() );
+		}
 		else
-			finalPeaks = Localization.computeGaussLocalization( peaks, domImg, ( radius2 + radius1 )/2.0, findMin, findMax, threshold, keepIntensity );
+		{
+			finalPeaks = Localization.computeGaussLocalization( peaks, ImgLib1.wrapArrayFloatToImgLib2(domImg), ( radius2 + radius1 )/2.0, findMin, findMax, threshold, keepIntensity );
+		}
 
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " peaks." );
 		

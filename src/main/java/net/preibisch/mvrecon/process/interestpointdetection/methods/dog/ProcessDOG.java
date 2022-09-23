@@ -29,7 +29,10 @@ import java.util.concurrent.ExecutorService;
 
 import mpicbg.imglib.outofbounds.OutOfBoundsStrategyMirrorFactory;
 import mpicbg.imglib.type.numeric.real.FloatType;
+import mpicbg.imglib.wrapper.ImgLib1;
+import net.imglib2.FinalInterval;
 import net.imglib2.util.Util;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.registration.bead.laplace.LaPlaceFunctions;
 import net.preibisch.legacy.segmentation.SimplePeak;
@@ -182,7 +185,8 @@ public class ProcessDOG
 		}
 		else if ( localization == 1 )
 		{
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, dog.getDoGImage(), findMin, findMax, minPeakValue, keepIntensity, numThreads );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), findMin, findMax, minPeakValue, true, numThreads );
+			//finalPeaks = Localization.computeQuadraticLocalization( peaks, dog.getDoGImage(), findMin, findMax, minPeakValue, keepIntensity, numThreads );
 			dog.getDoGImage().close();
 		}
 		else

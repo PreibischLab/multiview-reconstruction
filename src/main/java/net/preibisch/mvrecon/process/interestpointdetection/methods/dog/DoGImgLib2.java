@@ -37,8 +37,6 @@ import java.util.concurrent.Future;
 import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
 import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
-import mpicbg.imglib.image.Image;
-import mpicbg.imglib.wrapper.ImgLib2;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -51,10 +49,7 @@ import net.imglib2.algorithm.neighborhood.Neighborhood;
 import net.imglib2.algorithm.neighborhood.RectangleShape;
 import net.imglib2.converter.BiConverter;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.AccessFlags;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -66,9 +61,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.registration.bead.laplace.LaPlaceFunctions;
 import net.preibisch.legacy.segmentation.SimplePeak;
-import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
@@ -262,13 +255,13 @@ public class DoGImgLib2
 		else if ( localization == 1 )
 		{
 			// TODO: remove last Imglib1 crap
-			final Img< FloatType > dogCopy = new ArrayImgFactory<>( new FloatType() ).create( dogCached );
+			//final Img< FloatType > dogCopy = new ArrayImgFactory<>( new FloatType() ).create( dogCached );
 
-			if ( !silent )
-				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Mem-copying image." );
+			//if ( !silent )
+			//	IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Mem-copying image." );
 
-			FusionTools.copyImg( Views.zeroMin( dogCached ), dogCopy, service );
-			final Image<mpicbg.imglib.type.numeric.real.FloatType> imglib1 = ImgLib2.wrapArrayFloatToImgLib1( dogCopy );
+			//FusionTools.copyImg( Views.zeroMin( dogCached ), dogCopy, service );
+			//final Image<mpicbg.imglib.type.numeric.real.FloatType> imglib1 = ImgLib2.wrapArrayFloatToImgLib1( dogCopy );
 
 			for ( final SimplePeak peak : peaks )
 				for ( int d = 0; d < peak.location.length; ++d )
@@ -277,7 +270,7 @@ public class DoGImgLib2
 			if ( !silent )
 				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Quadratic localization." );
 
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, imglib1, findMin, findMax, minPeakValue, true, numThreads );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( dogCached ) ), new FinalInterval( Views.zeroMin( dogCached ) ), findMin, findMax, minPeakValue, true, numThreads );
 
 			// adjust detections for min coordinates of the RandomAccessibleInterval
 			for ( final InterestPoint ip : finalPeaks )

@@ -25,17 +25,22 @@ package net.preibisch.mvrecon.process.interestpointdetection;
 import java.util.ArrayList;
 import java.util.Date;
 
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
+import net.imglib2.Point;
+import net.imglib2.RandomAccessible;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.localextrema.RefinedPeak;
+import net.imglib2.algorithm.localextrema.SubpixelLocalization;
+import net.imglib2.img.Img;
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.segmentation.SimplePeak;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointValue;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
-import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
-import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussianPeak;
-import mpicbg.imglib.algorithm.scalespace.SubpixelLocalization;
-import mpicbg.imglib.image.Image;
-import mpicbg.imglib.type.numeric.real.FloatType;
 
 public class Localization
 {
@@ -68,31 +73,50 @@ public class Localization
 		return peaks2;
 	}
 
-	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final Image< FloatType > domImg, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity, final int numThreads )
+	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final RandomAccessible< FloatType > dogImg, final Interval validInterval, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity, final int numThreads )
 	{
 		if ( !DoGImgLib2.silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using quadratic n-dimensional fit");
 
-		final ArrayList< DifferenceOfGaussianPeak<FloatType> > peakList = new ArrayList<DifferenceOfGaussianPeak<FloatType>>();
+		final ArrayList< Point > peakList = new ArrayList<>();
+
+		//for ( final SimplePeak peak : peaks )
+		//	if ( ( peak.isMax && findMax ) || ( peak.isMin && findMin ) )
+		//		peakList.add( new DifferenceOfGaussianPeak<FloatType>( peak.location, new FloatType( peak.intensity ), SpecialPoint.MAX ) );
 
 		for ( final SimplePeak peak : peaks )
 			if ( ( peak.isMax && findMax ) || ( peak.isMin && findMin ) )
-				peakList.add( new DifferenceOfGaussianPeak<FloatType>( peak.location, new FloatType( peak.intensity ), SpecialPoint.MAX ) );
+				peakList.add( new Point( peak.location ) );
 
-		final SubpixelLocalization<FloatType> spl = new SubpixelLocalization<FloatType>( domImg, peakList );
+		final int n = dogImg.numDimensions();
+
+		final SubpixelLocalization<Point, FloatType> spl = new SubpixelLocalization<>( n );
 		spl.setAllowMaximaTolerance( true );
 		spl.setMaxNumMoves( 10 );
 		spl.setNumThreads( numThreads );
 
-		if ( !spl.checkInput() || !spl.process() )
-			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Warning! Failed to compute subpixel localization " + spl.getErrorMessage() );
-		
-		final int n = domImg.getNumDimensions();
+		final ArrayList<RefinedPeak<Point>> refinedPeaks = spl.process(peakList, dogImg, validInterval );
 
 		final ArrayList< InterestPoint > peaks2 = new ArrayList< InterestPoint >();
-		
+
 		int id = 0;
-		
+
+		for ( final RefinedPeak<Point> r : refinedPeaks )
+		{
+			if ( Math.abs( r.getValue() ) > threshold )
+			{
+				final double[] tmp = new double[ n ];
+				for ( int d = 0; d < n; ++d )
+					tmp[ d ] = r.getDoublePosition( d );
+
+				if ( keepIntensity )
+					peaks2.add( new InterestPointValue( id++, tmp, r.getValue() ) );
+				else
+					peaks2.add( new InterestPoint( id++, tmp ) );
+			}
+		}
+
+		/*
 		for ( DifferenceOfGaussianPeak<FloatType> detection : peakList )
 		{
 			if ( Math.abs( detection.getValue().get() ) > threshold )
@@ -107,13 +131,14 @@ public class Localization
 					peaks2.add( new InterestPoint( id++, tmp ) );
 			}
 		}
+		*/
 
 		return peaks2;
 	}
 	
-	public static ArrayList< InterestPoint > computeGaussLocalization( final ArrayList< SimplePeak > peaks, final Image< FloatType > domImg, final double sigma, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity )
+	public static ArrayList< InterestPoint > computeGaussLocalization( final ArrayList< SimplePeak > peaks, final RandomAccessibleInterval< FloatType > domImg, final double sigma, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity )
 	{
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using Gaussian Mask Localization");					
+		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using Gaussian Mask Localization");
 
 		// TODO: implement gauss fit
 		throw new RuntimeException( "Gauss fit not implemented yet" );
