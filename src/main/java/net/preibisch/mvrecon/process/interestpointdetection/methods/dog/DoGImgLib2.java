@@ -72,8 +72,9 @@ import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.weightedgauss.Lazy;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.weightedgauss.WeightedGaussRA;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.Lazy;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.PlainGaussRA;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.WeightedGaussRA;
 import util.ImgLib2Tools;
 
 public class DoGImgLib2
@@ -223,6 +224,12 @@ public class DoGImgLib2
 		{
 			maskFloat = null;
 
+			// TODO: convert to block-wise processing
+
+			gauss1 = computeGaussPlain( inputFloat, new FloatType(), sigma1, blockSize );
+			gauss2 = computeGaussPlain( inputFloat, new FloatType(), sigma2, blockSize );
+
+			/*
 			if ( Views.iterable( inputFloat ).size() < 2147483647 )
 			{
 				gauss1 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
@@ -236,13 +243,14 @@ public class DoGImgLib2
 
 			Gauss3.gauss(sigma1, Views.extendMirrorSingle( inputFloat ), gauss1, service);
 			Gauss3.gauss(sigma2, Views.extendMirrorSingle( inputFloat ), gauss2, service);
+			*/
 		}
 		else
 		{
 			maskFloat = ImgLib2Tools.convertVirtual( mask );
 
-			gauss1 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma1, blockSize );
-			gauss2 = computeGauss( inputFloat, maskFloat, new FloatType(), sigma2, blockSize );
+			gauss1 = computeGaussMask( inputFloat, maskFloat, new FloatType(), sigma1, blockSize );
+			gauss2 = computeGaussMask( inputFloat, maskFloat, new FloatType(), sigma2, blockSize );
 		}
 
 		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()
@@ -255,7 +263,8 @@ public class DoGImgLib2
 		}, new FloatType() );
 
 		//avoid double-caching for weighted gauss (i.e. mask != null)
-		final RandomAccessibleInterval< FloatType > dogCached = (mask == null) ? FusionTools.cacheRandomAccessibleInterval( dog, new FloatType(), blockSize ) : dog;
+		//final RandomAccessibleInterval< FloatType > dogCached = (mask == null) ? FusionTools.cacheRandomAccessibleInterval( dog, new FloatType(), blockSize ) : dog;
+		final RandomAccessibleInterval< FloatType > dogCached = dog;
 
 		if ( !silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
@@ -309,7 +318,7 @@ public class DoGImgLib2
 		return finalPeaks;
 	}
 
-	public static < T extends RealType< T > & NativeType<T> > RandomAccessibleInterval< T > computeGauss(
+	public static < T extends RealType< T > & NativeType<T> > RandomAccessibleInterval< T > computeGaussMask(
 			final RandomAccessibleInterval< T > input,
 			final RandomAccessibleInterval< T > mask,
 			final T type,
@@ -324,6 +333,35 @@ public class DoGImgLib2
 						min,
 						Views.extendMirrorSingle( input ),
 						Views.extendZero( mask ),
+						type.createVariable(),
+						sigma );
+
+		weightedgauss.total = new FinalInterval( input );
+
+		final RandomAccessibleInterval<T> gauss = Views.translate( Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss ), min );
+		//final Cache< ?, ? > gradientCache = ((CachedCellImg< ?, ? >)gradient).getCache();
+
+		return gauss;
+
+		//final RandomAccessibleInterval< T > output = Views.translate( new ArrayImgFactory<>(type).create( input ), min );
+		//copy(gauss, output);
+		//FusionTools.copyImg( (RandomAccessibleInterval)gauss, (RandomAccessibleInterval)output, DeconViews.createExecutorService() );
+		//return output;
+	}
+
+	public static < T extends RealType< T > & NativeType<T> > RandomAccessibleInterval< T > computeGaussPlain(
+			final RandomAccessibleInterval< T > input,
+			final T type,
+			final double[] sigma,
+			final int[] blockSize )
+	{
+		final long[] min= new long[ input.numDimensions() ];
+		input.min( min );
+
+		final PlainGaussRA< T > weightedgauss =
+				new PlainGaussRA<>(
+						min,
+						Views.extendMirrorSingle( input ),
 						type.createVariable(),
 						sigma );
 

@@ -21,27 +21,20 @@
  * #L%
  */
 
-package net.preibisch.mvrecon.process.interestpointdetection.methods.weightedgauss;
+package net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import net.imglib2.Cursor;
 import net.imglib2.Interval;
-import net.imglib2.Localizable;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.Sampler;
 import net.imglib2.algorithm.gauss3.Gauss3;
-import net.imglib2.algorithm.gauss3.SeparableSymmetricConvolution;
 import net.imglib2.converter.Converters;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 /**
