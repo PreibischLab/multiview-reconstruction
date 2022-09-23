@@ -224,26 +224,8 @@ public class DoGImgLib2
 		{
 			maskFloat = null;
 
-			// TODO: convert to block-wise processing
-
 			gauss1 = computeGaussPlain( inputFloat, new FloatType(), sigma1, blockSize );
 			gauss2 = computeGaussPlain( inputFloat, new FloatType(), sigma2, blockSize );
-
-			/*
-			if ( Views.iterable( inputFloat ).size() < 2147483647 )
-			{
-				gauss1 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
-				gauss2 = Views.translate( new ArrayImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
-			}
-			else
-			{
-				gauss1 = Views.translate( new CellImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
-				gauss2 = Views.translate( new CellImgFactory<>( new FloatType() ).create( inputFloat ), minInterval );
-			}
-
-			Gauss3.gauss(sigma1, Views.extendMirrorSingle( inputFloat ), gauss1, service);
-			Gauss3.gauss(sigma2, Views.extendMirrorSingle( inputFloat ), gauss2, service);
-			*/
 		}
 		else
 		{
