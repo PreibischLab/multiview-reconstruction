@@ -94,8 +94,15 @@ public class DoGImgLib2
 	{
 		new ImageJ();
 
-		final RandomAccessibleInterval< FloatType > input = IOFunctions.openAs32BitArrayImg( new File( "/groups/scicompsoft/home/preibischs/Documents/SPIM/spim_TL18_Angle0.tif"))  ;
-		final RandomAccessibleInterval< FloatType > mask = Views.interval(new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), input.numDimensions() ), input );
+		final RandomAccessibleInterval< FloatType > input =
+				IOFunctions.openAs32BitArrayImg( new File( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif"));
+
+		final RandomAccessibleInterval< FloatType > inputCropped = Views.interval( input, Intervals.expand(input, new long[] {-200, -200, -20}) );
+
+		ImageJFunctions.show( inputCropped );
+
+		final RandomAccessibleInterval< FloatType > mask =
+				Views.interval(new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), input.numDimensions() ), input );
 
 		//computeDoG(input, mask, 1.8015, 0.007973356, 1/*localization*/, false /*findMin*/, true /*findMax*/, Double.NaN, Double.NaN, DeconViews.createExecutorService(), Threads.numThreads() );
 
@@ -105,7 +112,7 @@ public class DoGImgLib2
 
 		// 1388x1040x81 = 116925120
 		final ArrayList<InterestPoint> points = 
-				computeDoG(input, mask, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 1 ) );
+				computeDoG(inputCropped, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 8 ) );
 
 		System.out.println( System.currentTimeMillis() - time );
 
@@ -271,6 +278,9 @@ public class DoGImgLib2
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
 		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue, service );
+
+		if ( !silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + peaks.size() + " peaks." );
 
 		final ArrayList< InterestPoint > finalPeaks;
 

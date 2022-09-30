@@ -33,6 +33,8 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -88,7 +90,7 @@ public class DoG
 		// compute Difference-of-Gaussian (includes normalization)
 		//
 		List< InterestPoint > ips = DoGImgLib2.computeDoG(
-				input,
+				Views.zeroMin( input ),
 				null,
 				sigma,
 				threshold,
@@ -140,7 +142,7 @@ public class DoG
 
 				// TODO: downsampling is not virtual!
 				@SuppressWarnings("unchecked")
-				final RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input =
+				final RandomAccessibleInterval< FloatType > input =
 						DownsampleTools.openAndDownsample(
 								dog.imgloader,
 								vd,
