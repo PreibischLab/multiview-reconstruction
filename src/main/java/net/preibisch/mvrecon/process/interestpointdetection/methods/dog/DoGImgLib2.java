@@ -90,7 +90,7 @@ public class DoGImgLib2
 
 		// 1388x1040x81 = 116925120
 		final ArrayList<InterestPoint> points = 
-				computeDoG(input, mask, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 1 ), 1 );
+				computeDoG(input, mask, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 1 ) );
 
 		System.out.println( System.currentTimeMillis() - time );
 
@@ -128,10 +128,9 @@ public class DoGImgLib2
 			final boolean findMax,
 			final double minIntensity,
 			final double maxIntensity,
-			final ExecutorService service,
-			final int numThreads ) // for old imglib1-code
+			final ExecutorService service )
 	{
-		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service, numThreads);
+		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service );
 	}
 
 	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
@@ -145,8 +144,7 @@ public class DoGImgLib2
 			final double minIntensity,
 			final double maxIntensity,
 			final int[] blockSize,
-			final ExecutorService service,
-			final int numThreads ) // for old imglib1-code
+			final ExecutorService service )
 	{
 		float initialSigma = (float)sigma;
 		
@@ -270,7 +268,7 @@ public class DoGImgLib2
 			if ( !silent )
 				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Quadratic localization." );
 
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( dogCached ) ), new FinalInterval( Views.zeroMin( dogCached ) ), findMin, findMax, minPeakValue, true, numThreads );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( dogCached ) ), new FinalInterval( Views.zeroMin( dogCached ) ), findMin, findMax, minPeakValue, true, service );
 
 			// adjust detections for min coordinates of the RandomAccessibleInterval
 			for ( final InterestPoint ip : finalPeaks )

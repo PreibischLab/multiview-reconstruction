@@ -22,17 +22,7 @@
  */
 package net.preibisch.mvrecon.process.interestpointdetection.methods.dom;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
-
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.InterestPointParameters;
-import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
 /**
  * Created by schmied on 01/07/15.

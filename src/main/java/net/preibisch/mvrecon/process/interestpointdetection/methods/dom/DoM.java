@@ -92,8 +92,6 @@ public class DoM
 						true, //openCompletely
 						service );
 
-				service.shutdown();
-
 				final Image< FloatType > img = ImgLib2.wrapFloatToImgLib1(
 						(Img< net.imglib2.type.numeric.real.FloatType >) input );
 
@@ -112,8 +110,10 @@ public class DoM
 						dom.findMax,
 						dom.minIntensity,
 						dom.maxIntensity,
-						dom.limitDetections );
+						dom.limitDetections,
+						service );
 
+				service.shutdown();
 				img.close();
 
 				if ( dom.limitDetections )

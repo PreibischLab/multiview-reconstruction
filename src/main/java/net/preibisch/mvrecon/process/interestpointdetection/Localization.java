@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.interestpointdetection;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -73,7 +74,15 @@ public class Localization
 		return peaks2;
 	}
 
-	public static ArrayList< InterestPoint > computeQuadraticLocalization( final ArrayList< SimplePeak > peaks, final RandomAccessible< FloatType > dogImg, final Interval validInterval, final boolean findMin, final boolean findMax, final float threshold, final boolean keepIntensity, final int numThreads )
+	public static ArrayList< InterestPoint > computeQuadraticLocalization(
+			final ArrayList< SimplePeak > peaks,
+			final RandomAccessible< FloatType > dogImg,
+			final Interval validInterval,
+			final boolean findMin,
+			final boolean findMax,
+			final float threshold,
+			final boolean keepIntensity,
+			final ExecutorService ex )
 	{
 		if ( !DoGImgLib2.silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Subpixel localization using quadratic n-dimensional fit");
@@ -93,9 +102,19 @@ public class Localization
 		final SubpixelLocalization<Point, FloatType> spl = new SubpixelLocalization<>( n );
 		spl.setAllowMaximaTolerance( true );
 		spl.setMaxNumMoves( 10 );
-		spl.setNumThreads( numThreads );
 
-		final ArrayList<RefinedPeak<Point>> refinedPeaks = spl.process(peakList, dogImg, validInterval );
+		final ArrayList<RefinedPeak<Point>> refinedPeaks =
+				SubpixelLocalization.refinePeaks(
+						peakList,
+						dogImg,
+						validInterval,
+						spl.getReturnInvalidPeaks(),
+						spl.getMaxNumMoves(),
+						spl.getAllowMaximaTolerance(),
+						spl.getMaximaTolerance(),
+						spl.getAllowedToMoveInDim(),
+						( int ) Math.min( peakList.size(), Threads.numThreads() * 20 ),
+						ex );
 
 		final ArrayList< InterestPoint > peaks2 = new ArrayList< InterestPoint >();
 

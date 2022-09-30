@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.interestpointdetection.methods.dom;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.integer.LongType;
@@ -37,7 +38,6 @@ import net.preibisch.legacy.segmentation.DOM;
 import net.preibisch.legacy.segmentation.IntegralImage3d;
 import net.preibisch.legacy.segmentation.InteractiveIntegral;
 import net.preibisch.legacy.segmentation.SimplePeak;
-import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
@@ -74,7 +74,8 @@ public class ProcessDOM
 			final boolean findMax,
 			final double minIntensity,
 			final double maxIntensity,
-			final boolean keepIntensity )
+			final boolean keepIntensity,
+			final ExecutorService service )
 	{
 		final Image< LongType > integralImg = IntegralImage3d.compute( img );
 
@@ -135,7 +136,7 @@ public class ProcessDOM
 			finalPeaks = Localization.noLocalization( peaks, findMin, findMax, keepIntensity );
 		else if ( localization == 1 )
 		{
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), findMin, findMax, threshold, true, Threads.numThreads() );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(domImg) ) ), findMin, findMax, threshold, true, service );
 			//finalPeaks = Localization.computeQuadraticLocalization( peaks, domImg, findMin, findMax, threshold, keepIntensity, Threads.numThreads() );
 		}
 		else

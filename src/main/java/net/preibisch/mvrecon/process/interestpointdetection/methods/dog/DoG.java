@@ -33,11 +33,9 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import util.ImgLib1Convert;
@@ -73,7 +71,7 @@ public class DoG
 	 * @param findMax - fina intensity maxima
 	 * @param minIntensity - the min intensity for normalization to 0...1, if Double.NaN the value will be looked up
 	 * @param maxIntensity - the max intensity for normalization to 0...1, if Double.NaN the value will be looked up
-	 * @param numThreads - number of threads to use
+	 * @param service - the ExecutorService to use
 	 *
 	 * @return a list of interest points
 	 */
@@ -85,10 +83,8 @@ public class DoG
 			final boolean findMax,
 			final double minIntensity,
 			final double maxIntensity,
-			final int numThreads )
+			final ExecutorService service )
 	{
-		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
-
 		//
 		// compute Difference-of-Gaussian (includes normalization)
 		//
@@ -102,8 +98,7 @@ public class DoG
 				findMax,
 				minIntensity,
 				maxIntensity,
-				service,
-				numThreads );
+				service );
 
 		//if ( dog.limitDetections )
 		//	ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
@@ -161,7 +156,7 @@ public class DoG
 				if ( dog.cuda == null )
 				{
 					ips = DoGImgLib2.computeDoG(input, null, dog.sigma, dog.threshold, dog.localization, dog.findMin, dog.findMax, dog.minIntensity,
-						dog.maxIntensity, service, Threads.numThreads() );
+						dog.maxIntensity, service );
 				}
 				else
 				{

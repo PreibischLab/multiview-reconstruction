@@ -185,7 +185,7 @@ public class ProcessDOG
 		}
 		else if ( localization == 1 )
 		{
-			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), findMin, findMax, minPeakValue, true, numThreads );
+			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), new FinalInterval( Views.zeroMin( ImgLib1.wrapArrayFloatToImgLib2(dog.getDoGImage()) ) ), findMin, findMax, minPeakValue, true, service );
 			//finalPeaks = Localization.computeQuadraticLocalization( peaks, dog.getDoGImage(), findMin, findMax, minPeakValue, keepIntensity, numThreads );
 			dog.getDoGImage().close();
 		}
