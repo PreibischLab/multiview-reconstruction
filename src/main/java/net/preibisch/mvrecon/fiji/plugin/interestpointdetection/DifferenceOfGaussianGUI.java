@@ -69,9 +69,9 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 	double percentGPUMem = defaultUseGPUMem;
 
 	/**
-	 * 0 ... n == CUDA device i
+	 * CUDA device
 	 */
-	ArrayList< CUDADevice > deviceList = null;
+	CUDADevice deviceCUDA = null;
 	CUDASeparableConvolution cuda = null;
 	boolean accurateCUDA = false;
 
@@ -112,7 +112,7 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		dog.findMax = this.findMax;
 
 		dog.cuda = this.cuda;
-		dog.deviceList = this.deviceList;
+		dog.deviceCUDA = this.deviceCUDA;
 		dog.accurateCUDA = this.accurateCUDA;
 		dog.percentGPUMem = this.percentGPUMem;
 
@@ -284,12 +284,8 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 			if ( cuda == null )
 			{
 				IOFunctions.println( "Cannot load CUDA JNA library." );
-				deviceList = null;
+				deviceCUDA = null;
 				return false;
-			}
-			else
-			{
-				deviceList = new ArrayList< CUDADevice >();
 			}
 
 			// multiple CUDA devices sometimes crashes, no idea why yet ...
@@ -298,22 +294,11 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 			if ( selectedDevices == null || selectedDevices.size() == 0 )
 				return false;
 			else
-				deviceList.addAll( selectedDevices );
-
-			// TODO: remove this, only for debug on non-CUDA machines >>>>
-			if ( deviceList.get( 0 ).getDeviceName().startsWith( "CPU emulation" ) )
-			{
-				for ( int i = 0; i < deviceList.size(); ++i )
-				{
-					deviceList.set( i, new CUDADevice( -1-i, deviceList.get( i ).getDeviceName(), deviceList.get( i ).getTotalDeviceMemory(), deviceList.get( i ).getFreeDeviceMemory(), deviceList.get( i ).getMajorComputeVersion(), deviceList.get( i ).getMinorComputeVersion() ) );
-					IOFunctions.println( "Running on cpu emulation, added " + ( -1-i ) + " as device" );
-				}
-			}
-			// TODO: <<<< remove this, only for debug on non-CUDA machines
+				deviceCUDA = selectedDevices.get( 0 );
 		}
 		else
 		{
-			deviceList = null;
+			deviceCUDA = null;
 		}
 
 		return true;

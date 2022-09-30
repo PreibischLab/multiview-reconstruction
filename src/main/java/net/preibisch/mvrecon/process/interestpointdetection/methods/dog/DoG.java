@@ -38,7 +38,6 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-import util.ImgLib1Convert;
 
 public class DoG
 {
@@ -139,6 +138,7 @@ public class DoG
 
 				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
 
+				// TODO: downsampling is not virtual!
 				@SuppressWarnings("unchecked")
 				final RandomAccessibleInterval< net.imglib2.type.numeric.real.FloatType > input =
 						DownsampleTools.openAndDownsample(
@@ -151,37 +151,22 @@ public class DoG
 								false, //openCompletely
 								service );
 
-				List< InterestPoint > ips;
-
-				if ( dog.cuda == null )
-				{
-					ips = DoGImgLib2.computeDoG(input, null, dog.sigma, dog.threshold, dog.localization, dog.findMin, dog.findMax, dog.minIntensity,
-						dog.maxIntensity, service );
-				}
-				else
-				{
-					
-					final ImgLib1Convert convert = new ImgLib1Convert( input, service );
-	
-					//
-					// compute Difference-of-Gaussian (includes normalization)
-					//
-					ips = ProcessDOG.compute(
-							dog.cuda, dog.deviceList, dog.accurateCUDA, dog.percentGPUMem,
-							service,
-							Threads.numThreads(),
-							convert,
-							(float) dog.sigma, (float) dog.threshold,
+				List< InterestPoint > ips = DoGImgLib2.computeDoG(
+							input,
+							null, // mask
+							dog.sigma,
+							dog.threshold,
 							dog.localization,
-							Math.min( dog.imageSigmaX, (float) dog.sigma ),
-							Math.min( dog.imageSigmaY, (float) dog.sigma ),
-							Math.min( dog.imageSigmaZ, (float) dog.sigma ),
-							dog.findMin, dog.findMax, dog.minIntensity,
+							dog.findMin,
+							dog.findMax,
+							dog.minIntensity,
 							dog.maxIntensity,
-							dog.limitDetections );
-	
-					convert.imglib1Img().close();
-				}
+							DoGImgLib2.blockSize,
+							service,
+							dog.cuda,
+							dog.deviceCUDA,
+							dog.accurateCUDA,
+							dog.percentGPUMem );
 
 				service.shutdown();
 

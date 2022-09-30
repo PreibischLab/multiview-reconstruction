@@ -38,6 +38,7 @@ import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
 import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
 import net.imglib2.Cursor;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
@@ -49,7 +50,13 @@ import net.imglib2.algorithm.neighborhood.Neighborhood;
 import net.imglib2.algorithm.neighborhood.RectangleShape;
 import net.imglib2.converter.BiConverter;
 import net.imglib2.converter.Converters;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.basictypeaccess.array.FloatArray;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -62,6 +69,14 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.registration.bead.laplace.LaPlaceFunctions;
 import net.preibisch.legacy.segmentation.SimplePeak;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.cuda.Block;
+import net.preibisch.mvrecon.process.cuda.BlockGenerator;
+import net.preibisch.mvrecon.process.cuda.BlockGeneratorVariableSizePrecise;
+import net.preibisch.mvrecon.process.cuda.BlockGeneratorVariableSizeSimple;
+import net.preibisch.mvrecon.process.cuda.CUDADevice;
+import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
+import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolutionFunctions;
+import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolutionFunctions.OutOfBounds;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
@@ -73,7 +88,7 @@ import util.ImgLib2Tools;
 public class DoGImgLib2
 {
 	public static boolean silent = false;
-	private static int[] blockSize = new int[] {96, 96, 64};
+	public static int[] blockSize = new int[] {96, 96, 64};
 
 	public static void main ( String[] args )
 	{
@@ -130,7 +145,7 @@ public class DoGImgLib2
 			final double maxIntensity,
 			final ExecutorService service )
 	{
-		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service );
+		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service, null, null, false, 0.0 );
 	}
 
 	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
@@ -144,7 +159,11 @@ public class DoGImgLib2
 			final double minIntensity,
 			final double maxIntensity,
 			final int[] blockSize,
-			final ExecutorService service )
+			final ExecutorService service,
+			final CUDASeparableConvolution cuda,
+			final CUDADevice cudaDevice,
+			final boolean accurateCUDA,
+			final double percentGPUMem )
 	{
 		float initialSigma = (float)sigma;
 		
@@ -215,8 +234,17 @@ public class DoGImgLib2
 		{
 			maskFloat = null;
 
-			gauss1 = computeGaussPlain( inputFloat, new FloatType(), sigma1, blockSize );
-			gauss2 = computeGaussPlain( inputFloat, new FloatType(), sigma2, blockSize );
+			if ( cuda == null )
+			{
+				gauss1 = computeGaussPlain( inputFloat, new FloatType(), sigma1, blockSize );
+				gauss2 = computeGaussPlain( inputFloat, new FloatType(), sigma2, blockSize );
+			}
+			else
+			{
+				// TODO: untested
+				gauss1 = computeGaussCUDA( inputFloat, sigma1, cuda, cudaDevice, accurateCUDA, percentGPUMem );
+				gauss2 = computeGaussCUDA( inputFloat, sigma2, cuda, cudaDevice, accurateCUDA, percentGPUMem );
+			}
 		}
 		else
 		{
@@ -583,5 +611,207 @@ public class DoGImgLib2
 		//taskExecutor.shutdown();
 		
 		return new float[]{ min, max };
+	}
+
+	public static RandomAccessibleInterval< FloatType > computeGaussCUDA(
+			final RandomAccessibleInterval< FloatType > inputFloatNonZeroMin,
+			final double[] sigma,
+			final CUDASeparableConvolution cuda,
+			final CUDADevice cudaDevice,
+			final boolean accurateCUDA,
+			final double percentGPUMem )
+	{
+		final long[] offset = inputFloatNonZeroMin.minAsLongArray();
+		final RandomAccessibleInterval< FloatType > inputFloat = Views.zeroMin( inputFloatNonZeroMin );
+		final Img<FloatType> result;
+		final CUDASeparableConvolutionFunctions cudaconvolve =  new CUDASeparableConvolutionFunctions( cuda, cudaDevice.getDeviceId() );
+
+		// do not operate at the edge, 80% of the memory is a good idea I think
+		final long memAvail = Math.round( cudaDevice.getFreeDeviceMemory() * ( percentGPUMem / 100.0 ) );
+		final long imgBytes = numPixels( inputFloat, accurateCUDA, sigma ) * 4 * 2; // float, two images on the card at once
+
+		final long[] numBlocksDim = net.imglib2.util.Util.int2long( computeNumBlocksDim( memAvail, imgBytes, percentGPUMem, inputFloat.numDimensions(), "CUDA-Device " + cudaDevice.getDeviceId() ) );
+		final BlockGenerator< Block > generator;
+
+		if ( accurateCUDA )
+			generator = new BlockGeneratorVariableSizePrecise( numBlocksDim );
+		else
+			generator = new BlockGeneratorVariableSizeSimple( numBlocksDim );
+
+		final List< Block > blocks = generator.divideIntoBlocks( inputFloat.dimensionsAsLongArray(), getKernelSize( sigma ) );
+
+		if ( !accurateCUDA && blocks.size() == 1 /*&& ArrayImg.class.isInstance( inputFloat )*/ )
+		{
+			result =  new ArrayImgFactory<FloatType>( new FloatType() ).create( inputFloat );
+
+			IOFunctions.println( "Conovlving image as one single block." );
+			long time = System.currentTimeMillis();
+
+			// copy the only directly into the result
+			blocks.get( 0 ).copyBlock( inputFloat, result );
+			long copy = System.currentTimeMillis();
+			IOFunctions.println( "Copying data took " + ( copy - time ) + "ms" );
+
+			// convolve
+			final float[] resultF = ((FloatArray)((ArrayImg< net.imglib2.type.numeric.real.FloatType, ? > )result).update( null ) ).getCurrentStorageArray();
+			cudaconvolve.gauss( resultF, getImgSizeInt( result ), sigma, OutOfBounds.EXTEND_BORDER_PIXELS, 0 );
+			IOFunctions.println( "Convolution took " + ( System.currentTimeMillis() - copy ) + "ms using device=" + cudaDevice.getDeviceName() + " (id=" + cudaDevice.getDeviceId() + ")" );
+
+			// no copy back required
+		}
+		else
+		{
+			final RandomAccessible< FloatType > input;
+
+			if ( accurateCUDA )
+				input = Views.extendMirrorSingle( inputFloat );
+			else
+				input = inputFloat;
+
+			result =  new CellImgFactory<FloatType>( new FloatType() ).create( inputFloat );
+
+			for( final Block block : blocks )
+			{
+				//long time = System.currentTimeMillis();
+				final ArrayImg< FloatType, FloatArray > imgBlock = ArrayImgs.floats( block.getBlockSize() );
+
+				// copy the block
+				block.copyBlock( input, imgBlock );
+				//long copy = System.currentTimeMillis();
+				//IOFunctions.println( "Copying block took " + ( copy - time ) + "ms" );
+
+				// convolve
+				final float[] imgBlockF = ((FloatArray)((ArrayImg< net.imglib2.type.numeric.real.FloatType, ? > )imgBlock).update( null ) ).getCurrentStorageArray();
+				cudaconvolve.gauss( imgBlockF, getImgSizeInt( imgBlock ), sigma, OutOfBounds.EXTEND_BORDER_PIXELS, 0 );
+				//long convolve = System.currentTimeMillis();
+				//IOFunctions.println( "Convolution took " + ( convolve - copy ) + "ms using device=" + cudaDevice.getDeviceName() + " (id=" + cudaDevice.getDeviceId() + ")" );
+
+				// no copy back required
+				block.pasteBlock( result, imgBlock );
+				//IOFunctions.println( "Pasting block took " + ( System.currentTimeMillis() - convolve ) + "ms" );
+			}
+		}
+
+		if ( Views.isZeroMin( inputFloatNonZeroMin ) )
+			return result;
+		else
+			return Views.translate( result, offset );
+	}
+
+	public static int[] getImgSizeInt( final Interval img )
+	{
+		final int[] dim = new int[ img.numDimensions() ];
+		for ( int d = 0; d < img.numDimensions(); ++d )
+			dim[ d ] = (int)img.dimension( d );
+		return dim;
+	}
+
+
+	protected static long[] getKernelSize( final double[] sigma )
+	{
+		final long[] dim = new long[ sigma.length ];
+		for ( int d = 0; d < sigma.length; ++d )
+			dim[ d ] = Util.createGaussianKernel1DDouble( sigma[ d ], false ).length;
+		return dim;
+	}
+
+	public static int[] computeNumBlocksDim( final long memAvail, final long memReq, final double percentGPUMem, final int n, final String start )
+	{
+		final int numBlocks = (int)( memReq / memAvail + Math.min( 1, memReq % memAvail ) );
+		final double blocksPerDim = Math.pow( numBlocks, 1 / n );
+
+		final int[] numBlocksDim = new int[ n ];
+
+		for ( int d = 0; d < numBlocksDim.length; ++d )
+			numBlocksDim[ d ] = (int)Math.round( Math.floor( blocksPerDim ) ) + 1;
+
+		int numBlocksCurrent;
+		
+		do
+		{
+			numBlocksCurrent = numBlocks( numBlocksDim );
+
+			for ( int d = 0; d < numBlocksDim.length; ++d )
+			{
+				++numBlocksDim[ d ];
+				reduceBlockNumbers( numBlocksDim, numBlocks );
+			}
+			
+			
+		}
+		while ( numBlocks( numBlocksDim ) < numBlocksCurrent );
+
+		if ( start != null )
+		{
+			String out =
+					start + ", mem=" + memAvail / (1024*1024) + 
+					"MB (" + Math.round( percentGPUMem / 100 ) + "%), required mem=" + memReq / (1024*1024) + "MB, need to split up into " + numBlocks + " blocks: ";
+
+			for ( int d = 0; d < numBlocksDim.length; ++d )
+			{
+				out += numBlocksDim[ d ];
+				if ( d != numBlocksDim.length - 1 )
+					out += "x";
+			}
+
+			IOFunctions.println( out );
+		}
+		return numBlocksDim;
+	}
+
+	protected static void reduceBlockNumbers( final int[] numBlocksDim, final int numBlocks )
+	{
+		boolean reduced;
+
+		do
+		{
+			reduced = false;
+
+			for ( int d = numBlocksDim.length - 1; d >= 0 ; --d )
+			{
+				if ( numBlocksDim[ d ] > 1 )
+				{
+					--numBlocksDim[ d ];
+
+					if ( numBlocks( numBlocksDim ) < numBlocks )
+						++numBlocksDim[ d ];
+					else
+						reduced = true;
+				}
+			}
+		}
+		while ( reduced );
+	}
+
+	protected static int numBlocks( final int[] numBlocksDim )
+	{
+		int numBlocks = 1;
+
+		for ( int d = 0; d < numBlocksDim.length; ++d )
+			numBlocks *= numBlocksDim[ d ];
+
+		return numBlocks;
+	}
+
+	protected static long numPixels( final Dimensions dim, final boolean accurate, final double[] sigma )
+	{
+		if ( accurate )
+		{
+			long size = 1;
+
+			for ( int d = 0; d < dim.numDimensions(); ++d )
+				size *= dim.dimension( d ) + Util.createGaussianKernel1DDouble( sigma[ d ], false ).length - 1;
+
+			return size;
+		}
+		else
+		{
+			long numPixels = dim.dimension( 0 );
+
+			for ( int d = 1; d <= dim.numDimensions(); ++d )
+				numPixels *= dim.dimension( d );
+
+			return numPixels;
+		}
 	}
 }

@@ -46,7 +46,7 @@ public class DoGParameters extends InterestPointParameters
 	public boolean findMax = true;
 
 	public double percentGPUMem = 75;
-	public ArrayList< CUDADevice > deviceList = null;
+	public CUDADevice deviceCUDA = null;
 	public CUDASeparableConvolution cuda = null;
 	public boolean accurateCUDA = false;
 
