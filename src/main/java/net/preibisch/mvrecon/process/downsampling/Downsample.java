@@ -22,110 +22,72 @@
  */
 package net.preibisch.mvrecon.process.downsampling;
 
-import java.util.ArrayList;
-import java.util.Vector;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import ij.ImageJ;
 import net.imglib2.Cursor;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.iterator.IntervalIterator;
-import net.imglib2.iterator.ZeroMinIntervalIterator;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.Threads;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.ImagePortion;
+import net.preibisch.mvrecon.process.downsampling.lazy.LazyDownsample2x;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 
 public class Downsample
 {
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static < T extends RealType<T> > RandomAccessibleInterval< T > downsample(
+	public static < T extends RealType<T> & NativeType<T> > RandomAccessibleInterval< T > downsample(
 			RandomAccessibleInterval< T > input,
-			final long[] downsampleFactors,
-			final ExecutorService taskExecutor )
+			final long[] downsampleFactors )
 	{
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
 		long dsz = (downsampleFactors.length > 2) ? downsampleFactors[ 2 ] : 1;
 
-		ImgFactory  f = null;
-
-		if ( Img.class.isInstance( input ))
-		{
-			// factory is not implemented for e.g. LazyCellImg yet
-			try
-			{
-				f = ((Img)input).factory();
-			}
-			catch (UnsupportedOperationException e) {}
-		}
-
-		if ( f == null )
-		{
-			final NativeType< ? > t = (NativeType)Util.getTypeFromInterval( input );
-			f = new CellImgFactory( t );
-		}
-
 		for ( ;dsx > 1; dsx /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ true, false, false }, taskExecutor );
+			input = Downsample.simple2x( input, new boolean[]{ true, false, false } );
 
 		for ( ;dsy > 1; dsy /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, true, false }, taskExecutor );
+			input = Downsample.simple2x( input, new boolean[]{ false, true, false } );
 
 		for ( ;dsz > 1; dsz /= 2 )
-			input = Downsample.simple2x( input, f, new boolean[]{ false, false, true }, taskExecutor );
+			input = Downsample.simple2x( input, new boolean[]{ false, false, true } );
 
 		return input;
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final ExecutorService taskExecutor )
+	public static < T extends RealType< T >& NativeType<T> > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input )
 	{
 		final boolean[] downsampleInDim = new boolean[ input.numDimensions() ];
 
 		for ( int d = 0; d < downsampleInDim.length; ++d )
 			downsampleInDim[ d ] = true;
 
-		return simple2x( input, imgFactory, downsampleInDim, taskExecutor );
+		return simple2x( input, downsampleInDim );
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final ImgFactory< T > imgFactory, final boolean[] downsampleInDim, final ExecutorService taskExecutor )
+	public static < T extends RealType< T >& NativeType<T> > RandomAccessibleInterval< T > simple2x( final RandomAccessibleInterval<T> input, final boolean[] downsampleInDim )
 	{
-		RandomAccessibleInterval< T > src = input;
+		RandomAccessibleInterval<T> downsampled = input;
 
+		final T type = Util.getTypeFromInterval( input );
+
+		// downsample in all dimensions
 		for ( int d = 0; d < input.numDimensions(); ++d )
 			if ( downsampleInDim[ d ] )
-			{
-				final long dim[] = new long[ input.numDimensions() ];
+				downsampled = LazyDownsample2x.init(
+						Views.extendBorder( downsampled ),
+						downsampled,
+						type,
+						DoGImgLib2.blockSize,
+						d);
 
-				for ( int e = 0; e < input.numDimensions(); ++e )
-				{
-					if ( e == d )
-						dim[ e ] = src.dimension( e ) / 2;
-					else
-						dim[ e ] = src.dimension( e );
-				}
-
-				final Img< T > img = imgFactory.create( dim, Views.iterable( input ).firstElement() );
-				simple2x( src, img, d, taskExecutor );
-				src = img;
-			}
-
-		return src;
+		return downsampled;
 	}
 
+	/*
 	public static < T extends RealType< T > > void simple2x( final RandomAccessibleInterval<T> input, final RandomAccessibleInterval<T> output, final int d, final ExecutorService taskExecutor )
 	{
 		final int n = input.numDimensions();
@@ -223,7 +185,7 @@ public class Downsample
 		//taskExecutor.shutdown();
 
 		return;
-	}
+	} */
 
 	public static void main( String[] args )
 	{
@@ -241,8 +203,6 @@ public class Downsample
 		
 		new ImageJ();
 		ImageJFunctions.show( img );
-		final ExecutorService taskExecutor = Executors.newFixedThreadPool( Threads.numThreads() );
-		ImageJFunctions.show( simple2x( img, img.factory(), new boolean[]{ true, true, true }, taskExecutor ) );
-		taskExecutor.shutdown();
+		ImageJFunctions.show( simple2x( img, /*img.factory(),*/ new boolean[]{ true, true, true }/*, taskExecutor*/ ) );
 	}
 }

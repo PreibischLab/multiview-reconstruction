@@ -566,33 +566,15 @@ public class DownsampleTools
 
 		if ( !transformOnly )
 		{
-			ImgFactory  f = null;
-
-			if ( Img.class.isInstance( input ))
-			{
-				// factory is not implemented for e.g. LazyCellImg yet
-				try
-				{
-					f = ((Img)input).factory();
-				}
-				catch (UnsupportedOperationException e) {}
-			}
-
-			if ( f == null )
-			{
-				final NativeType< ? > t = Util.getTypeFromInterval( input );
-				f = new CellImgFactory( t );
-			}
-
 			// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
 			for ( ;dsx > 1; dsx /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ true, false, false }, service );
+				input = Downsample.simple2x( input, new boolean[]{ true, false, false } );
 
 			for ( ;dsy > 1; dsy /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ false, true, false }, service );
+				input = Downsample.simple2x( input, new boolean[]{ false, true, false } );
 
 			for ( ;dsz > 1; dsz /= 2 )
-				input = Downsample.simple2x( input, f, new boolean[]{ false, false, true }, service );
+				input = Downsample.simple2x( input, new boolean[]{ false, false, true } );
 		}
 
 		return input;
