@@ -134,6 +134,40 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 		}
 	}
 
+	public static final <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> init(
+			final RandomAccessible< T > input,
+			final Interval downsampleInterval,
+			final T type,
+			final int[] blockSize,
+			final int d )
+	{
+		final long dim[] = new long[ input.numDimensions() ];
+
+		for ( int e = 0; e < input.numDimensions(); ++e )
+		{
+			if ( e == d )
+				dim[ e ] = downsampleInterval.dimension( e ) / 2;
+			else
+				dim[ e ] = downsampleInterval.dimension( e );
+		}
+
+		final long[] min= new long[ input.numDimensions() ];
+		downsampleInterval.min( min );
+
+		final DownsampleRA< T > downsampling =
+				new DownsampleRA< T >(
+						min,
+						input,
+						downsampleInterval,
+						d,
+						type.createVariable() );
+
+		final RandomAccessibleInterval<T> downsampled =
+				Views.translate( Lazy.process(new FinalInterval( dim ), blockSize, type.createVariable(), AccessFlags.setOf(), downsampling ), min );
+
+		return downsampled;
+	}
+
 	public static void main( String[] args )
 	{
 		new ImageJ();
@@ -143,35 +177,30 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 
 		final RandomAccessibleInterval< FloatType > inputCropped = Views.interval( raw, Intervals.expand(raw, new long[] {-200, -200, -20}) );
 
-		final RandomAccessibleInterval< FloatType > input = inputCropped;
-
 		ImageJFunctions.show( inputCropped );
 
-		final long dim[] = new long[ input.numDimensions() ];
-		final int d = 1;
+		// downsample in X
+		final RandomAccessibleInterval<FloatType> downsampledX =
+				DownsampleRA.init(
+						Views.extendBorder( inputCropped ),
+						inputCropped,
+						new FloatType(),
+						DoGImgLib2.blockSize,
+						0);
 
-		for ( int e = 0; e < input.numDimensions(); ++e )
-		{
-			if ( e == d )
-				dim[ e ] = input.dimension( e ) / 2;
-			else
-				dim[ e ] = input.dimension( e );
-		}
+		ImageJFunctions.show( downsampledX ).setTitle("downsampleX");
 
-		final long[] min= new long[ input.numDimensions() ];
-		input.min( min );
+		RandomAccessibleInterval<FloatType> downsampled = inputCropped;
 
-		final DownsampleRA< FloatType > downsampling =
-				new DownsampleRA<>(
-						min,
-						Views.extendMirrorSingle( input ),
-						input,
-						1,
-						new FloatType() );
+		// downsample in all dimensions
+		for ( int d = 0; d < inputCropped.numDimensions(); ++d )
+			downsampled = DownsampleRA.init(
+					Views.extendBorder( downsampled ),
+					downsampled,
+					new FloatType(),
+					DoGImgLib2.blockSize,
+					d);
 
-		final RandomAccessibleInterval<FloatType> downsampled =
-				Views.translate( Lazy.process(new FinalInterval( dim ), DoGImgLib2.blockSize, new FloatType(), AccessFlags.setOf(), downsampling ), min );
-
-		ImageJFunctions.show( downsampled );
+		ImageJFunctions.show( downsampled ).setTitle("downsampleAllDims");
 	}
 }
