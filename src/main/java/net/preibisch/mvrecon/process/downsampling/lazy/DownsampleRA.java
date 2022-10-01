@@ -148,6 +148,17 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 		return ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0;
 	}
 
+	/**
+	 * Convenient set up of the Lazy Downsampling
+	 *
+	 * @param <T>
+	 * @param input
+	 * @param downsampleInterval
+	 * @param type
+	 * @param blockSize
+	 * @param d
+	 * @return
+	 */
 	public static final <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> init(
 			final RandomAccessible< T > input,
 			final Interval downsampleInterval,
