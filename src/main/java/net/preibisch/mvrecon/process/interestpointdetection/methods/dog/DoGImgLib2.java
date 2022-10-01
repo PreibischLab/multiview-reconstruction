@@ -243,8 +243,8 @@ public class DoGImgLib2
 
 			if ( cuda == null )
 			{
-				gauss1 = computeGaussPlain( inputFloat, new FloatType(), sigma1, blockSize );
-				gauss2 = computeGaussPlain( inputFloat, new FloatType(), sigma2, blockSize );
+				gauss1 = PlainGaussRA.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
+				gauss2 = PlainGaussRA.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
 			}
 			else
 			{
@@ -344,35 +344,6 @@ public class DoGImgLib2
 						min,
 						Views.extendMirrorSingle( input ),
 						Views.extendZero( mask ),
-						type.createVariable(),
-						sigma );
-
-		weightedgauss.total = new FinalInterval( input );
-
-		final RandomAccessibleInterval<T> gauss = Views.translate( Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss ), min );
-		//final Cache< ?, ? > gradientCache = ((CachedCellImg< ?, ? >)gradient).getCache();
-
-		return gauss;
-
-		//final RandomAccessibleInterval< T > output = Views.translate( new ArrayImgFactory<>(type).create( input ), min );
-		//copy(gauss, output);
-		//FusionTools.copyImg( (RandomAccessibleInterval)gauss, (RandomAccessibleInterval)output, DeconViews.createExecutorService() );
-		//return output;
-	}
-
-	public static < T extends RealType< T > & NativeType<T> > RandomAccessibleInterval< T > computeGaussPlain(
-			final RandomAccessibleInterval< T > input,
-			final T type,
-			final double[] sigma,
-			final int[] blockSize )
-	{
-		final long[] min= new long[ input.numDimensions() ];
-		input.min( min );
-
-		final PlainGaussRA< T > weightedgauss =
-				new PlainGaussRA<>(
-						min,
-						Views.extendMirrorSingle( input ),
 						type.createVariable(),
 						sigma );
 
