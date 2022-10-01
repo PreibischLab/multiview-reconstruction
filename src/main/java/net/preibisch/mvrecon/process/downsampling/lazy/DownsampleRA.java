@@ -105,19 +105,11 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 				v1 = in.get().getRealDouble();
 				in.fwd( d );
 				v2 = in.get().getRealDouble();
-				out.get().setReal( ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0 );
+				out.get().setReal( quasiGauss( v0, v1, v2 ) );
 
 				// other pixels
 				for ( long p = 1; p < size; ++p )
-				{
-					v0 = v2;
-					in.fwd( d );
-					v1 = in.get().getRealDouble();
-					in.fwd( d );
-					v2 = in.get().getRealDouble();
-					out.fwd( d );
-					out.get().setReal( ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0 );
-				}
+					v2 = mainLoop(v2, in, out, d);
 
 				// last pixel
 				in.fwd( d );
@@ -125,13 +117,35 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 				in.fwd( d );
 				v0 = in.get().getRealDouble();
 				out.fwd( d );
-				out.get().setReal( ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0 );
+				out.get().setReal( quasiGauss( v0, v1, v2 ) );
 			}
 		}
 		catch (final IncompatibleTypeException e)
 		{
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static final <T extends RealType<T> & NativeType<T>> double mainLoop(
+			final double v2in,
+			final RandomAccess< T > in,
+			final RandomAccess< T > out,
+			final int d )
+	{
+		final double v0 = v2in;
+		in.fwd( d );
+		final double v1 = in.get().getRealDouble();
+		in.fwd( d );
+		final double v2 = in.get().getRealDouble();
+		out.fwd( d );
+		out.get().setReal( quasiGauss( v0, v1, v2 ) );
+
+		return v2;
+	}
+	
+	private static final double quasiGauss( final double v0, final double v1, final double v2 )
+	{
+		return ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0;
 	}
 
 	public static final <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> init(
