@@ -194,8 +194,8 @@ public class WeightedGaussRA<T extends RealType<T> & NativeType<T>> implements C
 		ImageJFunctions.show( inputCropped );
 
 		RandomAccessibleInterval<FloatType> gauss = WeightedGaussRA.init(
-				inputCropped,
-				mask,
+				Views.extendMirrorSingle( inputCropped ),
+				Views.extendZero( mask ),
 				new FinalInterval(inputCropped),
 				new FloatType(),
 				new double[] { 2.0, 2.0, 2.0},
