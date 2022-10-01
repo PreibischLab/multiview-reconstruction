@@ -176,8 +176,7 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 				dim[ e ] = downsampleInterval.dimension( e );
 		}
 
-		final long[] min= new long[ input.numDimensions() ];
-		downsampleInterval.min( min );
+		final long[] min = downsampleInterval.minAsLongArray();
 
 		final DownsampleRA< T > downsampling =
 				new DownsampleRA< T >(
@@ -188,7 +187,7 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 						type.createVariable() );
 
 		final RandomAccessibleInterval<T> downsampled =
-				Views.translate( Lazy.process(new FinalInterval( dim ), blockSize, type.createVariable(), AccessFlags.setOf(), downsampling ), min );
+				Views.translate( Lazy.process( new FinalInterval( dim ), blockSize, type.createVariable(), AccessFlags.setOf(), downsampling ), min );
 
 		return downsampled;
 	}

@@ -257,8 +257,8 @@ public class DoGImgLib2
 		{
 			maskFloat = ImgLib2Tools.convertVirtual( mask );
 
-			gauss1 = computeGaussMask( inputFloat, maskFloat, new FloatType(), sigma1, blockSize );
-			gauss2 = computeGaussMask( inputFloat, maskFloat, new FloatType(), sigma2, blockSize );
+			gauss1 = WeightedGaussRA.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
+			gauss2 = WeightedGaussRA.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
 		}
 
 		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()
@@ -327,37 +327,6 @@ public class DoGImgLib2
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " peaks." );
 
 		return finalPeaks;
-	}
-
-	public static < T extends RealType< T > & NativeType<T> > RandomAccessibleInterval< T > computeGaussMask(
-			final RandomAccessibleInterval< T > input,
-			final RandomAccessibleInterval< T > mask,
-			final T type,
-			final double[] sigma,
-			final int[] blockSize )
-	{
-		final long[] min= new long[ input.numDimensions() ];
-		input.min( min );
-
-		final WeightedGaussRA< T > weightedgauss =
-				new WeightedGaussRA<>(
-						min,
-						Views.extendMirrorSingle( input ),
-						Views.extendZero( mask ),
-						type.createVariable(),
-						sigma );
-
-		weightedgauss.total = new FinalInterval( input );
-
-		final RandomAccessibleInterval<T> gauss = Views.translate( Lazy.process(new FinalInterval( input ), blockSize, type.createVariable(), AccessFlags.setOf(), weightedgauss ), min );
-		//final Cache< ?, ? > gradientCache = ((CachedCellImg< ?, ? >)gradient).getCache();
-
-		return gauss;
-
-		//final RandomAccessibleInterval< T > output = Views.translate( new ArrayImgFactory<>(type).create( input ), min );
-		//copy(gauss, output);
-		//FusionTools.copyImg( (RandomAccessibleInterval)gauss, (RandomAccessibleInterval)output, DeconViews.createExecutorService() );
-		//return output;
 	}
 
 	public static ArrayList<SimplePeak> findPeaks( final RandomAccessibleInterval< FloatType > laPlace, final RandomAccessibleInterval< FloatType > laPlaceMask, final float minValue, final ExecutorService service )

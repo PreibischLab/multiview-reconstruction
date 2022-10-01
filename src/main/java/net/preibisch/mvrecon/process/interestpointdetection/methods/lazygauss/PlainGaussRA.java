@@ -91,8 +91,7 @@ public class PlainGaussRA<T extends RealType<T> & NativeType<T>> implements Cons
 			final double[] sigma,
 			final int[] blockSize )
 	{
-		final long[] min= new long[ input.numDimensions() ];
-		processingInterval.min( min );
+		final long[] min = processingInterval.minAsLongArray();
 
 		final PlainGaussRA< T > lazyGauss =
 				new PlainGaussRA<>(
@@ -104,7 +103,7 @@ public class PlainGaussRA<T extends RealType<T> & NativeType<T>> implements Cons
 		final RandomAccessibleInterval<T> gauss =
 				Views.translate(
 						Lazy.process(
-								new FinalInterval( processingInterval ),
+								processingInterval,
 								blockSize,
 								type.createVariable(),
 								AccessFlags.setOf(),
