@@ -81,8 +81,8 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.Lazy;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.PlainGaussRA;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.WeightedGaussRA;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyGauss;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyWeightedGauss;
 import util.ImgLib2Tools;
 
 public class DoGImgLib2
@@ -243,8 +243,8 @@ public class DoGImgLib2
 
 			if ( cuda == null )
 			{
-				gauss1 = PlainGaussRA.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
-				gauss2 = PlainGaussRA.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
+				gauss1 = LazyGauss.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
+				gauss2 = LazyGauss.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
 			}
 			else
 			{
@@ -257,8 +257,8 @@ public class DoGImgLib2
 		{
 			maskFloat = ImgLib2Tools.convertVirtual( mask );
 
-			gauss1 = WeightedGaussRA.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
-			gauss2 = WeightedGaussRA.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
+			gauss1 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
+			gauss2 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
 		}
 
 		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()

@@ -22,14 +22,14 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.Lazy;
 
-public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Consumer<RandomAccessibleInterval<T>>
+public class LazyDownsample2x<T extends RealType<T> & NativeType<T>> implements Consumer<RandomAccessibleInterval<T>>
 {
 	final T type;
 	final private RandomAccessible<T> source;
 	final int d,n;
 	final long[] globalMin;
 
-	public DownsampleRA(
+	public LazyDownsample2x(
 			final long[] min,
 			final RandomAccessible<T> source,
 			final Interval sourceInterval,
@@ -178,8 +178,8 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 
 		final long[] min = downsampleInterval.minAsLongArray();
 
-		final DownsampleRA< T > downsampling =
-				new DownsampleRA< T >(
+		final LazyDownsample2x< T > downsampling =
+				new LazyDownsample2x< T >(
 						min,
 						input,
 						downsampleInterval,
@@ -205,7 +205,7 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 
 		// downsample in X
 		final RandomAccessibleInterval<FloatType> downsampledX =
-				DownsampleRA.init(
+				LazyDownsample2x.init(
 						Views.extendBorder( inputCropped ),
 						inputCropped,
 						new FloatType(),
@@ -218,7 +218,7 @@ public class DownsampleRA<T extends RealType<T> & NativeType<T>> implements Cons
 
 		// downsample in all dimensions
 		for ( int d = 0; d < inputCropped.numDimensions(); ++d )
-			downsampled = DownsampleRA.init(
+			downsampled = LazyDownsample2x.init(
 					Views.extendBorder( downsampled ),
 					downsampled,
 					new FloatType(),
