@@ -473,8 +473,6 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Opening and downsampling ... " );
 
-		final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
-
 		@SuppressWarnings("unchecked")
 		RandomAccessibleInterval< FloatType > img = DownsampleTools.openAndDownsample(
 			spimData.getSequenceDescription().getImgLoader(),
@@ -482,11 +480,8 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			null,
 			new long[] { downsampleXY, downsampleXY, downsampleZ },
 			false,  //transformOnly
-			true,   //openAsFloat
-			true, //openCompletely
-			service );
-
-		service.shutdown();
+			true    //openAsFloat
+			);
 
 		if ( img == null )
 		{

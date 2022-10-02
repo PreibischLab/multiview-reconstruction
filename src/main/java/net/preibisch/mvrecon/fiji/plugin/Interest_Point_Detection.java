@@ -22,10 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
-import ij.ImageJ;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -33,10 +29,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import ij.ImageJ;
+import ij.gui.GenericDialog;
+import ij.plugin.PlugIn;
+import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfGaussianGUI;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.DifferenceOfMeanGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.InterestPointDetectionGUI;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
@@ -45,9 +45,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-
-import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewId;
 
 /**
  * Plugin to detect interest points, store them on disk, and link them into the XML
@@ -74,7 +71,6 @@ public class Interest_Point_Detection implements PlugIn
 	static
 	{
 		IOFunctions.printIJLog = true;
-		staticAlgorithms.add( new DifferenceOfMeanGUI( null, null ) );
 		staticAlgorithms.add( new DifferenceOfGaussianGUI( null, null ) );
 	}
 	

@@ -440,8 +440,6 @@ public class DownsampleTools
 	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
 	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
 	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
-	 * @param openCompletely - whether to try to open the file entirely (only required by legacy ImgLib1 code!!!)
-	 * @param service - the ExecutorService
 	 * @return opened image
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -451,9 +449,7 @@ public class DownsampleTools
 			final AffineTransform3D mipMapTransform,
 			long[] downsampleFactors,
 			final boolean transformOnly,
-			final boolean openAsFloat,
-			final boolean openCompletely,
-			final ExecutorService service ) // only for ImgLib1 legacy code
+			final boolean openAsFloat ) // only for ImgLib1 legacy code
 	{
 
 		if ( !transformOnly )
@@ -505,19 +501,10 @@ public class DownsampleTools
 						"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
 						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-				// we only need to do the complete opening when we do not perform additional downsampling below
-				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
-				{
-					// TODO: only needed by ImgLib1 legacy code, remove that!
-					input = openCompletely( mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), bestLevel, openAsFloat, false );
-				}
+				if ( openAsFloat )
+					input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
 				else
-				{
-					if ( openAsFloat )
-						input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
-					else
-						input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
-				}
+					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
 			}
 		}
 		else
@@ -530,18 +517,10 @@ public class DownsampleTools
 						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
 				// we only need to do the complete opening when we do not perform additional downsampling below
-				if ( openCompletely && (dsx == 1 && dsy == 1 && dsz == 1 ) )
-				{
-					// TODO: only needed by ImgLib1 legacy code, remove that!
-					input = openCompletely( imgLoader.getSetupImgLoader( vd.getViewSetupId() ), vd.getTimePointId(), openAsFloat, false );
-				}
+				if ( openAsFloat )
+					input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
 				else
-				{
-					if ( openAsFloat )
-						input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
-					else
-						input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
-				}
+					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
 			}
 
 			if ( mipMapTransform != null )
@@ -578,48 +557,6 @@ public class DownsampleTools
 		}
 
 		return input;
-	}
-
-	// TODO: REMOVE IMGLIB1 stuff!!
-	// required by legacy code that wraps to imglib1
-	public static Img<FloatType> openCompletely( final MultiResolutionSetupImgLoader< ? > loader, final int timepointId, final int level, final boolean openAsFloat, final boolean normalize )
-	{
-		return openCompletely( loader.getImage( timepointId, level ), openAsFloat, normalize );
-	}
-
-	// TODO: REMOVE IMGLIB1 stuff!!
-	// required by legacy code that wraps to imglib1
-	public static Img<FloatType> openCompletely( final BasicSetupImgLoader< ? > loader, final int timepointId, final boolean openAsFloat, final boolean normalize )
-	{
-		return openCompletely( loader.getImage( timepointId ), openAsFloat, normalize );
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected static Img<FloatType> openCompletely( final RandomAccessibleInterval img, final boolean openAsFloat, final boolean normalize )
-	{
-		if ( openAsFloat )
-		{
-			final Img< FloatType > floatImg = new CellImgFactory<FloatType>( new FloatType() ).create( img );
-
-			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
-			copyFromToMultithreaded( img, floatImg );
-
-			if ( normalize )
-				// normalize the image to 0...1
-				normalize( floatImg );
-
-			return floatImg;
-		}
-		else
-		{
-			final NativeType< ? > t = Util.getTypeFromInterval( img );
-			final Img completeImg = new CellImgFactory( t ).create( img );
-
-			// TODO: replace with multithreaded RealTypeConverters.copyFromTo( ushortImg, floatImg );
-			copyFromToMultithreaded( img, completeImg );
-
-			return completeImg;
-		}
 	}
 
 	// TODO: Remove when RealTypeConvertes.copyFromTo has multithreading support

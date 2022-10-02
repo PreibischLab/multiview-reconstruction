@@ -149,9 +149,8 @@ public class DoG
 								correctCoordinates,
 								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
 								false,  //transformOnly
-								false,   //openAsFloat
-								false, //openCompletely
-								service );
+								false   //openAsFloat 
+								);
 
 				List< InterestPoint > ips = DoGImgLib2.computeDoG(
 							input,
