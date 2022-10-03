@@ -132,10 +132,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<groupId>sc.fiji</groupId>
 			<artifactId>fiji-lib</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>sc.fiji</groupId>
-			<artifactId>legacy-imglib1</artifactId>
-		</dependency>
 
 		<!-- ImageJ dependencies -->
 		<dependency>

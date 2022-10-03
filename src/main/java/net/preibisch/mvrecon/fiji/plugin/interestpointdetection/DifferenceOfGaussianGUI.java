@@ -26,8 +26,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import ij.ImagePlus;
+import ij.gui.GenericDialog;
+import mpicbg.spim.data.sequence.TimePoint;
+import mpicbg.spim.data.sequence.ViewDescription;
+import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.legacy.segmentation.InteractiveDoG;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.RadialSymParams;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -35,16 +42,10 @@ import net.preibisch.mvrecon.process.cuda.CUDADevice;
 import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
 import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-
-import ij.ImagePlus;
-import ij.gui.GenericDialog;
-import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
 
 public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericDialogAppender
 {
@@ -215,36 +216,38 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		imp.setSlice( imp.getStackSize() / 2 );
 		imp.setRoi( 0, 0, imp.getWidth()/3, imp.getHeight()/3 );
 
-		final InteractiveDoG idog = new InteractiveDoG( imp );
+		RadialSymParams params = new RadialSymParams();
+		params.sigma = (float)defaultSigma;
+		params.threshold = (float)defaultThreshold;
 
-		idog.setSigma2isAdjustable( false );
-		idog.setInitialSigma( (float)defaultSigma );
-		idog.setThreshold( (float)defaultThreshold );
-		idog.setLookForMinima( defaultFindMin );
-		idog.setLookForMaxima( defaultFindMax );
-		idog.setMinIntensityImage( minIntensity ); // if is Double.NaN will be ignored
-		idog.setMaxIntensityImage( maxIntensity ); // if is Double.NaN will be ignored
+		// TODO : add functionality
+		//idog.setLookForMinima( defaultFindMin );
+		//idog.setLookForMaxima( defaultFindMax );
 
-		idog.run( null );
+		// TODO: check that NaN is actually ignored
+		//idog.setMinIntensityImage( minIntensity ); // if is Double.NaN will be ignored
+		//idog.setMaxIntensityImage( maxIntensity ); // if is Double.NaN will be ignored
 
-		while ( !idog.isFinished() )
+		final InteractiveRadialSymmetry idog = new InteractiveRadialSymmetry( imp, params, minIntensity, maxIntensity );
+		do
 		{
 			try
 			{
 				Thread.sleep( 100 );
-			}
-			catch (InterruptedException e) {}
+			} catch (InterruptedException e) {}
 		}
+		while (!idog.isFinished());
+
+		if (idog.wasCanceled())
+			return false;
 
 		imp.close();
 
-		if ( idog.wasCanceled() )
-			return false;
-
-		this.sigma = defaultSigma = idog.getInitialSigma();
-		this.threshold = defaultThreshold = idog.getThreshold();
-		this.findMin = defaultFindMin = idog.getLookForMinima();
-		this.findMax = defaultFindMax = idog.getLookForMaxima();
+		// TODO: update
+		//this.sigma = defaultSigma = idog.getInitialSigma();
+		//this.threshold = defaultThreshold = idog.getThreshold();
+		//this.findMin = defaultFindMin = idog.getLookForMinima();
+		//this.findMax = defaultFindMax = idog.getLookForMaxima();
 
 		return true;
 	}

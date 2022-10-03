@@ -36,7 +36,6 @@ import java.util.concurrent.Future;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.ImageJ;
-import mpicbg.imglib.algorithm.scalespace.DifferenceOfGaussian.SpecialPoint;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
@@ -89,6 +88,7 @@ public class DoGImgLib2
 {
 	public static boolean silent = false;
 	public static int[] blockSize = new int[] {96, 96, 64};
+	public static enum SpecialPoint { INVALID, MIN, MAX };
 
 	public static void main ( String[] args )
 	{
