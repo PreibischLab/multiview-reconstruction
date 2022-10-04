@@ -33,8 +33,8 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.IDoGParams;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoGParams;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -216,7 +216,7 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		imp.setSlice( imp.getStackSize() / 2 );
 		imp.setRoi( 0, 0, imp.getWidth()/3, imp.getHeight()/3 );
 
-		IDoGParams params = new IDoGParams();
+		InteractiveDoGParams params = new InteractiveDoGParams();
 		params.sigma = (float)defaultSigma;
 		params.threshold = (float)defaultThreshold;
 		params.findMaxima = defaultFindMax;
@@ -237,7 +237,7 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 			max = maxIntensity;
 		}
 
-		final InteractiveRadialSymmetry idog = new InteractiveRadialSymmetry( imp, params, min, max );
+		final InteractiveDoG idog = new InteractiveDoG( imp, params, min, max );
 		do
 		{
 			try

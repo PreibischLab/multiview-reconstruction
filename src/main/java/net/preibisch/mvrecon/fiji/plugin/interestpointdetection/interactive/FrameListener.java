@@ -4,10 +4,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 public class FrameListener extends WindowAdapter {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 
 	public FrameListener(
-			final InteractiveRadialSymmetry parent )
+			final InteractiveDoG parent )
 	{
 		super();
 		this.parent = parent;

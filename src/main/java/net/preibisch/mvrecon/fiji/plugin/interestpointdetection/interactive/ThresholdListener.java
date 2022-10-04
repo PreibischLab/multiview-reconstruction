@@ -4,16 +4,16 @@ import java.awt.Label;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG.ValueChange;
 
 public class ThresholdListener implements AdjustmentListener {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 	final Label label;
 	final float min, max;
 	final float log1001 = (float) Math.log10(1001);
 
 	public ThresholdListener(
-			final InteractiveRadialSymmetry parent,
+			final InteractiveDoG parent,
 			final Label label, final float min, final float max) {
 		this.parent = parent;
 		this.label = label;

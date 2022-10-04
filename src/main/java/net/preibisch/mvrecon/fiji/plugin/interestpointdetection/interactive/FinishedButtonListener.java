@@ -4,11 +4,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public  class FinishedButtonListener implements ActionListener {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 	final boolean cancel;
 
 	public FinishedButtonListener(
-			final InteractiveRadialSymmetry parent,
+			final InteractiveDoG parent,
 			final boolean cancel) {
 		this.parent = parent;
 		this.cancel = cancel;

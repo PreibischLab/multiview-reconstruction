@@ -5,10 +5,10 @@ import java.awt.Scrollbar;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG.ValueChange;
 
 public class SigmaListener implements AdjustmentListener {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 	final Label label;
 	final float min, max;
 	final int scrollbarSize;
@@ -16,7 +16,7 @@ public class SigmaListener implements AdjustmentListener {
 	final Scrollbar sigmaScrollbar1;
 
 	public SigmaListener(
-			final InteractiveRadialSymmetry parent,
+			final InteractiveDoG parent,
 			final Label label, final float min, final float max,
 			final int scrollbarSize,
 			final Scrollbar sigmaScrollbar1) {

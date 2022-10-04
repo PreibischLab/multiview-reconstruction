@@ -9,14 +9,14 @@ import java.awt.Insets;
 import java.awt.Label;
 import java.awt.Scrollbar;
 
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG.ValueChange;
 
 public class DoGWindow
 {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 	final Frame doGFrame;
 
-	public DoGWindow( final InteractiveRadialSymmetry parent )
+	public DoGWindow( final InteractiveDoG parent )
 	{
 		this.parent = parent;
 		this.doGFrame = new Frame( "Adjust difference-of-gaussian values" );
@@ -26,13 +26,13 @@ public class DoGWindow
 		final GridBagLayout layout = new GridBagLayout();
 		final GridBagConstraints c = new GridBagConstraints();
 
-		int scrollbarInitialPosition = HelperFunctions.computeScrollbarPositionFromValue(parent.params.sigma, InteractiveRadialSymmetry.sigmaMin, InteractiveRadialSymmetry.sigmaMax, parent.scrollbarSize);
+		int scrollbarInitialPosition = HelperFunctions.computeScrollbarPositionFromValue(parent.params.sigma, InteractiveDoG.sigmaMin, InteractiveDoG.sigmaMax, parent.scrollbarSize);
 		final Scrollbar sigma1Bar = new Scrollbar(Scrollbar.HORIZONTAL, scrollbarInitialPosition, 10, 0,
 				10 + parent.scrollbarSize);
 
 		final float log1001 = (float) Math.log10(parent.scrollbarSize + 1);
 		scrollbarInitialPosition = (int) Math
-				.round(1001 - Math.pow(10, (InteractiveRadialSymmetry.thresholdMax - parent.params.threshold) / (InteractiveRadialSymmetry.thresholdMax - InteractiveRadialSymmetry.thresholdMin) * log1001));
+				.round(1001 - Math.pow(10, (InteractiveDoG.thresholdMax - parent.params.threshold) / (InteractiveDoG.thresholdMax - InteractiveDoG.thresholdMin) * log1001));
 		final Scrollbar thresholdBar = new Scrollbar(Scrollbar.HORIZONTAL, scrollbarInitialPosition, 10, 0,
 				10 + parent.scrollbarSize);
 
@@ -101,8 +101,8 @@ public class DoGWindow
 		doGFrame.setLocation(xOffset, yOffset);
 
 		/* Configuration */
-		sigma1Bar.addAdjustmentListener(new SigmaListener(parent,sigmaText1, InteractiveRadialSymmetry.sigmaMin, InteractiveRadialSymmetry.sigmaMax, parent.scrollbarSize, sigma1Bar));
-		thresholdBar.addAdjustmentListener(new ThresholdListener(parent,thresholdText, InteractiveRadialSymmetry.thresholdMin, InteractiveRadialSymmetry.thresholdMax));
+		sigma1Bar.addAdjustmentListener(new SigmaListener(parent,sigmaText1, InteractiveDoG.sigmaMin, InteractiveDoG.sigmaMax, parent.scrollbarSize, sigma1Bar));
+		thresholdBar.addAdjustmentListener(new ThresholdListener(parent,thresholdText, InteractiveDoG.thresholdMin, InteractiveDoG.thresholdMax));
 		maxima.addItemListener( l -> {parent.params.findMaxima = maxima.getState(); parent.updatePreview(ValueChange.MINMAX);} );
 		minima.addItemListener( l -> {parent.params.findMinima = minima.getState(); parent.updatePreview(ValueChange.MINMAX);} );
 		button.addActionListener(new FinishedButtonListener(parent, false));

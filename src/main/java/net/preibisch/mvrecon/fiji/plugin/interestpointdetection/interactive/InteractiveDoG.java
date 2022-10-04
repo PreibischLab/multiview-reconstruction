@@ -25,7 +25,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 
-public class InteractiveRadialSymmetry
+public class InteractiveDoG
 {
 	// TODO: Pass as the parameter (?)
 	final int sensitivity = 4;//RadialSymParams.defaultSensitivity;
@@ -61,7 +61,7 @@ public class InteractiveRadialSymmetry
 	}
 	
 	// stores all the parameters 
-	final IDoGParams params;
+	final InteractiveDoGParams params;
 	
 	// min/max values for GUI
 	public static final int supportRadiusMin = 1;
@@ -97,7 +97,7 @@ public class InteractiveRadialSymmetry
 		return wasCanceled;
 	}
 
-	public InteractiveRadialSymmetry( final ImagePlus imp, final IDoGParams params )
+	public InteractiveDoG( final ImagePlus imp, final InteractiveDoGParams params )
 	{
 		this( imp, params, Double.NaN, Double.NaN );
 	}
@@ -112,7 +112,7 @@ public class InteractiveRadialSymmetry
 	 * @param max - max intensity of the image
 	 */
 	@SuppressWarnings("unchecked")
-	public InteractiveRadialSymmetry( final ImagePlus imp, final IDoGParams params, final double min, final double max )
+	public InteractiveDoG( final ImagePlus imp, final InteractiveDoGParams params, final double min, final double max )
 	{
 		this.imagePlus = imp;
 
@@ -303,7 +303,7 @@ public class InteractiveRadialSymmetry
 		if ( params.findMaxima )
 		{
 			final DoGDetection<FloatType> dog2 =
-					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
+					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveDoG.thresholdMin, false);
 	
 			ArrayList<Point> simplePeaks = dog2.getPeaks();
 			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
@@ -320,7 +320,7 @@ public class InteractiveRadialSymmetry
 		if ( params.findMinima )
 		{
 			final DoGDetection<FloatType> dog2 =
-					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MAXIMA, InteractiveRadialSymmetry.thresholdMin, false);
+					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MAXIMA, InteractiveDoG.thresholdMin, false);
 
 			ArrayList<Point> simplePeaks = dog2.getPeaks();
 			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
@@ -391,7 +391,7 @@ public class InteractiveRadialSymmetry
 
 		imp.setSlice(20);
 
-		new InteractiveRadialSymmetry( imp, new IDoGParams(), min, max );
+		new InteractiveDoG( imp, new InteractiveDoGParams(), min, max );
 
 		System.out.println("DOGE!");
 	}

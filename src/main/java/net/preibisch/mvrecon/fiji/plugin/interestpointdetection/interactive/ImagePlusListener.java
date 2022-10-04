@@ -2,13 +2,13 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive;
 
 import fiji.tool.SliceListener;
 import ij.ImagePlus;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG.ValueChange;
 
 public class ImagePlusListener implements SliceListener
 {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 
-	public ImagePlusListener( final InteractiveRadialSymmetry parent )
+	public ImagePlusListener( final InteractiveDoG parent )
 	{
 		this.parent = parent;
 	}

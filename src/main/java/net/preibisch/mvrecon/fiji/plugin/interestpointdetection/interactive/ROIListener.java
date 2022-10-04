@@ -5,7 +5,7 @@ import java.awt.event.MouseListener;
 
 import ij.ImagePlus;
 import ij.gui.Roi;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveDoG.ValueChange;
 
 /**
  * Tests whether the ROI was changed and will recompute the preview
@@ -13,10 +13,10 @@ import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.Inte
  * @author Stephan Preibisch
  */
 public class ROIListener implements MouseListener {
-	final InteractiveRadialSymmetry parent;
+	final InteractiveDoG parent;
 	final ImagePlus source;
 
-	public ROIListener( final InteractiveRadialSymmetry parent, final ImagePlus s){
+	public ROIListener( final InteractiveDoG parent, final ImagePlus s){
 		this.parent = parent;
 		this.source = s;
 	}
