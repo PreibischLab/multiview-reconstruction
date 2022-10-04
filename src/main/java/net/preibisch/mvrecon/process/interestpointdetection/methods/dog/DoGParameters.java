@@ -22,15 +22,13 @@
  */
 package net.preibisch.mvrecon.process.interestpointdetection.methods.dog;
 
-import java.util.ArrayList;
 import java.util.Collection;
-
-import net.preibisch.mvrecon.process.cuda.CUDADevice;
-import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.InterestPointParameters;
 
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
+import net.preibisch.mvrecon.process.cuda.CUDADevice;
+import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.InterestPointParameters;
 
 public class DoGParameters extends InterestPointParameters
 {
