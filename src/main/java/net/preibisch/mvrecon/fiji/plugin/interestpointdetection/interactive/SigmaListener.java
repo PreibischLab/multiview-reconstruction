@@ -5,7 +5,6 @@ import java.awt.Scrollbar;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
 
 public class SigmaListener implements AdjustmentListener {
@@ -34,13 +33,15 @@ public class SigmaListener implements AdjustmentListener {
 	public void adjustmentValueChanged(final AdjustmentEvent event) {
 		float sigmaDog = HelperFunctions.computeValueFromScrollbarPosition(event.getValue(), min, max, scrollbarSize);
 		parent.params.setSigmaDog(sigmaDog);
-		label.setText("Sigma 1 = " + String.format(java.util.Locale.US, "%.2f", parent.params.getSigmaDoG()));
+		label.setText("Sigma 1 = " + String.format(java.util.Locale.US, "%.3f", parent.params.getSigmaDoG()));
 
 		// Real time change of the radius
 		// if ( !event.getValueIsAdjusting() )
 		{
 			while (parent.isComputing) {
-				SimpleMultiThreading.threadWait(10);
+				try {
+					Thread.sleep( 10 );
+				} catch (InterruptedException e) {}
 			}
 			parent.updatePreview(ValueChange.SIGMA);
 		}

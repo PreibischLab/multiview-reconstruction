@@ -4,7 +4,6 @@ import java.awt.Label;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
 
 public class ThresholdListener implements AdjustmentListener {
@@ -27,13 +26,15 @@ public class ThresholdListener implements AdjustmentListener {
 		float threshold = min + ((log1001 - (float) Math.log10(1001 - event.getValue())) / log1001) * (max - min);
 		parent.params.setThresholdDog(threshold); 
 				
-		label.setText("Threshold = " + String.format(java.util.Locale.US, "%.4f", parent.params.getThresholdDoG()));
+		label.setText("Threshold = " + String.format(java.util.Locale.US, "%.5f", parent.params.getThresholdDoG()));
 
 		if (!parent.isComputing) {
 			parent.updatePreview(ValueChange.THRESHOLD);
 		} else if (!event.getValueIsAdjusting()) {
 			while (parent.isComputing) {
-				SimpleMultiThreading.threadWait(10);
+				try {
+					Thread.sleep( 10 );
+				} catch (InterruptedException e) {}
 			}
 			parent.updatePreview(ValueChange.THRESHOLD);
 		}
