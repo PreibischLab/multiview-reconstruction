@@ -28,6 +28,7 @@ import java.util.List;
 
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -43,6 +44,7 @@ import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
 import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -224,11 +226,23 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		//idog.setLookForMinima( defaultFindMin );
 		//idog.setLookForMaxima( defaultFindMax );
 
-		// TODO: check that NaN is actually ignored
-		//idog.setMinIntensityImage( minIntensity ); // if is Double.NaN will be ignored
-		//idog.setMaxIntensityImage( maxIntensity ); // if is Double.NaN will be ignored
+		final double min, max;
 
-		final InteractiveRadialSymmetry idog = new InteractiveRadialSymmetry( imp, params, minIntensity, maxIntensity );
+		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )
+		{
+			IOFunctions.println("Using approximate min/max intensity values ... to have a more accurate preview your can manually set min/max intensity." );
+			//imp.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+
+			min = imp.getDisplayRangeMin();
+			max = imp.getDisplayRangeMax();
+		}
+		else
+		{
+			min = minIntensity;
+			max = maxIntensity;
+		}
+
+		final InteractiveRadialSymmetry idog = new InteractiveRadialSymmetry( imp, params, min, max );
 		do
 		{
 			try
@@ -243,11 +257,11 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 
 		imp.close();
 
-		// TODO: update
-		//this.sigma = defaultSigma = idog.getInitialSigma();
-		//this.threshold = defaultThreshold = idog.getThreshold();
-		//this.findMin = defaultFindMin = idog.getLookForMinima();
-		//this.findMax = defaultFindMax = idog.getLookForMaxima();
+		// TODO: implement minima search
+		this.sigma = defaultSigma = params.sigma; //idog.getInitialSigma();
+		this.threshold = defaultThreshold = params.threshold; //idog.getThreshold();
+		this.findMin = defaultFindMin = true;//idog.getLookForMinima();
+		this.findMax = defaultFindMax = false;//idog.getLookForMaxima();
 
 		return true;
 	}
