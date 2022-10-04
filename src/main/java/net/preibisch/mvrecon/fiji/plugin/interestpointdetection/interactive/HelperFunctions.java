@@ -8,7 +8,6 @@ import java.util.Collection;
 import ij.ImagePlus;
 import ij.gui.OvalRoi;
 import ij.gui.Overlay;
-import ij.gui.Roi;
 import net.imglib2.Point;
 import net.imglib2.RealLocalizable;
 import net.imglib2.algorithm.localextrema.RefinedPeak;
@@ -50,7 +49,7 @@ public class HelperFunctions {
 		final ArrayList<RefinedPeak<Point>> filtered = new ArrayList<>();
 
 		for (final RefinedPeak<Point> peak : peaks)
-			if (HelperFunctions.isInside(peak, rectangle) && (-peak.getValue() > threshold)) 
+			if (HelperFunctions.isInside(peak, rectangle) && (Math.abs(peak.getValue()) > threshold)) 
 				// I guess the peak.getValue function returns the value in scale-space
 				filtered.add(peak);
 
@@ -97,22 +96,10 @@ public class HelperFunctions {
 			final float x = peak.getFloatPosition(0);
 			final float y = peak.getFloatPosition(1);
 
-			if (!clearFirst) {
-				// +0.5 is to center in on the middle of the detection pixel
-				// cross roi
-				final Roi lrv = new Roi(x - radius + 0.5, y + 0.5, radius * 2, 0);
-				final Roi lrh = new Roi(x + 0.5, y - radius + 0.5, 0, radius * 2);
-
-				lrv.setStrokeColor(col);
-				lrh.setStrokeColor(col);
-				overlay.add(lrv);
-				overlay.add(lrh);
-			} else {
-				// +0.5 is to center in on the middle of the detection pixel
-				final OvalRoi or = new OvalRoi(x - radius + 0.5, y - radius + 0.5, radius * 2, radius * 2);
-				or.setStrokeColor(col);
-				overlay.add(or);
-			}
+			// +0.5 is to center in on the middle of the detection pixel
+			final OvalRoi or = new OvalRoi(x - radius + 0.5, y - radius + 0.5, radius * 2, radius * 2);
+			or.setStrokeColor(col);
+			overlay.add(or);
 		}
 
 		// this part might be useful for debugging

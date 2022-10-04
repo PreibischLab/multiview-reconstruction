@@ -3,10 +3,9 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
-import net.imglib2.multithreading.SimpleMultiThreading;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
 import ij.ImagePlus;
 import ij.gui.Roi;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry.ValueChange;
 
 /**
  * Tests whether the ROI was changed and will recompute the preview
@@ -46,7 +45,11 @@ public class ROIListener implements MouseListener {
 
 		// TODO: might put the update part for the roi here instead of the updatePreview
 		while (parent.isComputing)
-			SimpleMultiThreading.threadWait(10);
+		{
+			try {
+				Thread.sleep( 10 );
+			} catch (InterruptedException e1) {}
+		}
 
 		parent.updatePreview(ValueChange.ROI);
 

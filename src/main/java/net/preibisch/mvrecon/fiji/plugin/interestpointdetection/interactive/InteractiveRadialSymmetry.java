@@ -47,7 +47,7 @@ public class InteractiveRadialSymmetry
 	//final int type;
 	Rectangle rectangle;
 
-	ArrayList<RefinedPeak<Point>> peaks;
+	ArrayList<RefinedPeak<Point>> peaksMin = null, peaksMax = null;
 
 	// TODO: always process only this part of the initial image READ ONLY
 	RandomAccessibleInterval<FloatType> imgTmp;
@@ -57,7 +57,7 @@ public class InteractiveRadialSymmetry
 	boolean isStarted = false;
 
 	public static enum ValueChange {
-		SIGMA, THRESHOLD, SLICE, ROI, ALL, SUPPORTRADIUS, INLIERRATIO, MAXERROR, BSINLIERRATIO, BSMAXERROR
+		SIGMA, THRESHOLD, SLICE, ROI, ALL, MINMAX
 	}
 	
 	// stores all the parameters 
@@ -111,20 +111,22 @@ public class InteractiveRadialSymmetry
 	 * @param min - min intensity of the image
 	 * @param max - max intensity of the image
 	 */
+	@SuppressWarnings("unchecked")
 	public InteractiveRadialSymmetry( final ImagePlus imp, final IDoGParams params, final double min, final double max )
 	{
 		this.imagePlus = imp;
 
 		if ( Double.isNaN( min ) || Double.isNaN( max ) )
 		{
-			this.img = Converters.convert( (RandomAccessibleInterval<RealType>)(Object)ImagePlusImgs.from( imp ), (i,o) -> o.set(i.getRealFloat()), new FloatType() );
+			throw new RuntimeException( "min/max not set for interactive DoG." );
+			//this.img = Converters.convert( (RandomAccessibleInterval<RealType>)(Object)ImagePlusImgs.from( imp ), (i,o) -> o.set(i.getRealFloat()), new FloatType() );
 		}
 		else
 		{
 			final double range = max - min;
 
 			this.img = Converters.convert(
-					(RandomAccessibleInterval<RealType>)(Object)ImagePlusImgs.from( imp ),
+					(RandomAccessibleInterval<RealType<?>>)(Object)ImagePlusImgs.from( imp ),
 					(i,o) ->
 					{
 						o.set( (float)( ( i.getRealFloat() - min ) / range ) );
@@ -205,7 +207,7 @@ public class InteractiveRadialSymmetry
 		final Rectangle roiBounds = roi.getBounds(); 
 
 		// change the img2 size if the roi or the support radius size was changed
-		if ( isRoiChanged(change, roiBounds, roiChanged) || change == ValueChange.SUPPORTRADIUS || change == ValueChange.SIGMA )
+		if ( isRoiChanged(change, roiBounds, roiChanged) || change == ValueChange.SIGMA )
 		{
 			rectangle = roiBounds;
 
@@ -265,15 +267,17 @@ public class InteractiveRadialSymmetry
 		}
 
 		// only recalculate DOG & gradient image if: sigma, roi (also through support region), slider
-		if (roiChanged || peaks == null || change == ValueChange.SIGMA || change == ValueChange.SLICE || change == ValueChange.ALL )
+		if (roiChanged || peaksMin == null || peaksMax == null || change == ValueChange.SIGMA || change == ValueChange.SLICE || change == ValueChange.MINMAX || change == ValueChange.ALL )
 		{
 			dogDetection( Views.extendMirrorSingle( imgTmp ), extendedRoi );
 		}
 
 		final double radius = ( ( params.sigma + HelperFunctions.computeSigma2( params.sigma, sensitivity ) ) / 2.0 );
-		final ArrayList< RefinedPeak< Point > > filteredPeaks = HelperFunctions.filterPeaks( peaks, rectangle, params.threshold );
+		final ArrayList< RefinedPeak< Point > > filteredPeaksMax = HelperFunctions.filterPeaks( peaksMax, rectangle, params.threshold );
+		final ArrayList< RefinedPeak< Point > > filteredPeaksMin = HelperFunctions.filterPeaks( peaksMin, rectangle, params.threshold );
 
-		HelperFunctions.drawRealLocalizable( filteredPeaks, imagePlus, radius, Color.RED, true );
+		HelperFunctions.drawRealLocalizable( filteredPeaksMax, imagePlus, radius, Color.RED, true );
+		HelperFunctions.drawRealLocalizable( filteredPeaksMin, imagePlus, radius, Color.GREEN, false );
 
 		isComputing = false;
 	}
@@ -293,24 +297,43 @@ public class InteractiveRadialSymmetry
 		if ( calibration.length == 3 )
 			calibration[ 2 ] = 1.0;
 
-		final DoGDetection<FloatType> dog2 =
-				new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
-		//final DogDetection<FloatType> dog2 =
-				//new DogDetection<>(image, calibration, params.getSigmaDoG(), sigma2 , DogDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
+		this.peaksMin = new ArrayList<>();
+		this.peaksMax = new ArrayList<>();
 
-		ArrayList<Point> simplePeaks = dog2.getPeaks();
-		RandomAccess dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
-
-		peaks = new ArrayList<>();
-		for ( final Point p : simplePeaks )
+		if ( params.findMaxima )
 		{
-			dog.setPosition( p );
-			peaks.add( new RefinedPeak<Point>( p, p, ((RealType)dog.get()).getRealDouble(), true ) );
+			final DoGDetection<FloatType> dog2 =
+					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
+	
+			ArrayList<Point> simplePeaks = dog2.getPeaks();
+			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
+	
+			for ( final Point p : simplePeaks )
+			{
+				dog.setPosition( p );
+				peaksMax.add( new RefinedPeak<Point>( p, p, ((RealType<?>)dog.get()).getRealDouble(), true ) );
+			}
+			//IOFunctions.println("finMax true: " + peaksMax.size());
 		}
 		//peaks = dog2.getSubpixelPeaks(); 
+
+		if ( params.findMinima )
+		{
+			final DoGDetection<FloatType> dog2 =
+					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MAXIMA, InteractiveRadialSymmetry.thresholdMin, false);
+
+			ArrayList<Point> simplePeaks = dog2.getPeaks();
+			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
+	
+			for ( final Point p : simplePeaks )
+			{
+				dog.setPosition( p );
+				peaksMin.add( new RefinedPeak<Point>( p, p, ((RealType<?>)dog.get()).getRealDouble(), true ) );
+			}
+			//IOFunctions.println("finMin true: " + peaksMin.size());
+		}
 	}
 
-	// APPROVED:
 	protected final void dispose()
 	{
 		if ( dogWindow.getFrame() != null)
