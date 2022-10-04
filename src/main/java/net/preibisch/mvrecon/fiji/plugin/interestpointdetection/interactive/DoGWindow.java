@@ -1,6 +1,7 @@
 package net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive;
 
 import java.awt.Button;
+import java.awt.Checkbox;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -17,29 +18,32 @@ public class DoGWindow
 	{
 		this.parent = parent;
 		this.doGFrame = new Frame( "Adjust difference-of-gaussian values" );
-		doGFrame.setSize(360, 150);
+		doGFrame.setSize(360, 200);
 
 		/* Instantiation */
 		final GridBagLayout layout = new GridBagLayout();
 		final GridBagConstraints c = new GridBagConstraints();
 
-		int scrollbarInitialPosition = HelperFunctions.computeScrollbarPositionFromValue(parent.params.getSigmaDoG(), InteractiveRadialSymmetry.sigmaMin, InteractiveRadialSymmetry.sigmaMax, parent.scrollbarSize);
+		int scrollbarInitialPosition = HelperFunctions.computeScrollbarPositionFromValue(parent.params.sigma, InteractiveRadialSymmetry.sigmaMin, InteractiveRadialSymmetry.sigmaMax, parent.scrollbarSize);
 		final Scrollbar sigma1Bar = new Scrollbar(Scrollbar.HORIZONTAL, scrollbarInitialPosition, 10, 0,
 				10 + parent.scrollbarSize);
 
 		final float log1001 = (float) Math.log10(parent.scrollbarSize + 1);
 		scrollbarInitialPosition = (int) Math
-				.round(1001 - Math.pow(10, (InteractiveRadialSymmetry.thresholdMax - parent.params.getThresholdDoG()) / (InteractiveRadialSymmetry.thresholdMax - InteractiveRadialSymmetry.thresholdMin) * log1001));
+				.round(1001 - Math.pow(10, (InteractiveRadialSymmetry.thresholdMax - parent.params.threshold) / (InteractiveRadialSymmetry.thresholdMax - InteractiveRadialSymmetry.thresholdMin) * log1001));
 		final Scrollbar thresholdBar = new Scrollbar(Scrollbar.HORIZONTAL, scrollbarInitialPosition, 10, 0,
 				10 + parent.scrollbarSize);
 
-		final Label sigmaText1 = new Label("Sigma = " + String.format(java.util.Locale.US, "%.3f", parent.params.getSigmaDoG()),
+		final Label sigmaText1 = new Label("Sigma = " + String.format(java.util.Locale.US, "%.3f", parent.params.sigma),
 				Label.CENTER);
 
 		final Label thresholdText = new Label(
-				"Threshold = " + String.format(java.util.Locale.US, "%.5f", parent.params.getThresholdDoG()), Label.CENTER);
+				"Threshold = " + String.format(java.util.Locale.US, "%.5f", parent.params.threshold), Label.CENTER);
+
 		final Button button = new Button("Done");
 		final Button cancel = new Button("Cancel");
+		final Checkbox maxima = new Checkbox("Find DoG maxima (red)", true);
+		final Checkbox minima = new Checkbox("Find DoG minima (green)", false);
 
 		/* Location */
 		doGFrame.setLayout(layout);
@@ -66,11 +70,19 @@ public class DoGWindow
 		++c.gridy;
 		doGFrame.add(thresholdBar, c);
 
+		c.fill = GridBagConstraints.CENTER;
+		++c.gridy;
+		doGFrame.add(maxima, c);
+
+		++c.gridy;
+		doGFrame.add(minima, c);
+
 		// insets for buttons
 		int bInTop = 0;
 		int bInRight = 120;
 		int bInBottom = 0;
 		int bInLeft = bInRight;
+		c.fill = GridBagConstraints.HORIZONTAL;
 
 		 ++c.gridy;
 		 c.insets = new Insets(bInTop, bInLeft, bInBottom, bInRight);
@@ -79,7 +91,7 @@ public class DoGWindow
 		++c.gridy;
 		c.insets = new Insets(bInTop, bInLeft, bInBottom, bInRight);
 		doGFrame.add(cancel, c);
-		
+
 		/* On screen positioning */
 		/* Screen positioning */
 		int xOffset = 20; 

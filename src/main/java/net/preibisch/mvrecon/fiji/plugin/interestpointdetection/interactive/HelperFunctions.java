@@ -16,19 +16,19 @@ import net.imglib2.util.Util;
 
 public class HelperFunctions {
 
-	public static float computeSigma2(final float sigma1, final int stepsPerOctave) {
-		final float k = (float) Math.pow(2f, 1f / stepsPerOctave);
+	public static double computeSigma2(final double sigma1, final int stepsPerOctave) {
+		final double k = Math.pow(2f, 1f / stepsPerOctave);
 		return sigma1 * k;
 	}
 
-	public static float computeValueFromScrollbarPosition(final int scrollbarPosition, final float min, final float max,
+	public static double computeValueFromScrollbarPosition(final int scrollbarPosition, final double min, final double max,
 			final int scrollbarSize) {
 		return min + (scrollbarPosition / (float) scrollbarSize) * (max - min);
 	}
 
-	public static int computeScrollbarPositionFromValue(final float sigma, final float min, final float max,
+	public static int computeScrollbarPositionFromValue(final double sigma, final double min, final double max,
 			final int scrollbarSize) {
-		return Util.round(((sigma - min) / (max - min)) * scrollbarSize);
+		return (int)Util.round(((sigma - min) / (max - min)) * scrollbarSize);
 	}
 
 	// check if peak is inside of the rectangle

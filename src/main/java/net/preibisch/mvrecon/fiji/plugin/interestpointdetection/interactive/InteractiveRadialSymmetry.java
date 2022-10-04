@@ -28,7 +28,7 @@ import net.preibisch.legacy.io.IOFunctions;
 public class InteractiveRadialSymmetry
 {
 	// TODO: Pass as the parameter (?)
-	int sensitivity = RadialSymParams.defaultSensitivity;
+	final int sensitivity = 4;//RadialSymParams.defaultSensitivity;
 
 	// Frames that are potentially open
 	DoGWindow dogWindow;
@@ -270,8 +270,8 @@ public class InteractiveRadialSymmetry
 			dogDetection( Views.extendMirrorSingle( imgTmp ), extendedRoi );
 		}
 
-		final double radius = ( ( params.getSigmaDoG() + HelperFunctions.computeSigma2( params.getSigmaDoG(), sensitivity ) ) / 2.0 );
-		final ArrayList< RefinedPeak< Point > > filteredPeaks = HelperFunctions.filterPeaks( peaks, rectangle, params.getThresholdDoG() );
+		final double radius = ( ( params.sigma + HelperFunctions.computeSigma2( params.sigma, sensitivity ) ) / 2.0 );
+		final ArrayList< RefinedPeak< Point > > filteredPeaks = HelperFunctions.filterPeaks( peaks, rectangle, params.threshold );
 
 		HelperFunctions.drawRealLocalizable( filteredPeaks, imagePlus, radius, Color.RED, true );
 
@@ -285,16 +285,16 @@ public class InteractiveRadialSymmetry
 
 	protected void dogDetection( final RandomAccessible<FloatType> image, final Interval interval )
 	{
-		final double sigma2 = HelperFunctions.computeSigma2( params.getSigmaDoG(), sensitivity );
+		final double sigma2 = HelperFunctions.computeSigma2( params.sigma, sensitivity );
 
 		double[] calibration = new double[ image.numDimensions() ];
 		calibration[ 0 ] = 1.0;
 		calibration[ 1 ] = 1.0;
 		if ( calibration.length == 3 )
-			calibration[ 2 ] = params.useAnisotropyForDoG ? (1.0/params.anisotropyCoefficient) : 1.0;
+			calibration[ 2 ] = 1.0;
 
 		final DoGDetection<FloatType> dog2 =
-				new DoGDetection<>(image, interval, calibration, params.getSigmaDoG(), sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
+				new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
 		//final DogDetection<FloatType> dog2 =
 				//new DogDetection<>(image, calibration, params.getSigmaDoG(), sigma2 , DogDetection.ExtremaType.MINIMA, InteractiveRadialSymmetry.thresholdMin, false);
 
@@ -332,7 +332,7 @@ public class InteractiveRadialSymmetry
 
 	public static void main(String[] args)
 	{
-		File path = new File( "/media/milkyklim/Samsung_T3/2017-06-26-radial-symmetry-test/Simulated_3D.tif" );
+		File path = new File( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif" );
 		// path = path.concat("test_background.tif");
 
 		if ( !path.exists() )

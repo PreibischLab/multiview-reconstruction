@@ -31,9 +31,8 @@ public class SigmaListener implements AdjustmentListener {
 
 	@Override
 	public void adjustmentValueChanged(final AdjustmentEvent event) {
-		float sigmaDog = HelperFunctions.computeValueFromScrollbarPosition(event.getValue(), min, max, scrollbarSize);
-		parent.params.setSigmaDog(sigmaDog);
-		label.setText("Sigma 1 = " + String.format(java.util.Locale.US, "%.3f", parent.params.getSigmaDoG()));
+		parent.params.sigma = HelperFunctions.computeValueFromScrollbarPosition(event.getValue(), min, max, scrollbarSize);
+		label.setText("Sigma 1 = " + String.format(java.util.Locale.US, "%.3f", parent.params.sigma));
 
 		// Real time change of the radius
 		// if ( !event.getValueIsAdjusting() )
