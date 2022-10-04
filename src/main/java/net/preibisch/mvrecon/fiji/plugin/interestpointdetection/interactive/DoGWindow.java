@@ -101,6 +101,8 @@ public class DoGWindow
 		/* Configuration */
 		sigma1Bar.addAdjustmentListener(new SigmaListener(parent,sigmaText1, InteractiveRadialSymmetry.sigmaMin, InteractiveRadialSymmetry.sigmaMax, parent.scrollbarSize, sigma1Bar));
 		thresholdBar.addAdjustmentListener(new ThresholdListener(parent,thresholdText, InteractiveRadialSymmetry.thresholdMin, InteractiveRadialSymmetry.thresholdMax));
+		minima.addItemListener( l -> parent.params.findMaxima = maxima.getState() );
+		minima.addItemListener( l -> parent.params.findMinima = minima.getState() );
 		button.addActionListener(new FinishedButtonListener(parent, false));
 		cancel.addActionListener(new FinishedButtonListener(parent, true));
 		doGFrame.addWindowListener(new FrameListener(parent));
