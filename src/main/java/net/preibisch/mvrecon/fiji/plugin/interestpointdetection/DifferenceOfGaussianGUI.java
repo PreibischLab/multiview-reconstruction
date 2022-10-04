@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin.interestpointdetection;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -230,11 +231,10 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 
 		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )
 		{
-			IOFunctions.println("Using approximate min/max intensity values ... to have a more accurate preview your can manually set min/max intensity." );
-			//imp.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
-
 			min = imp.getDisplayRangeMin();
 			max = imp.getDisplayRangeMax();
+
+			IOFunctions.println( "(" + new Date(System.currentTimeMillis() ) + "): Using approximate min [" + min + "]/max[" + max + "] intensity values ... to have a more accurate preview your can manually set min/max intensity." );
 		}
 		else
 		{
