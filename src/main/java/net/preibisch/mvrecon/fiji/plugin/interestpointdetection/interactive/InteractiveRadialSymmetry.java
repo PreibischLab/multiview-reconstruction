@@ -270,7 +270,7 @@ public class InteractiveRadialSymmetry
 			dogDetection( Views.extendMirrorSingle( imgTmp ), extendedRoi );
 		}
 
-		final double radius = ( params.getSigmaDoG() + HelperFunctions.computeSigma2( params.getSigmaDoG(), sensitivity  ) );
+		final double radius = ( ( params.getSigmaDoG() + HelperFunctions.computeSigma2( params.getSigmaDoG(), sensitivity ) ) / 2.0 );
 		final ArrayList< RefinedPeak< Point > > filteredPeaks = HelperFunctions.filterPeaks( peaks, rectangle, params.getThresholdDoG() );
 
 		HelperFunctions.drawRealLocalizable( filteredPeaks, imagePlus, radius, Color.RED, true );

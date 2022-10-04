@@ -252,10 +252,10 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		}
 		while (!idog.isFinished());
 
+		imp.close();
+
 		if (idog.wasCanceled())
 			return false;
-
-		imp.close();
 
 		// TODO: implement minima search
 		this.sigma = defaultSigma = params.sigma; //idog.getInitialSigma();
