@@ -17,6 +17,7 @@ import net.imglib2.Point;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.dog.DogDetection;
 import net.imglib2.algorithm.localextrema.RefinedPeak;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.imageplus.ImagePlusImgs;
@@ -302,11 +303,11 @@ public class InteractiveDoG
 
 		if ( params.findMaxima )
 		{
-			final DoGDetection<FloatType> dog2 =
-					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MINIMA, InteractiveDoG.thresholdMin, false);
+			final DogDetection<FloatType> dog2 =
+					new DogDetection<>(image, interval, calibration, params.sigma, sigma2 , DogDetection.ExtremaType.MINIMA, InteractiveDoG.thresholdMin, false);
 	
 			ArrayList<Point> simplePeaks = dog2.getPeaks();
-			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
+			RandomAccess<?> dog = (Views.extendBorder(dog2.getTypedDogDetection().dogImg)).randomAccess();
 	
 			for ( final Point p : simplePeaks )
 			{
@@ -319,11 +320,11 @@ public class InteractiveDoG
 
 		if ( params.findMinima )
 		{
-			final DoGDetection<FloatType> dog2 =
-					new DoGDetection<>(image, interval, calibration, params.sigma, sigma2 , DoGDetection.ExtremaType.MAXIMA, InteractiveDoG.thresholdMin, false);
+			final DogDetection<FloatType> dog2 =
+					new DogDetection<>(image, interval, calibration, params.sigma, sigma2 , DogDetection.ExtremaType.MAXIMA, InteractiveDoG.thresholdMin, false);
 
 			ArrayList<Point> simplePeaks = dog2.getPeaks();
-			RandomAccess<?> dog = (Views.extendBorder(dog2.getDogImage())).randomAccess();
+			RandomAccess<?> dog = (Views.extendBorder(dog2.getTypedDogDetection().dogImg)).randomAccess();
 	
 			for ( final Point p : simplePeaks )
 			{
