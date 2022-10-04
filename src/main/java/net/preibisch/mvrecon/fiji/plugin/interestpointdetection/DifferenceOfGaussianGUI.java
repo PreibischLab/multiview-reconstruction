@@ -29,14 +29,12 @@ import java.util.List;
 
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.IDoGParams;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -45,7 +43,6 @@ import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolution;
 import net.preibisch.mvrecon.process.cuda.CUDATools;
 import net.preibisch.mvrecon.process.cuda.NativeLibraryTools;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -222,10 +219,8 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		IDoGParams params = new IDoGParams();
 		params.sigma = (float)defaultSigma;
 		params.threshold = (float)defaultThreshold;
-
-		// TODO : add functionality
-		//idog.setLookForMinima( defaultFindMin );
-		//idog.setLookForMaxima( defaultFindMax );
+		params.findMaxima = defaultFindMax;
+		params.findMinima = defaultFindMin;
 
 		final double min, max;
 
@@ -257,11 +252,10 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		if (idog.wasCanceled())
 			return false;
 
-		// TODO: implement minima search
 		this.sigma = defaultSigma = params.sigma; //idog.getInitialSigma();
 		this.threshold = defaultThreshold = params.threshold; //idog.getThreshold();
-		this.findMin = defaultFindMin = true;//idog.getLookForMinima();
-		this.findMax = defaultFindMax = false;//idog.getLookForMaxima();
+		this.findMax = defaultFindMax = params.findMaxima;//idog.getLookForMaxima();
+		this.findMin = defaultFindMin = params.findMinima;//idog.getLookForMinima();
 
 		return true;
 	}
