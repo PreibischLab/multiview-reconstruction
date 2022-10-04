@@ -42,8 +42,8 @@ public class DoGWindow
 
 		final Button button = new Button("Done");
 		final Button cancel = new Button("Cancel");
-		final Checkbox maxima = new Checkbox("Find DoG maxima (red)", true);
-		final Checkbox minima = new Checkbox("Find DoG minima (green)", false);
+		final Checkbox maxima = new Checkbox("Find DoG maxima (red)", parent.params.findMaxima);
+		final Checkbox minima = new Checkbox("Find DoG minima (green)", parent.params.findMinima);
 
 		/* Location */
 		doGFrame.setLayout(layout);

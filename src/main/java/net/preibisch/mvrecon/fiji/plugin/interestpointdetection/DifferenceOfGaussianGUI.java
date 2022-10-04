@@ -36,7 +36,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.InteractiveRadialSymmetry;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.RadialSymParams;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.IDoGParams;
 import net.preibisch.mvrecon.fiji.plugin.util.GenericDialogAppender;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -219,7 +219,7 @@ public class DifferenceOfGaussianGUI extends DifferenceOfGUI implements GenericD
 		imp.setSlice( imp.getStackSize() / 2 );
 		imp.setRoi( 0, 0, imp.getWidth()/3, imp.getHeight()/3 );
 
-		RadialSymParams params = new RadialSymParams();
+		IDoGParams params = new IDoGParams();
 		params.sigma = (float)defaultSigma;
 		params.threshold = (float)defaultThreshold;
 

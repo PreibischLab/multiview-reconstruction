@@ -61,7 +61,7 @@ public class InteractiveRadialSymmetry
 	}
 	
 	// stores all the parameters 
-	final RadialSymParams params;
+	final IDoGParams params;
 	
 	// min/max values for GUI
 	public static final int supportRadiusMin = 1;
@@ -97,7 +97,7 @@ public class InteractiveRadialSymmetry
 		return wasCanceled;
 	}
 
-	public InteractiveRadialSymmetry( final ImagePlus imp, final RadialSymParams params )
+	public InteractiveRadialSymmetry( final ImagePlus imp, final IDoGParams params )
 	{
 		this( imp, params, Double.NaN, Double.NaN );
 	}
@@ -111,7 +111,7 @@ public class InteractiveRadialSymmetry
 	 * @param min - min intensity of the image
 	 * @param max - max intensity of the image
 	 */
-	public InteractiveRadialSymmetry( final ImagePlus imp, final RadialSymParams params, final double min, final double max )
+	public InteractiveRadialSymmetry( final ImagePlus imp, final IDoGParams params, final double min, final double max )
 	{
 		this.imagePlus = imp;
 
@@ -368,7 +368,7 @@ public class InteractiveRadialSymmetry
 
 		imp.setSlice(20);
 
-		new InteractiveRadialSymmetry( imp, new RadialSymParams(), min, max );
+		new InteractiveRadialSymmetry( imp, new IDoGParams(), min, max );
 
 		System.out.println("DOGE!");
 	}
