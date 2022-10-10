@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import bdv.BigDataViewer;
 import mpicbg.models.AbstractAffineModel3D;
@@ -48,14 +50,19 @@ import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.SequenceDescription;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
 import net.imglib2.RealInterval;
+import net.imglib2.RealPoint;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Scale3D;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -598,6 +605,61 @@ public class TransformationTools
 						m[2][0], m[2][1], m[2][2], m[2][3] );
 
 			return mapBack;
+		}
+	}
+
+	public static void filterForOverlappingInterestPoints(
+			final Map< ViewId, List< InterestPoint > > interestpoints,
+			final Set< Group< ViewId > > groups,
+			final Map< ViewId, ViewRegistration > registrations,
+			final Map< ViewId, ViewDescription > viewDescriptions )
+	{
+A:		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+		{
+			final ViewId viewId = element.getKey();
+			final List< InterestPoint > points = new ArrayList<>( element.getValue() );
+			final List< InterestPoint > overlappingPoints = new ArrayList<>();
+
+			// for each pair (if it's not part of a group), test
+			// if there are any points that currently overlap with another view
+			for ( final ViewId otherViewId : interestpoints.keySet() )
+			{
+				// if it's the same view continue
+				if ( otherViewId.equals( viewId ) )
+					continue;
+
+				// if they are part of the same group, continue
+				for ( final Group< ViewId > group : groups )
+					if ( group.contains( viewId ) && group.contains( otherViewId ) )
+						continue A;
+
+				// use the inverse affine transform of the other view
+				final AffineTransform3D tinv = TransformationTools.getTransform( viewId, registrations ).inverse();
+
+				// to map all interestpoints into the bounding box
+				final ViewDescription otherVD = viewDescriptions.get( otherViewId );
+				final Dimensions dim = otherVD.getViewSetup().getSize();
+				final Interval interval = new FinalInterval( dim );
+
+				final int n = tinv.numDimensions();
+				final RealPoint p = new RealPoint( n );
+
+				// and check if they do intersect
+				for ( int i = points.size() - 1; i >= 0; --i )
+				{
+					final InterestPoint ip = points.get( i );
+					ip.localize( p );
+					tinv.apply(p, p);
+					if ( Intervals.contains( interval , p ) )
+					{
+						overlappingPoints.add( ip );
+						points.remove( i );
+					}
+				}
+			}
+
+			// replace the list
+			element.setValue( overlappingPoints );
 		}
 	}
 

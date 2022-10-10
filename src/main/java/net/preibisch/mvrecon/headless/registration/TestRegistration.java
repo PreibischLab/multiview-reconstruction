@@ -28,14 +28,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.Dimensions;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
+import net.imglib2.Point;
+import net.imglib2.RealPoint;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -109,8 +117,19 @@ public class TestRegistration
 					spimData.getViewInterestPoints().getViewInterestPoints(),
 					labelMap );
 
+		// first we need to know the groups
+		final Set< Group< ViewId > > groups = new HashSet<>();
+
+		// only keep those interestpoints that currently overlap with a view to register against
+		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+			System.out.println( element.getKey() + ": " + element.getValue().size() );
+
+		TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, spimData.getViewRegistrations().getViewRegistrations(), spimData.getSequenceDescription().getViewDescriptions() );
+
+		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+			System.out.println( element.getKey() + ": " + element.getValue().size() );
+
 		// setup pairwise registration
-		Set< Group< ViewId > > groups = new HashSet<>();
 		final PairwiseSetup< ViewId > setup = new AllToAll<>( viewIds, groups );
 
 		System.out.println( "Defined pairs, removed " + setup.definePairs().size() + " redundant view pairs." );
