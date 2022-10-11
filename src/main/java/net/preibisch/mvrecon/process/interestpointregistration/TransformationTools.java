@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import bdv.BigDataViewer;
@@ -610,11 +609,11 @@ public class TransformationTools
 
 	public static void filterForOverlappingInterestPoints(
 			final Map< ViewId, List< InterestPoint > > interestpoints,
-			final Set< Group< ViewId > > groups,
+			final Collection< ? extends Group< ViewId > > groups,
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewDescription > viewDescriptions )
 	{
-A:		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
 		{
 			final ViewId viewId = element.getKey();
 			final List< InterestPoint > points = new ArrayList<>( element.getValue() );
@@ -622,7 +621,7 @@ A:		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.e
 
 			// for each pair (if it's not part of a group), test
 			// if there are any points that currently overlap with another view
-			for ( final ViewId otherViewId : interestpoints.keySet() )
+A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			{
 				// if it's the same view continue
 				if ( otherViewId.equals( viewId ) )
@@ -634,7 +633,7 @@ A:		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.e
 						continue A;
 
 				// use the inverse affine transform of the other view
-				final AffineTransform3D tinv = TransformationTools.getTransform( viewId, registrations ).inverse();
+				final AffineTransform3D tinv = TransformationTools.getTransform( otherViewId, registrations ).inverse();
 
 				// to map all interestpoints into the bounding box
 				final ViewDescription otherVD = viewDescriptions.get( otherViewId );
