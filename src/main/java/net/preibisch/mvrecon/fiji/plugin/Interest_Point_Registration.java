@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import ij.gui.GenericDialog;
@@ -45,6 +46,7 @@ import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -59,10 +61,11 @@ import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.Pair
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.RGLDMGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.AdvancedRegistrationParameters;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.BasicRegistrationParameters;
-import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.FixMapBackParameters;
-import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.GroupParameters;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.BasicRegistrationParameters.InterestPointOverlapType;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.BasicRegistrationParameters.OverlapType;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.BasicRegistrationParameters.RegistrationType;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.FixMapBackParameters;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.GroupParameters;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.GroupParameters.InterestpointGroupingType;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.statistics.RegistrationStatistics;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.statistics.TimeLapseDisplay;
@@ -111,6 +114,7 @@ public class Interest_Point_Registration implements PlugIn
 	public static int defaultAlgorithm = 0;
 	public static int defaultRegistrationType = 0;
 	public static int defaultOverlapType = 1;
+	public static int defaultInterestpointOverlapType = 0;
 	public static int defaultLabel = -1;
 	public static boolean defaultGroupTiles = true;
 	public static boolean defaultGroupIllums = true;
@@ -217,7 +221,7 @@ public class Interest_Point_Registration implements PlugIn
 		final Set< Group< ViewId > > groups = arp.getGroups( data, viewIds, brp.groupTiles, brp.groupIllums, brp.groupChannels );
 
 		final PairwiseSetup< ViewId > setup = arp.pairwiseSetupInstance( brp.registrationType, viewIds, groups );
-		identifySubsets( setup, brp.getOverlapDetection( data ) );
+		identifySubsets( setup, brp.getOverlapDetection( data ) ); // uses brp.overlapType
 
 		// query fixed and reference views for mapping back if necessary
 		final FixMapBackParameters fmbp = fixMapBackParameters( data.getSequenceDescription(), setup, arp.fixViewsIndex, arp.mapBackIndex, brp.registrationType );
@@ -236,11 +240,13 @@ public class Interest_Point_Registration implements PlugIn
 				setup,
 				brp.pwr,
 				gp.grouping,
+				brp.interestPointOverlapType,
 				gp.mergeDistance,
 				fmbp.fixedViews,
 				fmbp.model,
 				fmbp.mapBackViews,
 				data.getViewRegistrations().getViewRegistrations(),
+				data.getSequenceDescription().getViewDescriptions(),
 				data.getViewInterestPoints().getViewInterestPoints(),
 				brp.labelMap,
 				arp.showStatistics ) )
@@ -265,11 +271,13 @@ public class Interest_Point_Registration implements PlugIn
 			final PairwiseSetup< ViewId > setup,
 			final PairwiseGUI pairwiseMatching,
 			final InterestpointGroupingType groupingType,
+			final InterestPointOverlapType interestPointOverlapType,
 			final double interestPointMergeDistance,
 			final Set< ViewId > viewsToFix,
 			final Model< ? > mapBackModel,
 			final Map< Subset< ViewId >, Pair< ViewId, Dimensions > > mapBackViews,
 			final Map< ViewId, ViewRegistration > registrations,
+			final Map< ViewId, ViewDescription > viewDescriptions,
 			final Map< ViewId, ViewInterestPointLists > interestpointLists,
 			final Map< ViewId, String > labelMap,
 			final boolean collectStatistics )
@@ -284,6 +292,22 @@ public class Interest_Point_Registration implements PlugIn
 					registrations,
 					interestpointLists,
 					labelMap );
+
+		// only keep those interestpoints that currently overlap with a view to register against
+		if ( interestPointOverlapType == InterestPointOverlapType.OVERLAPPING_ONLY )
+		{
+			final Set< Group< ViewId > > groups = new HashSet<>();
+
+			if ( groupingType == InterestpointGroupingType.ADD_ALL )
+				for ( final Subset< ViewId > subset : subsets )
+					groups.addAll( subset.getGroups() );
+
+			TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, registrations, viewDescriptions );
+
+			IOFunctions.println( "Remaining interest points for alignment: " );
+			for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+				IOFunctions.println( element.getKey() + ": " + element.getValue().size() );
+		}
 
 		// statistics?
 		if ( collectStatistics )
@@ -613,6 +637,7 @@ public class Interest_Point_Registration implements PlugIn
 		}
 
 		gd.addChoice( "Registration_in_between_views", BasicRegistrationParameters.overlapChoices, BasicRegistrationParameters.overlapChoices[ defaultOverlapType ] );
+		gd.addChoice( "Interest_point_inclusion", BasicRegistrationParameters.interestpointOverlapChoices, BasicRegistrationParameters.interestpointOverlapChoices[ defaultInterestpointOverlapType ] );
 
 		// check which channels and labels are available and build the choices
 		final String[] labels = InterestPointTools.getAllInterestPointLabels( data, viewIds );
@@ -723,6 +748,20 @@ public class Interest_Point_Registration implements PlugIn
 				return null;
 		}
 
+		// interest point overlap
+		final InterestPointOverlapType interestPointOverlapType;
+		switch ( defaultInterestpointOverlapType = gd.getNextChoiceIndex() )
+		{
+			case 0:
+				interestPointOverlapType = InterestPointOverlapType.ALL;
+				break;
+			case 1:
+				interestPointOverlapType = InterestPointOverlapType.OVERLAPPING_ONLY;
+				break;
+			default:
+				return null;
+		}
+
 		// assemble which label has been selected
 		final String label = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
 
@@ -747,6 +786,7 @@ public class Interest_Point_Registration implements PlugIn
 		brp.pwr = pwr;
 		brp.registrationType = registrationType;
 		brp.overlapType = overlapType;
+		brp.interestPointOverlapType = interestPointOverlapType;
 		brp.labelMap = new HashMap<>();
 		brp.groupTiles = groupTiles;
 		brp.groupIllums = groupIllums;

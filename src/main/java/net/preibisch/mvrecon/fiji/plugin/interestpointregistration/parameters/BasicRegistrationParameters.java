@@ -44,12 +44,18 @@ public class BasicRegistrationParameters
 			"Compare all views against each other",
 			"Only compare overlapping views (according to current transformations)" };
 
+	public static String[] interestpointOverlapChoices = {
+			"Compare all interest point of overlapping views",
+			"Only compare interest points that overlap between views (according to current transformations)" };
+
 	public enum RegistrationType { TIMEPOINTS_INDIVIDUALLY, TO_REFERENCE_TIMEPOINT, ALL_TO_ALL, ALL_TO_ALL_WITH_RANGE };
 	public enum OverlapType { ALL_AGAINST_ALL, OVERLAPPING_ONLY };
+	public enum InterestPointOverlapType { ALL, OVERLAPPING_ONLY };
 
 	public PairwiseGUI pwr;
 	public RegistrationType registrationType;
 	public OverlapType overlapType;
+	public InterestPointOverlapType interestPointOverlapType;
 	public HashMap< ViewId, String > labelMap;
 	public boolean groupTiles, groupIllums, groupChannels;
 
