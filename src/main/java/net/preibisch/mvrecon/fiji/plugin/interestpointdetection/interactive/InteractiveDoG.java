@@ -51,7 +51,7 @@ import net.preibisch.legacy.io.IOFunctions;
 public class InteractiveDoG
 {
 	// TODO: Pass as the parameter (?)
-	final int sensitivity = 4;//RadialSymParams.defaultSensitivity;
+	final public int sensitivity = 4;//RadialSymParams.defaultSensitivity;
 
 	// Frames that are potentially open
 	DoGWindow dogWindow;
