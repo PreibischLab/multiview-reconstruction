@@ -42,7 +42,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.Lazy;
+import util.Lazy;
 
 public class LazyDownsample2x<T extends RealType<T> & NativeType<T>> implements Consumer<RandomAccessibleInterval<T>>
 {

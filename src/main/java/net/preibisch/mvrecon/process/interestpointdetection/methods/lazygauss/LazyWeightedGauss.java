@@ -46,6 +46,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
+import util.Lazy;
 
 /**
  * Simple Gaussian filter Op

@@ -79,10 +79,10 @@ import net.preibisch.mvrecon.process.cuda.CUDASeparableConvolutionFunctions.OutO
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointdetection.Localization;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.Lazy;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyGauss;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyWeightedGauss;
 import util.ImgLib2Tools;
+import util.Lazy;
 
 public class DoGImgLib2
 {
