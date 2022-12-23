@@ -132,7 +132,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		final RandomAccessibleInterval<T> converted;
 
 		if ( converter == null && type.getClass().isInstance( new FloatType() ) )
-			converted = (RandomAccessibleInterval)fused.getA();
+			converted = (RandomAccessibleInterval)(Object)fused.getA();
 		else
 			converted = Converters.convert( fused.getA(), converter, type );
 
