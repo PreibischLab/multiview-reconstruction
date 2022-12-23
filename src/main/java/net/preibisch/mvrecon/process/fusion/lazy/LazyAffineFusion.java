@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.process.fusion.lazy;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -33,7 +32,6 @@ import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
@@ -41,8 +39,6 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealInterval;
-import net.imglib2.cache.img.SingleCellArrayImg;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.basictypeaccess.AccessFlags;
@@ -56,7 +52,6 @@ import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import util.Lazy;
 
@@ -115,7 +110,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 		// which views to process
 		final ArrayList< ViewId > viewIdsToProcess =
-				overlappingViewIds( targetBlock, viewIds, viewRegistrations, viewDimensions );
+				LazyFusionTools.overlappingViewIds( targetBlock, viewIds, viewRegistrations, viewDimensions );
 
 		// nothing to save...
 		if ( viewIdsToProcess.size() == 0 )
@@ -148,41 +143,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 		for ( long i = 0; i < size; ++i )
 			cOut.next().set( cIn.next() );
-	}
-
-	public static final ArrayList< ViewId > overlappingViewIds(
-			final Interval targetBlock,
-			final Collection< ? extends ViewId > allViewIds,
-			final Map< ? extends ViewId, ? extends AffineTransform3D > viewRegistrations,
-			final Map< ? extends ViewId, ? extends Dimensions > viewDimensions )
-	{
-		final ArrayList< ViewId > overlappingViewIds = new ArrayList<>();
-
-		for ( final ViewId viewId : allViewIds )
-		{
-			// expand to be conservative ...
-			final AffineTransform3D t = viewRegistrations.get( viewId );
-			final Dimensions dim = viewDimensions.get( viewId );
-			final RealInterval ri = t.estimateBounds( new FinalInterval( dim ) );
-			final Interval boundingBoxLocal = Intervals.largestContainedInterval( ri );
-			final Interval bounds = Intervals.expand( boundingBoxLocal, 2 );
-
-			if ( overlaps( targetBlock, bounds ) )
-				overlappingViewIds.add( viewId );
-		}
-
-		return overlappingViewIds;
-	}
-
-	public static boolean overlaps( final Interval interval1, final Interval interval2 )
-	{
-		final Interval intersection = Intervals.intersect( interval1, interval2 );
-
-		for ( int d = 0; d < intersection.numDimensions(); ++d )
-			if ( intersection.dimension( d ) < 0 )
-				return false;
-
-		return true;
 	}
 
 	public static final <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> init(
@@ -235,28 +195,14 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 				if ( vd.getViewSetup().getChannel().getId() == 0 )
 					viewIds.add( vd );
 
-		final HashMap< ViewId, Dimensions > viewDimensions = new HashMap<>();
-
-		for ( final ViewId viewId : viewIds )
-			viewDimensions.put( viewId, data.getSequenceDescription().getViewDescription( viewId ).getViewSetup().getSize() );
-
-		final HashMap< ViewId, AffineTransform3D > viewRegistrations = new HashMap<>();
-
-		for ( final ViewId viewId : viewIds )
-		{
-			// TODO: preserve anisotropy
-			final ViewRegistration reg = data.getViewRegistrations().getViewRegistration( viewId );
-
-			reg.updateModel();
-			viewRegistrations.put( viewId, reg.getModel() );
-		}
+		final double af = LazyFusionTools.estimateAnisotropy( data, viewIds );
 
 		final Interval fusionInterval =
-				BoundingBoxTools.maximalBoundingBox(
+				LazyFusionTools.adjustBoundingBox(
 						data,
 						viewIds,
-						"All Views" );
-		// TODO: preserve anisotropy
+						LazyFusionTools.getBoundingBox( data, viewIds, null ),
+						af );
 
 		final RandomAccessibleInterval<FloatType> fused = LazyAffineFusion.init(
 				fusionInterval,
@@ -265,9 +211,11 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 				null,//(i,o) -> o.set(i),
 				data.getSequenceDescription().getImgLoader(),
 				viewIds,
-				viewRegistrations,
+				LazyFusionTools.adjustRegistrations(
+						LazyFusionTools.assembleRegistrations( viewIds, data ),
+						af ),
 				data.getSequenceDescription().getViewDescriptions(),
-				viewDimensions );
+				LazyFusionTools.assembleDimensions( viewIds, data ) );
 
 		ImageJFunctions.show( fused );
 	}
