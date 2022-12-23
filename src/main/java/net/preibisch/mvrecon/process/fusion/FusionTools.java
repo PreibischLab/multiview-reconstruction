@@ -333,7 +333,7 @@ public class FusionTools
 
 	public static Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > fuseVirtual(
 			final BasicImgLoader imgloader,
-			final Map< ViewId, AffineTransform3D > registrations,
+			final Map< ViewId, ? extends AffineTransform3D > registrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final Collection< ? extends ViewId > views,
 			final boolean useBlending,
