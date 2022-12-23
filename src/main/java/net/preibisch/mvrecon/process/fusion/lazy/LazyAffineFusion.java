@@ -39,10 +39,10 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
-import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
+import net.imglib2.cache.img.SingleCellArrayImg;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.basictypeaccess.AccessFlags;
@@ -58,7 +58,6 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import util.Lazy;
 
 /**
@@ -107,6 +106,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
 	// (but the actual interval to process in many blocks sits somewhere else) 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public void accept( final RandomAccessibleInterval<T> output )
 	{
@@ -134,7 +134,12 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						Double.NaN, // downsampling
 						null ); // intensity adjustments
 
-		final RandomAccessibleInterval<T> converted = Converters.convert( fused.getA(), converter, type );
+		final RandomAccessibleInterval<T> converted;
+
+		if ( converter == null && type.getClass().isInstance( new FloatType() ) )
+			converted = (RandomAccessibleInterval)fused.getA();
+		else
+			converted = Converters.convert( fused.getA(), converter, type );
 
 		final Cursor<T> cIn = Views.flatIterable( converted ).cursor();
 		final Cursor<T> cOut = Views.flatIterable( output ).cursor();
@@ -256,8 +261,8 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		final RandomAccessibleInterval<FloatType> fused = LazyAffineFusion.init(
 				fusionInterval,
 				new FloatType(),
-				new int[] { 256, 256, 32 },
-				(i,o) -> o.set(i),
+				new int[] { 512, 512, 1 }, // good blocksize for displaying
+				null,//(i,o) -> o.set(i),
 				data.getSequenceDescription().getImgLoader(),
 				viewIds,
 				viewRegistrations,
