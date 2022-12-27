@@ -126,7 +126,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						false, // use content-based
 						1, // linear interpolation
 						targetBlock,
-						Double.NaN, // downsampling
+						Double.NaN, // downsampling - can be done outside just as 'preserve anisotropy'
 						null ); // intensity adjustments
 
 		final RandomAccessibleInterval<T> converted;
@@ -181,6 +181,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 		return fused;
 	}
+
 
 	public static void main( String[] args ) throws SpimDataException
 	{
