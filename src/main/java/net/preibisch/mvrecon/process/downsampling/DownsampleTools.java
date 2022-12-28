@@ -174,8 +174,8 @@ public class DownsampleTools
 
 			System.out.println( "Choosing resolution level: " + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] );
 
-			if ( usedDownsampleFactors != null && usedDownsampleFactors.length == mipmapResolutions[ bestLevel ].length )
-				for ( int d = 0; d < usedDownsampleFactors.length; ++d )
+			if ( usedDownsampleFactors != null && usedDownsampleFactors.length >= mipmapResolutions[ bestLevel ].length )
+				for ( int d = 0; d < mipmapResolutions[ bestLevel ].length; ++d )
 					usedDownsampleFactors[ d ] = mipmapResolutions[ bestLevel ][ d ];
 
 			IOFunctions.println(
