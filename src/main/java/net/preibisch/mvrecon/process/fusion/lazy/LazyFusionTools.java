@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import mpicbg.spim.data.SpimData;
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -26,10 +27,14 @@ import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import util.Lazy;
 
 public class LazyFusionTools {
+
+	public static int[] defaultBlockSize2d = new int[] { 256, 256 };
+	public static int[] defaultBlockSize3d = DoGImgLib2.blockSize;
 
 	public static <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> initLazy(
 			final Consumer<RandomAccessibleInterval<T>> consumer,
@@ -152,15 +157,15 @@ public class LazyFusionTools {
 	}
 
 	public static HashMap< ViewId, Dimensions > assembleDimensions(
-			final Collection<ViewId> viewIds,
+			final Collection<? extends ViewId> viewIds,
 			final SpimData data )
 	{
 		return assembleDimensions(viewIds, data.getSequenceDescription().getViewDescriptions() );
 	}
 
 	public static HashMap< ViewId, Dimensions > assembleDimensions(
-			final Collection<ViewId> viewIds,
-			final Map< ViewId, ViewDescription > viewDescriptions )
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions )
 	{
 		final HashMap< ViewId, Dimensions > viewDimensions = new HashMap<>();
 

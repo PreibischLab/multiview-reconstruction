@@ -31,6 +31,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.TransformedRasteredRandomAccessible;
@@ -55,7 +56,7 @@ public class TransformWeight
 			final int[] blocksize_2d;
 
 			if ( blocksize.length != 2 )
-				blocksize_2d = new int[] { 512, 512 };
+				blocksize_2d = LazyFusionTools.defaultBlockSize2d;
 			else
 				blocksize_2d = blocksize;
 
