@@ -27,10 +27,8 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
@@ -42,9 +40,10 @@ public class TransformWeight
 {
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformContentBased(
 			final RandomAccessibleInterval< T > inputImg,
-			final ImgFactory< ComplexFloatType > imgFactory,
 			final double[] sigma1,
 			final double[] sigma2,
+			final int[] blocksize,
+			final float scale,
 			final AffineTransform3D transform,
 			final Interval boundingBox )
 	{
@@ -53,13 +52,29 @@ public class TransformWeight
 			final double[] sigma1_2d = new double[]{ sigma1[ 0 ], sigma1[ 1 ] };
 			final double[] sigma2_2d = new double[]{ sigma2[ 0 ], sigma2[ 1 ] };
 
-			final ContentBasedRealRandomAccessible< T > content = new ContentBasedRealRandomAccessible< T >( Views.hyperSlice( inputImg, 2, 0 ), imgFactory, sigma1_2d, sigma2_2d );
+			final int[] blocksize_2d;
+
+			if ( blocksize.length != 2 )
+				blocksize_2d = new int[] { 512, 512 };
+			else
+				blocksize_2d = blocksize;
+
+			final ContentBasedRealRandomAccessible content =
+					new ContentBasedRealRandomAccessible(
+							Views.hyperSlice( inputImg, 2, 0 ),
+							sigma1_2d,
+							sigma2_2d,
+							blocksize_2d,
+							scale );
 
 			return transformWeight( RealViews.addDimension( content ), transform, boundingBox );
 		}
 		else
 		{
-			return transformWeight( new ContentBasedRealRandomAccessible< T >( inputImg, imgFactory, sigma1, sigma2 ), transform, boundingBox );
+			final RealRandomAccessible< FloatType > entropyRRA =
+					new ContentBasedRealRandomAccessible( inputImg, sigma1, sigma2, blocksize, scale );
+
+			return transformWeight( entropyRRA, transform, boundingBox );
 		}
 	}
 
@@ -121,4 +136,5 @@ public class TransformWeight
 
 		return virtualBlendingInterval;
 	}
+
 }

@@ -77,6 +77,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -396,15 +397,16 @@ public class NonRigidTools
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 
 					if ( grid == null )
-						transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory<>( new ComplexFloatType() ), sigma1, sigma2, modelAffine, bbDS );
+						transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, DoGImgLib2.blockSize, ContentBasedRealRandomAccessible.defaultScale, modelAffine, bbDS );
 					else
 						transformedContentBased = 
 								NonRigidWeightTools.transformWeightNonRigidInterpolated(
 									new ContentBasedRealRandomAccessible(
 											inputImg,
-											new CellImgFactory<>( new ComplexFloatType() ),
 											sigma1,
-											sigma2 ),
+											sigma2,
+											DoGImgLib2.blockSize,
+											ContentBasedRealRandomAccessible.defaultScale ),
 									grid,
 									invertedModelOpener,
 									bbDS );

@@ -50,6 +50,8 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
+import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 public class TestWeights
@@ -124,8 +126,9 @@ public class TestWeights
 
 			final RandomAccessibleInterval< FloatType > transformedContentBased = TransformWeight.transformContentBased(
 					inputImg,
-					new CellImgFactory< ComplexFloatType >(),
-					sigma1, sigma2, model, bb );
+					sigma1, sigma2,
+					DoGImgLib2.blockSize, ContentBasedRealRandomAccessible.defaultScale,
+					model, bb );
 
 			final RandomAccessibleInterval< FloatType > combinedWeights = 
 					new CombineWeightsRandomAccessibleInterval(

@@ -99,6 +99,8 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
+import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -299,18 +301,19 @@ public class FusionTools
 			final double downsampling )
 	{
 		final Interval bbDS;
-		
+
+		// there is rounding when scaling the bounding box ...
+		final double[] offset = new double[ boundingBox.numDimensions() ];
+
 		if ( Double.isNaN( downsampling ) || downsampling == 1.0 )
 		{
 			bbDS = new FinalInterval( boundingBox );
 		}
 		else
 		{
-			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling );
+			bbDS = TransformVirtual.scaleBoundingBox( boundingBox, 1.0 / downsampling, offset );
 		}
 
-		// there is rounding when scaling the bounding box ...
-		final double[] offset = new double[ boundingBox.numDimensions() ];
 		final double[] translation = new double[ boundingBox.numDimensions() ];
 
 		for ( int d = 0; d < offset.length; ++d )
@@ -429,7 +432,7 @@ public class FusionTools
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustBlending( viewDescriptions.get( viewId ), blending, border, model );
 	
-					transformedBlending = TransformWeight.transformBlending( inputImg, border, blending, model, bb );
+					transformedBlending = TransformWeight.transformBlending( new FinalInterval( inputImg ), border, blending, model, bb );
 				}
 	
 				// instantiate content based if necessary
@@ -441,7 +444,8 @@ public class FusionTools
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, model );
 
-					transformedContentBased = TransformWeight.transformContentBased( inputImg, new CellImgFactory< ComplexFloatType >(), sigma1, sigma2, model, bb );
+					// TODO: compute content-based only for the area around the block that is being fused
+					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, DoGImgLib2.blockSize, ContentBasedRealRandomAccessible.defaultScale, model, bb );
 				}
 
 				if ( useContentBased && useBlending )
