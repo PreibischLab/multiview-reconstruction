@@ -113,7 +113,7 @@ public class Data_Explorer implements PlugIn
 		if ( !System.getProperty("os.name").toLowerCase().contains( "mac" ) )
 			GenericLoadParseQueryXML.defaultXMLfilename = "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml";
 		else
-			GenericLoadParseQueryXML.defaultXMLfilename = "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";//"/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
+			GenericLoadParseQueryXML.defaultXMLfilename = "/Users/preibischs/Documents/Microscopy/Stitching/Truman/standard/dataset.xml";//"/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
 
 		new Data_Explorer().run( null );
 	}
