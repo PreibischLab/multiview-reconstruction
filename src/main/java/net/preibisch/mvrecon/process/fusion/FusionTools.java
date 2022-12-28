@@ -72,13 +72,11 @@ import net.imglib2.converter.read.ConvertedRandomAccessible;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
@@ -91,8 +89,10 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -101,7 +101,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -346,7 +345,6 @@ public class FusionTools
 			final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-
 		Interval bBox2d = null;
 		// go through the images and check if they are all 2-dimensional
 		boolean is_2d = false;
@@ -392,10 +390,25 @@ public class FusionTools
 		final Interval bb = scaledBB.getA();
 		final AffineTransform3D bbTransform = scaledBB.getB();
 
+		// which views to process (use un-altered bounding box and registrations)
+		final ArrayList< ViewId > viewIdsToProcess =
+				LazyFusionTools.overlappingViewIds( is_2d ? bBox2d : boundingBox, views, registrations, LazyFusionTools.assembleDimensions( views, viewDescriptions ) );
+
+		// nothing to save...
+		if ( viewIdsToProcess.size() == 0 )
+		{
+			final RandomAccessibleInterval< FloatType > fused =
+					Views.interval(
+							new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), is_2d ? 2 : 3 ),
+							new FinalInterval( getFusedZeroMinInterval( bb ) ) );
+
+			return new ValuePair<>( fused, bbTransform );
+		}
+
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
 
-		for ( final ViewId viewId : views )
+		for ( final ViewId viewId : viewIdsToProcess )
 		{
 			AffineTransform3D model = registrations.get( viewId );
 
@@ -408,7 +421,8 @@ public class FusionTools
 			// this modifies the model so it maps from a smaller image to the global coordinate space,
 			// which applies for the image itself as well as the weights since they also use the smaller
 			// input image as reference
-			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
+			final double[] usedDownsampleFactors = new double[ 3 ];
+			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, usedDownsampleFactors );
 
 			if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
 				inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
@@ -429,6 +443,9 @@ public class FusionTools
 					final float[] blending = Util.getArrayFromValue( defaultBlendingRange, 3 );
 					final float[] border = Util.getArrayFromValue( defaultBlendingBorder, 3 );
 
+					// TODO: this is wrong, since the blending is applied to the input images
+					// it must only depend on the scale factor that the input images were opened with
+
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustBlending( viewDescriptions.get( viewId ), blending, border, model );
 	
@@ -441,11 +458,14 @@ public class FusionTools
 					final double[] sigma1 = Util.getArrayFromValue( defaultContentBasedSigma1, 3 );
 					final double[] sigma2 = Util.getArrayFromValue( defaultContentBasedSigma2, 3 );
 
+					// TODO: this is wrong, since the blending is applied to the input images
+					// it must only depend on the scale factor that the input images were opened with
+
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, model );
 
 					// TODO: compute content-based only for the area around the block that is being fused
-					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, DoGImgLib2.blockSize, ContentBasedRealRandomAccessible.defaultScale, model, bb );
+					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, LazyFusionTools.defaultBlockSize3d, ContentBasedRealRandomAccessible.defaultScale, model, bb );
 				}
 
 				if ( useContentBased && useBlending )
