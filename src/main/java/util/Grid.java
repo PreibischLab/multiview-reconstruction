@@ -173,7 +173,7 @@ public class Grid {
 	}
 
 	/**
-	 * Returns the long coordinates <= scaled double coordinates.
+	 * Returns the long coordinates smaller or equal scaled double coordinates.
 	 *
 	 * @param doubles
 	 * @param scale
@@ -187,7 +187,7 @@ public class Grid {
 	}
 
 	/**
-	 * Returns the long coordinate >= scaled doubel coordinates.
+	 * Returns the long coordinate greater or equal scaled double coordinates.
 	 *
 	 * @param doubles
 	 * @param scale
