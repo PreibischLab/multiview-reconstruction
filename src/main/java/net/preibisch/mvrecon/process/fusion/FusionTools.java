@@ -445,10 +445,14 @@ public class FusionTools
 
 					// TODO: this is wrong, since the blending is applied to the input images
 					// it must only depend on the scale factor that the input images were opened with
+					// TODO: NO, it not wrong here, the assumption is that the defaultBlendingRange should
+					// should be achieved in the output image (independent of the downsampling
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustBlending( viewDescriptions.get( viewId ), blending, border, model );
 	
+					System.out.println( "Adjusted blending range: " + Util.printCoordinates( blending ) );
+
 					transformedBlending = TransformWeight.transformBlending( new FinalInterval( inputImg ), border, blending, model, bb );
 				}
 	
@@ -460,9 +464,12 @@ public class FusionTools
 
 					// TODO: this is wrong, since the blending is applied to the input images
 					// it must only depend on the scale factor that the input images were opened with
+					// TODO: yes, here it is wrong ... 
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, model );
+					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors );
+
+					System.out.println( "Adjusted content based sigma1=" + Util.printCoordinates( sigma1 ) + " , sigma2="+ Util.printCoordinates( sigma2 ));
 
 					// TODO: compute content-based only for the area around the block that is being fused
 					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, LazyFusionTools.defaultBlockSize3d, ContentBasedRealRandomAccessible.defaultScale, model, bb );
@@ -637,16 +644,14 @@ public class FusionTools
 	 * @param vd - which view
 	 * @param sigma1 - the target sigma1 for entropy approximation, e.g. 20
 	 * @param sigma2 - the target sigma2 for entropy approximation, e.g. 40
-	 * @param transformationModel - the transformation model used to map from the (downsampled) input to the output
+	 * @param usedDownsampleFactors - the downsampling factors used to load the input image
 	 */
-	public static void adjustContentBased( final BasicViewDescription< ? extends BasicViewSetup > vd, final double[] sigma1, final double[] sigma2, final AffineTransform3D transformationModel )
+	public static void adjustContentBased( final BasicViewDescription< ? extends BasicViewSetup > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors )
 	{
-		final double[] scale = TransformationTools.scaling( vd.getViewSetup().getSize(), transformationModel ).getA();
-
 		for ( int d = 0; d < sigma1.length; ++d )
 		{
-			sigma1[ d ] /= ( float )scale[ d ];
-			sigma2[ d ] /= ( float )scale[ d ];
+			sigma1[ d ] /= ( float )usedDownsampleFactors[ d ];
+			sigma2[ d ] /= ( float )usedDownsampleFactors[ d ];
 		}
 	}
 

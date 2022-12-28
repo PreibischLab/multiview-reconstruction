@@ -102,7 +102,8 @@ public class TestWeights
 			// this modifies the model so it maps from a smaller image to the global coordinate space,
 			// which applies for the image itself as well as the weights since they also use the smaller
 			// input image as reference
-			final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
+			final double[] usedDownsamplingFactors = new double[ 3 ];
+			final RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, usedDownsamplingFactors );
 			final RandomAccessibleInterval transformedInput = TransformView.transformView( inputImg, model, bb, 0, 1 );
 
 			final float[] blending =  Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
@@ -120,7 +121,7 @@ public class TestWeights
 			System.out.println( "Default sigma1 = " + Util.printCoordinates( sigma1 ) );
 			System.out.println( "Default sigma2 = " + Util.printCoordinates( sigma2 ) );
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-			FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, model );
+			FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, usedDownsamplingFactors );
 			System.out.println( "Adjusted sigma1 = " + Util.printCoordinates( sigma1 ) );
 			System.out.println( "Adjusted sigma2 = " + Util.printCoordinates( sigma2 ) );
 

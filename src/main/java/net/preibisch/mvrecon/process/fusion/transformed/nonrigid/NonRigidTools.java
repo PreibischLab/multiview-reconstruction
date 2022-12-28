@@ -309,6 +309,8 @@ public class NonRigidTools
 			final AffineModel3D invertedModelOpener;
 			RandomAccessibleInterval inputImg;
 
+			final double[] usedDownsamplingFactors = new double[] { 1, 1, 1 };
+
 			if ( !displayDistances )
 			{
 				//
@@ -317,7 +319,7 @@ public class NonRigidTools
 
 				// the model necessary to map to the image opened at a reduced resolution level
 				final Pair< RandomAccessibleInterval, AffineTransform3D > inputData =
-						DownsampleTools.openDownsampled2( imgloader, viewId, modelAffine, null );
+						DownsampleTools.openDownsampled2( imgloader, viewId, modelAffine, usedDownsamplingFactors );
 	
 				// concatenate the downsampling transformation model to the affine transform
 				if ( inputData.getB() != null )
@@ -392,7 +394,7 @@ public class NonRigidTools
 					final double[] sigma2 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma2, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, modelAffine );
+					FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsamplingFactors );
 
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 
