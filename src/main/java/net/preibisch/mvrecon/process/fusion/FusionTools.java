@@ -437,7 +437,7 @@ public class FusionTools
 
 		for ( final ViewId viewId : viewIdsToProcess )
 		{
-			final AffineTransform3D model = registrations.get( viewId );
+			final AffineTransform3D model = registrations.get( viewId ).copy();
 
 			/*
 			if ( !Double.isNaN( downsampling ) )

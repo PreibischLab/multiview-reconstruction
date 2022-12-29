@@ -124,7 +124,7 @@ public class DownsampleTools
 			// best possible step size in the output image when using original data
 			final float[] sizeMaxResolution = getStepSize( m );
 
-			System.out.println( Util.printCoordinates( sizeMaxResolution ) );
+			//System.out.println( Util.printCoordinates( sizeMaxResolution ) );
 			float acceptedError = 0.02f;
 
 			// assuming that this is the best one
@@ -142,7 +142,7 @@ public class DownsampleTools
 					0.0, factors[ 1 ], 0.0, 0.0,
 					0.0, 0.0, factors[ 2 ], 0.0 );
 	
-				System.out.println( "testing scale: " + s );
+				//System.out.println( "testing scale: " + s );
 	
 				AffineTransform3D model = m.copy();
 				model.concatenate( s );
@@ -165,22 +165,24 @@ public class DownsampleTools
 						bestLevel = level;
 					}
 				}
-				System.out.println( Util.printCoordinates( size ) + " valid: " + isValid + " bestScaling: " + bestScaling  );
+				//System.out.println( Util.printCoordinates( size ) + " valid: " + isValid + " bestScaling: " + bestScaling  );
 			}
 
 			// now done in the more specific code above
 			// concatenate the downsampling transformation model to the affine transform
 			// m.concatenate( mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 
-			System.out.println( "Choosing resolution level: " + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] );
+			System.out.println( "Choosing resolution level s" + bestLevel + ": (" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + ")" );
 
 			if ( usedDownsampleFactors != null && usedDownsampleFactors.length >= mipmapResolutions[ bestLevel ].length )
 				for ( int d = 0; d < mipmapResolutions[ bestLevel ].length; ++d )
 					usedDownsampleFactors[ d ] = mipmapResolutions[ bestLevel ][ d ];
 
+			/*
 			IOFunctions.println(
 					"(" + new Date(System.currentTimeMillis()) + "): "
 					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + bestLevel + ", [" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + "]" );
+			*/
 
 			return new ValuePair<>(
 					mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), bestLevel ),

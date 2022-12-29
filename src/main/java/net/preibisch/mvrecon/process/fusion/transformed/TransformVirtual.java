@@ -64,9 +64,12 @@ public class TransformVirtual
 			if ( !Double.isNaN( anisotropyFactor ) )
 				TransformVirtual.scaleTransform( model, new double[] { 1.0, 1.0, 1.0/anisotropyFactor } );
 
+			System.out.println( model );
 			// downsampling
 			if ( !Double.isNaN( downsampling ) )
 				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
+			System.out.println( model );
+			System.out.println();
 
 			updatedRegistrations.put( viewId, model );
 		}

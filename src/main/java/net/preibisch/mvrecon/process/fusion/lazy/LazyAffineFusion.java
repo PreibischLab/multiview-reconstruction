@@ -50,10 +50,12 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
+import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import util.Lazy;
 
 /**
@@ -205,25 +207,31 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 				if ( vd.getViewSetup().getChannel().getId() == 0 )
 					viewIds.add( vd );
 
-		final double af = LazyFusionTools.estimateAnisotropy( data, viewIds );
+		final double anisotropy = Double.NaN;//LazyFusionTools.estimateAnisotropy( data, viewIds );
+		final double downsampling = 4.0;
 
-		final Interval fusionInterval =
-				LazyFusionTools.adjustBoundingBox(
-						data,
+		Interval bb = LazyFusionTools.getBoundingBox( data, viewIds, null );
+
+		// adjust bounding box
+		bb = FusionTools.createAnisotropicBoundingBox( bb, anisotropy ).getA();
+		bb = FusionTools.createDownsampledBoundingBox( bb, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
 						viewIds,
-						LazyFusionTools.getBoundingBox( data, viewIds, null ),
-						af );
+						data.getViewRegistrations().getViewRegistrations(),
+						anisotropy,
+						downsampling );
 
 		final RandomAccessibleInterval<FloatType> fused = LazyAffineFusion.init(
-				fusionInterval,
+				bb,
 				new FloatType(),
 				new int[] { 512, 512, 1 }, // good blocksize for displaying
 				null,//(i,o) -> o.set(i),
 				data.getSequenceDescription().getImgLoader(),
 				viewIds,
-				LazyFusionTools.adjustRegistrations(
-						LazyFusionTools.assembleRegistrations( viewIds, data ),
-						af ),
+				registrations,
 				data.getSequenceDescription().getViewDescriptions(),
 				true,
 				false,

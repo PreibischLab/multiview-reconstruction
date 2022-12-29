@@ -55,51 +55,11 @@ public class LazyFusionTools {
 		return fused;
 	}
 
-	public static Map< ViewId, AffineTransform3D > adjustRegistrations(
-			final Map< ViewId, AffineTransform3D > transforms,
-			final double anisotropyFactor )
-	{
-		for ( final ViewId viewId : transforms.keySet() )
-		{
-			// get updated registration for views to fuse AND all other views that may influence the fusion
-			final AffineTransform3D aniso = new AffineTransform3D();
-			aniso.set(
-					1.0, 0.0, 0.0, 0.0,
-					0.0, 1.0, 0.0, 0.0,
-					0.0, 0.0, 1.0/anisotropyFactor, 0.0 );
-			transforms.put( viewId, transforms.get( viewId ).preConcatenate( aniso ) );
-		}
-
-		return transforms;
-	}
-
 	public static double estimateAnisotropy(
 			final SpimData data,
 			final List< ViewId > viewIds )
 	{
 		return TransformationTools.getAverageAnisotropyFactor( data, viewIds );
-	}
-
-	public static BoundingBox adjustBoundingBox(
-			final SpimData data,
-			final List< ViewId > viewIds,
-			final Interval boundingBox,
-			final double anisotropyFactor )
-	{
-		final long[] minBB = boundingBox.minAsLongArray();
-		final long[] maxBB = boundingBox.maxAsLongArray();
-
-		System.out.println( "Anisotropy factor: " + anisotropyFactor );
-
-		// prepare downsampled boundingbox
-		minBB[ 2 ] = Math.round( Math.floor( minBB[ 2 ] / anisotropyFactor ) );
-		maxBB[ 2 ] = Math.round( Math.ceil( maxBB[ 2 ] / anisotropyFactor ) );
-
-		BoundingBox boundingBoxNew = new BoundingBox( new FinalInterval( minBB, maxBB ) );
-
-		System.out.println( "Adjusted bounding box (anisotropy preserved: " + Util.printInterval( boundingBoxNew ) );
-
-		return boundingBoxNew;
 	}
 
 	public static BoundingBox getBoundingBox(
@@ -129,31 +89,6 @@ public class LazyFusionTools {
 		}
 
 		return bb;
-	}
-
-	public static HashMap< ViewId, AffineTransform3D > assembleRegistrations(
-			final Collection<ViewId> viewIds,
-			final SpimData data )
-	{
-		return assembleRegistrations(viewIds, data.getViewRegistrations().getViewRegistrations() );
-	}
-
-	public static HashMap< ViewId, AffineTransform3D > assembleRegistrations(
-			final Collection<ViewId> viewIds,
-			final Map< ViewId, ViewRegistration > vr )
-	{
-		final HashMap< ViewId, AffineTransform3D > viewRegistrations = new HashMap<>();
-
-		for ( final ViewId viewId : viewIds )
-		{
-			// TODO: preserve anisotropy
-			final ViewRegistration reg = vr.get( viewId );
-
-			reg.updateModel();
-			viewRegistrations.put( viewId, reg.getModel() );
-		}
-
-		return viewRegistrations;
 	}
 
 	public static HashMap< ViewId, Dimensions > assembleDimensions(
