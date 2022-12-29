@@ -202,6 +202,7 @@ public class Image_Fusion implements PlugIn
 			}
 			else
 			{
+				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
 				virtual = FusionTools.fuseVirtual(
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,

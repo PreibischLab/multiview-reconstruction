@@ -37,26 +37,22 @@ import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
-import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import util.Lazy;
 
 /**
  * BigStitcher Affine Fusion in blocks
@@ -81,7 +77,17 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	final Map< ViewId, AffineModel1D > intensityAdjustments;
 
 	/**
-	 * 
+	 * Creates a consumer that will fill the requested RandomAccessibleInterval single-threaded
+	 *
+	 * @param converter - if type is FloatType, converter can be null
+	 * @param imgloader - the imgloader to fetch raw data
+	 * @param viewIds - which viewids to fuse
+	 * @param viewRegistrations - the registrations (must include anisotropy & downsampling if desired)
+	 * @param viewDescriptions - the viewdescriptions
+	 * @param useBlending - blend images when overlapping?
+	 * @param useContentBased - use content-based fusion?
+	 * @param interpolation - 1==linear, 0==nearest neighbor
+	 * @param intensityAdjustments - intensity adjustments, can be null
 	 * @param globalMin - the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage (but the actual interval to process in many blocks sits somewhere else)
 	 * @param type - which type to fuse
 	 */
@@ -164,8 +170,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final int interpolation,
 			final Map< ViewId, AffineModel1D > intensityAdjustments )
 	{
-		final long[] min = fusionInterval.minAsLongArray();
-
 		final LazyAffineFusion< T > lazyAffineFusion =
 				new LazyAffineFusion<>(
 						converter,
@@ -177,22 +181,11 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						useContentBased,
 						interpolation,
 						intensityAdjustments,
-						min,
+						fusionInterval.minAsLongArray(),
 						type.createVariable() );
 
-		final RandomAccessibleInterval<T> fused =
-				Views.translate(
-						Lazy.process(
-								fusionInterval,
-								blockSize,
-								type.createVariable(),
-								AccessFlags.setOf(),
-								lazyAffineFusion ),
-						min );
-
-		return fused;
+		return LazyFusionTools.initLazy( lazyAffineFusion, fusionInterval, blockSize, type );
 	}
-
 
 	public static void main( String[] args ) throws SpimDataException
 	{
