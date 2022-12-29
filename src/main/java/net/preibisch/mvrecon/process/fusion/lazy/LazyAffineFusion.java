@@ -25,10 +25,12 @@ package net.preibisch.mvrecon.process.fusion.lazy;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import ij.ImageJ;
+import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -70,7 +72,11 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	final Collection< ? extends ViewId > viewIds;
 	final Map< ViewId, ? extends AffineTransform3D > viewRegistrations;
 	final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions;
-	final Map< ViewId, ? extends Dimensions > viewDimensions;
+
+	final boolean useBlending;
+	final boolean useContentBased;
+	final int interpolation;
+	final Map< ViewId, AffineModel1D > intensityAdjustments;
 
 	/**
 	 * 
@@ -83,7 +89,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Collection< ? extends ViewId > viewIds,
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
-			final Map< ViewId, ? extends Dimensions > viewDimensions,
+			final boolean useBlending,
+			final boolean useContentBased,
+			final int interpolation,
+			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final long[] globalMin,
 			final T type )
 	{
@@ -95,7 +104,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		this.viewIds = viewIds;
 		this.viewRegistrations = viewRegistrations;
 		this.viewDescriptions = viewDescriptions;
-		this.viewDimensions = viewDimensions;
+		this.useBlending = useBlending;
+		this.useContentBased = useContentBased;
+		this.interpolation = interpolation;
+		this.intensityAdjustments = intensityAdjustments;
 	}
 
 	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
@@ -107,25 +119,18 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		// in world coordinates
 		final Interval targetBlock = Intervals.translate( new FinalInterval( output ), globalMin );
 
-		// which views to process
-		final ArrayList< ViewId > viewIdsToProcess =
-				LazyFusionTools.overlappingViewIds( targetBlock, viewIds, viewRegistrations, viewDimensions );
-
-		// nothing to save...
-		if ( viewIdsToProcess.size() == 0 )
-			return;
-
+		// which views to process is now part of fuseVirtual
 		final RandomAccessibleInterval<FloatType> fused =
 				FusionTools.fuseVirtual(
 						imgloader,
 						viewRegistrations,
 						viewDescriptions,
-						viewIdsToProcess,
-						true, // use blending
-						false, // use content-based
-						1, // linear interpolation
+						viewIds,
+						useBlending, // use blending
+						useContentBased, // use content-based
+						interpolation, // linear interpolation
 						targetBlock,
-						null ); // intensity adjustments
+						intensityAdjustments ); // intensity adjustments
 
 		final RandomAccessibleInterval<T> converted;
 
@@ -152,7 +157,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Collection< ? extends ViewId > viewIds,
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
-			final Map< ViewId, ? extends Dimensions > viewDimensions )
+			final boolean useBlending,
+			final boolean useContentBased,
+			final int interpolation,
+			final Map< ViewId, AffineModel1D > intensityAdjustments )
 	{
 		final long[] min = fusionInterval.minAsLongArray();
 
@@ -163,7 +171,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewIds,
 						viewRegistrations,
 						viewDescriptions,
-						viewDimensions,
+						useBlending,
+						useContentBased,
+						interpolation,
+						intensityAdjustments,
 						min,
 						type.createVariable() );
 
@@ -214,7 +225,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						LazyFusionTools.assembleRegistrations( viewIds, data ),
 						af ),
 				data.getSequenceDescription().getViewDescriptions(),
-				LazyFusionTools.assembleDimensions( viewIds, data ) );
+				true,
+				false,
+				1,
+				null );
 
 		ImageJFunctions.show( fused );
 	}
