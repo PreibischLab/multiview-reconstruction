@@ -30,6 +30,9 @@ import util.Lazy;
 
 public class LazyFusionTools {
 
+	public static int defaultAffineExpansion = 2;
+	public static int defaultNonrigidExpansion = 50;
+
 	public static int[] defaultBlockSize2d = new int[] { 256, 256 };
 	public static int[] defaultBlockSize3d = DoGImgLib2.blockSize;
 
@@ -111,7 +114,8 @@ public class LazyFusionTools {
 			final Interval targetBlock,
 			final Collection< ? extends ViewId > allViewIds,
 			final Map< ? extends ViewId, ? extends AffineTransform3D > viewRegistrations,
-			final Map< ? extends ViewId, ? extends Dimensions > viewDimensions )
+			final Map< ? extends ViewId, ? extends Dimensions > viewDimensions,
+			final int expandOverlap )
 	{
 		final ArrayList< ViewId > overlappingViewIds = new ArrayList<>();
 
@@ -122,7 +126,7 @@ public class LazyFusionTools {
 			final Dimensions dim = viewDimensions.get( viewId );
 			final RealInterval ri = t.estimateBounds( new FinalInterval( dim ) );
 			final Interval boundingBoxLocal = Intervals.largestContainedInterval( ri );
-			final Interval bounds = Intervals.expand( boundingBoxLocal, 2 );
+			final Interval bounds = Intervals.expand( boundingBoxLocal, expandOverlap );
 
 			if ( overlaps( targetBlock, bounds ) )
 				overlappingViewIds.add( viewId );

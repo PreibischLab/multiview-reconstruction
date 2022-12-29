@@ -312,7 +312,7 @@ public class NonRigidTools
 						viewsToFuse,
 						downsampledRegistrations,
 						LazyFusionTools.assembleDimensions( viewsToFuse, viewDescriptions ),
-						LazyFusionTools.defaultAffineExpansion );
+						LazyFusionTools.defaultNonrigidExpansion );
 
 		// nothing to save...
 		if ( viewIdsToProcess.size() == 0 )
