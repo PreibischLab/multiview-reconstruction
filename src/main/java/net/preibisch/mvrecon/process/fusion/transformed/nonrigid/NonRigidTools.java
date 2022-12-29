@@ -67,6 +67,7 @@ import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -305,7 +306,31 @@ public class NonRigidTools
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
 
-		for ( final ViewId viewId : viewsToFuse )
+		final ArrayList< ViewId > viewIdsToProcess =
+				LazyFusionTools.overlappingViewIds(
+						bbDS,
+						viewsToFuse,
+						downsampledRegistrations,
+						LazyFusionTools.assembleDimensions( viewsToFuse, viewDescriptions ),
+						LazyFusionTools.defaultAffineExpansion );
+
+		// nothing to save...
+		if ( viewIdsToProcess.size() == 0 )
+		{
+			images.add(
+					Views.interval(
+							new ConstantRandomAccessible< FloatType >( new FloatType( 0 ), 3 ),
+							new FinalInterval( FusionTools.getFusedZeroMinInterval( bbDS ) ) ) );
+
+			weights.add(
+					Views.interval(
+							new ConstantRandomAccessible< FloatType >( new FloatType( 1 ), 3 ),
+							new FinalInterval( FusionTools.getFusedZeroMinInterval( bbDS ) ) ) );
+
+			return new ValuePair<>( images, weights );
+		}
+
+		for ( final ViewId viewId : viewIdsToProcess )
 		{
 			final ModelGrid grid = nonrigidGrids.get( viewId );
 			final AffineTransform3D modelAffine = downsampledRegistrations.get( viewId ).copy(); // will be modified potentially
