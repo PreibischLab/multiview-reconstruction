@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.boundingbox;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Callable;
@@ -35,12 +36,14 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
+import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
@@ -52,6 +55,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.ImagePortion;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 
 public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 {
@@ -99,11 +103,26 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 		final BoundingBox maxBB = new BoundingBoxMaximal( views, spimData ).estimate( "Maximum bounding box used for initalization" );
 		IOFunctions.println( maxBB );
 
+		// adjust bounding box
+		final Interval maxBBDS = FusionTools.createDownsampledBoundingBox( maxBB, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
+						views,
+						spimData.getViewRegistrations().getViewRegistrations(),
+						Double.NaN,
+						downsampling );
+
 		// fuse the dataset
 		Img< FloatType > img =
 				FusionTools.copyImgNoTranslation(
-						FusionTools.fuseVirtual( spimData, views, true, false, 1, maxBB, downsampling, null ).getA(),
-						new ArrayImgFactory<>(),
+						FusionTools.fuseVirtual(
+								spimData.getSequenceDescription().getImgLoader(),
+								registrations,
+								spimData.getSequenceDescription().getViewDescriptions(),
+								views, true, false, 1, maxBBDS, null ),
+						new ArrayImgFactory<>( new FloatType() ),
 						new FloatType(),
 						service );
 

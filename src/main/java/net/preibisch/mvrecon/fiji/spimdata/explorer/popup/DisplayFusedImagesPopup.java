@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -39,6 +40,7 @@ import ij.gui.StackWindow;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger;
 import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger.StateChanger;
@@ -48,6 +50,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools.ImgDataType;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSetable
@@ -191,7 +194,26 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 				public void run()
 				{
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Fusing " + views.size() + ", downsampling=" + DownsampleTools.printDownsampling( downsampling ) + ", caching strategy=" + imgType );
-					final ImagePlus imp = FusionTools.display( FusionTools.fuseVirtual( spimData, views, defaultUseBlending, false, defaultInterpolation, bb, downsampling, null ).getA(), imgType );
+
+					// adjust bounding box
+					final Interval bbDS = FusionTools.createDownsampledBoundingBox( bb, downsampling ).getA();
+
+					// adjust registrations
+					final HashMap< ViewId, AffineTransform3D > registrations =
+							TransformVirtual.adjustAllTransforms(
+									views,
+									spimData.getViewRegistrations().getViewRegistrations(),
+									Double.NaN,
+									downsampling );
+
+					final ImagePlus imp =
+							FusionTools.display(
+									FusionTools.fuseVirtual(
+											spimData.getSequenceDescription().getImgLoader(),
+											registrations,
+											spimData.getSequenceDescription().getViewDescriptions(),
+											views, defaultUseBlending, false, defaultInterpolation, bbDS, null ),
+									imgType );
 
 					if ( imp.getStack().getSize() > 1 )
 					{

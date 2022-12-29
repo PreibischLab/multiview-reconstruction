@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.headless.fusion;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import ij.ImageJ;
@@ -31,6 +32,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
@@ -38,6 +40,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
 
@@ -73,21 +76,37 @@ public class TestFusion
 		// downsampling
 		double downsampling = Double.NaN;
 
+		// adjust bounding box
+		bb = FusionTools.createDownsampledBoundingBox( bb, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
+						viewIds,
+						spimData.getViewRegistrations().getViewRegistrations(),
+						Double.NaN,
+						downsampling );
+
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, bb, downsampling ).getA();
+		final RandomAccessibleInterval< FloatType > virtual =
+				FusionTools.fuseVirtual(
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
+						viewIds,
+						bb );
+
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
 
 		//
 		// actually fuse into an image multithreaded
 		//
-		final long[] size = new long[ bb.numDimensions() ];
-		bb.dimensions( size );
+		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Reserving memory for fused image and copying, size = " + Util.printCoordinates( bb.dimensionsAsLongArray() ) );
 
-		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Reserving memory for fused image and copying, size = " + Util.printCoordinates( size ) );
-
-		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>(), new FloatType(), null, true );
+		final RandomAccessibleInterval< FloatType > fusedImg =
+				FusionTools.copyImg( virtual, new ImagePlusImgFactory<>( new FloatType()), new FloatType(), null, true );
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Finished fusion process." );
 

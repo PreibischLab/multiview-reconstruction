@@ -39,6 +39,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -48,6 +49,7 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class TestIntensityAdjustment
@@ -131,17 +133,36 @@ public class TestIntensityAdjustment
 		final HashMap< ViewId, AffineModel1D > intensityMapping =
 				IntensityAdjustmentTools.computeIntensityAdjustment( spimData, viewIds, model, bb, downsamplingEstimation, Integer.MAX_VALUE, null );
 
-		final RandomAccessibleInterval< FloatType > virtualBalanced = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, intensityMapping ).getA();
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, viewIds, false, false, 1, bb, downsampling, null ).getA();
+		// adjust bounding box
+		bb = FusionTools.createDownsampledBoundingBox( bb, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
+						viewIds,
+						spimData.getViewRegistrations().getViewRegistrations(),
+						Double.NaN,
+						downsampling );
+
+		final RandomAccessibleInterval< FloatType > virtualBalanced =
+				FusionTools.fuseVirtual(
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
+						viewIds, false, false, 1, bb, intensityMapping );
+
+		final RandomAccessibleInterval< FloatType > virtual =
+				FusionTools.fuseVirtual(
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
+						viewIds, false, false, 1, bb, null );
 
 		//
 		// actually fuse into an image multithreaded
 		//
-		final long[] size = new long[ bb.numDimensions() ];
-		bb.dimensions( size );
-
-		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>(), new FloatType(), null, true );
-		final RandomAccessibleInterval< FloatType > fusedBalancedImg = FusionTools.copyImg( virtualBalanced, new ImagePlusImgFactory<>(), new FloatType(), null, true );
+		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>( new FloatType() ), new FloatType(), null, true );
+		final RandomAccessibleInterval< FloatType > fusedBalancedImg = FusionTools.copyImg( virtualBalanced, new ImagePlusImgFactory<>( new FloatType() ), new FloatType(), null, true );
 
 		DisplayImage.getImagePlusInstance( fusedImg, false, "Fused", 0, 255 ).show();
 		DisplayImage.getImagePlusInstance( fusedBalancedImg, false, "Fused Balanced", 0, 255 ).show();

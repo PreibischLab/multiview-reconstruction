@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -65,6 +66,7 @@ import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -101,24 +103,27 @@ public class Image_Fusion implements PlugIn
 		final List< Group< ViewDescription > > groups = fusion.getFusionGroups();
 		int i = 0;
 
-		if ( !Double.isNaN( fusion.getAnisotropyFactor() ) ) // flatten the fused image
+		// adjust bounding box for preserve anisotropy
+		if ( !Double.isNaN( fusion.getAnisotropyFactor() ) )
 		{
-			final double anisoF = fusion.getAnisotropyFactor();
-
-			Interval bb = fusion.getBoundingBox();
-			final long[] min = new long[ 3 ];
-			final long[] max = new long[ 3 ];
-
-			bb.min( min );
-			bb.max( max );
-
-			min[ 2 ] = Math.round( Math.floor( min[ 2 ] / anisoF ) );
-			max[ 2 ] = Math.round( Math.ceil( max[ 2 ] / anisoF ) );
-
-			final Interval boundingBox = new FinalInterval( min, max );
+			final Pair<Interval, AffineTransform3D> scaledBB =
+					FusionTools.createAnisotropicBoundingBox(
+							fusion.getBoundingBox(),
+							fusion.getAnisotropyFactor() );
 
 			// we need to update the bounding box here
-			fusion.setBoundingBox( boundingBox );
+			fusion.setBoundingBox( scaledBB.getA() );
+		}
+
+		// adjust bounding box for downsampling
+		if ( !Double.isNaN( fusion.getDownsampling() ) )
+		{
+			final Pair< Interval, AffineTransform3D > scaledBB =
+					FusionTools.createDownsampledBoundingBox( fusion.getBoundingBox(), fusion.getDownsampling() );
+			// final AffineTransform3D bbTransform = scaledBB.getB();
+
+			// we need to update the bounding box here
+			fusion.setBoundingBox( scaledBB.getA() );
 		}
 
 		// query exporter parameters
@@ -160,101 +165,53 @@ public class Image_Fusion implements PlugIn
 				viewsToUse = null;
 			}
 
-			final Interval boundingBox = fusion.getBoundingBox();
+			// get, and update the transformations with anisotropy, downsampling
+			final Set< ? extends ViewId > views =
+					fusion.getNonRigidParameters().isActive() ?
+							Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) : group.getViews();
+
+			final HashMap< ViewId, AffineTransform3D > registrations =
+					TransformVirtual.adjustAllTransforms(
+							views,
+							spimData.getViewRegistrations().getViewRegistrations(),
+							fusion.getAnisotropyFactor(),
+							fusion.getDownsampling() );
 
 			final RandomAccessibleInterval< FloatType > virtual;
 
-			if ( Double.isNaN( fusion.getAnisotropyFactor() ) ) // no flattening of the fused image
+			if ( fusion.getNonRigidParameters().isActive() )
 			{
-				if ( fusion.getNonRigidParameters().isActive() )
-				{
-					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
-									spimData,
-									group.getViews(),
-									viewsToUse,
-									fusion.getNonRigidParameters().getLabels(),
-									fusion.useBlending(),
-									fusion.useContentBased(),
-									fusion.getNonRigidParameters().showDistanceMap(),
-									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
-									fusion.getNonRigidParameters().getAlpha(),
-									false,
-									fusion.getInterpolation(),
-									boundingBox,
-									fusion.getDownsampling(),
-									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
-									taskExecutor ).getA();
-				}
-				else
-				{
-					virtual = FusionTools.fuseVirtual(
-						spimData,
+				virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
+								spimData.getSequenceDescription().getImgLoader(),
+								registrations,
+								spimData.getViewInterestPoints().getViewInterestPoints(),
+								spimData.getSequenceDescription().getViewDescriptions(),
+								group.getViews(),
+								viewsToUse,
+								fusion.getNonRigidParameters().getLabels(),
+								fusion.useBlending(),
+								fusion.useContentBased(),
+								fusion.getNonRigidParameters().showDistanceMap(),
+								Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+								fusion.getNonRigidParameters().getAlpha(),
+								false,
+								fusion.getInterpolation(),
+								fusion.getBoundingBox(),
+								fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+								taskExecutor );
+			}
+			else
+			{
+				virtual = FusionTools.fuseVirtual(
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
 						group.getViews(),
 						fusion.useBlending(),
 						fusion.useContentBased(),
 						fusion.getInterpolation(),
-						boundingBox,
-						fusion.getDownsampling(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
-				}
-			}
-			else
-			{
-				// update the transformations
-				final HashMap< ViewId, AffineTransform3D > registrations = new HashMap<>();
-
-				// get updated registration for views to fuse AND all other views that may influence the fusion
-				for ( final ViewId viewId : fusion.getNonRigidParameters().isActive() ? 
-						Sets.union( group.getViews(), viewsToUse.stream().collect( Collectors.toSet() ) ) : group.getViews() )
-				{
-					final ViewRegistration vr = spimData.getViewRegistrations().getViewRegistration( viewId );
-					vr.updateModel();
-					final AffineTransform3D model = vr.getModel().copy();
-					final AffineTransform3D aniso = new AffineTransform3D();
-					aniso.set(
-							1.0, 0.0, 0.0, 0.0,
-							0.0, 1.0, 0.0, 0.0,
-							0.0, 0.0, 1.0/fusion.getAnisotropyFactor(), 0.0 );
-					model.preConcatenate( aniso );
-					registrations.put( viewId, model );
-				}
-
-				if ( fusion.getNonRigidParameters().isActive() )
-				{
-					virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
-									spimData.getSequenceDescription().getImgLoader(),
-									registrations,
-									spimData.getViewInterestPoints().getViewInterestPoints(),
-									spimData.getSequenceDescription().getViewDescriptions(),
-									group.getViews(),
-									viewsToUse,
-									fusion.getNonRigidParameters().getLabels(),
-									fusion.useBlending(),
-									fusion.useContentBased(),
-									fusion.getNonRigidParameters().showDistanceMap(),
-									Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
-									fusion.getNonRigidParameters().getAlpha(),
-									false,
-									fusion.getInterpolation(),
-									boundingBox,
-									fusion.getDownsampling(),
-									fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
-									taskExecutor ).getA();
-				}
-				else
-				{
-					virtual = FusionTools.fuseVirtual(
-							spimData.getSequenceDescription().getImgLoader(),
-							registrations,
-							spimData.getSequenceDescription().getViewDescriptions(),
-							group.getViews(),
-							fusion.useBlending(),
-							fusion.useContentBased(),
-							fusion.getInterpolation(),
-							boundingBox,
-							fusion.getDownsampling(),
-							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null ).getA();
-				}
+						fusion.getBoundingBox(),
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 			}
 
 			if ( fusion.getPixelType() == 1 ) // 16 bit

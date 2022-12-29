@@ -24,15 +24,23 @@ package net.preibisch.mvrecon.headless.fusion;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
+
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
@@ -45,6 +53,7 @@ import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 
 public class TestNonRigid
@@ -60,7 +69,7 @@ public class TestNonRigid
 		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Desktop/i2k/sim2/dataset.xml" );
 		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Downloads/x-wing/dataset.xml" );
 
-		Pair< List< ViewId >, BoundingBox > fused = testInterpolation( spimData, "My Bounding Box" );
+		Pair< List< ViewId >, Interval > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges
 
 		compareToFusion( spimData, fused.getA(), fused.getB() );
@@ -69,7 +78,7 @@ public class TestNonRigid
 	public static void compareToFusion(
 			final SpimData2 spimData,
 			final List< ViewId > fused,
-			final BoundingBox boundingBox )
+			Interval boundingBox )
 	{
 		// downsampling
 		double downsampling = Double.NaN;
@@ -80,22 +89,39 @@ public class TestNonRigid
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": starting with affine" );
 
-		final RandomAccessibleInterval< FloatType > virtual = FusionTools.fuseVirtual( spimData, fused, boundingBox, downsampling ).getA();
+		// adjust bounding box
+		boundingBox = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
+						fused,
+						spimData.getViewRegistrations().getViewRegistrations(),
+						Double.NaN,
+						downsampling );
+
+		final RandomAccessibleInterval< FloatType > virtual =
+				FusionTools.fuseVirtual(
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
+						fused, boundingBox );
+
 		DisplayImage.getImagePlusInstance( virtual, false, "Fused Affine", 0, 255 ).show();
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with affine" );
 	}
 
-	public static Pair< List< ViewId >, BoundingBox > testInterpolation(
+	public static Pair< List< ViewId >, Interval > testInterpolation(
 			final SpimData2 spimData,
 			final String bbTitle )
 	{
-		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, bbTitle );
+		Interval boundingBox = TestBoundingBox.getBoundingBox( spimData, bbTitle );
 
 		if ( boundingBox == null )
 			return null;
 
-		IOFunctions.println( BoundingBox.getBoundingBoxDescription( boundingBox ) );
+		IOFunctions.println( BoundingBox.getBoundingBoxDescription( (BoundingBox)boundingBox ) );
 
 		// select views to process
 		final List< ViewId > viewsToFuse = new ArrayList< ViewId >(); // fuse
@@ -145,9 +171,23 @@ public class TestNonRigid
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": starting with non-rigid" );
 
+		// adjust bounding box
+		boundingBox = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrations =
+				TransformVirtual.adjustAllTransforms(
+						Sets.union( new HashSet<>( viewsToFuse ), new HashSet<>( viewsToUse ) ),
+						spimData.getViewRegistrations().getViewRegistrations(),
+						Double.NaN,
+						downsampling );
+
 		final RandomAccessibleInterval< FloatType > virtual =
 				NonRigidTools.fuseVirtualInterpolatedNonRigid(
-						spimData,
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getViewInterestPoints().getViewInterestPoints(),
+						spimData.getSequenceDescription().getViewDescriptions(),
 						viewsToFuse,
 						viewsToUse,
 						labels,
@@ -159,9 +199,8 @@ public class TestNonRigid
 						virtualGrid,
 						interpolation,
 						boundingBox,
-						downsampling,
 						null,
-						service ).getA();
+						service );
 		
 		service.shutdown();
 

@@ -22,15 +22,93 @@
  */
 package net.preibisch.mvrecon.process.fusion.transformed;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 
 public class TransformVirtual
 {
+	/**
+	 * Collects all ViewRegistrations, updates them, and potentially adds anisotropy and downsampling transformations
+	 * 
+	 * @param viewIds - all ViewIds to process
+	 * @param registrations - all ViewRegistrations
+	 * @param anisotropyFactor - a factor applied to z only (e.g. 3, or Double.NaN)
+	 * @param downsampling - a factor applied to xyz (e.g. 3, or Double.NaN)
+	 *
+	 * @return
+	 */
+	public static HashMap< ViewId, AffineTransform3D > adjustAllTransforms(
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, ? extends ViewRegistration > registrations,
+			final double anisotropyFactor,
+			final double downsampling )
+	{
+		final HashMap< ViewId, AffineTransform3D > updatedRegistrations = new HashMap<>();
+
+		// get updated registration for views to fuse AND all other views that may influence the fusion
+		for ( final ViewId viewId : viewIds )
+		{
+			final ViewRegistration vr = registrations.get( viewId );
+			vr.updateModel();
+			final AffineTransform3D model = vr.getModel().copy();
+
+			// preserve anisotropy
+			if ( !Double.isNaN( anisotropyFactor ) )
+				TransformVirtual.scaleTransform( model, new double[] { 1.0, 1.0, 1.0/anisotropyFactor } );
+
+			// downsampling
+			if ( !Double.isNaN( downsampling ) )
+				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
+
+			updatedRegistrations.put( viewId, model );
+		}
+
+		return updatedRegistrations;
+	}
+
+	/**
+	 * Updates existing transformations with anisotropy and downsampling transformations
+	 * 
+	 * @param registrations - all registrations
+	 * @param anisotropyFactor - a factor applied to z only (e.g. 3, or Double.NaN)
+	 * @param downsampling - a factor applied to xyz (e.g. 3, or Double.NaN)
+	 *
+	 * @return
+	 */
+	public static HashMap< ViewId, AffineTransform3D > adjustAllTransforms(
+			final Map< ViewId, ? extends AffineTransform3D > registrations,
+			final double anisotropyFactor,
+			final double downsampling )
+	{
+		final HashMap< ViewId, AffineTransform3D > updatedRegistrations = new HashMap<>();
+
+		// get updated registration for views to fuse AND all other views that may influence the fusion
+		for ( final ViewId viewId : registrations.keySet() )
+		{
+			final AffineTransform3D model = registrations.get( viewId ).copy();
+
+			// preserve anisotropy
+			if ( !Double.isNaN( anisotropyFactor ) )
+				TransformVirtual.scaleTransform( model, new double[] { 1.0, 1.0, 1.0/anisotropyFactor } );
+
+			// downsampling
+			if ( !Double.isNaN( downsampling ) )
+				TransformVirtual.scaleTransform( model, 1.0 / downsampling );
+
+			updatedRegistrations.put( viewId, model );
+		}
+
+		return updatedRegistrations;
+	}
+
 	/**
 	 * Scale the affine transform (use with scaleBoundingBox so it is the right image, but just smaller)
 	 * 

@@ -48,7 +48,6 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -116,7 +115,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		if ( viewIdsToProcess.size() == 0 )
 			return;
 
-		final Pair<RandomAccessibleInterval<FloatType>, AffineTransform3D> fused =
+		final RandomAccessibleInterval<FloatType> fused =
 				FusionTools.fuseVirtual(
 						imgloader,
 						viewRegistrations,
@@ -126,15 +125,14 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						false, // use content-based
 						1, // linear interpolation
 						targetBlock,
-						Double.NaN, // downsampling - can be done outside just as 'preserve anisotropy'
 						null ); // intensity adjustments
 
 		final RandomAccessibleInterval<T> converted;
 
 		if ( converter == null && type.getClass().isInstance( new FloatType() ) )
-			converted = (RandomAccessibleInterval)(Object)fused.getA();
+			converted = (RandomAccessibleInterval)(Object)fused;
 		else
-			converted = Converters.convert( fused.getA(), converter, type );
+			converted = Converters.convert( fused, converter, type );
 
 		final Cursor<T> cIn = Views.flatIterable( converted ).cursor();
 		final Cursor<T> cOut = Views.flatIterable( output ).cursor();

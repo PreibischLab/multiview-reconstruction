@@ -41,6 +41,7 @@ import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
+import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -664,21 +665,30 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			IOFunctions.println( "Cropped Effective boundingbox: " + Util.printInterval( TransformVirtual.scaleBoundingBox( bb, 1.0 / ds ) ) + " estimated size=" + megabytes + " MB" );
 		}
 
+		// adjust bounding box
+		final Interval bbDS = FusionTools.createDownsampledBoundingBox( bb, ds ).getA();
+
+		// adjust registrations
+		final HashMap< ViewId, AffineTransform3D > registrationsAdjusted =
+				TransformVirtual.adjustAllTransforms(
+						registrations,
+						Double.NaN,
+						ds );
+
 		RandomAccessibleInterval< FloatType > img = FusionTools.fuseVirtual(
 				imgLoader,
-				registrations,
+				registrationsAdjusted,
 				viewDescriptions,
 				group.getViews(),
 				DisplayFusedImagesPopup.defaultUseBlending,
 				false,
 				DisplayFusedImagesPopup.defaultInterpolation,
-				bb,
-				ds,
-				null ).getA();
+				bbDS,
+				null );
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Fusing temporary image ... " );
 
-		img = FusionTools.copyImg( img, new ImagePlusImgFactory< FloatType >(), new FloatType(), null, true );
+		img = FusionTools.copyImg( img, new ImagePlusImgFactory< FloatType >( new FloatType() ), new FloatType(), null, true );
 
 		// we set the min & max intensity for all individual views
 		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )

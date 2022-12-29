@@ -54,6 +54,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
@@ -164,7 +165,13 @@ public class MultiResolutionTools
 			final AffineTransform3D bbTransform = scaledBB.getB();
 
 			// create final registrations for all views and a list of corresponding interest points
-			final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = NonRigidTools.createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
+			//final HashMap< ViewId, AffineTransform3D > downsampledRegistrations = NonRigidTools.createDownsampledRegistrations( viewsToUse, viewRegistrations, downsampling );
+
+			final HashMap< ViewId, AffineTransform3D > downsampledRegistrations =
+					TransformVirtual.adjustAllTransforms(
+							viewRegistrations,
+							Double.NaN,
+							downsampling );
 
 			// transform unique interest points
 			final ArrayList< HashSet< CorrespondingIP > > transformedUniqueIPs = NonRigidTools.transformUniqueIPs( uniqueIPs, downsampledRegistrations );
@@ -242,17 +249,29 @@ public class MultiResolutionTools
 		{
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Assembling Affine Multiresolution pyramid for downsampling=" + downsampling );
 
-			multiRes.add( FusionTools.fuseVirtual(
-					imgloader,
-					registrations,
-					viewDescriptions,
-					views,
-					useBlending,
-					useContentBased,
-					interpolation,
-					boundingBox,
-					downsampling,
-					intensityAdjustments ) );
+			// adjust bounding box
+			final Pair<Interval, AffineTransform3D> pair = FusionTools.createDownsampledBoundingBox( boundingBox, downsampling );
+
+			// adjust registrations
+			final HashMap< ViewId, AffineTransform3D > registrationsAdjusted =
+					TransformVirtual.adjustAllTransforms(
+							registrations,
+							Double.NaN,
+							downsampling );
+
+			multiRes.add(
+					new ValuePair<>(
+							FusionTools.fuseVirtual(
+									imgloader,
+									registrationsAdjusted,
+									viewDescriptions,
+									views,
+									useBlending,
+									useContentBased,
+									interpolation,
+									pair.getA(), // bounding box
+									intensityAdjustments ),
+							pair.getB() ) );
 		}
 
 		return multiRes;

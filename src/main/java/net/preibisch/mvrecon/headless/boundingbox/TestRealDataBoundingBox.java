@@ -31,6 +31,7 @@ import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.MinFilterThresholdBoundingBoxGUI;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -65,7 +66,7 @@ public class TestRealDataBoundingBox
 				spimData,
 				service,
 				viewIds,
-				new ArrayImgFactory<>(),
+				new ArrayImgFactory<>( new FloatType() ),
 				MinFilterThresholdBoundingBoxGUI.defaultBackgroundIntensity,
 				MinFilterThresholdBoundingBoxGUI.defaultDiscardedObjectSize,
 				true,
@@ -75,6 +76,6 @@ public class TestRealDataBoundingBox
 
 		service.shutdown();
 
-		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, true, false, 1, bb, 2.0, null ).getA(), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
+		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, true, false, 1, bb, null ), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
 	}
 }
