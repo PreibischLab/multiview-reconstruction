@@ -64,11 +64,6 @@ public class TransformView
 			final float outsideValue,
 			final int interpolation )
 	{
-		final long[] size = new long[ input.numDimensions() ];
-
-		for ( int d = 0; d < size.length; ++d )
-			size[ d ] = boundingBox.dimension( d );
-
 		final TransformedInputRandomAccessible< T > virtual = new TransformedInputRandomAccessible< T >( input, transform, true, minValue, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
@@ -76,7 +71,7 @@ public class TransformView
 		else
 			virtual.setLinearInterpolation();
 
-		return Views.interval( virtual, new FinalInterval( size ) );
+		return Views.interval( virtual, new FinalInterval( boundingBox.dimensionsAsLongArray() ) );
 	}
 
 	/**
@@ -101,15 +96,6 @@ public class TransformView
 			final float outsideValue,
 			final int interpolation )
 	{
-		final long[] offset = new long[ input.numDimensions() ];
-		final long[] size = new long[ input.numDimensions() ];
-
-		for ( int d = 0; d < offset.length; ++d )
-		{
-			offset[ d ] = boundingBox.min( d );
-			size[ d ] = boundingBox.dimension( d );
-		}
-
 		final TransformedInputRandomAccessible< T > virtual = new TransformedInputRandomAccessible< T >( input, transform, false, 0.0f, new FloatType( outsideValue ), boundingBox );
 
 		if ( interpolation == 0 )
@@ -117,7 +103,7 @@ public class TransformView
 		else
 			virtual.setLinearInterpolation();
 
-		return Views.interval( virtual, new FinalInterval( size ) );
+		return Views.interval( virtual, new FinalInterval( boundingBox.dimensionsAsLongArray() ) );
 	}
 
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > transformView(
