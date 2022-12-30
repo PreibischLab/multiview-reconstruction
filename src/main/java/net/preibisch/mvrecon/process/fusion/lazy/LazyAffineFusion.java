@@ -105,6 +105,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final long[] globalMin,
 			final T type )
 	{
+		// TODO: share cache for content-based fusion if wanted
 		this.globalMin = globalMin;
 		this.type = type;
 

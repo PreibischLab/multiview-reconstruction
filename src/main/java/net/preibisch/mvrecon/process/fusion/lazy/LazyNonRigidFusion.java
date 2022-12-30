@@ -93,6 +93,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final long[] globalMin,
 			final T type )
 	{
+		// TODO: share cache for content-based fusion if wanted
 		this.imgloader = imgloader;
 		this.viewDescriptions = viewDescriptions;
 		this.viewsToFuse = viewsToFuse;
@@ -281,6 +282,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 
 		service.shutdown();
 
+		// Lazy Non-rigid fusion took: 263447 ms.
 		long time = System.currentTimeMillis();
 		DisplayImage.getImagePlusInstance( lazyFused, false, "Fused Non-rigid", 0, 255 ).show();
 		System.out.println( "Lazy Non-rigid fusion took: " + (System.currentTimeMillis() - time) + " ms.");
