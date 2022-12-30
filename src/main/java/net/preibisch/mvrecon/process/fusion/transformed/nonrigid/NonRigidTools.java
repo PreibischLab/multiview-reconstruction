@@ -184,10 +184,10 @@ public class NonRigidTools
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 		// this location in world coordinates defines where each individual point should be "warped" to
-		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
+		final Pair< HashMap< ViewId, ArrayList< SimpleReferenceIP > >, Double > uniquePointsData = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, boundingBox, virtualGrid, service );
+		final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePointsData.getA(), controlPointDistance, alpha, boundingBox, virtualGrid, service );
 
 		// create virtual images
 		final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
@@ -202,7 +202,8 @@ public class NonRigidTools
 						useContentBased,
 						displayDistances,
 						interpolation,
-						intensityAdjustments );
+						intensityAdjustments,
+						Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( uniquePointsData.getB() * 1.5 ) ) );
 
 		return new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( boundingBox ), virtual.getA(), virtual.getB() );
 		//return new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform );
@@ -301,7 +302,8 @@ public class NonRigidTools
 			final boolean useContentBased,
 			final boolean displayDistances,
 			final int interpolation,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
+			final int overlapExpansion )
 	{
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
@@ -312,7 +314,7 @@ public class NonRigidTools
 						viewsToFuse,
 						downsampledRegistrations,
 						LazyFusionTools.assembleDimensions( viewsToFuse, viewDescriptions ),
-						LazyFusionTools.defaultNonrigidExpansion );
+						overlapExpansion );
 
 		// nothing to save...
 		if ( viewIdsToProcess.size() == 0 )
@@ -632,7 +634,7 @@ public class NonRigidTools
 		}
 	}
 
-	public static HashMap< ViewId, ArrayList< SimpleReferenceIP > > computeReferencePoints(
+	public static Pair< HashMap< ViewId, ArrayList< SimpleReferenceIP > >, Double > computeReferencePoints(
 			final Collection< ViewId > views,
 			final ArrayList< HashSet< CorrespondingIP > > uniqueIPs )
 	{
@@ -702,7 +704,7 @@ public class NonRigidTools
 			//IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Unique interest points for " + Group.pvid( viewId ) + ": " + myIPs.size() );
 		}
 
-		return uniquePointsPerView;
+		return new ValuePair<>( uniquePointsPerView, maxDist );
 	}
 
 	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Map< ViewId, ArrayList< CorrespondingIP > > annotatedIps )

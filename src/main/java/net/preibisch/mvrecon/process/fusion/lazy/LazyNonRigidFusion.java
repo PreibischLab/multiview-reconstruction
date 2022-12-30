@@ -63,6 +63,8 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	final int interpolation;
 	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
+	final double maxDist;
+
 	/*
 	 * Creates a consumer that will fill the requested RandomAccessibleInterval single-threaded, using common
 	 * grids that are computed multi-threaded in the constructor
@@ -122,10 +124,11 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 
 		// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 		// this location in world coordinates defines where each individual point should be "warped" to
-		final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
+		final Pair< HashMap< ViewId, ArrayList< SimpleReferenceIP > >, Double > uniquePointsData = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
+		this.maxDist = uniquePointsData.getB();
 
 		// compute all grids, if it does not contain a grid we use the old affine model
-		this.nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, controlPointDistance, alpha, boundingBox, virtualGrid, service );
+		this.nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePointsData.getA(), controlPointDistance, alpha, boundingBox, virtualGrid, service );
 	}
 
 	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
@@ -149,7 +152,8 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						useContentBased,
 						displayDistances,
 						interpolation,
-						intensityAdjustments );
+						intensityAdjustments,
+						Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( maxDist * 1.5 ) ) );
 
 		final RandomAccessibleInterval<FloatType> fused =
 				new FusedRandomAccessibleInterval(

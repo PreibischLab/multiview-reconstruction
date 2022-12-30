@@ -53,6 +53,7 @@ import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
@@ -178,11 +179,11 @@ public class MultiResolutionTools
 
 			// compute an average location of each unique interest point that is defined by many (2...n) corresponding interest points
 			// this location in world coordinates defines where each individual point should be "warped" to
-			final HashMap< ViewId, ArrayList< SimpleReferenceIP > > uniquePoints = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
+			final Pair< HashMap< ViewId, ArrayList< SimpleReferenceIP > >, Double > uniquePointsData = NonRigidTools.computeReferencePoints( annotatedIps.keySet(), transformedUniqueIPs );
 
 			// compute all grids, if it does not contain a grid we use the old affine model
 			final long cpd = Math.max( 2, (long)Math.round( controlPointDistance / downsampling ) );
-			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePoints, new long[] { cpd, cpd, cpd }, alpha, bbDS, true, service );
+			final HashMap< ViewId, ModelGrid > nonrigidGrids = NonRigidTools.computeGrids( viewsToFuse, uniquePointsData.getA(), new long[] { cpd, cpd, cpd }, alpha, bbDS, true, service );
 
 			// create virtual images
 			final Pair< ArrayList< RandomAccessibleInterval< FloatType > >, ArrayList< RandomAccessibleInterval< FloatType > > > virtual =
@@ -197,7 +198,8 @@ public class MultiResolutionTools
 							useContentBased,
 							displayDistances,
 							interpolation,
-							intensityAdjustments );
+							intensityAdjustments,
+							Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( uniquePointsData.getB() * 1.5 ) ) );
 
 			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform ) );
 		}
