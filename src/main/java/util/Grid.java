@@ -186,7 +186,7 @@ public class Grid {
 		return floorScaled;
 	}
 
-	/*
+	/*	
 	 * Returns the long coordinate greater or equal scaled double coordinates.
 	 *
 	 * @param doubles

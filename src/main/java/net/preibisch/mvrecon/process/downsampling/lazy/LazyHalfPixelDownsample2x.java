@@ -153,7 +153,7 @@ public class LazyHalfPixelDownsample2x<T extends RealType<T> & NativeType<T>> im
 		return ( v0 + v1 ) / 2.0;
 	}
 
-	/**
+	/*
 	 * Convenient set up of the Lazy Downsampling
 	 *
 	 * @param <T>
