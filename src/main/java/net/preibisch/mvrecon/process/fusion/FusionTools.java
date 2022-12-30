@@ -663,8 +663,8 @@ public class FusionTools
 
 		final NumberFormat f = TransformationTools.f;
 
-		System.out.println( "View " + name + " is currently scaled by: (" +
-				f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] ) + ")" );
+		//System.out.println( "View " + name + " is currently scaled by: (" +
+		//		f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] ) + ")" );
 
 		for ( int d = 0; d < blending.length; ++d )
 		{

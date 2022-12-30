@@ -172,7 +172,7 @@ public class DownsampleTools
 			// concatenate the downsampling transformation model to the affine transform
 			// m.concatenate( mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
 
-			System.out.println( "Choosing resolution level s" + bestLevel + ": (" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + ")" );
+			//System.out.println( "Choosing resolution level s" + bestLevel + ": (" + mipmapResolutions[ bestLevel ][ 0 ] + " x " + mipmapResolutions[ bestLevel ][ 1 ] + " x " + mipmapResolutions[ bestLevel ][ 2 ] + ")" );
 
 			if ( usedDownsampleFactors != null && usedDownsampleFactors.length >= mipmapResolutions[ bestLevel ].length )
 				for ( int d = 0; d < mipmapResolutions[ bestLevel ].length; ++d )
@@ -190,9 +190,11 @@ public class DownsampleTools
 		}
 		else
 		{
+			/*
 			IOFunctions.println(
 					"(" + new Date(System.currentTimeMillis()) + "): "
 					+ "Requesting Img from ImgLoader (tp=" + viewId.getTimePointId() + ", setup=" + viewId.getViewSetupId() + "), using level=" + 0 + ", [1 x 1 x 1]" );
+			*/
 
 			return new ValuePair<>( imgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() ), null );
 		}
