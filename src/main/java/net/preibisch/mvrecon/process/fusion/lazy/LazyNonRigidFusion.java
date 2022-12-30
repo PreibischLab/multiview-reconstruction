@@ -39,6 +39,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -227,7 +228,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		viewsToFuse.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		final double anisotropy = Double.NaN;
-		final double downsampling = 3.0;
+		final double downsampling = Double.NaN;
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
 		final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
 		final List< String > labels = Arrays.asList("nuclei"); //"beads13", "beads" 
@@ -278,6 +279,12 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 				new int[] { 128, 128, 1 } // good blocksize for displaying
 				);
 
-		ImageJFunctions.show( lazyFused, service );
+		service.shutdown();
+
+		long time = System.currentTimeMillis();
+		DisplayImage.getImagePlusInstance( lazyFused, false, "Fused Non-rigid", 0, 255 ).show();
+		System.out.println( "Lazy Non-rigid fusion took: " + (System.currentTimeMillis() - time) + " ms.");
+
+		//ImageJFunctions.show( lazyFused, service );
 	}
 }

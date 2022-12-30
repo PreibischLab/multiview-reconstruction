@@ -181,6 +181,7 @@ public class Image_Fusion implements PlugIn
 
 			if ( fusion.getNonRigidParameters().isActive() )
 			{
+				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
 				virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
 								spimData.getSequenceDescription().getImgLoader(),
 								registrations,

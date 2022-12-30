@@ -203,9 +203,12 @@ public class TestNonRigid
 
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImgByPlane3d( virtual, new ImagePlusImgFactory< FloatType >( new FloatType() ), service, true );
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImg( virtual, new ImagePlusImgFactory< FloatType >(), new FloatType(), service, true );
-
-		DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ).show();
 		//final RandomAccessibleInterval< FloatType > out = ImageJFunctions.wrapFloat( DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ) );
+
+		// Non-rigid fusion took: 314887 ms.
+		long time = System.currentTimeMillis();
+		DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ).show();
+		System.out.println( "Non-rigid fusion took: " + (System.currentTimeMillis() - time) + " ms.");
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with non-rigid" );
 
