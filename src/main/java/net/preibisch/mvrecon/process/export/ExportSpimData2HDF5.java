@@ -216,7 +216,6 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return new ValuePair< SpimData2, HashMap<ViewId,Partition> >( spimData, viewIdToPartition );
 	}
 
-	@Override
 	public < T extends RealType< T > & NativeType< T >> boolean exportImage(
 			RandomAccessibleInterval< T > img,
 			final Interval bb,
@@ -329,4 +328,6 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return "Save as new XML Project (HDF5)";
 	}
 
+	@Override
+	public int[] blocksize() { return new int[] { 32, 32, 16 }; }
 }

@@ -70,7 +70,6 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
-	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
@@ -229,4 +228,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 
 	@Override
 	public double getPixelSize() { return cal; }
+
+	@Override
+	public int[] blocksize() { return new int[] { 128, 128, 1}; }
 }

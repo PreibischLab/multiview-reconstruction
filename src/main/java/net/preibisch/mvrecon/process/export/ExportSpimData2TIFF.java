@@ -84,7 +84,6 @@ public class ExportSpimData2TIFF implements ImgExport
 	Save3dTIFF saver;
 	SpimData2 newSpimData;
 
-	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
@@ -192,6 +191,9 @@ public class ExportSpimData2TIFF implements ImgExport
 
 	@Override
 	public String getDescription() { return "Save as new XML Project (TIFF)"; }
+
+	@Override
+	public int[] blocksize() { return new int[] { 128, 128, 1}; }
 
 	public static ViewId identifyNewViewId(
 			final List< TimePoint > newTimepoints,

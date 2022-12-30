@@ -43,6 +43,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.ImagePlusAdapter;
@@ -50,6 +51,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -66,6 +68,7 @@ import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
@@ -165,6 +168,37 @@ public class Image_Fusion implements PlugIn
 				viewsToUse = null;
 			}
 
+			final int[] blocksize = exporter.blocksize();
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): block size used during fusion: " + Util.printCoordinates( blocksize ) );
+
+			final Converter conv;
+			final Type type;
+			double[] minmax;
+
+			if ( fusion.manuallyDefinedMinMax() )
+				minmax = new double[] { fusion.minIntensity(), fusion.maxIntensity() };
+			else
+				minmax = determineInputBitDepth(group, spimData);
+
+			if ( fusion.getPixelType() == 1 )
+			{
+				// couldn't load from data and wasn't defined
+				if ( minmax == null )
+					minmax = fusion.defineMinMax();
+
+				if ( minmax == null )
+					return false;
+
+				conv = new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] );
+				type = new UnsignedShortType();
+			}
+			else
+			{
+				conv = null;
+				type = new FloatType();
+				minmax = FusionTools.minMaxApprox( null );
+			}
+
 			// get, and update the transformations with anisotropy, downsampling
 			final Set< ? extends ViewId > views =
 					fusion.getNonRigidParameters().isActive() ?
@@ -177,11 +211,14 @@ public class Image_Fusion implements PlugIn
 							fusion.getAnisotropyFactor(),
 							fusion.getDownsampling() );
 
-			final RandomAccessibleInterval< FloatType > virtual;
+			final RandomAccessibleInterval lazy;
 
 			if ( fusion.getNonRigidParameters().isActive() )
 			{
+				lazy = null;
+
 				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
+				/*
 				virtual = NonRigidTools.fuseVirtualInterpolatedNonRigid(
 								spimData.getSequenceDescription().getImgLoader(),
 								registrations,
@@ -200,10 +237,26 @@ public class Image_Fusion implements PlugIn
 								fusion.getBoundingBox(),
 								fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 								taskExecutor );
+				*/
 			}
 			else
 			{
+				lazy = LazyAffineFusion.init(
+						conv,
+						spimData.getSequenceDescription().getImgLoader(),
+						group.getViews(),
+						registrations,
+						spimData.getSequenceDescription().getViewDescriptions(),
+						fusion.useBlending(), // blending
+						fusion.useContentBased(), // content based
+						fusion.getInterpolation(), // linear interpolatio
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+						fusion.getBoundingBox(),
+						(RealType & NativeType)type,
+						blocksize );
+
 				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
+				/*
 				virtual = FusionTools.fuseVirtual(
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
@@ -214,8 +267,23 @@ public class Image_Fusion implements PlugIn
 						fusion.getInterpolation(),
 						fusion.getBoundingBox(),
 						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				*/
 			}
 
+			final String title = getTitle( fusion.getSplittingType(), group );
+	
+			if ( !exporter.exportImage(
+					lazy,
+					fusion.getBoundingBox(),
+					fusion.getDownsampling(),
+					fusion.getAnisotropyFactor(),
+					title,
+					group,
+					minmax[ 0 ],
+					minmax[ 1 ] ) )
+				return false;
+
+			/*
 			if ( fusion.getPixelType() == 1 ) // 16 bit
 			{
 				final double[] minmax = determineInputBitDepth( group, spimData, virtual );
@@ -231,7 +299,7 @@ public class Image_Fusion implements PlugIn
 			{
 				if ( !cacheAndExport( virtual, taskExecutor, new FloatType(), fusion, exporter, group, null ) )
 					return false;
-			}
+			}*/
 		}
 
 		exporter.finish();
@@ -241,6 +309,22 @@ public class Image_Fusion implements PlugIn
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): DONE." );
 
 		return true;
+	}
+
+	public static double[] determineInputBitDepth( final Group< ViewDescription > group, final SpimData2 spimData )
+	{
+		SetupImgLoader< ? > loader = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( group.iterator().next().getViewSetupId() );
+		Object type = loader.getImageType();
+
+		if ( UnsignedByteType.class.isInstance( type ) )
+			return new double[] { 0, 255 };
+		else if ( UnsignedShortType.class.isInstance( type ) )
+			return new double[] { 0, 65535 };
+		else
+		{
+			IOFunctions.println( "WARNING: You are saving a non-8/16 bit input as 16bit, have to manually determine min/max of the fused image." );
+			return null;
+		}
 	}
 
 	public static double[] determineInputBitDepth( final Group< ViewDescription > group, final SpimData2 spimData, final RandomAccessibleInterval< FloatType > virtual )
@@ -261,6 +345,7 @@ public class Image_Fusion implements PlugIn
 		}
 	}
 
+	/*
 	protected static < T extends RealType< T > & NativeType< T > > boolean cacheAndExport(
 			final RandomAccessibleInterval< T > output,
 			final ExecutorService taskExecutor,
@@ -299,11 +384,9 @@ public class Image_Fusion implements PlugIn
 
 		final String title = getTitle( fusion.getSplittingType(), group );
 
-		if ( minmax == null )
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group );
-		else
-			return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
+		return exporter.exportImage( processedOutput, fusion.getBoundingBox(), fusion.getDownsampling(), fusion.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
 	}
+	*/
 
 	public static String getTitle( final int splittingType, final Group< ViewDescription > group )
 	{

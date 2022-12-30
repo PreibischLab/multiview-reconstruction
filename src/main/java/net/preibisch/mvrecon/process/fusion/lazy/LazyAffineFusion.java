@@ -80,7 +80,8 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	/**
 	 * Creates a consumer that will fill the requested RandomAccessibleInterval single-threaded
 	 *
-	 * @param converter - if type is FloatType, converter can be null
+	 * @param converter - if type is FloatType, converter can be null; converting inside the lazy construct makes
+	 * sense since it often requires to save much less data (8 bit or 16 bit instead of 32-bit float)
 	 * @param imgloader - the imgloader to fetch raw data
 	 * @param viewIds - which viewids to fuse
 	 * @param viewRegistrations - the registrations (must include anisotropy & downsampling if desired)

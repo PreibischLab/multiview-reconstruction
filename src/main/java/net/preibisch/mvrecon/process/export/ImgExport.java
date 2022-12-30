@@ -33,32 +33,19 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public interface ImgExport
 {
 	/**
+	 * specify the desired 3d blocksize used for the Lazy instances
+	 *
+	 * @return - the desired 3d blocksize
+	 */
+	public int[] blocksize();
+
+	/**
 	 * Called last when the fusion is finished (e.g. to write the XML)
 	 *
 	 * @return - true if the spimdata was modified, otherwise false
 	 */
 	public boolean finish();
 
-	/**
-	 * Exports the image (min and max intensity will be computed)
-	 * 
-	 * @param img - Note, in rare cases this can be null (i.e. do nothing)
-	 * @param bb - the bounding box used to fuse this image
-	 * @param downsampling - how much it was downsampled (or NaN if not)
-	 * @param anisoF - how much the z-dimension was scaled (or NaN if not)
-	 * @param title - the name of the image
-	 * @param fusionGroup - which views are part of this fusion
-	 * @param <T> pixel type
-	 * @return success? true or false
-	 */
-	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval< T > img,
-			final Interval bb,
-			final double downsampling,
-			final double anisoF,
-			final String title,
-			final Group< ? extends ViewId > fusionGroup );
-	
 	/**
 	 * Exports the image using a predefined min/max
 	 * 

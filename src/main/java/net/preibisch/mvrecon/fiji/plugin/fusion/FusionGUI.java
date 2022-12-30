@@ -31,6 +31,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import org.checkerframework.checker.units.qual.min;
+
 import ij.IJ;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimData;
@@ -67,7 +69,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class FusionGUI implements FusionExportInterface
 {
-	public static int defaultCache = 2;
+	//public static int defaultCache = 2;
 	public static int[] cellDim = new int[]{ 10, 10, 10 };
 	public static int maxCacheSize = Integer.MAX_VALUE;
 
@@ -79,6 +81,10 @@ public class FusionGUI implements FusionExportInterface
 
 	public static String[] pixelTypes = new String[]{ "32-bit floating point", "16-bit unsigned integer" };
 	public static int defaultPixelType = 0;
+
+	public static boolean defaultDefineMinMax = false;
+	public static double defaultMin = 0;
+	public static double defaultMax = 65535;
 
 	public static String[] splittingTypes = new String[]{
 			"Each timepoint & channel",
@@ -100,7 +106,10 @@ public class FusionGUI implements FusionExportInterface
 	protected int interpolation = defaultInterpolation;
 	protected int boundingBox = defaultBB;
 	protected int pixelType = defaultPixelType;
-	protected int cacheType = defaultCache;
+	protected boolean defineMinMax = defaultDefineMinMax;
+	protected double min = defaultMin;
+	protected double max = defaultMax;
+	//protected int cacheType = defaultCache;
 	protected int splittingType = defaultSplittingType;
 	protected double downsampling = defaultDownsampling;
 	protected boolean useBlending = defaultUseBlending;
@@ -171,7 +180,11 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public int getPixelType() { return pixelType; }
 
-	public int getCacheType() { return cacheType; }
+	//public int getCacheType() { return cacheType; }
+
+	public boolean manuallyDefinedMinMax() { return defineMinMax; }
+	public double minIntensity() { return min; }
+	public double maxIntensity() { return max; }
 
 	public NonRigidParametersGUI getNonRigidParameters() { return nrgui; }
 
@@ -193,10 +206,27 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
 
+	public double[] defineMinMax()
+	{
+		final GenericDialog gd = new GenericDialog( "Define min/max values for image export" );
+		gd.addNumericField( "min", defaultMin );
+		gd.addNumericField( "max", defaultMax );
+
+		gd.showDialog();
+		if ( gd.wasCanceled() )
+			return null;
+
+		double[] minmax = new double[ 2 ];
+		minmax[ 0 ] = defaultMin = gd.getNextNumber();
+		minmax[ 1 ] = defaultMax = gd.getNextNumber();
+
+		return minmax;
+	}
+
 	public boolean queryDetails()
 	{
 		final boolean enableNonRigid = NonRigidParametersGUI.enableNonRigid;
-		final Choice boundingBoxChoice, pixelTypeChoice, cachingChoice, nonrigidChoice, splitChoice;
+		final Choice boundingBoxChoice, pixelTypeChoice, /*cachingChoice, */nonrigidChoice, splitChoice;
 		final TextField downsampleField;
 		final Checkbox contentbasedCheckbox, anisoCheckbox;
 
@@ -223,12 +253,13 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
 		pixelTypeChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
+		gd.addCheckbox( "Manually_define_min_max intensity for fusion (only relevant for 16-bit)", defaultDefineMinMax );
+		gd.addMessage( "Note: if if unchecked, you may be asked to define min/max if it cannot be determined from the input data.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
-		gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
-		cachingChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
-
-		gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		//gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
+		//cachingChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
+		//gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
 		this.nrgui = new NonRigidParametersGUI( spimData, views );
 		if ( enableNonRigid )
@@ -243,7 +274,7 @@ public class FusionGUI implements FusionExportInterface
 		}
 
 		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
-		gd.addCheckbox( "Use content based fusion (warning, huge memory requirements)", defaultUseContentBased );
+		gd.addCheckbox( "Use content based fusion (warning, slow)", defaultUseContentBased );
 		contentbasedCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
 
 		if ( hasIntensityAdjustments )
@@ -280,7 +311,7 @@ public class FusionGUI implements FusionExportInterface
 					boundingBoxChoice,
 					downsampleField,
 					pixelTypeChoice,
-					cachingChoice,
+					//cachingChoice,
 					nonrigidChoice,
 					contentbasedCheckbox,
 					anisoCheckbox,
@@ -318,8 +349,9 @@ public class FusionGUI implements FusionExportInterface
 			downsampling = Double.NaN;
 
 		pixelType = defaultPixelType = gd.getNextChoiceIndex();
+		defineMinMax = defaultDefineMinMax = gd.getNextBoolean();
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
-		cacheType = defaultCache = gd.getNextChoiceIndex();
+		//cacheType = defaultCache = gd.getNextChoiceIndex();
 
 		if ( enableNonRigid )
 		{
@@ -348,13 +380,29 @@ public class FusionGUI implements FusionExportInterface
 			if ( !this.nrgui.advancedParameters() )
 				return false;
 
+		if ( manuallyDefinedMinMax() )
+		{
+			final double[] minmax = defineMinMax();
+
+			if ( minmax == null )
+				return false;
+
+			this.min = minmax[ 0 ];
+			this.max = minmax[ 1 ];
+		}
+
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Selected Fusion Parameters: " );
 		IOFunctions.println( "Downsampling: " + DownsampleTools.printDownsampling( getDownsampling() ) );
 		IOFunctions.println( "BoundingBox: " + getBoundingBox() );
 		IOFunctions.println( "DownsampledBoundingBox: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "PixelType: " + pixelTypes[ getPixelType() ] );
+		IOFunctions.println( "Manually defined min/max: " + manuallyDefinedMinMax() );
+		if ( manuallyDefinedMinMax() ) {
+			IOFunctions.println( "Min: " + minIntensity() );
+			IOFunctions.println( "Max: " + maxIntensity() );
+		}
 		IOFunctions.println( "Interpolation: " + interpolationTypes[ getInterpolation() ] );
-		IOFunctions.println( "CacheType: " + FusionTools.imgDataTypeChoice[ getCacheType() ] );
+		//IOFunctions.println( "CacheType: " + FusionTools.imgDataTypeChoice[ getCacheType() ] );
 		IOFunctions.println( "Blending: " + useBlending );
 		IOFunctions.println( "Adjust intensities: " + adjustIntensities );
 		IOFunctions.println( "Content-based: " + useContentBased );

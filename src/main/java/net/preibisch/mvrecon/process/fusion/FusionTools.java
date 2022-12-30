@@ -106,7 +106,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FusionTools
 {
 	public static enum ImgDataType { VIRTUAL, CACHED, PRECOMPUTED };
-	public static String[] imgDataTypeChoice = new String[]{ "Virtual", "Cached", "Precompute Image" };
+	public static String[] imgDataTypeChoice = new String[]{ "Virtual", "Cached", "Precompute Image" }; // still needed for deconvolution
 
 	public static float defaultBlendingRange = 40;
 	public static float defaultBlendingBorder = 0;
@@ -1041,17 +1041,32 @@ public class FusionTools
 		return new float[]{ min, max };
 	}
 
-	public static < T extends RealType< T > > double[] minMaxApprox( final RandomAccessibleInterval< T > img )
+	/*
+	 * These calls are deadly on cached images ...
+	 */
+	public static < T extends RealType< T > > double[] minMaxApprox1( final RandomAccessibleInterval< T > img )
 	{
-		return minMaxApprox( img, 1000 );
-	}
-	
-	public static < T extends RealType< T > > double[] minMaxApprox( final RandomAccessibleInterval< T > img, final int numPixels )
-	{
-		return minMaxApprox( img, new Random( 3535 ), numPixels );
+		return minMaxApprox1( img, 1000 );
 	}
 
-	public static < T extends RealType< T > > double[] minMaxApprox( final RandomAccessibleInterval< T > img, final Random rnd, final int numPixels )
+	@Deprecated
+	public static < T extends RealType< T > > double[] minMaxApprox( final RandomAccessibleInterval< T > img )
+	{
+		return new double[] { 0, 255 };
+	}
+
+	/*
+	 * These calls are deadly on cached images ...
+	 */
+	public static < T extends RealType< T > > double[] minMaxApprox1( final RandomAccessibleInterval< T > img, final int numPixels )
+	{
+		return minMaxApprox1( img, new Random( 3535 ), numPixels );
+	}
+
+	/*
+	 * These calls are deadly on cached images ...
+	 */
+	public static < T extends RealType< T > > double[] minMaxApprox1( final RandomAccessibleInterval< T > img, final Random rnd, final int numPixels )
 	{
 		final RandomAccess< T > ra = img.randomAccess();
 
@@ -1073,7 +1088,10 @@ public class FusionTools
 		return new double[]{ min, max };
 	}
 
-	public static < T extends RealType< T > > double[] minMaxAvgApprox( final RandomAccessibleInterval< T > img, final Random rnd, final int numPixels )
+	/*
+	 * These calls are deadly on cached images ...
+	 */
+	public static < T extends RealType< T > > double[] minMaxAvgApprox1( final RandomAccessibleInterval< T > img, final Random rnd, final int numPixels )
 	{
 		final RandomAccess< T > ra = img.randomAccess();
 

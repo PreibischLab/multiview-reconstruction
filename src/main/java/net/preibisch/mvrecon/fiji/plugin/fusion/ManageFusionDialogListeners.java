@@ -41,7 +41,7 @@ public class ManageFusionDialogListeners
 {
 	final GenericDialog gd;
 	final TextField downsampleField;
-	final Choice boundingBoxChoice, pixelTypeChoice, cachingChoice, nonRigidChoice, splitChoice;
+	final Choice boundingBoxChoice, pixelTypeChoice, /*cachingChoice, */nonRigidChoice, splitChoice;
 	final Checkbox contentbasedCheckbox, anisoCheckbox;
 	final Label label1;
 	final Label label2;
@@ -54,7 +54,7 @@ public class ManageFusionDialogListeners
 			final Choice boundingBoxChoice,
 			final TextField downsampleField,
 			final Choice pixelTypeChoice,
-			final Choice cachingChoice,
+			//final Choice cachingChoice,
 			final Choice nonRigidChoice,
 			final Checkbox contentbasedCheckbox,
 			final Checkbox anisoCheckbox,
@@ -67,7 +67,7 @@ public class ManageFusionDialogListeners
 		this.boundingBoxChoice = boundingBoxChoice;
 		this.downsampleField = downsampleField;
 		this.pixelTypeChoice = pixelTypeChoice;
-		this.cachingChoice = cachingChoice;
+		//this.cachingChoice = cachingChoice;
 		this.nonRigidChoice = nonRigidChoice;
 		this.contentbasedCheckbox = contentbasedCheckbox;
 		this.anisoCheckbox = anisoCheckbox;
@@ -85,8 +85,8 @@ public class ManageFusionDialogListeners
 		this.pixelTypeChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
 
-		this.cachingChoice.addItemListener( new ItemListener() { @Override
-			public void itemStateChanged(ItemEvent e) { update(); } });
+		//this.cachingChoice.addItemListener( new ItemListener() { @Override
+		//	public void itemStateChanged(ItemEvent e) { update(); } });
 
 		if ( this.nonRigidChoice != null )
 			this.nonRigidChoice.addItemListener( new ItemListener() { @Override
@@ -111,7 +111,7 @@ public class ManageFusionDialogListeners
 		fusion.boundingBox = boundingBoxChoice.getSelectedIndex();
 		fusion.downsampling = Integer.parseInt( downsampleField.getText() );
 		fusion.pixelType = pixelTypeChoice.getSelectedIndex();
-		fusion.cacheType = cachingChoice.getSelectedIndex();
+		//fusion.cacheType = cachingChoice.getSelectedIndex();
 		fusion.useContentBased = contentbasedCheckbox.getState();
 		fusion.splittingType = splitChoice.getSelectedIndex();
 		if ( anisoCheckbox != null )
@@ -192,9 +192,9 @@ public class ManageFusionDialogListeners
 				processingMB = ( maxNumPixelsInput / Math.round( inputDownSampling * 1024*1024 ) ) * 4;
 		}
 
-		if ( fusion.cacheType == 0 ) // Virtual
+		/*if ( fusion.cacheType == 0 ) // Virtual
 			fusedSizeMB /= Math.max( 1, Math.round( Math.pow( fusedSizeMB, 0.3 ) ) );
-		else if ( fusion.cacheType == 1 ) // Cached
+		else if ( fusion.cacheType == 1 ) // Cached*/
 			fusedSizeMB = 2 * Math.round( fusedSizeMB / Math.max( 1, Math.pow( fusedSizeMB, 0.3 ) ) );
 
 		if ( nonRigidChoice != null && nonRigidChoice.getSelectedIndex() < nonRigidChoice.getItemCount() - 1 )

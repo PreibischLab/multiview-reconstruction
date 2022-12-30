@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.export;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 
+import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
@@ -45,7 +46,10 @@ public class DisplayImage implements ImgExport, Calibrateable
 	// TODO: this is ugly, but otherwise the service is shutdown while the ImageJVirtualStack is still displayed and crashes when scrolling through the stack
 	final static ExecutorService service = DeconViews.createExecutorService();
 
-	final boolean virtualDisplay;
+	public static int defaultChoice = 1;
+	final String[] choiceText = new String[] { "cached (immediate, less memory, slower)", "precomputed (fast, complete copy in memory before display)" };
+
+	boolean virtualDisplay;
 
 	String unit = "px";
 	double cal = 1.0;
@@ -63,7 +67,6 @@ public class DisplayImage implements ImgExport, Calibrateable
 		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
-	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
@@ -130,16 +133,6 @@ public class DisplayImage implements ImgExport, Calibrateable
 
 		if ( Double.isNaN( min ) || Double.isNaN( max ) )
 			minmax = FusionTools.minMaxApprox( img );
-		else if ( min == 0 && max == 65535 )
-		{
-			// 16 bit input was assumed, little hack in case it was 8-bit
-			minmax = FusionTools.minMaxApprox( img );
-			if ( minmax[ 1 ] <= 255 )
-			{
-				minmax[ 0 ] = 0;
-				minmax[ 1 ] = 255;
-			}
-		}
 		else
 			minmax = new double[]{ (float)min, (float)max };
 
@@ -156,7 +149,6 @@ public class DisplayImage implements ImgExport, Calibrateable
 		return getImagePlusInstance( img, virtualDisplay, title, min, max, service );
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
 			final RandomAccessibleInterval< T > img,
 			final boolean virtualDisplay,
@@ -188,7 +180,24 @@ public class DisplayImage implements ImgExport, Calibrateable
 	}
 
 	@Override
-	public boolean queryParameters( final FusionExportInterface fusion ) { return true; }
+	public boolean queryParameters( final FusionExportInterface fusion )
+	{
+
+		final GenericDialogPlus gd = new GenericDialogPlus( "Display fused image as ImageJ stack" );
+
+		gd.addChoice( "Display image", choiceText, choiceText[ defaultChoice ] );
+
+		gd.showDialog();
+		if ( gd.wasCanceled() )
+			return false;
+
+		if ( ( defaultChoice = gd.getNextChoiceIndex() ) == 0 )
+			virtualDisplay = true;
+		else
+			virtualDisplay = false;
+
+		return true;
+	}
 
 	@Override
 	public ImgExport newInstance() { return new DisplayImage(); }
@@ -215,4 +224,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 
 	@Override
 	public double getPixelSize() { return cal; }
+
+	@Override
+	public int[] blocksize() { return new int[] { 256, 256, 1 }; }
 }

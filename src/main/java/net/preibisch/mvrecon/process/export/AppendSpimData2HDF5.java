@@ -178,7 +178,6 @@ public class AppendSpimData2HDF5 implements ImgExport
 		return true;
 	}
 
-	@Override
 	public < T extends RealType< T > & NativeType< T >> boolean exportImage(
 			RandomAccessibleInterval< T > img,
 			final Interval bb,
@@ -190,6 +189,9 @@ public class AppendSpimData2HDF5 implements ImgExport
 		System.out.println( "exportImage1()" );
 		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
+
+	@Override
+	public int[] blocksize() { return new int[] { 32, 32, 16 }; }
 
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
 	@Override
