@@ -63,11 +63,9 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	final int interpolation;
 	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
-	/**
+	/*
 	 * Creates a consumer that will fill the requested RandomAccessibleInterval single-threaded, using common
 	 * grids that are computed multi-threaded in the constructor
-	 * 
-	 * 
 	 */
 	public LazyNonRigidFusion(
 			final Converter<FloatType, T> converter,

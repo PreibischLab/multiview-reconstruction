@@ -202,7 +202,7 @@ public class FusionTools
 	 * @param imgloader - an imgloader
 	 * @param registrations - all (updated) registrations
 	 * @param viewDescriptions - all viewdescriptions
-	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param views - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 *
 	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
@@ -282,7 +282,7 @@ public class FusionTools
 	 * Creates an anisotropic bounding box by floor/ceil to include all data and provides the affine transformation to scale it to global coordinates
 	 * 
 	 * @param boundingBox - the bounding box to scale
-	 * @param downsampling - the desired downsampling
+	 * @param anisotropy - the desired anisotropy
 	 * @return a downsampled interval and the corresponding affine transform to map it to global coordinates or a copy if anisotropy == Double.NaN or 1.0
 	 */
 	public static Pair< Interval, AffineTransform3D > createAnisotropicBoundingBox(

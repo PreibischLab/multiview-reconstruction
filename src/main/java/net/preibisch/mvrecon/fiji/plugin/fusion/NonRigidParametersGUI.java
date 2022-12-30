@@ -91,7 +91,7 @@ public class NonRigidParametersGUI extends NonRigidParameters
 		return parseQuery( gd, true );
 	}
 
-	/**
+	/*
 	 * @param gd
 	 * @param displayAdvancedAutomatically
 	 *

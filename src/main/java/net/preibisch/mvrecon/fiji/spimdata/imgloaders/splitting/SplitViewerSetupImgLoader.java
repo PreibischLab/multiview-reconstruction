@@ -389,7 +389,7 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 		return floatImg;
 	}
 
-	/**
+	/*
 	 * normalize img to 0...1
 	 */
 	protected static void normalize( final IterableInterval< FloatType > img )

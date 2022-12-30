@@ -130,7 +130,7 @@ public class XmlIoSplitViewerImgLoader implements XmlIoBasicImgLoader< SplitView
 		newSetupId2Interval.put( newSetupId, new FinalInterval( min, max ) );
 	}
 
-	/**
+	/*
 	 * Casting madness.
 	 */
 	@SuppressWarnings( "unchecked" )
