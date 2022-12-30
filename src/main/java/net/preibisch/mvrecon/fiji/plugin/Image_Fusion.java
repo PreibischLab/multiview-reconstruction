@@ -69,6 +69,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
+import net.preibisch.mvrecon.process.fusion.lazy.LazyNonRigidFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
@@ -215,7 +216,27 @@ public class Image_Fusion implements PlugIn
 
 			if ( fusion.getNonRigidParameters().isActive() )
 			{
-				lazy = null;
+				lazy = LazyNonRigidFusion.init(
+						conv,
+						spimData.getSequenceDescription().getImgLoader(),
+						registrations,
+						spimData.getViewInterestPoints().getViewInterestPoints(),
+						spimData.getSequenceDescription().getViewDescriptions(),
+						group.getViews(),
+						viewsToUse,
+						fusion.getNonRigidParameters().getLabels(),
+						fusion.useBlending(),
+						fusion.useContentBased(),
+						fusion.getNonRigidParameters().showDistanceMap(),
+						Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+						fusion.getNonRigidParameters().getAlpha(),
+						false,
+						fusion.getInterpolation(),
+						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+						taskExecutor,
+						fusion.getBoundingBox(),
+						(RealType & NativeType)type,
+						blocksize );
 
 				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
 				/*
