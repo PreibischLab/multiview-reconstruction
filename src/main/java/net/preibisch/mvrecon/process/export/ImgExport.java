@@ -55,8 +55,6 @@ public interface ImgExport
 	 * @param anisoF - how much the z-dimension was scaled (or NaN if not)
 	 * @param title - the name of the image
 	 * @param fusionGroup - which views are part of this fusion
-	 * @param min - define min intensity of this image
-	 * @param max - define max intensity of this image
 	 * @param <T> pixel type
 	 * @return success? true or false
 	 */
@@ -66,9 +64,7 @@ public interface ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup,
-			final double min,
-			final double max );
+			final Group< ? extends ViewId > fusionGroup );
 	
 	/*
 	 * Query the necessary parameters for the fusion (new dialog can be made)

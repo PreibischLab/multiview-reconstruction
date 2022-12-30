@@ -67,6 +67,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
+	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
@@ -75,25 +76,12 @@ public class DisplayImage implements ImgExport, Calibrateable
 			final String title,
 			final Group< ? extends ViewId > fusionGroup )
 	{
-		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
-	}
-
-	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval<T> img,
-			final Interval bb,
-			final double downsampling,
-			final double anisoF,
-			final String title,
-			final Group< ? extends ViewId > fusionGroup,
-			final double min,
-			final double max )
-	{
 		// do nothing in case the image is null
 		if ( img == null )
 			return false;
 
 		// determine min and max
-		final double[] minmax = getFusionMinMax( img, min, max );
+		final double[] minmax = FusionTools.minMaxApprox( null );//getFusionMinMax( img, min, max );
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Approximate min=" + minmax[ 0 ] + ", max=" + minmax[ 1 ] );
 

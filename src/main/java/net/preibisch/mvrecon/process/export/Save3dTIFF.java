@@ -44,6 +44,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Save3dTIFF implements ImgExport, Calibrateable
@@ -63,22 +64,6 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	{ 
 		this.path = path;
 		this.compress = compress;
-	}
-	
-	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
-	{
-		exportImage( img, null, Double.NaN, Double.NaN, title, null );
-	}
-
-	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval< T > img,
-			final Interval bb,
-			final double downsampling,
-			final double anisoF,
-			final String title,
-			final Group< ? extends ViewId > fusionGroup )
-	{
-		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
 	}
 
 	public String getFileName( final String title )
@@ -102,22 +87,25 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 			return fileName;
 	}
 
-	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			final RandomAccessibleInterval<T> img,
+	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
+	{
+		exportImage( img, null, Double.NaN, Double.NaN, title, null );
+	}
+
+	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
+			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup,
-			final double min,
-			final double max )
+			final Group< ? extends ViewId > fusionGroup )
 	{
 		// do nothing in case the image is null
 		if ( img == null )
 			return false;
 		
 		// determine min and max
-		final double[] minmax = DisplayImage.getFusionMinMax( img, min, max );
+		final double[] minmax = FusionTools.minMaxApprox( null );//DisplayImage.getFusionMinMax( img, min, max );
 
 		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
 

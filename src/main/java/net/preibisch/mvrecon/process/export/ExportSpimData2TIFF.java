@@ -84,6 +84,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	Save3dTIFF saver;
 	SpimData2 newSpimData;
 
+	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval<T> img,
 			final Interval bb,
@@ -92,22 +93,8 @@ public class ExportSpimData2TIFF implements ImgExport
 			final String title,
 			final Group< ? extends ViewId > fusionGroup )
 	{
-		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
-	}
-
-	@Override
-	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval<T> img,
-			final Interval bb,
-			final double downsampling,
-			final double anisoF,
-			final String title,
-			final Group< ? extends ViewId > fusionGroup,
-			final double min,
-			final double max )
-	{
 		// write the image
-		if ( !this.saver.exportImage( img, bb, downsampling, anisoF, title, fusionGroup, min, max ) )
+		if ( !this.saver.exportImage( img, bb, downsampling, anisoF, title, fusionGroup ) )
 			return false;
 
 		final ViewId newViewId = identifyNewViewId( newTimepoints, newViewSetups, fusionGroup, fusion );

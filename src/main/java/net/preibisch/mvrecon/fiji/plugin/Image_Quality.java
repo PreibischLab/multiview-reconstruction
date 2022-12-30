@@ -193,7 +193,7 @@ public class Image_Quality implements PlugIn
 
 		final String title = Image_Fusion.getTitle( quality.getSplittingType(), group );
 
-		return exporter.exportImage( processedOutput, quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group, minmax[ 0 ], minmax[ 1 ] );
+		return exporter.exportImage( processedOutput, quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group );
 	}
 
 	public static void main( String[] args )

@@ -278,9 +278,7 @@ public class Image_Fusion implements PlugIn
 					fusion.getDownsampling(),
 					fusion.getAnisotropyFactor(),
 					title,
-					group,
-					minmax[ 0 ],
-					minmax[ 1 ] ) )
+					group  ) )
 				return false;
 
 			/*

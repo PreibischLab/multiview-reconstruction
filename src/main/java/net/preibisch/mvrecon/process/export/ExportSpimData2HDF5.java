@@ -216,18 +216,6 @@ public class ExportSpimData2HDF5 implements ImgExport
 		return new ValuePair< SpimData2, HashMap<ViewId,Partition> >( spimData, viewIdToPartition );
 	}
 
-	public < T extends RealType< T > & NativeType< T >> boolean exportImage(
-			RandomAccessibleInterval< T > img,
-			final Interval bb,
-			final double downsampling,
-			final double anisoF,
-			final String title,
-			final Group< ? extends ViewId > fusionGroup )
-	{
-		System.out.println( "exportImage1()" );
-		return exportImage( img, bb, downsampling, anisoF, title, fusionGroup, Double.NaN, Double.NaN );
-	}
-
 	public static < T extends RealType< T > > double[] updateAndGetMinMax( final RandomAccessibleInterval< T > img, final Parameters params )
 	{
 		double min, max;
@@ -276,8 +264,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup,
-			double min, double max )
+			final Group< ? extends ViewId > fusionGroup )
 	{
 		System.out.println( "exportImage2()" );
 
