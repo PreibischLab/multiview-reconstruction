@@ -51,6 +51,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 
@@ -120,7 +121,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
 	// (but the actual interval to process in many blocks sits somewhere else) 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public void accept( final RandomAccessibleInterval<T> output )
 	{
@@ -140,6 +140,16 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						targetBlock,
 						intensityAdjustments ); // intensity adjustments
 
+		finish( fused, output, converter, type );
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	protected static final <T extends RealType<T>> void finish(
+			final RandomAccessibleInterval<FloatType> fused,
+			final RandomAccessibleInterval<T> output,
+			final Converter<FloatType, T> converter,
+			final T type )
+	{
 		final RandomAccessibleInterval<T> converted;
 
 		if ( converter == null && type.getClass().isInstance( new FloatType() ) )
@@ -157,9 +167,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	}
 
 	public static final <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> init(
-			final Interval fusionInterval,
-			final T type,
-			final int[] blockSize,
 			final Converter<FloatType, T> converter,
 			final BasicImgLoader imgloader,
 			final Collection< ? extends ViewId > viewIds,
@@ -168,7 +175,10 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final boolean useBlending,
 			final boolean useContentBased,
 			final int interpolation,
-			final Map< ViewId, AffineModel1D > intensityAdjustments )
+			final Map< ViewId, AffineModel1D > intensityAdjustments,
+			final Interval fusionInterval,
+			final T type,
+			final int[] blockSize )
 	{
 		final LazyAffineFusion< T > lazyAffineFusion =
 				new LazyAffineFusion<>(
@@ -201,7 +211,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 					viewIds.add( vd );
 
 		final double anisotropy = Double.NaN;//LazyFusionTools.estimateAnisotropy( data, viewIds );
-		final double downsampling = 4.0;
+		final double downsampling = Double.NaN;
 
 		Interval bb = LazyFusionTools.getBoundingBox( data, viewIds, null );
 
@@ -217,20 +227,21 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						anisotropy,
 						downsampling );
 
-		final RandomAccessibleInterval<FloatType> fused = LazyAffineFusion.init(
-				bb,
-				new FloatType(),
-				new int[] { 512, 512, 1 }, // good blocksize for displaying
+		final RandomAccessibleInterval<FloatType> lazyFused = LazyAffineFusion.init(
 				null,//(i,o) -> o.set(i),
 				data.getSequenceDescription().getImgLoader(),
 				viewIds,
 				registrations,
 				data.getSequenceDescription().getViewDescriptions(),
-				true,
-				false,
-				1,
-				null );
+				true, // blending
+				false, // content based
+				1, // linear interpolatio
+				null, // intensity adjustment
+				bb,
+				new FloatType(),
+				new int[] { 128, 128, 1 } // good blocksize for displaying
+				);
 
-		ImageJFunctions.show( fused );
+		ImageJFunctions.show( lazyFused, DeconViews.createExecutorService() );
 	}
 }

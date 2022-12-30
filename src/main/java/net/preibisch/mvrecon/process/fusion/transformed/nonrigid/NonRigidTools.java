@@ -243,7 +243,7 @@ public class NonRigidTools
 	public static HashMap< ViewId, ArrayList< CorrespondingIP > > assembleIPsForNonRigid(
 			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
 			final Collection< ? extends ViewId > viewsToUse,
-			final ArrayList< String > labels )
+			final List< String > labels )
 	{
 		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = new HashMap<>();
 

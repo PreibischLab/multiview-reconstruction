@@ -27,11 +27,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
@@ -39,7 +37,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -65,9 +62,9 @@ public class TestNonRigid
 		SpimData2 spimData;
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Desktop/i2k/sim2/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Downloads/x-wing/dataset.xml" );
+		spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		//spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Desktop/i2k/sim2/dataset.xml" );
+		//spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Downloads/x-wing/dataset.xml" );
 
 		Pair< List< ViewId >, Interval > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges
@@ -207,7 +204,8 @@ public class TestNonRigid
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImgByPlane3d( virtual, new ImagePlusImgFactory< FloatType >( new FloatType() ), service, true );
 		//final RandomAccessibleInterval< FloatType > out = FusionTools.copyImg( virtual, new ImagePlusImgFactory< FloatType >(), new FloatType(), service, true );
 
-		final RandomAccessibleInterval< FloatType > out = ImageJFunctions.wrapFloat( DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ) );
+		DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ).show();
+		//final RandomAccessibleInterval< FloatType > out = ImageJFunctions.wrapFloat( DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ) );
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with non-rigid" );
 

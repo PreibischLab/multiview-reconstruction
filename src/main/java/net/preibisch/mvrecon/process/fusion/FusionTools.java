@@ -214,7 +214,7 @@ public class FusionTools
 			final Collection< ? extends ViewId > views,
 			final Interval bb )
 	{
-		return fuseVirtual( imgloader, registrations, viewDescriptions, views, true, true, 1, bb, null );
+		return fuseVirtual( imgloader, registrations, viewDescriptions, views, true, false, 1, bb, null );
 	}
 
 	/**
