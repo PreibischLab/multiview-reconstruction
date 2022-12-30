@@ -591,7 +591,7 @@ public class DownsampleTools
 		return new float[] { currentMin, currentMax };
 	}
 
-	/**
+	/*
 	 * normalize img to 0...1 in place
 	 */
 	public static void normalize( final IterableInterval< FloatType > img )

@@ -34,7 +34,7 @@ public class Grid {
 
 	private Grid() {}
 
-	/**
+	/*
 	 * Crops the dimensions of a {@link DataBlock} at a given offset to fit
 	 * into and {@link Interval} of given dimensions.  Fills long and int
 	 * version of cropped block size.  Also calculates the grid raster position
@@ -61,7 +61,7 @@ public class Grid {
 		}
 	}
 
-	/**
+	/*
 	 * Create a {@link List} of grid blocks that, for each grid cell, contains
 	 * the world coordinate offset, the size of the grid block, and the
 	 * grid-coordinate offset.  The spacing for input grid and output grid
@@ -106,7 +106,7 @@ public class Grid {
 		return gridBlocks;
 	}
 
-	/**
+	/*
 	 * Create a {@link List} of grid blocks that, for each grid cell, contains
 	 * the world coordinate offset, the size of the grid block, and the
 	 * grid-coordinate offset.
@@ -123,7 +123,7 @@ public class Grid {
 	}
 
 
-	/**
+	/*
 	 * Create a {@link List} of grid block offsets in world coordinates
 	 * covering an {@link Interval} at a given spacing.
 	 *
@@ -153,7 +153,7 @@ public class Grid {
 		return offsets;
 	}
 
-	/**
+	/*
 	 * Returns the grid coordinates of a given offset for a min coordinate and
 	 * a grid spacing.
 	 *
@@ -172,7 +172,7 @@ public class Grid {
 		return gridCell;
 	}
 
-	/**
+	/*
 	 * Returns the long coordinates smaller or equal scaled double coordinates.
 	 *
 	 * @param doubles
@@ -186,7 +186,7 @@ public class Grid {
 		return floorScaled;
 	}
 
-	/**
+	/*
 	 * Returns the long coordinate greater or equal scaled double coordinates.
 	 *
 	 * @param doubles

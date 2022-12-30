@@ -170,7 +170,7 @@ public class LazyDownsample2x<T extends RealType<T> & NativeType<T>> implements 
 		return ( v0 * 0.5 + v1 + v2 * 0.5 ) / 2.0;
 	}
 
-	/**
+	/*
 	 * Convenient set up of the Lazy Downsampling
 	 *
 	 * @param <T>

@@ -65,6 +65,7 @@ public class DoG
 	 *
 	 * more parameters are omitted
 	 *
+	 * @param <T> - the type, RealType and NativeType
 	 * @param input - any RandomAccessibleInterval (Img will be casted only otherwise copied), non-FloatType will be converted, everything is normalized to 0...1 for processing
 	 * @param sigma - sigma for the DoG detection (try InteractiveDoG to figure out the right parameters)
 	 * @param threshold - threshold for the DoG detection (try InteractiveDoG to figure out the right parameters)

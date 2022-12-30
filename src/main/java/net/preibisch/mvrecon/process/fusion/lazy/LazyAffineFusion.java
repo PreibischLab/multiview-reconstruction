@@ -84,7 +84,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	 * sense since it often requires to save much less data (8 bit or 16 bit instead of 32-bit float)
 	 * @param imgloader - the imgloader to fetch raw data
 	 * @param viewIds - which viewids to fuse
-	 * @param viewRegistrations - the registrations (must include anisotropy & downsampling if desired)
+	 * @param viewRegistrations - the registrations (must include anisotropy and downsampling if desired)
 	 * @param viewDescriptions - the viewdescriptions
 	 * @param useBlending - blend images when overlapping?
 	 * @param useContentBased - use content-based fusion?

@@ -84,7 +84,7 @@ public class TransformVirtual
 	 * @param anisotropyFactor - a factor applied to z only (e.g. 3, or Double.NaN)
 	 * @param downsampling - a factor applied to xyz (e.g. 3, or Double.NaN)
 	 *
-	 * @return
+	 * @return a copy of potentially updated transformations
 	 */
 	public static HashMap< ViewId, AffineTransform3D > adjustAllTransforms(
 			final Map< ViewId, ? extends AffineTransform3D > registrations,

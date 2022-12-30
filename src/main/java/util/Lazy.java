@@ -77,7 +77,7 @@ public class Lazy {
 
 	private Lazy() {}
 
-	/**
+	/*
 	 * Create a memory {@link CachedCellImg} with a cell {@link Cache}.
 	 *
 	 * @param grid
@@ -113,7 +113,7 @@ public class Lazy {
 		return img;
 	}
 
-	/**
+	/*
 	 * Create a memory {@link CachedCellImg} with a {@link CellLoader}.
 	 *
 	 * @param targetInterval
@@ -140,7 +140,7 @@ public class Lazy {
 		return createImg(grid, cache, type, accessFlags);
 	}
 
-	/**
+	/*
 	 * Create a memory {@link CachedCellImg} with a cell generator {@link Consumer}.
 	 *
 	 * @param targetInterval
