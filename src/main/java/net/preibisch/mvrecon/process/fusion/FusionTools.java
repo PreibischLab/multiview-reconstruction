@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import bdv.util.ConstantRandomAccessible;
 import ij.IJ;
@@ -349,6 +350,28 @@ public class FusionTools
 		return new FinalInterval( dim );
 	}
 
+	public static boolean is2d( final Collection< ? extends BasicViewDescription< ? > > views )
+	{
+		// go through the images and check if they are all 2-dimensional
+		boolean is2d = false;
+		for ( final BasicViewDescription< ? > vd: views )
+		{
+			if ( vd.getViewSetup().hasSize() )
+			{
+				if ( vd.getViewSetup().getSize().dimension(2) == 1)
+					is2d = true;
+				else
+				{
+					// TODO: maybe warn that 2d images will be lost during fusion if we have a 2d/3d mixup
+					is2d = false; // we found a non-2d image
+					break;
+				}
+			}
+		}
+
+		return is2d;
+	}
+
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final BasicImgLoader imgloader,
 			final Map< ViewId, ? extends AffineTransform3D > registrations, // now contain the downsampling already
@@ -361,25 +384,12 @@ public class FusionTools
 			//final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		Interval bBox2d = null;
-		// go through the images and check if they are all 2-dimensional
-		boolean is_2d = false;
-		for ( final ViewId vid: views )
-		{
-			if ( viewDescriptions.get(vid).getViewSetup().hasSize() )
-				if (viewDescriptions.get(vid).getViewSetup().getSize().dimension(2) == 1)
-					is_2d = true;
-				else
-				{
-					// TODO: maybe warn that 2d images will be lost during fusion if we have a 2d/3d mixup
-					is_2d = false; // we found a non-2d image
-					break;
-				}
-		}
+		// go through the views and check if they are all 2-dimensional
+		final boolean is2d = is2d( views.stream().map( v -> viewDescriptions.get( v ) ).collect( Collectors.toList() ) );
 
-		final Interval bb;
+		final Interval bb, bBox2d;
 
-		if (is_2d)
+		if (is2d)
 		{
 			// set the translational part of the registrations to 0
 			for ( AffineTransform3D transform : registrations.values())
@@ -407,6 +417,7 @@ public class FusionTools
 		}
 		else
 		{
+			bBox2d = null;
 			bb = boundingBox;
 		}
 
@@ -419,7 +430,7 @@ public class FusionTools
 		// which views to process (use un-altered bounding box and registrations)
 		final ArrayList< ViewId > viewIdsToProcess =
 				LazyFusionTools.overlappingViewIds(
-						is_2d ? bBox2d : boundingBox,
+						is2d ? bBox2d : boundingBox,
 						views,
 						registrations,
 						LazyFusionTools.assembleDimensions( views, viewDescriptions ),
