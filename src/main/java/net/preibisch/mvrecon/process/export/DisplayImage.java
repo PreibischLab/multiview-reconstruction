@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.export;
 
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
@@ -170,19 +171,21 @@ public class DisplayImage implements ImgExport, Calibrateable
 	@Override
 	public boolean queryParameters( final FusionExportInterface fusion )
 	{
-
-		final GenericDialogPlus gd = new GenericDialogPlus( "Display fused image as ImageJ stack" );
-
-		gd.addChoice( "Display image", choiceText, choiceText[ defaultChoice ] );
-
-		gd.showDialog();
-		if ( gd.wasCanceled() )
-			return false;
-
-		if ( ( defaultChoice = gd.getNextChoiceIndex() ) == 0 )
-			virtualDisplay = true;
-		else
-			virtualDisplay = false;
+		if ( !FusionTools.is2d( fusion.getViews().stream().map( v -> fusion.getSpimData().getSequenceDescription().getViewDescriptions().get( v ) ).collect( Collectors.toList() ) ) )
+		{
+			final GenericDialogPlus gd = new GenericDialogPlus( "Display fused image as ImageJ stack" );
+	
+			gd.addChoice( "Display image", choiceText, choiceText[ defaultChoice ] );
+	
+			gd.showDialog();
+			if ( gd.wasCanceled() )
+				return false;
+	
+			if ( ( defaultChoice = gd.getNextChoiceIndex() ) == 0 )
+				virtualDisplay = true;
+			else
+				virtualDisplay = false;
+		}
 
 		return true;
 	}
