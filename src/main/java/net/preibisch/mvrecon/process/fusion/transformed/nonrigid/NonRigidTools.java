@@ -203,6 +203,7 @@ public class NonRigidTools
 						displayDistances,
 						interpolation,
 						intensityAdjustments,
+						// TODO: make method for the line below, is used 3x
 						Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( uniquePointsData.getB() * 1.5 ) ) );
 
 		return new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( boundingBox ), virtual.getA(), virtual.getB() );
