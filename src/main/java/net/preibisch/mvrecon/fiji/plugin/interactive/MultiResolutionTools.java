@@ -199,7 +199,7 @@ public class MultiResolutionTools
 							displayDistances,
 							interpolation,
 							intensityAdjustments,
-							Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( uniquePointsData.getB() * 1.5 ) ) );
+							NonRigidTools.defaultOverlapExpansion( uniquePointsData.getB() ) );
 
 			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform ) );
 		}

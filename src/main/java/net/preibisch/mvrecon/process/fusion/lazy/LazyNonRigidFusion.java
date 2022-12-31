@@ -153,7 +153,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						displayDistances,
 						interpolation,
 						intensityAdjustments,
-						Math.max( LazyFusionTools.defaultNonrigidExpansion, (int)Math.round( maxDist * 1.5 ) ) );
+						NonRigidTools.defaultOverlapExpansion( maxDist ) );
 
 		final RandomAccessibleInterval<FloatType> fused =
 				new FusedRandomAccessibleInterval(
