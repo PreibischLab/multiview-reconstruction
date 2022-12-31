@@ -496,7 +496,7 @@ public class FusionTools
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustBlending( viewDescriptions.get( viewId ), blending, border, model );
 	
-					System.out.println( "Adjusted blending range: " + Util.printCoordinates( blending ) );
+					//System.out.println( "Adjusted blending range: " + Util.printCoordinates( blending ) );
 
 					transformedBlending = TransformWeight.transformBlending( new FinalInterval( inputImg ), border, blending, model, bb );
 				}
@@ -514,7 +514,7 @@ public class FusionTools
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors );
 
-					System.out.println( "Adjusted content based sigma1=" + Util.printCoordinates( sigma1 ) + " , sigma2="+ Util.printCoordinates( sigma2 ));
+					//System.out.println( "Adjusted content based sigma1=" + Util.printCoordinates( sigma1 ) + " , sigma2="+ Util.printCoordinates( sigma2 ));
 
 					// TODO: compute content-based only for the area around the block that is being fused
 					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, LazyFusionTools.defaultBlockSize3d, ContentBasedRealRandomAccessible.defaultScale, model, bb );
