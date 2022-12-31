@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.checkerframework.checker.units.qual.min;
 
@@ -49,6 +50,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.Image_Fusion;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -82,7 +84,7 @@ public class FusionGUI implements FusionExportInterface
 	public static String[] pixelTypes = new String[]{ "32-bit floating point", "16-bit unsigned integer" };
 	public static int defaultPixelType = 0;
 
-	public static boolean defaultDefineMinMax = false;
+	public static int defaultDefineMinMax = 0;
 	public static double defaultMin = 0;
 	public static double defaultMax = 65535;
 
@@ -106,7 +108,7 @@ public class FusionGUI implements FusionExportInterface
 	protected int interpolation = defaultInterpolation;
 	protected int boundingBox = defaultBB;
 	protected int pixelType = defaultPixelType;
-	protected boolean defineMinMax = defaultDefineMinMax;
+	protected int defineMinMax = defaultDefineMinMax;
 	protected double min = defaultMin;
 	protected double max = defaultMax;
 	//protected int cacheType = defaultCache;
@@ -182,7 +184,7 @@ public class FusionGUI implements FusionExportInterface
 
 	//public int getCacheType() { return cacheType; }
 
-	public boolean manuallyDefinedMinMax() { return defineMinMax; }
+	public boolean manuallyDefinedMinMax() { return defineMinMax==0; }
 	public double minIntensity() { return min; }
 	public double maxIntensity() { return max; }
 
@@ -206,16 +208,36 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public ImgExport getNewExporterInstance() { return staticImgExportAlgorithms.get( imgExport ).newInstance(); }
 
-	public double[] defineMinMax()
+	public double[] defineMinMax( final double[] autoValues )
 	{
+		final String[] values = new String[] {
+				"Auto-load from input data (values shown below)",
+				"Manually define range of input data (change values below)"};
+
 		final GenericDialog gd = new GenericDialog( "Define min/max values for image export" );
-		gd.addNumericField( "min", defaultMin );
-		gd.addNumericField( "max", defaultMax );
+
+		gd.addMessage( "Note: you are exporting images to a bounded range (e.g. 8-bit, 16-bit),\n"
+				+ "thus the fused values need to be scaled to the respective range.\n"
+				+ "We can try to load the range from the input data automatically.\n"
+				+ "(those values are displayed below -- except you previously changed them).\n"
+				+ "You can override these by selecting 'manual' and providing the values.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+
+		gd.addMessage( "Tipp: 8-bit range [0..255], 16-bit range [0..65535]", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		gd.addMessage( "Tipp: Usually you can leave everthing as-is", GUIHelper.smallStatusFont, GUIHelper.neutral );
+
+		gd.addChoice(
+				"Define_input range",
+				values,
+				values[ defaultDefineMinMax ] );
+
+		gd.addNumericField( "min", defaultDefineMinMax == 1 || autoValues == null ? defaultMin : autoValues[ 0 ] );
+		gd.addNumericField( "max", defaultDefineMinMax == 1 || autoValues == null ? defaultMax : autoValues[ 1 ] );
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return null;
 
+		defineMinMax = defaultDefineMinMax = gd.getNextChoiceIndex();
 		double[] minmax = new double[ 2 ];
 		minmax[ 0 ] = defaultMin = gd.getNextNumber();
 		minmax[ 1 ] = defaultMax = gd.getNextNumber();
@@ -251,12 +273,13 @@ public class FusionGUI implements FusionExportInterface
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
 		downsampleField = PluginHelper.isHeadless() ? null : (TextField)gd.getNumericFields().lastElement();
 
+		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
+
 		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
 		pixelTypeChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
-		gd.addCheckbox( "Manually_define_min_max intensity for fusion (only relevant for 16-bit)", defaultDefineMinMax );
-		gd.addMessage( "Note: if if unchecked, you may be asked to define min/max if it cannot be determined from the input data.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		//gd.addCheckbox( "Manually_define_min_max intensity for fusion (only relevant for 16-bit)", defaultDefineMinMax );
+		//gd.addMessage( "Note: if if unchecked, you may be asked to define min/max if it cannot be determined from the input data.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
-		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 		//gd.addChoice( "Image ", FusionTools.imgDataTypeChoice, FusionTools.imgDataTypeChoice[ defaultCache ] );
 		//cachingChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 		//gd.addMessage( "We advise using VIRTUAL for saving at TIFF, and CACHED for saving as HDF5 if memory is low", GUIHelper.smallStatusFont, GUIHelper.neutral );
@@ -348,9 +371,9 @@ public class FusionGUI implements FusionExportInterface
 		if ( downsampling == 1.0 )
 			downsampling = Double.NaN;
 
-		pixelType = defaultPixelType = gd.getNextChoiceIndex();
-		defineMinMax = defaultDefineMinMax = gd.getNextBoolean();
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
+		pixelType = defaultPixelType = gd.getNextChoiceIndex();
+		//defineMinMax = defaultDefineMinMax = gd.getNextBoolean();
 		//cacheType = defaultCache = gd.getNextChoiceIndex();
 
 		if ( enableNonRigid )
@@ -380,9 +403,13 @@ public class FusionGUI implements FusionExportInterface
 			if ( !this.nrgui.advancedParameters() )
 				return false;
 
-		if ( manuallyDefinedMinMax() )
+		if ( pixelType > 0 )
 		{
-			final double[] minmax = defineMinMax();
+			final double[] autominmax = Image_Fusion.determineInputBitDepth(
+					views.stream().map( v -> spimData.getSequenceDescription().getViewDescriptions().get( v ) ).collect( Collectors.toList() ),
+					spimData );
+
+			final double[] minmax = defineMinMax( autominmax );
 
 			if ( minmax == null )
 				return false;

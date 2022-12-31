@@ -174,30 +174,16 @@ public class Image_Fusion implements PlugIn
 
 			final Converter conv;
 			final Type type;
-			double[] minmax;
-
-			if ( fusion.manuallyDefinedMinMax() )
-				minmax = new double[] { fusion.minIntensity(), fusion.maxIntensity() };
-			else
-				minmax = determineInputBitDepth(group, spimData);
 
 			if ( fusion.getPixelType() == 1 )
 			{
-				// couldn't load from data and wasn't defined
-				if ( minmax == null )
-					minmax = fusion.defineMinMax();
-
-				if ( minmax == null )
-					return false;
-
-				conv = new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] );
+				conv = new RealUnsignedShortConverter<>( fusion.minIntensity(), fusion.maxIntensity() );
 				type = new UnsignedShortType();
 			}
 			else
 			{
 				conv = null;
 				type = new FloatType();
-				minmax = FusionTools.minMaxApprox( null );
 			}
 
 			// get, and update the transformations with anisotropy, downsampling
@@ -330,7 +316,7 @@ public class Image_Fusion implements PlugIn
 		return true;
 	}
 
-	public static double[] determineInputBitDepth( final Group< ViewDescription > group, final SpimData2 spimData )
+	public static double[] determineInputBitDepth( final Iterable< ? extends ViewDescription > group, final SpimData2 spimData )
 	{
 		SetupImgLoader< ? > loader = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( group.iterator().next().getViewSetupId() );
 		Object type = loader.getImageType();
