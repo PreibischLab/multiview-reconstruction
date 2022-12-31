@@ -38,6 +38,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
+import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -47,13 +48,23 @@ public class DisplayImage implements ImgExport, Calibrateable
 	// TODO: this is ugly, but otherwise the service is shutdown while the ImageJVirtualStack is still displayed and crashes when scrolling through the stack
 	final static ExecutorService service = DeconViews.createExecutorService();
 
-	public static int defaultChoice = 1;
 	final String[] choiceText = new String[] { "cached (immediate, less memory, slower)", "precomputed (fast, complete copy in memory before display)" };
 
+	public static int defaultChoice = 1;
+	public static int defaultBlocksizeX = 256;
+	public static int defaultBlocksizeY = 256;
+	public static int defaultBlocksizeZ = 1;
+	public static int defaultMinIntensity = 0;
+	public static int defaultMaxIntensity = 255;
+	
 	boolean virtualDisplay;
-
 	String unit = "px";
 	double cal = 1.0;
+	int bsX = defaultBlocksizeX;
+	int bsY = defaultBlocksizeY;
+	int bsZ = defaultBlocksizeZ;
+	int minIntensity = defaultMinIntensity;
+	int maxIntensity = defaultMaxIntensity;
 
 	public DisplayImage() { this( true ); }
 	public DisplayImage( final boolean virtualDisplay ) { this.virtualDisplay = virtualDisplay; }
@@ -82,11 +93,11 @@ public class DisplayImage implements ImgExport, Calibrateable
 			return false;
 
 		// determine min and max
-		final double[] minmax = FusionTools.minMaxApprox( null );//getFusionMinMax( img, min, max );
+		//final double[] minmax = FusionTools.minMaxApprox( null );//getFusionMinMax( img, min, max );
 
-		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Approximate min=" + minmax[ 0 ] + ", max=" + minmax[ 1 ] );
+		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Display range min=" + minIntensity + ", max=" + maxIntensity );
 
-		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minmax[ 0 ], minmax[ 1 ] );
+		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minIntensity, maxIntensity );
 
 		setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 
@@ -171,21 +182,40 @@ public class DisplayImage implements ImgExport, Calibrateable
 	@Override
 	public boolean queryParameters( final FusionExportInterface fusion )
 	{
-		if ( !FusionTools.is2d( fusion.getViews().stream().map( v -> fusion.getSpimData().getSequenceDescription().getViewDescriptions().get( v ) ).collect( Collectors.toList() ) ) )
-		{
-			final GenericDialogPlus gd = new GenericDialogPlus( "Display fused image as ImageJ stack" );
-	
-			gd.addChoice( "Display image", choiceText, choiceText[ defaultChoice ] );
-	
-			gd.showDialog();
-			if ( gd.wasCanceled() )
-				return false;
-	
-			if ( ( defaultChoice = gd.getNextChoiceIndex() ) == 0 )
-				virtualDisplay = true;
-			else
-				virtualDisplay = false;
-		}
+		final boolean is2d =
+				FusionTools.is2d( fusion.getViews().stream().map( v -> fusion.getSpimData().getSequenceDescription().getViewDescriptions().get( v ) ).collect( Collectors.toList() ) );
+					
+		final GenericDialogPlus gd = new GenericDialogPlus( "Display fused image as ImageJ stack" );
+
+		gd.addChoice( "Display image", choiceText, choiceText[ defaultChoice ] );
+
+		gd.addMessage( "Initial display range:", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		gd.addNumericField( "min_intensity", defaultMinIntensity, 0);
+		gd.addNumericField( "max_intensity", defaultMaxIntensity, 0);
+
+		gd.addMessage( "Block size of lazy processing is optimized for multi-threaded viewing:", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		gd.addNumericField( "block_size_x", defaultBlocksizeX, 0);
+		gd.addNumericField( "block_size_y", defaultBlocksizeY, 0);
+		gd.addNumericField( "block_size_z", defaultBlocksizeZ, 0);
+
+		if ( is2d )
+			gd.addMessage( "Note: we have a 2d-dataset, choose 1 in z.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		
+		gd.showDialog();
+		if ( gd.wasCanceled() )
+			return false;
+
+		if ( ( defaultChoice = gd.getNextChoiceIndex() ) == 0 )
+			virtualDisplay = true;
+		else
+			virtualDisplay = false;
+
+		minIntensity = defaultMinIntensity = (int)Math.round( gd.getNextNumber() );
+		maxIntensity = defaultMaxIntensity = (int)Math.round( gd.getNextNumber() );
+
+		bsX = defaultBlocksizeX = (int)Math.round( gd.getNextNumber() );
+		bsY = defaultBlocksizeY = (int)Math.round( gd.getNextNumber() );
+		bsZ = defaultBlocksizeZ = (int)Math.round( gd.getNextNumber() );
 
 		return true;
 	}
@@ -217,5 +247,5 @@ public class DisplayImage implements ImgExport, Calibrateable
 	public double getPixelSize() { return cal; }
 
 	@Override
-	public int[] blocksize() { return new int[] { 256, 256, 1 }; }
+	public int[] blocksize() { return new int[] { bsX, bsY, bsZ }; }
 }
