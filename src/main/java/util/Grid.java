@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.janelia.saalfeldlab.n5.DataBlock;
-
 import net.imglib2.Interval;
 import net.imglib2.util.Intervals;
 
