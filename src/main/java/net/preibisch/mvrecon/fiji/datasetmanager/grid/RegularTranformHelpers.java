@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.datasetmanager.grid;
 
 import java.awt.Choice;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,29 +66,37 @@ public class RegularTranformHelpers
 							"Snake: Right & Down      ", "Snake: Left & Down", "Snake: Right & Up", "Snake: Left & Up",
 							"Snake: Down & Right      ", "Snake: Down & Left", "Snake: Up & Right", "Snake: Up & Left" };
 
+	final public static List<URL> imageFiles = new ArrayList<>();
+	static {
+		// zig-zag row-first
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/row1.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/row2.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/row3.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/row4.png" ));
+		// zig-zag column-first
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/column1.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/column2.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/column3.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/column4.png" ));
+		// snake row-first
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake1.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake3.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake5.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake7.png" ));
+		// snake column-first
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake2.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake4.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake6.png" ));
+		imageFiles.add(RegularTranformHelpers.class.getResource( "/images/snake8.png" ));
+	}
+
 	final public static ImageIcon[] images = new ImageIcon[ presetNames.length ];
 	static{
-		images[ 0 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/row1.png" ) );
-		images[ 1 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/row2.png" ) );
-		images[ 2 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/row3.png" ) );
-		images[ 3 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/row4.png" ) );
-	
-		images[ 4 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/column1.png" ) );
-		images[ 5 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/column2.png" ) );
-		images[ 6 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/column3.png" ) );
-		images[ 7 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/column4.png" ) );
-	
-		images[ 8 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake1.png" ) );
-		images[ 9 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake3.png" ) );
-		images[ 10 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake5.png" ) );
-		images[ 11 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake7.png" ) );
-	
-		images[ 12 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake2.png" ) );
-		images[ 13 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake4.png" ) );
-		images[ 14 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake6.png" ) );
-		images[ 15 ] = GenericDialogPlus.createImageIcon( RegularTranformHelpers.class.getResource( "/images/snake8.png" ) );
+		for (int i = 0; i < images.length; i++) {
+			images[ i ] = GenericDialogPlus.createImageIcon(imageFiles.get(i) );
+		}
 	}
-	
+
 	public static class GridPreset
 	{
 		public boolean[] alternating;
@@ -117,14 +126,14 @@ public class RegularTranformHelpers
 		presets.add( new GridPreset( new boolean[] {false, false, false}, new boolean[] {false, false, true} , "y,x,z" ) );
 
 		presets.add( new GridPreset( new boolean[] {true, false, false}, new boolean[] {true, true, true} , "x,y,z" ) );
-		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {true, false, true} , "y,x,z" ) );
 		presets.add( new GridPreset( new boolean[] {true, false, false}, new boolean[] {false, true, true} , "x,y,z" ) );
-		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {false, false, true} , "y,x,z" ) );
-
 		presets.add( new GridPreset( new boolean[] {true, false, false}, new boolean[] {true, false, true} , "x,y,z" ) );
+		presets.add( new GridPreset( new boolean[] {true, false, false}, new boolean[] {false, false, true} , "x,y,z" ) );
+
+		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {true, true, true} , "y,x,z" ) );
+		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {false, true, true} , "y,x,z" ) );
 		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {true, false, true} , "y,x,z" ) );
-		presets.add( new GridPreset( new boolean[] {true, false, false}, new boolean[] {false, false, true} , "y,x,z" ) );
-		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {false, false, true} , "x,y,z" ) );
+		presets.add( new GridPreset( new boolean[] {false, true, false}, new boolean[] {false, false, true} , "y,x,z" ) );
 	}
 
 	
