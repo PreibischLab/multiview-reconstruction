@@ -14,6 +14,7 @@ import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewId;
@@ -48,7 +49,7 @@ public class ExportN5API implements ImgExport
 
 	public static int defaultBlocksizeX_N5 = 128;
 	public static int defaultBlocksizeY_N5 = 128;
-	public static int defaultBlocksizeZ_N5 = 32;
+	public static int defaultBlocksizeZ_N5 = 64;
 	public static int defaultBlocksizeX_H5 = 16;
 	public static int defaultBlocksizeY_H5 = 16;
 	public static int defaultBlocksizeZ_H5 = 16;
@@ -89,7 +90,7 @@ public class ExportN5API implements ImgExport
 				if ( storageType == StorageType.N5 )
 					driverVolumeWriter = new N5FSWriter(path);
 				else if ( storageType == StorageType.ZARR )
-					driverVolumeWriter = null; //new N5ZarrWriter(n5Path);
+					driverVolumeWriter = new N5ZarrWriter(path);
 				else if ( storageType == StorageType.HDF5 )
 					driverVolumeWriter = new N5HDF5Writer(path);
 				else
@@ -133,9 +134,22 @@ public class ExportN5API implements ImgExport
 			return false;
 		}
 
-		final List<long[][]> grid = Grid.create( bb.dimensionsAsLongArray(), blocksize() );
+		final List<long[][]> grid =
+				( storageType == StorageType.HDF5 ) ?
+						Grid.create(
+								bb.dimensionsAsLongArray(),
+								new int[] {
+										blocksize()[0] * 8,
+										blocksize()[1] * 8,
+										blocksize()[2] * 4
+								},
+								blocksize() ) :
+						Grid.create(
+								bb.dimensionsAsLongArray(),
+								blocksize() );
 
-		IOFunctions.println( "numBlocks = " + grid.size() );
+		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() );
+		IOFunctions.println( "num processing blocks (processing in larger chunks for HDF5) = " + grid.size() );
 
 		final long time = System.currentTimeMillis();
 
@@ -168,9 +182,12 @@ public class ExportN5API implements ImgExport
 		{
 			ex.shutdown();
 			ex.awaitTermination( 10000000, TimeUnit.HOURS);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+		}
+		catch (InterruptedException e)
+		{
+			IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + e );
 			e.printStackTrace();
+			return false;
 		}
 
 		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
