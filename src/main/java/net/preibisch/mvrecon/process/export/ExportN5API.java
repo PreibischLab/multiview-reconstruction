@@ -139,6 +139,12 @@ public class ExportN5API implements ImgExport
 
 		String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
 
+		if ( driverVolumeWriter.exists( dataset ) )
+		{
+			IOFunctions.println( "Dataset '" + dataset + "'. STOPPING!" );
+			return false;
+		}
+
 		IOFunctions.println( "Creating dataset '" + dataset + "' ... " );
 
 		try
@@ -226,6 +232,8 @@ public class ExportN5API implements ImgExport
 		final String[] options = 
 				Arrays.asList( StorageType.values() ).stream().map( s -> s.name() ).toArray(String[]::new);
 
+		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
+
 		gdInit.addMessage(
 				"For local export HDF5 is a reasonable format choice (unless you need a specific one)\n"
 				+ "since it supports small blocksizes, can be written multi-threaded, and produces a single file.\n\n"
@@ -235,9 +243,6 @@ public class ExportN5API implements ImgExport
 				"Note: you can always add new datasets to an existing HDF5/N5/ZARR container, so you can specify\n"
 				+ "existing N5/ZARR-directories or HDF5-files. If a dataset inside a container already exists\n"
 				+ "export will stop and NOT overwrite existing datasets.", GUIHelper.smallStatusFont, GUIHelper.neutral );
-
-		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
-
 
 		gdInit.showDialog();
 		if ( gdInit.wasCanceled() )

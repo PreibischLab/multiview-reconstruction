@@ -76,7 +76,7 @@ public class FusionGUI implements FusionExportInterface
 	public static String[] interpolationTypes = new String[]{ "Nearest Neighbor", "Linear Interpolation" };
 	public static int defaultInterpolation = 1;
 
-	public static String[] pixelTypes = new String[]{ "32-bit floating point", "16-bit unsigned integer" };
+	public static String[] pixelTypes1 = new String[]{ "32-bit floating point", "16-bit unsigned integer", "8-bit unsigned integer" };
 	public static int defaultPixelType = 0;
 
 	public static int defaultDefineMinMax = 0;
@@ -219,7 +219,8 @@ public class FusionGUI implements FusionExportInterface
 				+ "You can override these by selecting 'manual' and providing the values.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
 		gd.addMessage( "Tipp: 8-bit range [0..255], 16-bit range [0..65535]", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		gd.addMessage( "Tipp: Usually you can leave everthing as-is", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		gd.addMessage( "Tipp: Usually you can leave everthing as-is, but if your original data\n"
+				+ "was 8-bit and you export as 8-bit you should specify [0..255] here.", GUIHelper.smallStatusFont, GUIHelper.warning );
 
 		gd.addChoice(
 				"Define_input range",
@@ -271,7 +272,7 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 
-		gd.addChoice( "Pixel_type", pixelTypes, pixelTypes[ defaultPixelType ] );
+		gd.addChoice( "Pixel_type", pixelTypes1, pixelTypes1[ defaultPixelType ] );
 		pixelTypeChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 		//gd.addCheckbox( "Manually_define_min_max intensity for fusion (only relevant for 16-bit)", defaultDefineMinMax );
 		//gd.addMessage( "Note: if if unchecked, you may be asked to define min/max if it cannot be determined from the input data.", GUIHelper.smallStatusFont, GUIHelper.neutral );
@@ -418,7 +419,7 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.println( "Downsampling: " + DownsampleTools.printDownsampling( getDownsampling() ) );
 		IOFunctions.println( "BoundingBox: " + getBoundingBox() );
 		IOFunctions.println( "DownsampledBoundingBox: " + getDownsampledBoundingBox() );
-		IOFunctions.println( "PixelType: " + pixelTypes[ getPixelType() ] );
+		IOFunctions.println( "PixelType: " + pixelTypes1[ getPixelType() ] );
 		IOFunctions.println( "Manually defined min/max: " + manuallyDefinedMinMax() );
 		if ( manuallyDefinedMinMax() ) {
 			IOFunctions.println( "Min: " + minIntensity() );

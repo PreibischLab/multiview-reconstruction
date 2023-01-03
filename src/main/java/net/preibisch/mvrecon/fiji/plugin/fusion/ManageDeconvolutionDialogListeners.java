@@ -165,7 +165,7 @@ public class ManageDeconvolutionDialogListeners
 		label2.setText( "Dimensions: " + 
 				Math.round( (max[ 0 ] - min[ 0 ] + 1)/decon.downsampling ) + " x " + 
 				Math.round( (max[ 1 ] - min[ 1 ] + 1)/decon.downsampling ) + " x " + 
-				Math.round( (max[ 2 ] - min[ 2 ] + 1)/decon.downsampling ) + " pixels @ " + FusionGUI.pixelTypes[ 0 ] );
+				Math.round( (max[ 2 ] - min[ 2 ] + 1)/decon.downsampling ) + " pixels @ " + FusionGUI.pixelTypes1[ 0 ] );
 	}
 
 	public long[] maxBlock()

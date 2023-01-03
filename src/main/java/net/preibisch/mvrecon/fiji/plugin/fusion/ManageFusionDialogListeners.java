@@ -133,7 +133,9 @@ public class ManageFusionDialogListeners
 		final long numPixels = Math.round( FusionTools.numPixels( bb, fusion.downsampling ) / anisoF );
 
 		final int bytePerPixel;
-		if ( fusion.pixelType == 1 )
+		if ( fusion.pixelType == 2 )
+			bytePerPixel = 1;
+		else if ( fusion.pixelType == 1 )
 			bytePerPixel = 2;
 		else
 			bytePerPixel = 4;
@@ -155,7 +157,7 @@ public class ManageFusionDialogListeners
 		label2.setText( "Dimensions: " + 
 				Math.round( (max[ 0 ] - min[ 0 ] + 1)/fusion.downsampling ) + " x " + 
 				Math.round( (max[ 1 ] - min[ 1 ] + 1)/fusion.downsampling ) + " x " + 
-				Math.round( (max[ 2 ] - min[ 2 ] + 1)/(fusion.downsampling ) ) + " pixels @ " + FusionGUI.pixelTypes[ fusion.pixelType ] );
+				Math.round( (max[ 2 ] - min[ 2 ] + 1)/(fusion.downsampling ) ) + " pixels @ " + FusionGUI.pixelTypes1[ fusion.pixelType ] );
 	}
 
 	public long totalRAM( long fusedSizeMB, final int bytePerPixel )

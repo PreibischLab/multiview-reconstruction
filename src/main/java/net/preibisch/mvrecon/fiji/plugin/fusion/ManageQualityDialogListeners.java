@@ -126,7 +126,7 @@ public class ManageQualityDialogListeners
 		label2.setText( "Dimensions: " + 
 				Math.round( (max[ 0 ] - min[ 0 ] + 1)/quality.downsampling ) + " x " + 
 				Math.round( (max[ 1 ] - min[ 1 ] + 1)/quality.downsampling ) + " x " + 
-				Math.round( (max[ 2 ] - min[ 2 ] + 1)/(quality.downsampling ) ) + " pixels @ " + FusionGUI.pixelTypes[ 0 ] );
+				Math.round( (max[ 2 ] - min[ 2 ] + 1)/(quality.downsampling ) ) + " pixels @ " + FusionGUI.pixelTypes1[ 0 ] );
 	}
 
 	public long totalRAM( long fusedSizeMB, final int bytePerPixel )

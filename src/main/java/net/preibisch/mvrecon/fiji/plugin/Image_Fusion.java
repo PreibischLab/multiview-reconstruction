@@ -33,22 +33,16 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 
-import ij.IJ;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
-import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealUnsignedByteConverter;
 import net.imglib2.converter.RealUnsignedShortConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
-import net.imglib2.img.ImagePlusAdapter;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -65,7 +59,6 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.Calibrateable;
-import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
@@ -175,7 +168,12 @@ public class Image_Fusion implements PlugIn
 			final Converter conv;
 			final Type type;
 
-			if ( fusion.getPixelType() == 1 )
+			if ( fusion.getPixelType() == 2 )
+			{
+				conv = new RealUnsignedByteConverter<>( fusion.minIntensity(), fusion.maxIntensity() );
+				type = new UnsignedByteType();
+			}
+			else if ( fusion.getPixelType() == 1 )
 			{
 				conv = new RealUnsignedShortConverter<>( fusion.minIntensity(), fusion.maxIntensity() );
 				type = new UnsignedShortType();
