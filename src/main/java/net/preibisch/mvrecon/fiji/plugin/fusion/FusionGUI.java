@@ -44,9 +44,11 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
+import net.imglib2.util.Pair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Image_Fusion;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
@@ -58,7 +60,9 @@ import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ExportN5API;
 import net.preibisch.mvrecon.process.export.ImgExport;
+import net.preibisch.mvrecon.process.export.OpenSeaDragon;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
@@ -125,6 +129,7 @@ public class FusionGUI implements FusionExportInterface
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
 		staticImgExportAlgorithms.add( new ExportN5API() );
+		staticImgExportAlgorithms.add( new OpenSeaDragon() );
 		//staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
 		//staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
 		//staticImgExportAlgorithms.add( new AppendSpimData2HDF5() );
@@ -168,10 +173,19 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public Interval getDownsampledBoundingBox()
 	{
+		Pair<Interval, AffineTransform3D> scaledBB =
+				FusionTools.createAnisotropicBoundingBox(
+						getBoundingBox(),
+						getAnisotropyFactor() );
+
+		return FusionTools.createDownsampledBoundingBox( scaledBB.getA(), getDownsampling() ).getA();
+
+		/*
 		if ( !Double.isNaN( downsampling ) )
 			return TransformVirtual.scaleBoundingBox( getBoundingBox(), 1.0 / downsampling );
 		else
 			return getBoundingBox();
+		*/
 	}
 	public int getInterpolation() { return interpolation; }
 
@@ -489,6 +503,7 @@ public class FusionGUI implements FusionExportInterface
 		return choices;
 	}
 
+	@Override
 	public List< Group< ViewDescription > > getFusionGroups()
 	{
 		return getFusionGroups( getSpimData(), getViews(), getSplittingType() );

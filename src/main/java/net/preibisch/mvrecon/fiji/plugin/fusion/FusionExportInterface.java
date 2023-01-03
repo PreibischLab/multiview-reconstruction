@@ -23,11 +23,14 @@
 package net.preibisch.mvrecon.fiji.plugin.fusion;
 
 import java.util.Collection;
+import java.util.List;
 
 import mpicbg.spim.data.SpimData;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.preibisch.mvrecon.process.export.ImgExport;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public interface FusionExportInterface
 {
@@ -68,4 +71,6 @@ public interface FusionExportInterface
 	 * @return - creates a new instance of the exporter object
 	 */
 	public ImgExport getNewExporterInstance();
+
+	public List<Group<ViewDescription>> getFusionGroups();
 }

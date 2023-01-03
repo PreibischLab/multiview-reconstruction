@@ -40,61 +40,11 @@ import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
+import net.preibisch.mvrecon.process.export.OpenSeaDragon.OpenSeaDragonImgLib2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 public class OpenSeaDragonExport
 {
-	public static class OpenSeaDragonImgLib2 implements PartialImageReader
-	{
-		final RandomAccessibleInterval<ARGBType> img;
-
-		public OpenSeaDragonImgLib2( final RandomAccessibleInterval<ARGBType> img )
-		{
-			this.img = img;
-		}
-
-		@Override
-		public BufferedImage read() throws IOException {
-			throw new RuntimeException( "cannot render full image.");
-		}
-
-		@Override
-		public int getWidth() {
-			return (int)img.dimension( 0 );
-		}
-
-		@Override
-		public int getHeight() {
-			return (int)img.dimension( 1 );
-		}
-
-		@Override
-		public BufferedImage read(final Rectangle rectangle) throws IOException
-		{
-			final Interval interval = new FinalInterval( new long[] {rectangle.x, rectangle.y}, new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1 } );
-			final RandomAccessibleInterval<ARGBType> block = Views.zeroMin( Views.interval( img, interval ) );
-
-			//ImageJFunctions.show( block, DeconViews.createExecutorService() );
-
-			final BufferedImage bi = new BufferedImage( rectangle.width, rectangle.height, BufferedImage.TYPE_3BYTE_BGR );
-			final Cursor<ARGBType> c = Views.flatIterable( block ).cursor();
-
-			for ( int y = 0; y < rectangle.height; ++y )
-				for ( int x = 0; x < rectangle.width; ++x )
-				{
-					//final int rgb = c.next().get();
-					//bi.setRGB(x, y, new Color(ARGBType.red( rgb ),ARGBType.green( rgb ),ARGBType.blue( rgb )).getRGB() );
-					
-					bi.setRGB(x, y, c.next().get() );
-				}
-
-			//displayImage( "test", bi);
-
-			return bi;
-		}
-
-	}
-
 	public static void displayImage(final String windowTitle, final BufferedImage image) {
 		new JFrame(windowTitle) {
 			private static final long serialVersionUID = 1L;
@@ -157,15 +107,12 @@ public class OpenSeaDragonExport
 
 		System.out.println( "Interval: " + Util.printInterval( bb ));
 
-		// downsampling
-		double downsampling = Double.NaN;
-
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtualRed = FusionTools.fuseVirtual( spimData, viewIdsRed, bb, downsampling ).getA();
-		final RandomAccessibleInterval< FloatType > virtualGreen = FusionTools.fuseVirtual( spimData, viewIdsGreen, bb, downsampling ).getA();
-		final RandomAccessibleInterval< FloatType > virtualBlue = FusionTools.fuseVirtual( spimData, viewIdsBlue, bb, downsampling ).getA();
+		final RandomAccessibleInterval< FloatType > virtualRed = FusionTools.fuseVirtual( spimData, viewIdsRed, bb );
+		final RandomAccessibleInterval< FloatType > virtualGreen = FusionTools.fuseVirtual( spimData, viewIdsGreen, bb );
+		final RandomAccessibleInterval< FloatType > virtualBlue = FusionTools.fuseVirtual( spimData, viewIdsBlue, bb );
 
 		final RandomAccessibleInterval< UnsignedByteType > r8bit = Converters.convertRAI( virtualRed, (i,o) -> o.set( Math.min( 255, Math.max( 0, (int)i.get() ) ) ), new UnsignedByteType() );
 		final RandomAccessibleInterval< UnsignedByteType > g8bit = Converters.convertRAI( virtualGreen, (i,o) -> o.set( Math.min( 255, Math.max( 0, (int)i.get() ) ) ), new UnsignedByteType() );
