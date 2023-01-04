@@ -11,7 +11,6 @@ import java.util.List;
 import bdv.util.ConstantRandomAccessible;
 import fiji.util.gui.GenericDialogPlus;
 import gov.nist.isg.archiver.DirectoryArchiver;
-import gov.nist.isg.archiver.FilesArchiver;
 import gov.nist.isg.pyramidio.PartialImageReader;
 import gov.nist.isg.pyramidio.ScalablePyramidBuilder;
 import mpicbg.spim.data.sequence.ViewDescription;
