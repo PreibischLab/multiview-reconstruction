@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -45,7 +44,6 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ExportTools {
 
@@ -240,6 +238,8 @@ public class ExportTools {
 
 			final ArrayList< ViewSetup > setups = new ArrayList<>();
 
+			setups.add( instantiateViewSetup.instantiate( viewId, false, new FinalDimensions( dimensions ), setups ) );
+			/*
 			final Channel c0 = new Channel( 0 );
 			final Angle a0 = new Angle( 0 );
 			final Illumination i0 = new Illumination( 0 );
@@ -247,7 +247,7 @@ public class ExportTools {
 
 			final Dimensions d0 = new FinalDimensions( dimensions );
 			final VoxelDimensions vd0 = new FinalVoxelDimensions( "px", 1, 1, 1 );
-			setups.add( new ViewSetup( viewId.getViewSetupId(), "setup " + viewId.getViewSetupId(), d0, vd0, t0, c0, a0, i0 ) );
+			setups.add( new ViewSetup( viewId.getViewSetupId(), "setup " + viewId.getViewSetupId(), d0, vd0, t0, c0, a0, i0 ) );*/
 
 			final ArrayList< TimePoint > tps = new ArrayList<>();
 			tps.add( new TimePoint( viewId.getTimePointId() ) );
@@ -330,52 +330,61 @@ public class ExportTools {
 		int newI = -1;
 		int newT = -1;
 
-		final Random rnd = new Random( System.currentTimeMillis() );
-		final int id = rnd.nextInt();
-
 		public InstantiateViewSetupBigStitcher(
 				final int splittingType)
 		{
 			this.splittingType = splittingType;
-			IOFunctions.println( "constructor call " + id );
 		}
 
 		@Override
 		public ViewSetup instantiate( final ViewId viewId, final boolean tpExists, final Dimensions d, final List<ViewSetup> existingSetups )
 		{
-			IOFunctions.println( "instantiate " + id );
-
-			final Iterator<ViewSetup> i = existingSetups.iterator();
-			ViewSetup tmp = i.next();
-
-			Channel c0 = tmp.getChannel();
-			Angle a0 = tmp.getAngle();
-			Illumination i0 = tmp.getIllumination();
-			Tile t0 = tmp.getTile();
-
-			// get the highest id for all entities
-			while ( i.hasNext() )
+			if ( existingSetups == null || existingSetups.size() == 0 )
 			{
-				tmp = i.next();
-				if ( tmp.getChannel().getId() > c0.getId() )
-					c0 = tmp.getChannel();
-				if ( tmp.getAngle().getId() > a0.getId() )
-					a0 = tmp.getAngle();
-				if ( tmp.getIllumination().getId() > i0.getId() )
-					i0 = tmp.getIllumination();
-				if ( tmp.getTile().getId() > t0.getId() )
-					t0 = tmp.getTile();
+				newA = 0;
+				newC = 0;
+				newI = 0;
+				newT = 0;
+				
+			}
+			else
+			{
+				final Iterator<ViewSetup> i = existingSetups.iterator();
+				ViewSetup tmp = i.next();
+	
+				Channel c0 = tmp.getChannel();
+				Angle a0 = tmp.getAngle();
+				Illumination i0 = tmp.getIllumination();
+				Tile t0 = tmp.getTile();
+	
+				// get the highest id for all entities
+				while ( i.hasNext() )
+				{
+					tmp = i.next();
+					if ( tmp.getChannel().getId() > c0.getId() )
+						c0 = tmp.getChannel();
+					if ( tmp.getAngle().getId() > a0.getId() )
+						a0 = tmp.getAngle();
+					if ( tmp.getIllumination().getId() > i0.getId() )
+						i0 = tmp.getIllumination();
+					if ( tmp.getTile().getId() > t0.getId() )
+						t0 = tmp.getTile();
+				}
+	
+				// new unique id's for all, initialized once
+				if ( newA < 0 )
+				{
+					newA = a0.getId() + 1;
+					newC = c0.getId() + 1;
+					newI = i0.getId() + 1;
+					newT = t0.getId() + 1;
+				}
 			}
 
-			// new unique id's for all, initialized once
-			if ( newA < 0 )
-			{
-				newA = a0.getId() + 1;
-				newC = c0.getId() + 1;
-				newI = i0.getId() + 1;
-				newT = t0.getId() + 1;
-				IOFunctions.println( "update " + id );
-			}
+			Angle a0;
+			Channel c0;
+			Illumination i0;
+			Tile t0;
 
 			// 0 == "Each timepoint &amp; channel",
 			// 1 == "Each timepoint, channel &amp; illumination",
@@ -453,36 +462,51 @@ public class ExportTools {
 		@Override
 		public ViewSetup instantiate( final ViewId viewId, final boolean tpExists, final Dimensions d, final List<ViewSetup> existingSetups )
 		{
-			final Iterator<ViewSetup> i = existingSetups.iterator();
-			ViewSetup tmp = i.next();
+			Angle a0;
+			Channel c0;
+			Illumination i0;
+			Tile t0;
 
-			Channel c0 = tmp.getChannel();
-			Angle a0 = tmp.getAngle();
-			Illumination i0 = tmp.getIllumination();
-			Tile t0 = tmp.getTile();
-
-			// get the highest id for all entities
-			while ( i.hasNext() )
+			if ( existingSetups == null || existingSetups.size() == 0 )
 			{
-				tmp = i.next();
-				if ( tmp.getChannel().getId() > c0.getId() )
-					c0 = tmp.getChannel();
-				if ( tmp.getAngle().getId() > a0.getId() )
-					a0 = tmp.getAngle();
-				if ( tmp.getIllumination().getId() > i0.getId() )
-					i0 = tmp.getIllumination();
-				if ( tmp.getTile().getId() > t0.getId() )
-					t0 = tmp.getTile();
+				a0 = new Angle( 0 );
+				c0 = new Channel( 0 );
+				i0 = new Illumination( 0 );
+				t0 = new Tile( 0 );
 			}
+			else
+			{
+				final Iterator<ViewSetup> i = existingSetups.iterator();
+				ViewSetup tmp = i.next();
+	
+				c0 = tmp.getChannel();
+				a0 = tmp.getAngle();
+				i0 = tmp.getIllumination();
+				t0 = tmp.getTile();
 
-			if ( angleIds != null )
-				a0 = new Angle( a0.getId() + 1 );
-			if ( illuminationIds != null )
-				i0 = new Illumination( i0.getId() + 1 );
-			if ( tileIds != null )
-				t0 = new Tile( t0.getId() + 1 );
-			if ( tileIds != null || ( angleIds == null && illuminationIds == null && tileIds == null && tpExists ) ) // nothing was defined, then increase channel
-				c0 = new Channel( c0.getId() + 1 );
+				// get the highest id for all entities
+				while ( i.hasNext() )
+				{
+					tmp = i.next();
+					if ( tmp.getChannel().getId() > c0.getId() )
+						c0 = tmp.getChannel();
+					if ( tmp.getAngle().getId() > a0.getId() )
+						a0 = tmp.getAngle();
+					if ( tmp.getIllumination().getId() > i0.getId() )
+						i0 = tmp.getIllumination();
+					if ( tmp.getTile().getId() > t0.getId() )
+						t0 = tmp.getTile();
+				}
+
+				if ( angleIds != null )
+					a0 = new Angle( a0.getId() + 1 );
+				if ( illuminationIds != null )
+					i0 = new Illumination( i0.getId() + 1 );
+				if ( tileIds != null )
+					t0 = new Tile( t0.getId() + 1 );
+				if ( tileIds != null || ( angleIds == null && illuminationIds == null && tileIds == null && tpExists ) ) // nothing was defined, then increase channel
+					c0 = new Channel( c0.getId() + 1 );
+			}
 
 			//final Dimensions d0 = new FinalDimensions( dimensions );
 			final VoxelDimensions vd0 = new FinalVoxelDimensions( "px", 1, 1, 1 );

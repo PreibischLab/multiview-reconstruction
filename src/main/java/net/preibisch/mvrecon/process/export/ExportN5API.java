@@ -184,7 +184,9 @@ public class ExportN5API implements ImgExport
 		final String dataset;
 		final ViewId viewId;
 
+		//
 		// define dataset name
+		//
 		if ( !bdv )
 		{
 			viewId = null;
@@ -202,7 +204,9 @@ public class ExportN5API implements ImgExport
 			dataset = ExportTools.createBDVPath( viewId, this.storageType );
 		}
 
+		//
 		// create dataset
+		//
 		if ( driverVolumeWriter.exists( dataset ) )
 		{
 			IOFunctions.println( "Dataset '" + dataset + "'. STOPPING!" );
@@ -228,7 +232,9 @@ public class ExportN5API implements ImgExport
 			return false;
 		}
 
+		//
 		// write bdv-metadata into dataset
+		//
 		if ( bdv )
 		{
 			try
@@ -254,7 +260,9 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
+		//
 		// export image
+		//
 		final List<long[][]> grid =
 				( storageType == StorageType.HDF5 ) ?
 						Grid.create(
@@ -316,8 +324,6 @@ public class ExportN5API implements ImgExport
 
 		return true;
 	}
-
-	// TODO: 32-bit export? angle etc increase once?
 
 	@Override
 	public boolean queryParameters( final FusionExportInterface fusion)
