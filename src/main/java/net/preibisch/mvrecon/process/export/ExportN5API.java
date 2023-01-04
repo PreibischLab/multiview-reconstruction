@@ -24,8 +24,11 @@ package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +42,8 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import fiji.util.gui.GenericDialogPlus;
+import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -56,6 +61,7 @@ import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
@@ -68,6 +74,12 @@ public class ExportN5API implements ImgExport
 	public static String defaultDatasetName = "fused";
 	public static String defaultBaseDataset = "/";
 	public static String defaultDatasetExtension = "/s0";
+
+	public static boolean defaultBDV = false;
+	public static String defaultXMLOut = null;
+	public static boolean defaultManuallyAssignViewId = false;
+	public static int defaultTpId = 0;
+	public static int defaultVSId = 0;
 
 	public static int defaultBlocksizeX_N5 = 128;
 	public static int defaultBlocksizeY_N5 = 128;
@@ -85,12 +97,39 @@ public class ExportN5API implements ImgExport
 	String baseDataset = defaultBaseDataset;
 	String datasetExtension = defaultDatasetExtension;
 
+	boolean bdv = defaultBDV;
+	String xmlOut;
+	boolean manuallyAssignViewId = defaultManuallyAssignViewId;
+	int tpId = defaultTpId;
+	int vsId = defaultVSId;
+	int splittingType;
+	Map<ViewId, ViewDescription> vdMap;
+
 	int bsX = defaultBlocksizeX_N5;
 	int bsY = defaultBlocksizeY_N5;
 	int bsZ = defaultBlocksizeZ_N5;
 
 	final Compression compression = new GzipCompression( 1 );
 	N5Writer driverVolumeWriter = null;
+
+	InstantiateViewSetupBigStitcher instantiate;
+	final HashMap<Integer, Integer> countViewIds = new HashMap<>();
+
+	@Override
+	public boolean finish()
+	{
+		driverVolumeWriter.close();
+		return true;
+	}
+
+	@Override
+	public int[] blocksize() { return new int[] { bsX, bsY, bsZ }; }
+
+	@Override
+	public ImgExport newInstance() { return new ExportN5API(); }
+
+	@Override
+	public String getDescription() { return "ZARR/N5/HDF5 export using N5-API"; }
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
@@ -114,7 +153,12 @@ public class ExportN5API implements ImgExport
 				else if ( storageType == StorageType.ZARR )
 					driverVolumeWriter = new N5ZarrWriter(path);
 				else if ( storageType == StorageType.HDF5 )
+				{
+					final File dir = new File( path ).getParentFile();
+					if ( !dir.exists() )
+						dir.mkdirs();
 					driverVolumeWriter = new N5HDF5Writer(path);
+				}
 				else
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
 			}
@@ -137,8 +181,28 @@ public class ExportN5API implements ImgExport
 		else
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
 
-		String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
+		final String dataset;
+		final ViewId viewId;
 
+		// define dataset name
+		if ( !bdv )
+		{
+			viewId = null;
+			dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
+		}
+		else
+		{
+			// TODO: 32-bit HDF5 BDV export cannot be opened
+
+			if ( manuallyAssignViewId )
+				viewId = new ViewId( tpId, vsId );
+			else
+				viewId = getViewIdForGroup( fusionGroup, splittingType );
+
+			dataset = ExportTools.createBDVPath( viewId, this.storageType );
+		}
+
+		// create dataset
 		if ( driverVolumeWriter.exists( dataset ) )
 		{
 			IOFunctions.println( "Dataset '" + dataset + "'. STOPPING!" );
@@ -155,6 +219,8 @@ public class ExportN5API implements ImgExport
 					blocksize(),
 					dataType,
 					compression );
+
+			driverVolumeWriter.setAttribute( dataset, "min", bb.minAsLongArray() );
 		}
 		catch ( IOException e )
 		{
@@ -162,6 +228,33 @@ public class ExportN5API implements ImgExport
 			return false;
 		}
 
+		// write bdv-metadata into dataset
+		if ( bdv )
+		{
+			try
+			{
+				// TODO: the first time the XML does not exist, thus instantiate is not called
+				ExportTools.writeBDVMetaData(
+						driverVolumeWriter,
+						storageType,
+						dataType,
+						bb.dimensionsAsLongArray(),
+						compression,
+						blocksize(),
+						viewId,
+						path,
+						xmlOut,
+						instantiate );
+			}
+			catch (SpimDataException | IOException e)
+			{
+				e.printStackTrace();
+				IOFunctions.println( "Failed to write metadata for '" + dataset + "': " + e );
+				return false;
+			}
+		}
+
+		// export image
 		final List<long[][]> grid =
 				( storageType == StorageType.HDF5 ) ?
 						Grid.create(
@@ -224,9 +317,14 @@ public class ExportN5API implements ImgExport
 		return true;
 	}
 
+	// TODO: 32-bit export? angle etc increase once?
+
 	@Override
 	public boolean queryParameters( final FusionExportInterface fusion)
 	{
+		//
+		// Initial dialog
+		//
 		final GenericDialogPlus gdInit = new GenericDialogPlus( "Save fused images as ZARR/N5/HDF5 using N5-API" );
 
 		final String[] options = 
@@ -244,12 +342,23 @@ public class ExportN5API implements ImgExport
 				+ "existing N5/ZARR-directories or HDF5-files. If a dataset inside a container already exists\n"
 				+ "export will stop and NOT overwrite existing datasets.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
+		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export (HDF5/N5 are supported)", defaultBDV );
+
+		gdInit.addMessage(
+				"Note: if you selected a single image to fuse (e.g. all tiles of one channel), you can manually\n"
+				+ "specify the ViewId it will be assigned in the following dialog. This is useful if you want to\n"
+				+ "add the fused image to an existing dataset so you can specify a ViewId that does not exist yet.",
+				GUIHelper.smallStatusFont, GUIHelper.neutral );
+
 		gdInit.showDialog();
 		if ( gdInit.wasCanceled() )
 			return false;
 
 		final int previousExportOption = defaultOption;
-		storageType = StorageType.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
+		this.storageType = StorageType.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
+		this.bdv = defaultBDV = gdInit.getNextBoolean();
+		this.splittingType = fusion.getSplittingType();
+		this.instantiate = new InstantiateViewSetupBigStitcher( splittingType );
 
 		final String name = storageType.name();
 		final String ext;
@@ -261,19 +370,28 @@ public class ExportN5API implements ImgExport
 		else
 			ext = ".zarr";
 
+		if ( bdv && storageType == StorageType.ZARR )
+		{
+			IOFunctions.println( "BDV-compatible ZARR file not (yet) supported." );
+			return false;
+		}
+
+		//
+		// next dialog
+		//
 		final GenericDialogPlus gd = new GenericDialogPlus( "Export " + name +" using N5-API" );
 
 		if ( defaultPath == null || defaultPath.length() == 0 )
 		{
 			defaultPath = fusion.getSpimData().getBasePath().getAbsolutePath();
-			
+
 			if ( defaultPath.endsWith( "/." ) )
 				defaultPath = defaultPath.substring( 0, defaultPath.length() - 1 );
 			
 			if ( defaultPath.endsWith( "/./" ) )
 				defaultPath = defaultPath.substring( 0, defaultPath.length() - 2 );
 
-			defaultPath += defaultDatasetName+ext;
+			defaultPath = new File( defaultPath, defaultDatasetName + "/" + defaultDatasetName+ext ).getAbsolutePath();
 		}
 
 		if ( storageType == StorageType.HDF5 )
@@ -281,14 +399,42 @@ public class ExportN5API implements ImgExport
 		else
 			PluginHelper.addSaveAsDirectoryField( gd, name + "_dataset_path (should end with "+ext+")", defaultPath, 80 );
 
-		gd.addStringField( name + "_base_dataset", defaultBaseDataset );
-		gd.addStringField( name + "_dataset_extension", defaultDatasetExtension );
+		if ( bdv )
+		{
+			if ( defaultXMLOut == null )
+			{
+				defaultXMLOut = fusion.getSpimData().getBasePath().getAbsolutePath();
 
-		gd.addMessage(
-				"Note: Data inside the HDF5/N5/ZARR container are stored in datasets (similar to a filesystem).\n"
-				+ "Each fused volume will be named according to its content (e.g. fused_tp0_ch2) and become a\n"
-				+ "dataset inside the 'base dataset'. You can add a dataset extension for each volume,\n"
-				+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+				if ( defaultXMLOut.endsWith( "/." ) )
+					defaultXMLOut = defaultXMLOut.substring( 0, defaultXMLOut.length() - 1 );
+
+				if ( defaultXMLOut.endsWith( "/./" ) )
+					defaultXMLOut = defaultXMLOut.substring( 0, defaultXMLOut.length() - 2 );
+
+				defaultXMLOut = new File( defaultXMLOut, defaultDatasetName + "/dataset.xml" ).toString();
+			}
+
+			PluginHelper.addSaveAsFileField( gd, "XML_output_file", defaultXMLOut, 80 );
+
+			if ( fusion.getFusionGroups().size() == 1 )
+			{
+				gd.addCheckbox( "Manually_define_ViewId", defaultManuallyAssignViewId );
+				gd.addNumericField( "ViewId_TimepointId", defaultTpId);
+				gd.addNumericField( "ViewId_SetupId", defaultVSId);
+				gd.addMessage( "" );
+			}
+		}
+		else
+		{
+			gd.addStringField( name + "_base_dataset", defaultBaseDataset );
+			gd.addStringField( name + "_dataset_extension", defaultDatasetExtension );
+	
+			gd.addMessage(
+					"Note: Data inside the HDF5/N5/ZARR container are stored in datasets (similar to a filesystem).\n"
+					+ "Each fused volume will be named according to its content (e.g. fused_tp0_ch2) and become a\n"
+					+ "dataset inside the 'base dataset'. You can add a dataset extension for each volume,\n"
+					+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		}
 
 		// export type changed or undefined
 		if ( defaultBlocksizeX <= 0 || storageType.ordinal() != previousExportOption )
@@ -316,8 +462,28 @@ public class ExportN5API implements ImgExport
 			return false;
 
 		this.path = defaultPath = gd.getNextString().trim();
-		this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
-		this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
+
+		if ( bdv )
+		{
+			this.xmlOut = defaultXMLOut = gd.getNextString();
+
+			if ( fusion.getFusionGroups().size() == 1 )
+			{
+				this.manuallyAssignViewId = gd.getNextBoolean();
+				this.tpId = (int)Math.round( gd.getNextNumber() );
+				this.vsId = (int)Math.round( gd.getNextNumber() );
+			}
+			else
+			{
+				// depends on fusion group, defined during export
+				// ExportTools.createBDVPath( this.bdvString, this.storageType );
+			}
+		}
+		else
+		{
+			this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
+			this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
+		}
 
 		bsX = defaultBlocksizeX = (int)Math.round( gd.getNextNumber() );
 		bsY = defaultBlocksizeY = (int)Math.round( gd.getNextNumber() );
@@ -326,19 +492,43 @@ public class ExportN5API implements ImgExport
 		return true;
 	}
 
-	@Override
-	public boolean finish()
+	private ViewId getViewIdForGroup(
+			final Group< ? extends ViewId > group,
+			final int splittingType )
 	{
-		driverVolumeWriter.close();
-		return true;
+		// 0 == "Each timepoint &amp; channel",
+		// 1 == "Each timepoint, channel &amp; illumination",
+		// 2 == "All views together",
+		// 3 == "Each view"
+
+		final ViewId vd = group.getViews().iterator().next();
+		final int tpId, vsId;
+
+		if ( splittingType == 0 || splittingType == 1 || splittingType == 3 )
+		{
+			tpId = vd.getTimePointId();
+
+			if ( countViewIds.containsKey( tpId ) )
+				vsId = countViewIds.get( tpId ) + 1;
+			else
+				vsId = 0;
+
+			countViewIds.put( tpId, vsId );
+		}
+		else if ( splittingType == 2 )
+		{
+			tpId = 0;
+			vsId = 0;
+
+			// even though this is unnecessary
+			countViewIds.put( tpId, vsId );
+		}
+		else
+		{
+			IOFunctions.println( "SplittingType " + splittingType + " unknown. Stopping.");
+			return null;
+		}
+
+		return new ViewId(tpId, vsId);
 	}
-
-	@Override
-	public int[] blocksize() { return new int[] { bsX, bsY, bsZ }; }
-
-	@Override
-	public ImgExport newInstance() { return new ExportN5API(); }
-
-	@Override
-	public String getDescription() { return "ZARR/N5/HDF5 export using N5-API"; }
 }
