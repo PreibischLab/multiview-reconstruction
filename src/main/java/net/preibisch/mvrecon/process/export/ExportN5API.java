@@ -48,8 +48,10 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.ShortType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -133,15 +135,13 @@ public class ExportN5API implements ImgExport
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			final RandomAccessibleInterval<T> imgInterval,
+			RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
 			final String title,
 			final Group<? extends ViewId> fusionGroup)
 	{
-		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
-
 		if ( driverVolumeWriter == null )
 		{
 			IOFunctions.println( "Creating " + storageType + " container '" + path + "' (assuming it doesn't already exist) ... " );
@@ -169,17 +169,28 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
-		final T type = Views.iterable( img ).firstElement().createVariable();
+		final T type = Views.iterable( imgInterval ).firstElement().createVariable();
 		final DataType dataType;
 
 		if ( UnsignedByteType.class.isInstance( type ) )
 			dataType = DataType.UINT8;
+		else if ( UnsignedShortType.class.isInstance( type ) && bdv && storageType == StorageType.HDF5 )
+		{
+			// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
+			// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
+			// https://github.com/bigdataviewer/bigdataviewer-core/issues/154
+			// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
+			imgInterval = (RandomAccessibleInterval)Converters.convertRAI( (RandomAccessibleInterval<UnsignedShortType>)(Object)imgInterval, (i,o)->o.set( i.getShort() ), new ShortType() );
+			dataType = DataType.INT16;
+		}
 		else if ( UnsignedShortType.class.isInstance( type ) )
 			dataType = DataType.UINT16;
 		else if ( FloatType.class.isInstance( type ) )
 			dataType = DataType.FLOAT32;
 		else
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
+
+		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
 		final String dataset;
 		final ViewId viewId;
@@ -194,8 +205,6 @@ public class ExportN5API implements ImgExport
 		}
 		else
 		{
-			// TODO: 32-bit HDF5 BDV export cannot be opened
-
 			if ( manuallyAssignViewId )
 				viewId = new ViewId( tpId, vsId );
 			else
