@@ -360,6 +360,11 @@ public class ExportN5API implements ImgExport
 		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export (HDF5/N5 are supported)", defaultBDV );
 
 		gdInit.addMessage(
+				"HDF5/BDV currently only supports 8-bit, 16-bit\n"
+				+ "N5/BDV supports 8-bit, 16-bit & 32-bit",
+				GUIHelper.smallStatusFont, GUIHelper.warning );
+
+		gdInit.addMessage(
 				"Note: if you selected a single image to fuse (e.g. all tiles of one channel), you can manually\n"
 				+ "specify the ViewId it will be assigned in the following dialog. This is useful if you want to\n"
 				+ "add the fused image to an existing dataset so you can specify a ViewId that does not exist yet.",
@@ -388,6 +393,12 @@ public class ExportN5API implements ImgExport
 		if ( bdv && storageType == StorageType.ZARR )
 		{
 			IOFunctions.println( "BDV-compatible ZARR file not (yet) supported." );
+			return false;
+		}
+
+		if ( bdv && storageType == StorageType.HDF5 && fusion.getPixelType() == 0 )
+		{
+			IOFunctions.println( "BDV-compatible HDF5 @ 32-bit not (yet) supported." );
 			return false;
 		}
 
