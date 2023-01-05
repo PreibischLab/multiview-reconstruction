@@ -72,6 +72,8 @@ public class LazyFusionTools {
 								type.createVariable(),
 								AccessFlags.setOf(),
 								consumer ),
+						// TODO: fix cache with block=1
+						// TODO: nullcache
 						fusionInterval.minAsLongArray() );
 
 		return fused;
