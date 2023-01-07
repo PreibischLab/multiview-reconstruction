@@ -43,6 +43,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
@@ -147,7 +148,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 				int count = 0;
 				for ( final ViewId view : viewIdsToProcess )
 				{
-					final double[] minmax = FusionTools.minMaxApprox( DownsampleTools.openAtLowestLevel( imgLoader, view ) );
+					final double[] minmax = FusionTools.minMaxApprox1( DownsampleTools.openAtLowestLevel( imgLoader, view ) );
 					min = Math.min( min, minmax[ 0 ] );
 					max = Math.max( max, minmax[ 1 ] );
 
@@ -497,13 +498,17 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Determining same Min & Max for all views... " );
 			preprocess();
 		}
+		else
+		{
+			final double[] minmax = FusionTools.minMaxApprox1( img );
+
+			minIntensity = minmax[ 0 ];
+			maxIntensity = minmax[ 1 ];
+		}
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Wrapping ImagePlus around input image ... " );
 
-		if ( Double.isNaN( minIntensity ) || Double.isNaN( maxIntensity ) )
-			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), Double.NaN, Double.NaN );
-		else
-			return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), minIntensity, maxIntensity );
+		return DisplayImage.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), minIntensity, maxIntensity );
 	}
 
 	protected ImagePlus getGroupedImagePlusForInteractive( final String dialogHeader )
