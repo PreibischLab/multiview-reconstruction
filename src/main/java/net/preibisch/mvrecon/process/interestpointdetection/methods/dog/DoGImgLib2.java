@@ -180,7 +180,7 @@ public class DoGImgLib2
 		if ( localization == 0 )
 			minInitialPeakValue = minPeakValue;
 		else
-			minInitialPeakValue = (float)threshold/10.0f;
+			minInitialPeakValue = (float)threshold/3.0f;
 
 		final float min, max;
 
