@@ -502,20 +502,20 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 							Integer angleId = angleIndexList.get( a );
 							Integer tileId = tileIndexList.get( ti );
 							
-							System.out.println( "VS: " + viewSetupId );
+							IOFunctions.println( "Finalizing ViewSetup: " + viewSetupId );
 							
 							if (viewList.size() < 1)
 							{
-								System.out.println( "Missing View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i );
+								IOFunctions.println( "Missing View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i );
 								int missingSetup = addedViewSetup ? viewSetupId - 1 : viewSetupId;
 								missingViewIds.add( new ViewId( tpId, missingSetup ) );
 								
 							}
 							else if (viewList.size() > 1)
-								System.out.println( "Error: more than one View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i );
+								IOFunctions.println( "Error: more than one View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i );
 							else
 							{
-								System.out.println( "Found View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i + " in file " + viewList.get( 0 ).getA().getAbsolutePath());
+								IOFunctions.println( "Found View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i + " in file " + viewList.get( 0 ).getA().getAbsolutePath());
 								
 								TimePoint tpI = new TimePoint( tpId );
 								if (!timePoints.contains( tpI ))
