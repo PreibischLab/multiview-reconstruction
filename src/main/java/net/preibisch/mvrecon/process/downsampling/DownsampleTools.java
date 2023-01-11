@@ -31,20 +31,11 @@ import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import net.imglib2.IterableInterval;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.Converter;
-import net.imglib2.converter.RealTypeConverters;
-import net.imglib2.loops.LoopBuilder;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.IntervalView;
-import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
@@ -279,6 +270,7 @@ public class DownsampleTools
 		
 		return downSamplingFactors;
 	}
+
 	public static void correctForDownsampling( final List< InterestPoint > ips, final AffineTransform3D t )
 	{
 		IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Correcting coordinates for downsampling using AffineTransform: " + t );
@@ -322,46 +314,6 @@ public class DownsampleTools
 
 		return (int)Math.round( exp2 );
 	}
-
-	/*
-	public static RandomAccessibleInterval< FloatType > openAtLowestLevelFloat(
-			final ImgLoader imgLoader,
-			final ViewId view )
-	{
-		return openAtLowestLevelFloat( imgLoader, view, null );
-	}
-
-	public static RandomAccessibleInterval< FloatType > openAtLowestLevelFloat(
-			final ImgLoader imgLoader,
-			final ViewId view,
-			final AffineTransform3D t )
-	{
-		final RandomAccessibleInterval< FloatType > input;
-
-		if ( MultiResolutionImgLoader.class.isInstance( imgLoader ) )
-		{
-			final MultiResolutionImgLoader mrImgLoader = ( MultiResolutionImgLoader ) imgLoader;
-			final double[][] mipmapResolutions = mrImgLoader.getSetupImgLoader( view.getViewSetupId() ).getMipmapResolutions();
-			final int bestLevel = findLowestResolutionLevel( mrImgLoader, view );
-
-			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Loading level " + Util.printCoordinates( mipmapResolutions[ bestLevel ] ) );
-
-			input = mrImgLoader.getSetupImgLoader( view.getViewSetupId() ).getFloatImage( view.getTimePointId(), bestLevel, false );
-			if ( t != null )
-				t.set( mrImgLoader.getSetupImgLoader( view.getViewSetupId() ).getMipmapTransforms()[ bestLevel ] );
-		}
-		else
-		{
-			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Loading full-resolution images :( " );
-
-			input = imgLoader.getSetupImgLoader( view.getViewSetupId() ).getFloatImage( view.getTimePointId(), false );
-			if ( t != null )
-				t.identity();
-		}
-
-		return input;
-	}
-	*/
 
 	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openAtLowestLevel(
@@ -594,47 +546,6 @@ public class DownsampleTools
 		}
 
 		return input;
-	}
-
-	// TODO: Remove when RealTypeConvertes.copyFromTo has multithreading support
-	public static void copyFromToMultithreaded(
-			final RandomAccessible< ? extends RealType< ? > > source,
-			final RandomAccessibleInterval< ? extends RealType< ? > > destination )
-	{
-		final IntervalView< ? extends RealType< ? > > sourceInterval = Views.interval( source, destination );
-		final RealType< ? > s = net.imglib2.util.Util.getTypeFromInterval( sourceInterval );
-		final RealType< ? > d = net.imglib2.util.Util.getTypeFromInterval( destination );
-		final Converter< RealType< ? >, RealType< ? > > copy = RealTypeConverters.getConverter( s, d );
-		LoopBuilder.setImages( sourceInterval, destination ).multiThreaded().forEachPixel( copy::convert );
-	}
-
-	private static float[] getMinMax( final IterableInterval< FloatType > img )
-	{
-		float currentMax = img.firstElement().get();
-		float currentMin = currentMax;
-		for ( final FloatType t : img )
-		{
-			final float f = t.get();
-			if ( f > currentMax )
-				currentMax = f;
-			else if ( f < currentMin )
-				currentMin = f;
-		}
-
-		return new float[] { currentMin, currentMax };
-	}
-
-	/*
-	 * normalize img to 0...1 in place
-	 */
-	public static void normalize( final IterableInterval< FloatType > img )
-	{
-		final float[] minmax = getMinMax( img );
-		final float min = minmax[ 0 ];
-		final float max = minmax[ 1 ];
-		final float scale = ( float ) ( 1.0 / ( max - min ) );
-		for ( final FloatType t : img )
-			t.set( ( t.get() - min ) * scale );
 	}
 
 	private static final boolean contains( final int i, final int[] values )
