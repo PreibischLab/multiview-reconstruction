@@ -24,14 +24,11 @@ package net.preibisch.mvrecon.process.downsampling;
 
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
-import mpicbg.spim.data.generic.sequence.BasicSetupImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
-import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.IterableInterval;
@@ -39,12 +36,8 @@ import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealTypeConverters;
-import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -53,9 +46,7 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import util.ImgLib2Tools;
 
 public class DownsampleTools
 {
@@ -332,6 +323,7 @@ public class DownsampleTools
 		return (int)Math.round( exp2 );
 	}
 
+	/*
 	public static RandomAccessibleInterval< FloatType > openAtLowestLevelFloat(
 			final ImgLoader imgLoader,
 			final ViewId view )
@@ -369,6 +361,7 @@ public class DownsampleTools
 
 		return input;
 	}
+	*/
 
 	@SuppressWarnings("rawtypes")
 	public static RandomAccessibleInterval openAtLowestLevel(
@@ -435,6 +428,48 @@ public class DownsampleTools
 	}
 
 	/**
+	 * Returns the mipmap transform if you were to open that ViewId with this ImgLoader at the specified downsample factors
+	 * 
+	 * @param imgLoader the imgloader
+	 * @param vd the view id
+	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @return the mipmap transform
+	 */
+	public static AffineTransform3D getMipMapTransform(
+			final BasicImgLoader imgLoader,
+			final ViewId vd,
+			final long[] downsampleFactors )
+	{
+		final AffineTransform3D mmt = new AffineTransform3D();
+
+		openAndDownsample( imgLoader, vd, mmt, downsampleFactors, true );
+
+		return mmt;
+	}
+
+	/**
+	 * Opens the image at a specified downsampling level (e.g. 4,4,1). It finds the closest available mipmap level and then downsamples
+	 * to reach the target level
+	 *
+	 * @param imgLoader the imgloader
+	 * @param vd the view id
+	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @return opened image and the mipmap transform
+	 */
+	@SuppressWarnings({ "rawtypes" })
+	public static Pair<RandomAccessibleInterval, AffineTransform3D> openAndDownsample(
+			final BasicImgLoader imgLoader,
+			final ViewId vd,
+			final long[] downsampleFactors )
+	{
+		final AffineTransform3D mipMapTransform = new AffineTransform3D();
+
+		final RandomAccessibleInterval img = openAndDownsample(imgLoader, vd, mipMapTransform, downsampleFactors, false );
+
+		return new ValuePair<RandomAccessibleInterval, AffineTransform3D>( img, mipMapTransform );
+	}
+
+	/**
 	 * Opens the image at a specified downsampling level (e.g. 4,4,1). It finds the closest available mipmap level and then downsamples
 	 * to reach the target level
 	 *
@@ -443,23 +478,21 @@ public class DownsampleTools
 	 * @param mipMapTransform - will be filled if downsampling is performed, otherwise identity transform
 	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
 	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
-	 * @param openAsFloat - call imgLoader.getFloatImage() instead of imgLoader.getImage()
 	 * @return opened image
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static RandomAccessibleInterval openAndDownsample(
+	private static RandomAccessibleInterval openAndDownsample(
 			final BasicImgLoader imgLoader,
 			final ViewId vd,
 			final AffineTransform3D mipMapTransform,
 			long[] downsampleFactors,
-			final boolean transformOnly,
-			final boolean openAsFloat ) // only for ImgLib1 legacy code
+			final boolean transformOnly ) // only for ImgLib1 legacy code
 	{
 
-		if ( !transformOnly )
-			IOFunctions.println(
-				"(" + new Date(System.currentTimeMillis()) + "): "
-				+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + "), downsampling: " + Util.printCoordinates( downsampleFactors ) );
+		//if ( !transformOnly )
+		//	IOFunctions.println(
+		//		"(" + new Date(System.currentTimeMillis()) + "): "
+		//		+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + "), downsampling: " + Util.printCoordinates( downsampleFactors ) );
 
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
@@ -500,14 +533,14 @@ public class DownsampleTools
 
 			if ( !transformOnly )
 			{
-				IOFunctions.println(
-						"(" + new Date(System.currentTimeMillis()) + "): " +
-						"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
-						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
+				//IOFunctions.println(
+				//		"(" + new Date(System.currentTimeMillis()) + "): " +
+				//		"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
+				//		"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
-				if ( openAsFloat )
-					input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
-				else
+				//if ( openAsFloat )
+				//	input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
+				//else
 					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
 			}
 		}
@@ -515,15 +548,15 @@ public class DownsampleTools
 		{
 			if ( !transformOnly )
 			{
-				IOFunctions.println(
-						"(" + new Date(System.currentTimeMillis()) + "): " +
-						"Using precomputed Multiresolution Images [1x1x1], " +
-						"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
+				//IOFunctions.println(
+				//		"(" + new Date(System.currentTimeMillis()) + "): " +
+				//		"Using precomputed Multiresolution Images [1x1x1], " +
+				//		"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
 
 				// we only need to do the complete opening when we do not perform additional downsampling below
-				if ( openAsFloat )
-					input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
-				else
+				//if ( openAsFloat )
+				//	input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
+				//else
 					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
 			}
 

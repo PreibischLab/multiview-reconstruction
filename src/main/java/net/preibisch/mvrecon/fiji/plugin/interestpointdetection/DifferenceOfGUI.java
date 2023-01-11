@@ -43,9 +43,11 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
@@ -474,20 +476,19 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Opening and downsampling ... " );
 
 		@SuppressWarnings("unchecked")
-		RandomAccessibleInterval< FloatType > img = DownsampleTools.openAndDownsample(
+		RandomAccessibleInterval<RealType<?>> imgGeneric = DownsampleTools.openAndDownsample(
 			spimData.getSequenceDescription().getImgLoader(),
 			viewDescription,
-			null,
-			new long[] { downsampleXY, downsampleXY, downsampleZ },
-			false,  //transformOnly
-			true    //openAsFloat
-			);
+			new long[] { downsampleXY, downsampleXY, downsampleZ } ).getA();
 
-		if ( img == null )
+		if ( imgGeneric == null )
 		{
 			IOFunctions.println( "View not found: " + viewDescription );
 			return null;
 		}
+
+		final RandomAccessibleInterval< FloatType > img =
+				Converters.convertRAI( imgGeneric, (i,o) -> o.set( i.getRealFloat() ), new FloatType() );
 
 		// TODO: in the future when the interactive DoG does not copy & normalize anyways
 		//IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Caching input image ... "  );

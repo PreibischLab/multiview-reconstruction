@@ -34,6 +34,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
@@ -137,24 +138,19 @@ public class DoG
 				if ( !vd.isPresent() )
 					continue;
 
-				final AffineTransform3D correctCoordinates = new AffineTransform3D();
-
 				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
 
 				// TODO: downsampling is not virtual!
-				@SuppressWarnings("unchecked")
-				final RandomAccessibleInterval< FloatType > input =
+				@SuppressWarnings({"rawtypes" })
+				final Pair<RandomAccessibleInterval, AffineTransform3D> input =
 						DownsampleTools.openAndDownsample(
 								dog.imgloader,
 								vd,
-								correctCoordinates,
-								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
-								false,  //transformOnly
-								false   //openAsFloat 
-								);
+								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ } );
 
+				@SuppressWarnings("unchecked")
 				List< InterestPoint > ips = DoGImgLib2.computeDoG(
-							input,
+							input.getA(),
 							null, // mask
 							dog.sigma,
 							dog.threshold,
@@ -175,7 +171,7 @@ public class DoG
 				if ( dog.limitDetections )
 					ips = InterestPointTools.limitList( dog.maxDetections, dog.maxDetectionsTypeIndex, ips );
 
-				DownsampleTools.correctForDownsampling( ips, correctCoordinates );
+				DownsampleTools.correctForDownsampling( ips, input.getB() );
 
 				interestPoints.put( vd, ips );
 			} catch ( Exception e )
