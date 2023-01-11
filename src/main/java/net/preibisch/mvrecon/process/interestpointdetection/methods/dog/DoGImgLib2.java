@@ -255,7 +255,7 @@ public class DoGImgLib2
 		}
 		else
 		{
-			maskFloat = ImgLib2Tools.convertVirtual( mask );
+			maskFloat = Converters.convertRAI( mask, (i,o) -> o.set( i.getRealFloat() ), new FloatType());//ImgLib2Tools.convertVirtual( mask );
 
 			gauss1 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
 			gauss2 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
