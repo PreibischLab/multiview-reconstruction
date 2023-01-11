@@ -62,18 +62,18 @@ public class Threads
 		{
 			int numBatches = tasks.size() / batchSize + Math.min( 1, tasks.size() % batchSize );
 
-			System.out.println( "numtasks=" + tasks.size() );
-			System.out.println( "numbatches=" + numBatches );
+			//System.out.println( "numtasks=" + tasks.size() );
+			//System.out.println( "numbatches=" + numBatches );
 
 			for ( int i = 0; i < numBatches; ++i )
 			{
-				System.out.println( "batch " + i );
+				//System.out.println( "batch " + i );
 
 				final ArrayList< Callable< T > > list = new ArrayList<>();
 
 				for ( int j = i * batchSize; j < (i+1) * batchSize && j < tasks.size(); ++j )
 				{
-					System.out.println( "adding " + j );
+					//System.out.println( "adding " + j );
 					list.add( tasks.get( j ) );
 				}
 
