@@ -505,8 +505,8 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 		}
 		catch ( Exception e)
 		{
-			IOFunctions.println( "Could not open file: '" + file.getAbsolutePath() + "'" );
-			e.printStackTrace();
+			IOFunctions.println( "Could not read metadata for file: '" + file.getAbsolutePath() + "'" );
+			//e.printStackTrace();
 			return null;
 		}
 	}
