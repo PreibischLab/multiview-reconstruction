@@ -233,7 +233,7 @@ public class OpenSeaDragon implements ImgExport
 		return true;
 	}
 
-	private static String getNameForFusionGroup(
+	protected static String getNameForFusionGroup(
 			final Group<ViewDescription> group,
 			final int splittingType )
 	{
