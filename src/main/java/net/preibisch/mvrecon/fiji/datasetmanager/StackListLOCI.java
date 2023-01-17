@@ -93,7 +93,11 @@ public class StackListLOCI extends StackList
 		}
 
 		final double[] loc = LegacyStackImgLoaderLOCI.loadTileLocation( file, seriesOffset );
-		return loc;
+
+		if ( loc == null )
+			return new double[3];
+		else
+			return loc;
 	};
 
 	@Override
