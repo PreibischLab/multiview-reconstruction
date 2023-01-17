@@ -58,6 +58,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.export.ExportLarge2DTIFF;
 import net.preibisch.mvrecon.process.export.ExportN5API;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.OpenSeaDragon;
@@ -130,6 +131,9 @@ public class FusionGUI implements FusionExportInterface
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
 		staticImgExportAlgorithms.add( new ExportN5API() );
 		staticImgExportAlgorithms.add( new OpenSeaDragon() );
+
+		//staticImgExportAlgorithms.add( new ExportLarge2DTIFF() );
+
 		//staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
 		//staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
 		//staticImgExportAlgorithms.add( new AppendSpimData2HDF5() );
