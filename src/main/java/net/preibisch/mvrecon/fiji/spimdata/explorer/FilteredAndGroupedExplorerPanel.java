@@ -394,9 +394,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			return;
 		
 		// we always set the fused mode
-		setFusedModeSimple( bdv, data );
+		//setFusedModeSimple( bdv, data );
 		
-		resetBDVManualTransformations( bdv );
+		//resetBDVManualTransformations( bdv );
 
 		if ( selectedRows == null || selectedRows.size() == 0 )
 			return;
@@ -406,7 +406,8 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 
 		// always use the first timepoint
 		final TimePoint firstTP = firstVD.getTimePoint();
-		bdv.getViewer().setTimepoint( getBDVTimePointIndex( firstTP, data ) );
+		if ( bdv.getViewer().getState().getCurrentTimepoint() != getBDVTimePointIndex( firstTP, data ) )
+			bdv.getViewer().setTimepoint( getBDVTimePointIndex( firstTP, data ) );
 
 		final boolean[] active = new boolean[data.getSequenceDescription().getViewSetupsOrdered().size()];
 
