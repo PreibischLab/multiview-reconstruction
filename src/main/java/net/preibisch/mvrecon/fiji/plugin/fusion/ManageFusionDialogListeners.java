@@ -157,7 +157,7 @@ public class ManageFusionDialogListeners
 		label2.setText( "Dimensions: " + 
 				Math.round( (max[ 0 ] - min[ 0 ] + 1)/fusion.downsampling ) + " x " + 
 				Math.round( (max[ 1 ] - min[ 1 ] + 1)/fusion.downsampling ) + " x " + 
-				Math.round( (max[ 2 ] - min[ 2 ] + 1)/(fusion.downsampling ) ) + " pixels @ " + FusionGUI.pixelTypes1[ fusion.pixelType ] );
+				Math.max( 1, Math.round( (max[ 2 ] - min[ 2 ] + 1)/(fusion.downsampling ) ) ) + " pixels @ " + FusionGUI.pixelTypes1[ fusion.pixelType ] );
 	}
 
 	public long totalRAM( long fusedSizeMB, final int bytePerPixel )

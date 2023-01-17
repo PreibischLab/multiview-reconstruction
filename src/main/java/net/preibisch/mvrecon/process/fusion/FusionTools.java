@@ -152,7 +152,7 @@ public class FusionTools
 		long numpixels = 1;
 
 		for ( int d = 0; d < min.length; ++d )
-			numpixels *= Math.round( (max[ d ] - min[ d ] + 1)/ds );
+			numpixels *= Math.max( 1, Math.round( (max[ d ] - min[ d ] + 1)/ds ) );
 
 		return numpixels;
 	}
