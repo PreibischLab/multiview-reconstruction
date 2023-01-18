@@ -37,12 +37,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
+
+import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriter;
+import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriterSpi;
+import com.github.jaiimageio.plugins.tiff.TIFFImageWriteParam;
 
 import bdv.util.ConstantRandomAccessible;
 import fiji.util.gui.GenericDialogPlus;
@@ -55,6 +60,7 @@ import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
@@ -64,10 +70,14 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.TIFFImageWriterCopy;
 
 public class ExportLarge2DTIFF implements ImgExport
 {
+	public static ExecutorService service = DeconViews.createExecutorService();
 	public static String defaultPath = null;
 
 	public static int defaultChoiceR = 0;
@@ -87,7 +97,7 @@ public class ExportLarge2DTIFF implements ImgExport
 	public String getDescription() { return "Large 2D-TIFF (supports 8-bit, 2D slices only)"; }
 
 	@Override
-	public int[] blocksize() { return new int[] { 128, 128, 1 }; } // ?
+	public int[] blocksize() { return new int[] { 128, 1024, 1 }; } // TIFF writer writes Width * 16 blocks, so this is to maximize multi-threading efficiency
 
 	@Override
 	public boolean finish() { return true; }
@@ -133,13 +143,17 @@ public class ExportLarge2DTIFF implements ImgExport
 							new BufferedOutputStream(
 									new FileOutputStream(path)));
 
-			final ImageWriter writer = ImageIO.getImageWritersBySuffix("tif").next();
+			//final ImageWriter writer = ImageIO.getImageWritersBySuffix("tif").next();
+			final TIFFImageWriterCopy writer = new TIFFImageWriterCopy(new TIFFImageWriterSpi());
 			writer.setOutput(ios);
 
 			final ImageWriteParam param = writer.getDefaultWriteParam();
-			//param.setTilingMode(ImageWriteParam.MODE_DEFAULT);
+			param.setTilingMode(ImageWriteParam.MODE_DEFAULT);
+			/*
 			param.setTilingMode(ImageWriteParam.MODE_EXPLICIT);
-			param.setTiling(blocksize()[ 0 ],  blocksize()[ 1 ], 0, 0);
+			param.setTiling(blocksize()[ 0 ],  blocksize()[ 1 ], 0, 0);*/
+			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+			param.setCompressionType("LZW");
 
 			final RenderedImage mosaic = new ImgLib2RenderedImage( rgb, new int[] { blocksize()[ 0 ],  blocksize()[ 1 ] } ); // seems like the blocksize does not matter
 
@@ -257,10 +271,16 @@ public class ExportLarge2DTIFF implements ImgExport
 		@Override
 		public Raster getData( final Rectangle rectangle )
 		{
+			IOFunctions.println( "processing rectangle: " + rectangle );
+			//System.exit( 0 );
 			final Interval interval = new FinalInterval(
 					new long[] {rectangle.x, rectangle.y},
 					new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1 } );
-			final RandomAccessibleInterval<ARGBType> block = Views.zeroMin( Views.interval( img, interval ) );
+			final RandomAccessibleInterval<ARGBType> blockIn = Views.zeroMin( Views.interval( img, interval ) );
+			final RandomAccessibleInterval<ARGBType> block = ArrayImgs.argbs( blockIn.dimensionsAsLongArray() );
+
+			// multi-threaded hack
+			FusionTools.copyImg( blockIn, block, service );
 
 			final BufferedImage bi = new BufferedImage( rectangle.width, rectangle.height, BufferedImage.TYPE_3BYTE_BGR );
 			final Cursor<ARGBType> c = Views.flatIterable( block ).cursor();
@@ -335,7 +355,17 @@ public class ExportLarge2DTIFF implements ImgExport
 
 	public static void main( String[] args )
 	{
+		TIFFImageWriteParam pa = new TIFFImageWriteParam( null );
+		String[] s = pa.getCompressionTypes();
 
+		pa.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+		pa.setCompressionType("LZW");
+
+		for ( final String a : s )
+			System.out.println( a );
+		TIFFImageWriter a = (TIFFImageWriter)ImageIO.getImageWritersBySuffix("tif").next();
+		System.out.println( a );
+		System.exit( 0 );
 		try
 		{
 			final FunctionRandomAccessible<ARGBType> checkerboard = new FunctionRandomAccessible<>(
