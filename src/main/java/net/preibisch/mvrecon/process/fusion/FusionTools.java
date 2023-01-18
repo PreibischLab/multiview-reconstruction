@@ -872,7 +872,7 @@ public class FusionTools
 		}
 	}
 
-	public static void copyImg( final RandomAccessibleInterval< FloatType > input, final RandomAccessibleInterval< FloatType > output, final ExecutorService service )
+	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service )
 	{
 		copyImg( input, output, service, false );
 	}
