@@ -2682,12 +2682,13 @@ public class TIFFImageWriterCopy extends ImageWriter {
                     // Fill in the offset and byte count for the file
                     stream.mark();
                     stream.seek(stripOrTileOffsetsPosition);
-                    stream.writeInt((int)pos);
-                    stripOrTileOffsetsPosition += 4;
+                    stream.writeLong(pos);
+                    //stream.writeInt((int)pos);
+                    stripOrTileOffsetsPosition += 8;
                     
                     stream.seek(stripOrTileByteCountsPosition);
-                    stream.writeInt(byteCount);
-                    stripOrTileByteCountsPosition += 4;
+                    stream.writeLong(byteCount);
+                    stripOrTileByteCountsPosition += 8;
                     stream.reset();
                 } catch (IOException e) {
                     throw new IIOException("I/O error writing TIFF file!", e);

@@ -44,6 +44,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
+import javax.print.attribute.standard.MediaSize.ISO;
 
 import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriter;
 import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriterSpi;
@@ -80,13 +81,18 @@ public class ExportLarge2DTIFF implements ImgExport
 	public static ExecutorService service = DeconViews.createExecutorService();
 	public static String defaultPath = null;
 
+	final static String noCompression = "No compression";
+	final static int[] imgLib2blockSize = new int[] { 128, 1024, 1 };
+
 	public static int defaultChoiceR = 0;
 	public static int defaultChoiceG = 1;
 	public static int defaultChoiceB = 2;
+	public static String defaultCompression = noCompression;
 
 	File path;
 	int choiceR, choiceG, choiceB;
 	int numFusionGroups;
+	String compression;
 
 	ArrayList< RandomAccessibleInterval< UnsignedByteType > > groups = new ArrayList<>();
 
@@ -97,7 +103,7 @@ public class ExportLarge2DTIFF implements ImgExport
 	public String getDescription() { return "Large 2D-TIFF (supports 8-bit, 2D slices only)"; }
 
 	@Override
-	public int[] blocksize() { return new int[] { 128, 1024, 1 }; } // TIFF writer writes Width * 16 blocks, so this is to maximize multi-threading efficiency
+	public int[] blocksize() { return imgLib2blockSize.clone(); } // TIFF writer writes Width * 16 blocks, so this is to maximize multi-threading efficiency
 
 	@Override
 	public boolean finish() { return true; }
@@ -152,8 +158,17 @@ public class ExportLarge2DTIFF implements ImgExport
 			/*
 			param.setTilingMode(ImageWriteParam.MODE_EXPLICIT);
 			param.setTiling(blocksize()[ 0 ],  blocksize()[ 1 ], 0, 0);*/
-			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-			param.setCompressionType("LZW");
+
+			if ( !compression.equals( noCompression ) )
+			{
+				IOFunctions.println( "Setting compression: " + compression );
+				param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+				param.setCompressionType(compression);
+			}
+			else
+			{
+				IOFunctions.println( "No compression ... " );
+			}
 
 			final RenderedImage mosaic = new ImgLib2RenderedImage( rgb, new int[] { blocksize()[ 0 ],  blocksize()[ 1 ] } ); // seems like the blocksize does not matter
 
@@ -241,6 +256,8 @@ public class ExportLarge2DTIFF implements ImgExport
 		gd.addChoice( "Green channel", choices, choices[defaultChoiceG] );
 		gd.addChoice( "Blue channel", choices, choices[defaultChoiceB] );
 
+		gd.addChoice( "Compression", getSupportedCompressions(), defaultCompression );
+
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return false;
@@ -250,6 +267,7 @@ public class ExportLarge2DTIFF implements ImgExport
 		this.choiceR = defaultChoiceR = gd.getNextChoiceIndex();
 		this.choiceG = defaultChoiceG = gd.getNextChoiceIndex();
 		this.choiceB = defaultChoiceB = gd.getNextChoiceIndex();
+		this.compression = defaultCompression = gd.getNextChoice();
 
 		return true;
 	}
@@ -276,6 +294,7 @@ public class ExportLarge2DTIFF implements ImgExport
 			final Interval interval = new FinalInterval(
 					new long[] {rectangle.x, rectangle.y},
 					new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1 } );
+
 			final RandomAccessibleInterval<ARGBType> blockIn = Views.zeroMin( Views.interval( img, interval ) );
 			final RandomAccessibleInterval<ARGBType> block = ArrayImgs.argbs( blockIn.dimensionsAsLongArray() );
 
@@ -353,8 +372,24 @@ public class ExportLarge2DTIFF implements ImgExport
 		public WritableRaster copyData(WritableRaster raster) {throw new RuntimeException("not supported.");}
 	}
 
+	public static String[] getSupportedCompressions()
+	{
+		TIFFImageWriteParam pa = new TIFFImageWriteParam( null );
+		String[] comp = pa.getCompressionTypes();
+		String[] all = new String[ comp.length + 1 ];
+
+		all[ 0 ] = noCompression;
+
+		for ( int i = 1; i < all.length; ++i )
+			all[ i ] = comp[ i - 1 ];
+
+		return all;
+	}
+
 	public static void main( String[] args )
 	{
+		System.out.println(ImageIO.getUseCache());
+		
 		TIFFImageWriteParam pa = new TIFFImageWriteParam( null );
 		String[] s = pa.getCompressionTypes();
 
