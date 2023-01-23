@@ -22,59 +22,41 @@
  */
 package net.preibisch.mvrecon.process.export;
 
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageOutputStream;
-import javax.print.attribute.standard.MediaSize.ISO;
-
-import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriter;
-import com.github.jaiimageio.impl.plugins.tiff.TIFFImageWriterSpi;
-import com.github.jaiimageio.plugins.tiff.TIFFImageWriteParam;
-
+import bdv.BigDataViewer;
 import bdv.util.ConstantRandomAccessible;
+import bdv.util.RandomAccessibleIntervalSource;
+import bdv.viewer.Source;
+import bdv.viewer.SourceAndConverter;
+import ch.epfl.biop.kheops.ometiff.OMETiffPyramidizerExporter;
 import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.position.FunctionRandomAccessible;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import util.TIFFImageWriterCopy;
 
 public class ExportLarge2DTIFF implements ImgExport
 {
@@ -144,39 +126,20 @@ public class ExportLarge2DTIFF implements ImgExport
 
 		try
 		{
-			final ImageOutputStream ios =
-					ImageIO.createImageOutputStream(
-							new BufferedOutputStream(
-									new FileOutputStream(path)));
-
-			//final ImageWriter writer = ImageIO.getImageWritersBySuffix("tif").next();
-			final TIFFImageWriterCopy writer = new TIFFImageWriterCopy(new TIFFImageWriterSpi());
-			writer.setOutput(ios);
-
-			final ImageWriteParam param = writer.getDefaultWriteParam();
-			param.setTilingMode(ImageWriteParam.MODE_DEFAULT);
-			/*
-			param.setTilingMode(ImageWriteParam.MODE_EXPLICIT);
-			param.setTiling(blocksize()[ 0 ],  blocksize()[ 1 ], 0, 0);*/
-
-			if ( !compression.equals( noCompression ) )
-			{
-				IOFunctions.println( "Setting compression: " + compression );
-				param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-				param.setCompressionType(compression);
-			}
-			else
-			{
-				IOFunctions.println( "No compression ... " );
-			}
-
-			final RenderedImage mosaic = new ImgLib2RenderedImage( rgb, new int[] { blocksize()[ 0 ],  blocksize()[ 1 ] } ); // seems like the blocksize does not matter
-
-			writer.write(null, new IIOImage(mosaic, null, null), param);
-			writer.dispose();
-			ios.close();
+			OMETiffPyramidizerExporter.builder()
+				.tileSize(1024, 1024)
+				.lzw()
+				//.downsample(2)
+				.nResolutionLevels(1)
+				//.monitor(taskService) // Monitor
+				.maxTilesInQueue(60) // Number of blocks computed in advanced, default 10
+				.savePath(path.getAbsolutePath())
+				.nThreads(Threads.numThreads())
+				.micrometer()
+				.create(createSourceAndConverter(rgb))
+				.export();
 		}
-		catch (IOException e)
+		catch (Exception e)
 		{
 			e.printStackTrace();
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Error writing  Large 2D TIFF file: " + e );
@@ -256,7 +219,7 @@ public class ExportLarge2DTIFF implements ImgExport
 		gd.addChoice( "Green channel", choices, choices[defaultChoiceG] );
 		gd.addChoice( "Blue channel", choices, choices[defaultChoiceB] );
 
-		gd.addChoice( "Compression", getSupportedCompressions(), defaultCompression );
+		//gd.addChoice( "Compression", getSupportedCompressions(), defaultCompression );
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
@@ -267,180 +230,63 @@ public class ExportLarge2DTIFF implements ImgExport
 		this.choiceR = defaultChoiceR = gd.getNextChoiceIndex();
 		this.choiceG = defaultChoiceG = gd.getNextChoiceIndex();
 		this.choiceB = defaultChoiceB = gd.getNextChoiceIndex();
-		this.compression = defaultCompression = gd.getNextChoice();
+		//this.compression = defaultCompression = gd.getNextChoice();
 
 		return true;
 	}
 
-	public static class ImgLib2RenderedImage implements RenderedImage
-	{
-		final Interval interval;
-		final RandomAccessible<ARGBType> img;
-		final int bsX, bsY;
-
-		public ImgLib2RenderedImage( final RandomAccessibleInterval<ARGBType> img, final int[] blockSize )
-		{
-			this.interval = new FinalInterval( img.dimensionsAsLongArray() );
-			this.img = Views.extendZero( Views.zeroMin( img ) ); // for simplicity for now zero-min
-			this.bsX = blockSize[ 0 ];
-			this.bsY = blockSize[ 1 ];
-		}
-
-		@Override
-		public Raster getData( final Rectangle rectangle )
-		{
-			IOFunctions.println( "processing rectangle: " + rectangle );
-			//System.exit( 0 );
-			final Interval interval = new FinalInterval(
-					new long[] {rectangle.x, rectangle.y},
-					new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1 } );
-
-			final RandomAccessibleInterval<ARGBType> blockIn = Views.zeroMin( Views.interval( img, interval ) );
-			final RandomAccessibleInterval<ARGBType> block = ArrayImgs.argbs( blockIn.dimensionsAsLongArray() );
-
-			// multi-threaded hack
-			FusionTools.copyImg( blockIn, block, service );
-
-			final BufferedImage bi = new BufferedImage( rectangle.width, rectangle.height, BufferedImage.TYPE_3BYTE_BGR );
-			final Cursor<ARGBType> c = Views.flatIterable( block ).cursor();
-
-			for ( int y = 0; y < rectangle.height; ++y )
-				for ( int x = 0; x < rectangle.width; ++x )
-					bi.setRGB(x, y, c.next().get() );
-
-			return bi.getRaster();
-		}
-
-		@Override
-		public ColorModel getColorModel() { return new BufferedImage( 16, 16, BufferedImage.TYPE_3BYTE_BGR ).getColorModel(); }
-
-		@Override
-		public SampleModel getSampleModel() { return new BufferedImage( 16, 16, BufferedImage.TYPE_3BYTE_BGR ).getSampleModel(); }
-
-		@Override
-		public int getWidth() { return (int)interval.dimension( 0 ); }
-
-		@Override
-		public int getHeight() { return (int)interval.dimension( 1 ); }
-
-		@Override
-		public int getTileWidth() { return bsX; }
-		
-		@Override
-		public int getTileHeight() { return bsY; }
-		
-		@Override
-		public int getTileGridYOffset() { return 0; }
-		
-		@Override
-		public int getTileGridXOffset() { return 0; }
-		
-		@Override
-		public Raster getTile( final int tileX, final int tileY ) { throw new RuntimeException("not supported."); }
-
-		@Override
-		public Vector<RenderedImage> getSources() { throw new RuntimeException("not supported."); }
-
-		@Override
-		public String[] getPropertyNames() { throw new RuntimeException("not supported."); }
-		
-		@Override
-		public Object getProperty(String name) { throw new RuntimeException("not supported."); }
-		
-		@Override
-		public int getNumXTiles() { return getWidth() / bsX + (getWidth() % bsX == 0 ? 0 : 1 ); }
-
-		@Override
-		public int getNumYTiles() { return getHeight() / bsY + (getHeight() % bsY == 0 ? 0 : 1 ); }
-		
-		@Override
-		public int getMinY() { return (int)interval.min( 1 ); }
-		
-		@Override
-		public int getMinX() {return (int)interval.min( 0 ); }
-		
-		@Override
-		public int getMinTileY() { return 0; }
-		
-		@Override
-		public int getMinTileX() { return 0; }
-
-		@Override
-		public Raster getData() { throw new RuntimeException("not supported."); }
-
-		@Override
-		public WritableRaster copyData(WritableRaster raster) {throw new RuntimeException("not supported.");}
-	}
-
 	public static String[] getSupportedCompressions()
 	{
-		TIFFImageWriteParam pa = new TIFFImageWriteParam( null );
-		String[] comp = pa.getCompressionTypes();
-		String[] all = new String[ comp.length + 1 ];
+		return new String[] { noCompression, "LZW", "JPEG2000", "JPEG2000 lossy", "JPG" };
+	}
 
-		all[ 0 ] = noCompression;
+	public static SourceAndConverter<ARGBType> createSourceAndConverter( RandomAccessibleInterval<ARGBType> img )
+	{
+		if ( img.numDimensions() == 2 )
+			img = Views.addDimension( img, 0, 0 );
 
-		for ( int i = 1; i < all.length; ++i )
-			all[ i ] = comp[ i - 1 ];
-
-		return all;
+		final Source< ARGBType > source = new RandomAccessibleIntervalSource<>( img, new ARGBType(), new AffineTransform3D(), "noname" );
+		return new SourceAndConverter<>( source, BigDataViewer.createConverterToARGB( new ARGBType() ) );
 	}
 
 	public static void main( String[] args )
 	{
-		System.out.println(ImageIO.getUseCache());
-		
-		TIFFImageWriteParam pa = new TIFFImageWriteParam( null );
-		String[] s = pa.getCompressionTypes();
+		final FunctionRandomAccessible<ARGBType> checkerboard = new FunctionRandomAccessible<>(
+				2,
+				(location, value) -> {
+					value.set(
+							Math.abs(location.getIntPosition(0)) % 10 +
+									(-Math.abs(location.getIntPosition(1))));// % 10 +Math.abs(location.getIntPosition(2)) % 10 );
+				},
+				ARGBType::new);
 
-		pa.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-		pa.setCompressionType("LZW");
+		RandomAccessibleInterval<ARGBType> img = Views.interval( checkerboard , new FinalInterval( new long[] { 0, 0 }, new long[] { 500, 100 }));
 
-		for ( final String a : s )
-			System.out.println( a );
-		TIFFImageWriter a = (TIFFImageWriter)ImageIO.getImageWritersBySuffix("tif").next();
-		System.out.println( a );
-		System.exit( 0 );
-		try
-		{
-			final FunctionRandomAccessible<ARGBType> checkerboard = new FunctionRandomAccessible<>(
-					2,
-					(location, value) -> {
-						value.set(
-								Math.abs(location.getIntPosition(0)) % 3 +
-										(-Math.abs(location.getIntPosition(1))) % 3);
-					},
-					ARGBType::new);
+		ImageJFunctions.show( img  );
+		//SimpleMultiThreading.threadHaltUnClean();
+		//converterSetups.add( BigDataViewer.createConverterSetup( soc, setupId ) );
+		//sources.add( soc );
 
-			final RandomAccessibleInterval<ARGBType> img = Views.interval( checkerboard , new FinalInterval( new long[] { 0, 0 }, new long[] { 50000, 100000}));
-			//new ImageJ();
-			//ImageJFunctions.show( img );
-			//SimpleMultiThreading.threadHaltUnClean();
+		//SourceAndConverter sac = new SourceAndConverter(null, converter);
 
-
-
-			final ImageOutputStream ios =
-					ImageIO.createImageOutputStream(
-							new BufferedOutputStream(
-									new FileOutputStream(
-											new File("/Users/preibischs/Downloads/test2.tiff"))));
-
-			final ImageWriter writer = ImageIO.getImageWritersBySuffix("tif").next();
-			writer.setOutput(ios);
-
-			final ImageWriteParam param = writer.getDefaultWriteParam();
-			//param.setTilingMode(ImageWriteParam.MODE_DEFAULT);
-			//param.setTilingMode(ImageWriteParam.MODE_EXPLICIT);
-			//param.setTiling(128, 128, 0, 0);
-
-			final RenderedImage mosaic = new ImgLib2RenderedImage( img, new int[] { 128, 128 } ); // seems like the blocksize does not matter
-
-			writer.write(null, new IIOImage(mosaic, null, null), param);
-
-			System.out.println( "done" );
-
-		} catch (IOException ex) {
-
+		try {
+			OMETiffPyramidizerExporter.builder()
+				.tileSize(Math.min(1024,(int)img.dimension(0)), Math.min(1024,(int)img.dimension(1)))
+				.lzw()
+				//.downsample(2)
+				.nResolutionLevels(1)
+				//.monitor(taskService) // Monitor
+				.maxTilesInQueue(60) // Number of blocks computed in advanced, default 10
+				.savePath("/Users/preibischs/Downloads/test2a.tiff")
+				.nThreads(Threads.numThreads())
+				.micrometer()
+				.create(createSourceAndConverter(img))
+				.export();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
+		System.out.println( "done");
 	}
 }

@@ -131,7 +131,7 @@ public class FusionGUI implements FusionExportInterface
 		staticImgExportAlgorithms.add( new ExportN5API() );
 		staticImgExportAlgorithms.add( new OpenSeaDragon() );
 
-		//staticImgExportAlgorithms.add( new ExportLarge2DTIFF() );
+		staticImgExportAlgorithms.add( new ExportLarge2DTIFF() );
 
 		//staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
 		//staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
