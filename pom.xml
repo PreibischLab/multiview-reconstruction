@@ -264,6 +264,11 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>pyramidio</artifactId>
 			<version>1.1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>ch.epfl.biop</groupId>
+			<artifactId>ijp-kheops</artifactId>
+			<version>0.3.4</version>
+		</dependency>
 	</dependencies>
 	
 	<profiles>
