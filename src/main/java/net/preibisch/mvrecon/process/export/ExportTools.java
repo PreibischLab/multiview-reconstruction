@@ -225,11 +225,10 @@ public class ExportTools {
 				setups.add( instantiateViewSetup.instantiate( viewId, tpExists, new FinalDimensions( dimensions ), setups ) );
 
 			final TimePoints timepoints;
-			if ( !tpExists )
-			{
-				final List<TimePoint> tps = spimData.getSequenceDescription().getTimePoints().getTimePointsOrdered();
-				tps.add( new TimePoint( viewId.getTimePointId() ) );
-				timepoints = new TimePoints( tps );
+			if ( !tpExists) {
+				final List<TimePoint> tps = new ArrayList<>(spimData.getSequenceDescription().getTimePoints().getTimePointsOrdered());
+				tps.add(new TimePoint(viewId.getTimePointId()));
+				timepoints = new TimePoints(tps);
 			}
 			else
 			{
