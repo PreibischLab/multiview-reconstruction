@@ -679,7 +679,7 @@ public class FFTConvolution< R extends RealType< R > >
 		}
 	}
 
-	/**
+	/*
 	 * Set the executor service to use.
 	 * 
 	 * When null, a new {@link ExecutorService} is created with the maximum number of available threads,
