@@ -686,8 +686,8 @@ public class FFTConvolution< R extends RealType< R > >
 	 * and then it is returned (so that it can be shutdown elsewhere to avoid consuming native memory).
 	 * Otherwise, returns the service that was provided as argument.
 	 * 
-	 * @param service
-	 *            - Executor service to use.
+	 * @param service - Executor service to use.
+	 * @return the executor
 	 */
 	public ExecutorService setExecutorService( final ExecutorService service )
 	{
