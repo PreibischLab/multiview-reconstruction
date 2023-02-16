@@ -66,6 +66,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ExportTools {
 
@@ -208,7 +209,7 @@ public class ExportTools {
 			{
 				if ( viewId2.equals( viewId ) )
 				{
-					IOFunctions.println( "ViewId you specified already exists in the XML, cannot continue." );
+					IOFunctions.println( "ViewId you specified (" + Group.pvid(viewId) + ") already exists in the XML, cannot continue." );
 					return null;
 				}
 
@@ -222,7 +223,7 @@ public class ExportTools {
 					// dimensions have to match
 					if ( !Intervals.equalDimensions( new FinalDimensions( dimensions ), viewId2.getViewSetup().getSize() ) )
 					{
-						IOFunctions.println( "ViewSetup you specified already exists in the XML, but with different dimensions, cannot continue." );
+						IOFunctions.println( "ViewSetup you specified ("  + Group.pvid(viewId) + ") already exists in the XML, but with different dimensions, cannot continue." );
 						return null;
 					}
 				}
