@@ -90,10 +90,6 @@ public class ExportN5API implements ImgExport
 	public static int defaultBlocksizeY_H5 = 32;
 	public static int defaultBlocksizeZ_H5 = 16;
 
-	public static int defaultBlocksizeX = 0;
-	public static int defaultBlocksizeY = 0;
-	public static int defaultBlocksizeZ = 0;
-
 	public static boolean defaultAdvancedBlockSize = false;
 
 	public static int defaultBlocksizeFactorX_N5 = 1;
@@ -101,11 +97,7 @@ public class ExportN5API implements ImgExport
 	public static int defaultBlocksizeFactorZ_N5 = 1;
 	public static int defaultBlocksizeFactorX_H5 = 4;
 	public static int defaultBlocksizeFactorY_H5 = 4;
-	public static int defaultBlocksizeFactorZ_H5 = 2;
-
-	public static int defaultBlocksizeFactorX = 0;
-	public static int defaultBlocksizeFactorY = 0;
-	public static int defaultBlocksizeFactorZ = 0;
+	public static int defaultBlocksizeFactorZ_H5 = 4;
 
 	StorageType storageType = StorageType.values()[ defaultOption ];
 	String path = defaultPath;
@@ -114,7 +106,7 @@ public class ExportN5API implements ImgExport
 
 	boolean bdv = defaultBDV;
 	String xmlOut;
-	boolean manuallyAssignViewId = defaultManuallyAssignViewId;
+	boolean manuallyAssignViewId = false;
 	int tpId = defaultTpId;
 	int vsId = defaultVSId;
 	int splittingType;
@@ -518,6 +510,7 @@ public class ExportN5API implements ImgExport
 		}
 
 		// export type changed or undefined
+		/*
 		if ( defaultBlocksizeX <= 0 || storageType.ordinal() != previousExportOption )
 		{
 			if ( storageType == StorageType.HDF5 )
@@ -539,11 +532,21 @@ public class ExportN5API implements ImgExport
 				defaultBlocksizeFactorZ = defaultBlocksizeFactorZ_N5;
 			}
 		}
-
-		gd.addMessage(
-				"Default blocksize for " + storageType + ": "+defaultBlocksizeX+"x"+defaultBlocksizeY+"x"+defaultBlocksizeZ+"\n" +
-				"Default compute blocksize for " + storageType + ": " +(defaultBlocksizeX*defaultBlocksizeFactorX)+"x"+(defaultBlocksizeY*defaultBlocksizeFactorY)+"x"+(defaultBlocksizeZ*defaultBlocksizeFactorZ) +
-				" (factor: "+defaultBlocksizeFactorX+"x"+defaultBlocksizeFactorY+"x"+defaultBlocksizeFactorZ+")", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+		*/
+		if ( storageType == StorageType.HDF5 )
+		{
+			gd.addMessage(
+					"Default blocksize for HDF5: "+defaultBlocksizeX_H5+"x"+defaultBlocksizeY_H5+"x"+defaultBlocksizeZ_H5+"\n" +
+					"Default compute blocksize for " + storageType + ": " +(defaultBlocksizeX_H5*defaultBlocksizeFactorX_H5)+"x"+(defaultBlocksizeY_H5*defaultBlocksizeFactorY_H5)+"x"+(defaultBlocksizeZ_H5*defaultBlocksizeFactorZ_H5) +
+					" (factor: "+defaultBlocksizeFactorX_H5+"x"+defaultBlocksizeFactorY_H5+"x"+defaultBlocksizeFactorZ_H5+")", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+		}
+		else
+		{
+			gd.addMessage(
+					"Default blocksize for N5/ZARR: "+defaultBlocksizeX_N5+"x"+defaultBlocksizeY_N5+"x"+defaultBlocksizeZ_N5+"\n" +
+					"Default compute blocksize for " + storageType + ": " +(defaultBlocksizeX_N5*defaultBlocksizeFactorX_N5)+"x"+(defaultBlocksizeY_N5*defaultBlocksizeFactorY_N5)+"x"+(defaultBlocksizeZ_N5*defaultBlocksizeFactorZ_N5) +
+					" (factor: "+defaultBlocksizeFactorX_N5+"x"+defaultBlocksizeFactorY_N5+"x"+defaultBlocksizeFactorZ_N5+")", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+		}
 
 		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, current values above)", defaultAdvancedBlockSize );
 
@@ -566,7 +569,7 @@ public class ExportN5API implements ImgExport
 			else
 			{
 				// depends on fusion group, defined during export
-				// ExportTools.createBDVPath( this.bdvString, this.storageType );
+				// later calling getViewIdForGroup( fusionGroup, splittingType );
 			}
 		}
 		else
@@ -579,13 +582,13 @@ public class ExportN5API implements ImgExport
 		{
 			final GenericDialog gd2 = new GenericDialog( "Compute block sizes" );
 
-			gd2.addNumericField( "block_size_x", defaultBlocksizeX, 0);
-			gd2.addNumericField( "block_size_y", defaultBlocksizeY, 0);
-			gd2.addNumericField( "block_size_z", defaultBlocksizeZ, 0);
+			gd2.addNumericField( "block_size_x", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeX_H5 : defaultBlocksizeX_N5, 0);
+			gd2.addNumericField( "block_size_y", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeY_H5 : defaultBlocksizeY_N5, 0);
+			gd2.addNumericField( "block_size_z", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeZ_H5 : defaultBlocksizeZ_N5, 0);
 
-			gd2.addNumericField( "block_size_factor_x", defaultBlocksizeFactorX, 0);
-			gd2.addNumericField( "block_size_factor_y", defaultBlocksizeFactorY, 0);
-			gd2.addNumericField( "block_size_factor_z", defaultBlocksizeFactorZ, 0);
+			gd2.addNumericField( "block_size_factor_x", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorX_H5 : defaultBlocksizeFactorX_N5, 0);
+			gd2.addNumericField( "block_size_factor_y", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorY_H5 : defaultBlocksizeFactorY_N5, 0);
+			gd2.addNumericField( "block_size_factor_z", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorZ_H5 : defaultBlocksizeFactorZ_N5, 0);
 
 			gd2.addMessage(
 					"For smaller blocksizes (or very large images) you can define compute block sizes\n"
@@ -597,23 +600,37 @@ public class ExportN5API implements ImgExport
 			if ( gd2.wasCanceled() )
 				return false;
 
-			bsX = defaultBlocksizeX = (int)Math.round( gd2.getNextNumber() );
-			bsY = defaultBlocksizeY = (int)Math.round( gd2.getNextNumber() );
-			bsZ = defaultBlocksizeZ = (int)Math.round( gd2.getNextNumber() );
+			bsX = (int)Math.round( gd2.getNextNumber() );
+			bsY = (int)Math.round( gd2.getNextNumber() );
+			bsZ = (int)Math.round( gd2.getNextNumber() );
 
-			bsFactorX = defaultBlocksizeFactorX = (int)Math.round( gd2.getNextNumber() );
-			bsFactorY = defaultBlocksizeFactorY = (int)Math.round( gd2.getNextNumber() );
-			bsFactorZ = defaultBlocksizeFactorZ = (int)Math.round( gd2.getNextNumber() );
+			bsFactorX = (int)Math.round( gd2.getNextNumber() );
+			bsFactorY = (int)Math.round( gd2.getNextNumber() );
+			bsFactorZ = (int)Math.round( gd2.getNextNumber() );
+
+			if ( storageType == StorageType.HDF5 )
+			{
+				defaultBlocksizeX_H5 = bsX; defaultBlocksizeY_H5 = bsY; defaultBlocksizeZ_H5 = bsZ;
+				defaultBlocksizeFactorX_H5 = bsFactorX; defaultBlocksizeFactorY_H5 = bsFactorY; defaultBlocksizeFactorZ_H5 = bsFactorZ;
+			}
+			else
+			{
+				defaultBlocksizeX_N5 = bsX; defaultBlocksizeY_N5 = bsY; defaultBlocksizeZ_N5 = bsZ;
+				defaultBlocksizeFactorX_N5 = bsFactorX; defaultBlocksizeFactorY_N5 = bsFactorY; defaultBlocksizeFactorZ_N5 = bsFactorZ;
+			}
 		}
 		else
 		{
-			bsX = defaultBlocksizeX;
-			bsY = defaultBlocksizeY;
-			bsZ = defaultBlocksizeZ;
-
-			bsFactorX = defaultBlocksizeFactorX;
-			bsFactorY = defaultBlocksizeFactorY;
-			bsFactorZ = defaultBlocksizeFactorZ;
+			if ( storageType == StorageType.HDF5 )
+			{
+				bsX = defaultBlocksizeX_H5; bsY = defaultBlocksizeY_H5; bsZ = defaultBlocksizeZ_H5;
+				bsFactorX = defaultBlocksizeFactorX_H5; bsFactorY = defaultBlocksizeFactorY_H5; bsFactorZ = defaultBlocksizeFactorZ_H5;
+			}
+			else
+			{
+				bsX = defaultBlocksizeX_N5; bsY = defaultBlocksizeY_N5; bsZ = defaultBlocksizeZ_N5;
+				bsFactorX = defaultBlocksizeFactorX_N5; bsFactorY = defaultBlocksizeFactorY_N5; bsFactorZ = defaultBlocksizeFactorZ_N5;
+			}
 		}
 
 		return true;
