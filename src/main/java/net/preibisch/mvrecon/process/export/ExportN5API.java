@@ -221,6 +221,8 @@ public class ExportN5API implements ImgExport
 			else
 				viewId = getViewIdForGroup( fusionGroup, splittingType );
 
+			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
+
 			dataset = ExportTools.createBDVPath( viewId, this.storageType );
 		}
 

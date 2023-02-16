@@ -207,11 +207,14 @@ public class ExportTools {
 
 			for ( final ViewDescription viewId2 : spimData.getSequenceDescription().getViewDescriptions().values() )
 			{
+				/*
+				// uncommented this because if you make a second timepoint and do not add missing views, they all exist already
 				if ( viewId2.equals( viewId ) )
 				{
 					IOFunctions.println( "ViewId you specified (" + Group.pvid(viewId) + ") already exists in the XML, cannot continue." );
 					return null;
 				}
+				*/
 
 				if ( viewId2.getTimePointId() == viewId.getTimePointId() )
 					tpExists = true;
