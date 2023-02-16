@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
+import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -51,18 +52,21 @@ public class DisplayImage implements ImgExport, Calibrateable
 	final String[] choiceText = new String[] { "cached (immediate, less memory, slower)", "precomputed (fast, complete copy in memory before display)" };
 
 	public static int defaultChoice = 1;
-	public static int defaultBlocksizeX = 256;
-	public static int defaultBlocksizeY = 256;
-	public static int defaultBlocksizeZ = 1;
+	public static int defaultBlocksizeVirtualX = 256;
+	public static int defaultBlocksizeVirtualY = 256;
+	public static int defaultBlocksizeVirtualZ = 1;
+	public static int defaultBlocksizePrecomputeX = 128;
+	public static int defaultBlocksizePrecomputeY = 128;
+	public static int defaultBlocksizePrecomputeZ = 64;
 	public static int defaultMinIntensity = 0;
 	public static int defaultMaxIntensity = 255;
 	
 	boolean virtualDisplay;
 	String unit = "px";
 	double cal = 1.0;
-	int bsX = defaultBlocksizeX;
-	int bsY = defaultBlocksizeY;
-	int bsZ = defaultBlocksizeZ;
+	int bsX = defaultBlocksizeVirtualX;
+	int bsY = defaultBlocksizeVirtualY;
+	int bsZ = defaultBlocksizeVirtualZ;
 	int minIntensity = defaultMinIntensity;
 	int maxIntensity = defaultMaxIntensity;
 
@@ -193,14 +197,11 @@ public class DisplayImage implements ImgExport, Calibrateable
 		gd.addNumericField( "min_intensity", defaultMinIntensity, 0);
 		gd.addNumericField( "max_intensity", defaultMaxIntensity, 0);
 
-		gd.addMessage( "Block size of lazy processing is optimized for multi-threaded viewing:", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		gd.addNumericField( "block_size_x", defaultBlocksizeX, 0);
-		gd.addNumericField( "block_size_y", defaultBlocksizeY, 0);
-		gd.addNumericField( "block_size_z", defaultBlocksizeZ, 0);
+		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, can optimize processing time)", ExportN5API.defaultAdvancedBlockSize );
 
 		if ( is2d )
 			gd.addMessage( "Note: we have a 2d-dataset, choose 1 in z.", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		
+
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return false;
@@ -213,9 +214,59 @@ public class DisplayImage implements ImgExport, Calibrateable
 		minIntensity = defaultMinIntensity = (int)Math.round( gd.getNextNumber() );
 		maxIntensity = defaultMaxIntensity = (int)Math.round( gd.getNextNumber() );
 
-		bsX = defaultBlocksizeX = (int)Math.round( gd.getNextNumber() );
-		bsY = defaultBlocksizeY = (int)Math.round( gd.getNextNumber() );
-		bsZ = defaultBlocksizeZ = (int)Math.round( gd.getNextNumber() );
+		if ( ExportN5API.defaultAdvancedBlockSize  = gd.getNextBoolean() )
+		{
+			final GenericDialog gd2 = new GenericDialog( "Compute block size options" );
+			
+			if ( virtualDisplay )
+			{
+				gd2.addMessage( "Block size of lazy processing is optimized for multi-threaded viewing:", GUIHelper.smallStatusFont, GUIHelper.neutral );
+				gd2.addNumericField( "block_size_x", defaultBlocksizeVirtualX, 0);
+				gd2.addNumericField( "block_size_y", defaultBlocksizeVirtualY, 0);
+				gd2.addNumericField( "block_size_z", defaultBlocksizeVirtualZ, 0);
+			}
+			else
+			{
+				gd2.addMessage( "Block size of lazy processing is optimized for precomputing the image:", GUIHelper.smallStatusFont, GUIHelper.neutral );
+				gd2.addNumericField( "block_size_x", defaultBlocksizePrecomputeX, 0);
+				gd2.addNumericField( "block_size_y", defaultBlocksizePrecomputeY, 0);
+				gd2.addNumericField( "block_size_z", defaultBlocksizePrecomputeZ, 0);
+			}
+
+			gd2.showDialog();
+			if ( gd2.wasCanceled() )
+				return false;
+
+			if ( virtualDisplay )
+			{
+				bsX = defaultBlocksizeVirtualX = (int)Math.round( gd.getNextNumber() );
+				bsY = defaultBlocksizeVirtualY = (int)Math.round( gd.getNextNumber() );
+				bsZ = defaultBlocksizeVirtualZ = (int)Math.round( gd.getNextNumber() );
+			}
+			else
+			{
+				bsX = defaultBlocksizePrecomputeX = (int)Math.round( gd.getNextNumber() );
+				bsY = defaultBlocksizePrecomputeY = (int)Math.round( gd.getNextNumber() );
+				bsZ = defaultBlocksizePrecomputeZ = (int)Math.round( gd.getNextNumber() );
+			}
+		}
+		else
+		{
+			if ( virtualDisplay )
+			{
+				bsX = defaultBlocksizeVirtualX;
+				bsY = defaultBlocksizeVirtualY;
+				bsZ = defaultBlocksizeVirtualZ;
+			}
+			else
+			{
+				bsX = defaultBlocksizePrecomputeX;
+				bsY = defaultBlocksizePrecomputeY;
+				bsZ = defaultBlocksizePrecomputeZ;
+			}
+		}
+
+		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): compute block size=" + bsX + "x" + bsY + "x" + bsZ);
 
 		return true;
 	}

@@ -24,17 +24,12 @@ package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -46,7 +41,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import fiji.util.gui.GenericDialogPlus;
-import ij.IJ;
+import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -55,7 +50,6 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.ShortType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
@@ -65,14 +59,11 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.ImagePortion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
@@ -95,13 +86,26 @@ public class ExportN5API implements ImgExport
 	public static int defaultBlocksizeX_N5 = 128;
 	public static int defaultBlocksizeY_N5 = 128;
 	public static int defaultBlocksizeZ_N5 = 64;
-	public static int defaultBlocksizeX_H5 = 16;
-	public static int defaultBlocksizeY_H5 = 16;
+	public static int defaultBlocksizeX_H5 = 32;
+	public static int defaultBlocksizeY_H5 = 32;
 	public static int defaultBlocksizeZ_H5 = 16;
 
 	public static int defaultBlocksizeX = 0;
 	public static int defaultBlocksizeY = 0;
 	public static int defaultBlocksizeZ = 0;
+
+	public static boolean defaultAdvancedBlockSize = false;
+
+	public static int defaultBlocksizeFactorX_N5 = 1;
+	public static int defaultBlocksizeFactorY_N5 = 1;
+	public static int defaultBlocksizeFactorZ_N5 = 1;
+	public static int defaultBlocksizeFactorX_H5 = 4;
+	public static int defaultBlocksizeFactorY_H5 = 4;
+	public static int defaultBlocksizeFactorZ_H5 = 2;
+
+	public static int defaultBlocksizeFactorX = 0;
+	public static int defaultBlocksizeFactorY = 0;
+	public static int defaultBlocksizeFactorZ = 0;
 
 	StorageType storageType = StorageType.values()[ defaultOption ];
 	String path = defaultPath;
@@ -120,6 +124,10 @@ public class ExportN5API implements ImgExport
 	int bsY = defaultBlocksizeY_N5;
 	int bsZ = defaultBlocksizeZ_N5;
 
+	int bsFactorX = defaultBlocksizeFactorX_N5;
+	int bsFactorY = defaultBlocksizeFactorY_N5;
+	int bsFactorZ = defaultBlocksizeFactorZ_N5;
+
 	final Compression compression = new GzipCompression( 1 );
 	N5Writer driverVolumeWriter = null;
 
@@ -135,6 +143,8 @@ public class ExportN5API implements ImgExport
 
 	@Override
 	public int[] blocksize() { return new int[] { bsX, bsY, bsZ }; }
+
+	public int[] computeBlocksizeFactor() { return new int[] { bsFactorX, bsFactorY, bsFactorZ }; }
 
 	@Override
 	public ImgExport newInstance() { return new ExportN5API(); }
@@ -282,21 +292,17 @@ public class ExportN5API implements ImgExport
 		// export image
 		//
 		final List<long[][]> grid =
-				( storageType == StorageType.HDF5 ) ?
-						Grid.create(
-								bb.dimensionsAsLongArray(),
-								new int[] {
-										blocksize()[0] * 8,
-										blocksize()[1] * 8,
-										blocksize()[2] * 4
-								},
-								blocksize() ) :
-						Grid.create(
-								bb.dimensionsAsLongArray(),
-								blocksize() );
+				Grid.create(
+						bb.dimensionsAsLongArray(),
+						new int[] {
+								blocksize()[0] * computeBlocksizeFactor()[ 0 ],
+								blocksize()[1] * computeBlocksizeFactor()[ 0 ],
+								blocksize()[2] * computeBlocksizeFactor()[ 0 ]
+						},
+						blocksize() );
 
-		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() );
-		IOFunctions.println( "num processing blocks (processing in larger chunks for HDF5) = " + grid.size() );
+		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
+		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
 
 		final long time = System.currentTimeMillis();
 
@@ -518,18 +524,27 @@ public class ExportN5API implements ImgExport
 				defaultBlocksizeX = defaultBlocksizeX_H5;
 				defaultBlocksizeY = defaultBlocksizeY_H5;
 				defaultBlocksizeZ = defaultBlocksizeZ_H5;
+				defaultBlocksizeFactorX = defaultBlocksizeFactorX_H5;
+				defaultBlocksizeFactorY = defaultBlocksizeFactorY_H5;
+				defaultBlocksizeFactorZ = defaultBlocksizeFactorZ_H5;
 			}
 			else
 			{
 				defaultBlocksizeX = defaultBlocksizeX_N5;
 				defaultBlocksizeY = defaultBlocksizeY_N5;
 				defaultBlocksizeZ = defaultBlocksizeZ_N5;
+				defaultBlocksizeFactorX = defaultBlocksizeFactorX_N5;
+				defaultBlocksizeFactorY = defaultBlocksizeFactorY_N5;
+				defaultBlocksizeFactorZ = defaultBlocksizeFactorZ_N5;
 			}
 		}
 
-		gd.addNumericField( "block_size_x", defaultBlocksizeX, 0);
-		gd.addNumericField( "block_size_y", defaultBlocksizeY, 0);
-		gd.addNumericField( "block_size_z", defaultBlocksizeZ, 0);
+		gd.addMessage(
+				"Default blocksize for " + storageType + ": "+defaultBlocksizeX+"x"+defaultBlocksizeY+"x"+defaultBlocksizeZ+"\n" +
+				"Default compute blocksize for " + storageType + ": " +(defaultBlocksizeX*defaultBlocksizeFactorX)+"x"+(defaultBlocksizeY*defaultBlocksizeFactorY)+"x"+(defaultBlocksizeZ*defaultBlocksizeFactorZ) +
+				" (factor: "+defaultBlocksizeFactorX+"x"+defaultBlocksizeFactorY+"x"+defaultBlocksizeFactorZ+")", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+
+		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, current values above)", defaultAdvancedBlockSize );
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
@@ -559,9 +574,46 @@ public class ExportN5API implements ImgExport
 			this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
 		}
 
-		bsX = defaultBlocksizeX = (int)Math.round( gd.getNextNumber() );
-		bsY = defaultBlocksizeY = (int)Math.round( gd.getNextNumber() );
-		bsZ = defaultBlocksizeZ = (int)Math.round( gd.getNextNumber() );
+		if ( defaultAdvancedBlockSize = gd.getNextBoolean() )
+		{
+			final GenericDialog gd2 = new GenericDialog( "Compute block sizes" );
+
+			gd2.addNumericField( "block_size_x", defaultBlocksizeX, 0);
+			gd2.addNumericField( "block_size_y", defaultBlocksizeY, 0);
+			gd2.addNumericField( "block_size_z", defaultBlocksizeZ, 0);
+
+			gd2.addNumericField( "block_size_factor_x", defaultBlocksizeFactorX, 0);
+			gd2.addNumericField( "block_size_factor_y", defaultBlocksizeFactorY, 0);
+			gd2.addNumericField( "block_size_factor_z", defaultBlocksizeFactorZ, 0);
+
+			gd2.addMessage(
+					"For smaller blocksizes (or very large images) you can define compute block sizes\n"
+					+ "as a factor of the file block sizes to achieve a better parallelization.\n"
+					+ "For example, if you chose a blocksize of 32x32x16 for saving, and you choose factors of 4x4x2,\n"
+					+ "the compute will be performed in blocksizes of 128x128x64, which creates less tasks.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+
+			gd2.showDialog();
+			if ( gd2.wasCanceled() )
+				return false;
+
+			bsX = defaultBlocksizeX = (int)Math.round( gd2.getNextNumber() );
+			bsY = defaultBlocksizeY = (int)Math.round( gd2.getNextNumber() );
+			bsZ = defaultBlocksizeZ = (int)Math.round( gd2.getNextNumber() );
+
+			bsFactorX = defaultBlocksizeFactorX = (int)Math.round( gd2.getNextNumber() );
+			bsFactorY = defaultBlocksizeFactorY = (int)Math.round( gd2.getNextNumber() );
+			bsFactorZ = defaultBlocksizeFactorZ = (int)Math.round( gd2.getNextNumber() );
+		}
+		else
+		{
+			bsX = defaultBlocksizeX;
+			bsY = defaultBlocksizeY;
+			bsZ = defaultBlocksizeZ;
+
+			bsFactorX = defaultBlocksizeFactorX;
+			bsFactorY = defaultBlocksizeFactorY;
+			bsFactorZ = defaultBlocksizeFactorZ;
+		}
 
 		return true;
 	}
