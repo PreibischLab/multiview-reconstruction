@@ -69,7 +69,7 @@ import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 
 public class ExportTools {
 
-	public static void writeBDVMetaData(
+	public static boolean writeBDVMetaData(
 			final N5Writer driverVolumeWriter,
 			final StorageType storageType,
 			final DataType dataType,
@@ -102,6 +102,9 @@ public class ExportTools {
 					xmlOutPath,
 					instantiateViewSetup );
 
+			if ( exists == null )
+				return false;
+
 			String ds = "setup" + viewId.getViewSetupId();
 
 			// if viewsetup does not exist
@@ -128,6 +131,7 @@ public class ExportTools {
 			ds = ds + "/s0";
 			driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
 
+			return true;
 		}
 		else if ( StorageType.HDF5.equals(storageType) )
 		{
@@ -146,6 +150,9 @@ public class ExportTools {
 					n5Path,
 					xmlOutPath,
 					instantiateViewSetup );
+
+			if ( exists == null )
+				return false;
 
 			// if viewsetup does not exist
 			if ( !exists.getB() )
@@ -170,11 +177,13 @@ public class ExportTools {
 				N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
 				N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
 			}
+
+			return true;
 		}
 		else
 		{
-			System.out.println( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
-			System.exit( 0 );
+			IOFunctions.println( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
+			return false;
 		}
 	}
 
@@ -199,8 +208,8 @@ public class ExportTools {
 			{
 				if ( viewId2.equals( viewId ) )
 				{
-					System.out.println( "ViewId you specified already exists in the XML, cannot continue." );
-					System.exit( 0 );
+					IOFunctions.println( "ViewId you specified already exists in the XML, cannot continue." );
+					return null;
 				}
 
 				if ( viewId2.getTimePointId() == viewId.getTimePointId() )
@@ -213,8 +222,8 @@ public class ExportTools {
 					// dimensions have to match
 					if ( !Intervals.equalDimensions( new FinalDimensions( dimensions ), viewId2.getViewSetup().getSize() ) )
 					{
-						System.out.println( "ViewSetup you specified already exists in the XML, but with different dimensions, cannot continue." );
-						System.exit( 0 );
+						IOFunctions.println( "ViewSetup you specified already exists in the XML, but with different dimensions, cannot continue." );
+						return null;
 					}
 				}
 			}

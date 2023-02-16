@@ -268,7 +268,7 @@ public class ExportN5API implements ImgExport
 			try
 			{
 				// TODO: the first time the XML does not exist, thus instantiate is not called
-				ExportTools.writeBDVMetaData(
+				if ( !ExportTools.writeBDVMetaData(
 						driverVolumeWriter,
 						storageType,
 						dataType,
@@ -278,7 +278,8 @@ public class ExportN5API implements ImgExport
 						viewId,
 						path,
 						xmlOut,
-						instantiate );
+						instantiate ) )
+					return false;
 			}
 			catch (SpimDataException | IOException e)
 			{
