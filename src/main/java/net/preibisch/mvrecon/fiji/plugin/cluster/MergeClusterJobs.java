@@ -28,21 +28,20 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
-import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
+import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 
 public class MergeClusterJobs
 {
@@ -137,10 +136,10 @@ public class MergeClusterJobs
 						final ViewInterestPointLists viplOut = vipOut.getViewInterestPointLists( tp.getId(), vs.getId() );
 
 						// add the objects
-						final HashMap< String, InterestPointList > map = vipl.getHashMap();
+						final HashMap< String, InterestPoints > map = vipl.getHashMap();
 						for ( final String label : map.keySet() )
 						{
-							final InterestPointList ipl = map.get( label );
+							final InterestPoints ipl = map.get( label );
 							viplOut.addInterestPointList( label, ipl );
 						}
 					}

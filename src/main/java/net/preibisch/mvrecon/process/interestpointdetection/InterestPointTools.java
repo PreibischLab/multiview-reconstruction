@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.interestpointdetection;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,17 +30,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointValue;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
-import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
 
 /**
  * The type Interest point tools.
@@ -115,7 +113,7 @@ public class InterestPointTools
 
 			for ( final String label : lists.getHashMap().keySet() )
 			{
-				final InterestPointList list = lists.getInterestPointList( label );
+				final InterestPoints list = lists.getInterestPointList( label );
 				int count;
 
 				if ( list.getCorrespondingInterestPointsCopy().size() > 0 )
@@ -185,12 +183,13 @@ public class InterestPointTools
 	{
 		for ( final ViewId viewId : points.keySet() )
 		{
-			final InterestPointList list =
+			final InterestPoints list = InterestPoints.newInstance( data.getBasePath(), viewId, label );
+			/*final InterestPointList list =
 					new InterestPointList(
 							data.getBasePath(),
 							new File(
 									"interestpoints", "tpId_" + viewId.getTimePointId() +
-									"_viewSetupId_" + viewId.getViewSetupId() + "." + label ) );
+									"_viewSetupId_" + viewId.getViewSetupId() + "." + label ) );*/
 
 			if ( parameters != null )
 				list.setParameters( parameters );

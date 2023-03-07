@@ -70,7 +70,7 @@ import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -747,7 +747,7 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			final Map< V, String > labelMap,
 			final boolean transform )
 	{
-		final InterestPointList ipList = interestpoints.get( viewId ).getInterestPointList( labelMap.get( viewId ) );
+		final InterestPoints ipList = interestpoints.get( viewId ).getInterestPointList( labelMap.get( viewId ) );
 		final List< InterestPoint > allPoints = ipList.getInterestPointsCopy();
 		final ArrayList< InterestPoint > corrPoints = new ArrayList<>();
 

@@ -30,11 +30,20 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+
+import bdv.BigDataViewer;
+import bdv.tools.HelpDialog;
+import bdv.tools.brightness.ConverterSetup;
+import bdv.tools.transformation.TransformedSource;
+import bdv.viewer.DisplayMode;
+import bdv.viewer.VisibilityAndGrouping;
+import bdv.viewer.state.SourceState;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
@@ -52,23 +61,13 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.GroupedViews;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerInfoBox;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.BDVFlyThrough;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
-import bdv.BigDataViewer;
-import bdv.tools.HelpDialog;
-import bdv.tools.brightness.ConverterSetup;
-import bdv.tools.transformation.TransformedSource;
-
-import bdv.viewer.DisplayMode;
-import bdv.viewer.VisibilityAndGrouping;
-import bdv.viewer.state.SourceState;
 
 public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS >>
 		extends JPanel implements ExplorerWindow< AS, X >, GroupedRowWindow
@@ -520,7 +519,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 				{
 					for ( final String label : vipl.getHashMap().keySet() )
 					{
-						final InterestPointList ipl = vipl.getInterestPointList( label );
+						final InterestPoints ipl = vipl.getInterestPointList( label );
 						ipl.saveInterestPoints( false );
 						ipl.saveCorrespondingInterestPoints( false );
 					}

@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.interestpointremoval;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -35,7 +34,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 
@@ -53,7 +52,7 @@ public class CreateInterestPointsFromCorrespondences
 			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( viewId );
 
 			final ViewInterestPointLists vipl = vip.getViewInterestPointLists( viewId );
-			final InterestPointList oldIpl = vipl.getInterestPointList( params.getCorrespondingLabel() );
+			final InterestPoints oldIpl = vipl.getInterestPointList( params.getCorrespondingLabel() );
 
 			if ( oldIpl == null )
 				continue;
@@ -80,11 +79,12 @@ public class CreateInterestPointsFromCorrespondences
 				}
 			}
 
-			final InterestPointList newIpl = new InterestPointList(
+			final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), viewId, params.getNewLabel() );
+			/*final InterestPointList newIpl = new InterestPointList(
 					oldIpl.getBaseDir(),
 					new File(
 							oldIpl.getFile().getParentFile(),
-							"tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "." + params.getNewLabel() ) );
+							"tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "." + params.getNewLabel() ) );*/
 
 			newIpl.setInterestPoints( newIPs );
 			newIpl.setCorrespondingInterestPoints( new ArrayList<>() );

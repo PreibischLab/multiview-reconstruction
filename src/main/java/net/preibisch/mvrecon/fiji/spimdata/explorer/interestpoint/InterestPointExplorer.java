@@ -33,19 +33,18 @@ import java.util.List;
 
 import javax.swing.JFrame;
 
+import bdv.BigDataViewer;
+import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.SelectedViewDescriptionListener;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
-
-import bdv.BigDataViewer;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 
 public class InterestPointExplorer< AS extends SpimData2, X extends XmlIoAbstractSpimData< ?, AS > >
 	implements SelectedViewDescriptionListener< AS >
@@ -107,22 +106,19 @@ public class InterestPointExplorer< AS extends SpimData2, X extends XmlIoAbstrac
 	@Override
 	public void save()
 	{
-		for ( final Pair< InterestPointList, ViewId > list : panel.delete )
+		for ( final Pair< InterestPoints, ViewId > list : panel.delete )
 		{
 			IOFunctions.println( "Deleting correspondences and interestpoints in timepointid=" + list.getB().getTimePointId() + ", viewid=" + list.getB().getViewSetupId() );
 
-			final File ip = new File( list.getA().getBaseDir(), list.getA().getFile().toString() + list.getA().getInterestPointsExt() );
-			final File corr = new File( list.getA().getBaseDir(), list.getA().getFile().toString() + list.getA().getCorrespondencesExt() );
-
-			if ( ip.delete() )
-				IOFunctions.println( "Deleted: " + ip.getAbsolutePath() );
+			if ( list.getA().deleteInterestPoints() )
+				IOFunctions.println( "Deleted.");
 			else
-				IOFunctions.println( "FAILED to delete: " + ip.getAbsolutePath() );
+				IOFunctions.println( "FAILED to delete." );
 
-			if ( corr.delete() )
-				IOFunctions.println( "Deleted: " + corr.getAbsolutePath() );
+			if ( list.getA().deleteCorrespondingInterestPoints() )
+				IOFunctions.println( "Deleted.");
 			else
-				IOFunctions.println( "FAILED to delete: " + corr.getAbsolutePath() );
+				IOFunctions.println( "FAILED to delete." );
 		}
 
 		//panel.save.clear();

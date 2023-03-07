@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.splitting;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +44,6 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
-import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -53,10 +51,8 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.img.Img;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -66,7 +62,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitMultiResolu
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
@@ -167,7 +163,7 @@ public class SplittingTools
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
-							final InterestPointList oldIpl = oldVipl.getInterestPointList( label );
+							final InterestPoints oldIpl = oldVipl.getInterestPointList( label );
 							final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
 							final ArrayList< InterestPoint > newIp = new ArrayList<>();
 	
@@ -183,10 +179,11 @@ public class SplittingTools
 									newIp.add( new InterestPoint( id++, l ) );
 								}
 							}
-		
-							final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
+
+							final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), newViewId, label);
+							/*final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
 									"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
-									"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );
+									"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );*/
 							newIpl.setInterestPoints( newIp );
 							newVipl.addInterestPointList( label, newIpl ); // still add
 						}

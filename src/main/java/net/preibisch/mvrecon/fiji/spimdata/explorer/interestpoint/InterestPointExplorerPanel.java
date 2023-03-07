@@ -47,18 +47,17 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
-
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.ViewId;
 
 public class InterestPointExplorerPanel extends JPanel
 {
@@ -72,12 +71,12 @@ public class InterestPointExplorerPanel extends JPanel
 
 	// when save is called save those files and delete the other ones
 	//protected ArrayList< Pair< InterestPointList, ViewId > > save;
-	protected ArrayList< Pair< InterestPointList, ViewId > > delete;
+	protected ArrayList< Pair< InterestPoints, ViewId > > delete;
 
 	public InterestPointExplorerPanel( final ViewInterestPoints viewInterestPoints, final FilteredAndGroupedExplorer< ?, ? > viewSetupExplorer )
 	{
 		//this.save = new ArrayList< Pair< InterestPointList, ViewId > >();
-		this.delete = new ArrayList< Pair< InterestPointList, ViewId > >();
+		this.delete = new ArrayList< Pair< InterestPoints, ViewId > >();
 
 		this.viewSetupExplorer = viewSetupExplorer;
 		initComponent( viewInterestPoints );
@@ -289,7 +288,7 @@ public class InterestPointExplorerPanel extends JPanel
 				}
 	
 				// remember to deleted the files
-				this.delete.add( new ValuePair< InterestPointList, ViewId >(
+				this.delete.add( new ValuePair< InterestPoints, ViewId >(
 						vip.getViewInterestPointLists( vd ).getInterestPointList( label ),
 						vd ) );
 	

@@ -31,16 +31,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
-import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
-import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
@@ -56,6 +46,15 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 /**
  * Extends the {@link SpimData} class; has additonally detections
@@ -523,7 +522,7 @@ public class SpimData2 extends SpimData
 				final ViewInterestPointLists vipl = data.getViewInterestPoints().getViewInterestPoints().get( viewId );
 				for ( final String label : vipl.getHashMap().keySet() )
 				{
-					final InterestPointList ipl = vipl.getHashMap().get( label );
+					final InterestPoints ipl = vipl.getHashMap().get( label );
 
 					// save if interestpoints were loaded or created, potentially modified
 					ipl.saveInterestPoints( false );

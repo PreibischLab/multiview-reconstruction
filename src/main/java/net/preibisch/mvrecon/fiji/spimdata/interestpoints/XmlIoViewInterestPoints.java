@@ -69,7 +69,7 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 
 			for ( final String label : labelList )
 			{
-				final InterestPointList list = v.getInterestPointList( label );
+				final InterestPoints list = v.getInterestPointList( label );
 				elem.addContent( viewInterestPointsToXml( list, v.getTimePointId(), v.getViewSetupId(), label ) );
 			}
 		}
@@ -100,7 +100,8 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 			}
 
 			// we do not load the interestpoints nor the correspondinginterestpoints, we just do that once it is requested
-			final InterestPointList list = new InterestPointList( basePath, new File( interestPointFileName ) );
+			final InterestPoints list = InterestPoints.instantiatefromXML( basePath, interestPointFileName );
+			//final InterestPoints list = new InterestPointList( basePath, new File( interestPointFileName ) );
 			list.setParameters( parameters );
 			collection.addInterestPointList( label, list );
 		}
@@ -108,7 +109,7 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 		return viewsInterestPoints;
 	}
 
-	protected Element viewInterestPointsToXml( final InterestPointList interestPointList, final int tpId, final int viewId, final String label )
+	protected Element viewInterestPointsToXml( final InterestPoints interestPointList, final int tpId, final int viewId, final String label )
 	{
 		final Element elem = new Element( VIEWINTERESTPOINTSFILE_TAG );
 		elem.setAttribute( VIEWINTERESTPOINTS_TIMEPOINT_ATTRIBUTE_NAME, Integer.toString( tpId ) );
@@ -116,7 +117,8 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 		elem.setAttribute( VIEWINTERESTPOINTS_LABEL_ATTRIBUTE_NAME, label );
 		elem.setAttribute( VIEWINTERESTPOINTS_PARAMETERS_ATTRIBUTE_NAME, interestPointList.getParameters() );
 		// a hack so that windows does not put its backslashes in
-		elem.setText( interestPointList.getFile().toString().replace( "\\", "/" ) );
+		//elem.setText( interestPointList.getFile().toString().replace( "\\", "/" ) );
+		elem.setText( interestPointList.getXMLRepresentation() );
 
 		return elem;
 	}

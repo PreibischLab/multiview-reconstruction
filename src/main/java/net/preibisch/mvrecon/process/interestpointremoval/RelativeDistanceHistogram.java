@@ -38,7 +38,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -87,7 +87,7 @@ public class RelativeDistanceHistogram
 			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( viewId );
 
 			final ViewInterestPointLists vipl = vip.getViewInterestPointLists( viewId );
-			final InterestPointList ipl = vipl.getInterestPointList( labelMap.get( viewId ) );
+			final InterestPoints ipl = vipl.getInterestPointList( labelMap.get( viewId ) );
 
 			if ( ipl == null )
 			{
@@ -96,7 +96,7 @@ public class RelativeDistanceHistogram
 				continue;
 			}
 
-			final InterestPointList iplRelative = vipl.getInterestPointList( labelMapRelative.get( viewId ) );
+			final InterestPoints iplRelative = vipl.getInterestPointList( labelMapRelative.get( viewId ) );
 
 			if ( iplRelative == null )
 			{

@@ -30,7 +30,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -48,7 +47,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -291,11 +290,13 @@ public class InteractiveProjections
 				}
 
 				// add new label
-				final InterestPointList newIpl = new InterestPointList(
+				final InterestPoints newIpl = InterestPoints.newInstance(
+						lists.getInterestPointList( label ).getBaseDir(), viewId, newLabel );
+				/*final InterestPointList newIpl = new InterestPointList(
 						lists.getInterestPointList( label ).getBaseDir(),
 						new File(
 								lists.getInterestPointList( label ).getFile().getParentFile(),
-								"tpId_" + vd.getTimePointId() + "_viewSetupId_" + vd.getViewSetupId() + "." + newLabel ) );
+								"tpId_" + vd.getTimePointId() + "_viewSetupId_" + vd.getViewSetupId() + "." + newLabel ) );*/
 
 				newIpl.setInterestPoints( ipList );
 				newIpl.setCorrespondingInterestPoints( new ArrayList<>() );

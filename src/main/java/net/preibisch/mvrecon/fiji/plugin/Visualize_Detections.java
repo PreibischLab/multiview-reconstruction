@@ -45,7 +45,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
@@ -199,7 +199,7 @@ public class Visualize_Detections implements PlugIn
 			Interval interval,
 			final double downsample )
 	{
-		final InterestPointList ipl = data.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label );
+		final InterestPoints ipl = data.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label );
 		final List< InterestPoint > list = ipl.getInterestPointsCopy();
 
 		if ( interval == null )

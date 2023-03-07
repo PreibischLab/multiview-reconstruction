@@ -43,7 +43,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.interestpoint.InterestPointO
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -284,7 +284,7 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 					System.out.println( Group.pvid( v ) );
 					final HashMap< Integer, InterestPoint > map = new HashMap< Integer, InterestPoint >();
 
-					final InterestPointList ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
+					final InterestPoints ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
 
 					for ( final InterestPoint ip : ipList.getInterestPointsCopy() )
 						map.put( ip.getId(), ip );

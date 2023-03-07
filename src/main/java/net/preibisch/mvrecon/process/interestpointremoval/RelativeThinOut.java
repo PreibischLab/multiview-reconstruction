@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.interestpointremoval;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -37,7 +36,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -57,7 +56,7 @@ public class RelativeThinOut
 			final ViewDescription vd = spimData.getSequenceDescription().getViewDescription( viewId );
 
 			final ViewInterestPointLists vipl = vip.getViewInterestPointLists( viewId );
-			final InterestPointList oldIpl = vipl.getInterestPointList( rtop.getLabel() );
+			final InterestPoints oldIpl = vipl.getInterestPointList( rtop.getLabel() );
 
 			if ( oldIpl == null )
 			{
@@ -66,7 +65,7 @@ public class RelativeThinOut
 				continue;
 			}
 
-			final InterestPointList iplRelative = vipl.getInterestPointList( rtop.getRelativeLabel() );
+			final InterestPoints iplRelative = vipl.getInterestPointList( rtop.getRelativeLabel() );
 
 			if ( iplRelative == null )
 			{
@@ -114,11 +113,12 @@ public class RelativeThinOut
 
 			// Nearest neighbor for each point, populate the new list
 			final NearestNeighborSearchOnKDTree< RealPoint > nn = new NearestNeighborSearchOnKDTree< RealPoint >( tree );
-			final InterestPointList newIpl = new InterestPointList(
+			final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), viewId, rtop.getNewLabel() );
+			/*final InterestPointList newIpl = new InterestPointList(
 					oldIpl.getBaseDir(),
 					new File(
 							oldIpl.getFile().getParentFile(),
-							"tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "." + rtop.getNewLabel() ) );
+							"tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "." + rtop.getNewLabel() ) );*/
 
 			final ArrayList< InterestPoint > newIPs = new ArrayList<>();
 

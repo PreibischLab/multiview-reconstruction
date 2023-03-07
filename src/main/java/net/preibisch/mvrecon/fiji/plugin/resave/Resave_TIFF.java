@@ -66,8 +66,6 @@ import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 
@@ -435,7 +433,8 @@ public class Resave_TIFF implements PlugIn
 				newRegMap.put( viewId, oldRegMap.get( viewId ) );
 
 		final ViewRegistrations viewRegistrations = new ViewRegistrations( newRegMap );
-		
+
+		/*
 		// re-assemble the interestpoints and a list of filenames to copy
 		final Map< ViewId, ViewInterestPointLists > oldInterestPoints = spimData.getViewInterestPoints().getViewInterestPoints();
 		final Map< ViewId, ViewInterestPointLists > newInterestPoints = new HashMap< ViewId, ViewInterestPointLists >();
@@ -449,20 +448,21 @@ public class Resave_TIFF implements PlugIn
 				if ( filesToCopy != null )
 				{
 					// get also all the filenames that we need to copy
-					for ( final InterestPointList ipl : ipLists.getHashMap().values() )
+					for ( final InterestPoints ipl : ipLists.getHashMap().values() )
 						filesToCopy.add( ipl.getFile().getName() );
 				}
 			}
 
-		final ViewInterestPoints viewsInterestPoints = new ViewInterestPoints( newInterestPoints );
+		final ViewInterestPoints viewsInterestPoints = new ViewInterestPoints( newInterestPoints );*/
 
+		//TODO: copy interestpoints
 		//TODO: copy PSFs
 
 		final SpimData2 newSpimData = new SpimData2(
 				basePath,
 				sequenceDescription,
 				viewRegistrations,
-				viewsInterestPoints,
+				new ViewInterestPoints(),
 				spimData.getBoundingBoxes(),
 				spimData.getPointSpreadFunctions(),
 				spimData.getStitchingResults(),

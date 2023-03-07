@@ -40,7 +40,7 @@ import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -61,7 +61,7 @@ public class MatcherPairwiseTools
 			final Map< V, ViewInterestPointLists > interestpoints,
 			final Map< V, String > labelMap )
 	{
-		final Map< V, InterestPointList > map = new HashMap<>();
+		final Map< V, InterestPoints > map = new HashMap<>();
 
 		for ( final V view : viewIds )
 			map.put( view, interestpoints.get( view ).getInterestPointList( labelMap.get( view ) ) );
@@ -69,13 +69,13 @@ public class MatcherPairwiseTools
 		return clearCorrespondences( map );
 	}
 
-	public static < V extends ViewId > Map< V, List< CorrespondingInterestPoints > > clearCorrespondences( final Map< V, ? extends InterestPointList > map )
+	public static < V extends ViewId > Map< V, List< CorrespondingInterestPoints > > clearCorrespondences( final Map< V, ? extends InterestPoints > map )
 	{
 		final Map< V, List< CorrespondingInterestPoints > > cMap = new HashMap<>();
 
 		for ( final V viewId : map.keySet() )
 		{
-			final InterestPointList list = map.get( viewId );
+			final InterestPoints list = map.get( viewId );
 			final ArrayList< CorrespondingInterestPoints > cList = new ArrayList<>();
 			list.setCorrespondingInterestPoints( cList );
 			cMap.put( viewId, cList );
@@ -187,8 +187,8 @@ public class MatcherPairwiseTools
 			final ViewId viewIdB,
 			final String labelA,
 			final String labelB,
-			final InterestPointList listA,
-			final InterestPointList listB )
+			final InterestPoints listA,
+			final InterestPoints listB )
 	{
 		final List< CorrespondingInterestPoints > corrListA = listA.getCorrespondingInterestPointsCopy();
 		final List< CorrespondingInterestPoints > corrListB = listB.getCorrespondingInterestPointsCopy();

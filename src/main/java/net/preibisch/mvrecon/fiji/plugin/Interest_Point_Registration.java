@@ -74,7 +74,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointList;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
@@ -344,8 +344,8 @@ public class Interest_Point_Registration implements PlugIn
 					final ViewId vA = p.getA().getA();
 					final ViewId vB = p.getA().getB();
 
-					final InterestPointList listA = interestpointLists.get( vA ).getInterestPointList( labelMap.get( vA ) );
-					final InterestPointList listB = interestpointLists.get( vB ).getInterestPointList( labelMap.get( vB ) );
+					final InterestPoints listA = interestpointLists.get( vA ).getInterestPointList( labelMap.get( vA ) );
+					final InterestPoints listB = interestpointLists.get( vB ).getInterestPointList( labelMap.get( vB ) );
 
 					MatcherPairwiseTools.addCorrespondences( p.getB().getInliers(), vA, vB, labelMap.get( vA ), labelMap.get( vB ), listA, listB );
 

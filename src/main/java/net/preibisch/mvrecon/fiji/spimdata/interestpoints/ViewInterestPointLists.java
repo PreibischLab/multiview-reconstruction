@@ -34,17 +34,17 @@ import mpicbg.spim.data.sequence.ViewId;
  */
 public class ViewInterestPointLists extends ViewId
 {
-	protected final HashMap< String, InterestPointList > lookup;
+	protected final HashMap< String, InterestPoints > lookup;
 	
 	public ViewInterestPointLists( final int timepointId, final int setupId )
 	{
 		super( timepointId, setupId );
 		
-		this.lookup = new HashMap< String, InterestPointList >();
+		this.lookup = new HashMap< String, InterestPoints >();
 	}
 	
 	public boolean contains( final String label ) { return lookup.containsKey( label ); }
-	public HashMap< String, InterestPointList > getHashMap() { return lookup; }
-	public InterestPointList getInterestPointList( final String label ) { return lookup.get( label ); }
-	public void addInterestPointList( final String label, final InterestPointList pointList ) { lookup.put( label, pointList ); }
+	public HashMap< String, InterestPoints > getHashMap() { return lookup; }
+	public InterestPoints getInterestPointList( final String label ) { return lookup.get( label ); }
+	public void addInterestPointList( final String label, final InterestPoints pointList ) { lookup.put( label, pointList ); }
 }
