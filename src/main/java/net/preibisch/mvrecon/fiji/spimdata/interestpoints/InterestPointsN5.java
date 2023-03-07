@@ -253,15 +253,49 @@ public class InterestPointsN5 extends InterestPoints
 	}
 
 	@Override
-	public boolean deleteInterestPoints() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean deleteInterestPoints()
+	{
+		try
+		{
+			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+	
+			if (n5Writer.exists(ipDataset()))
+				n5Writer.remove(ipDataset());
+	
+			n5Writer.close();
+
+			return true;
+		}
+		catch ( Exception e )
+		{
+			IOFunctions.println( "InterestPointsN5.deleteInterestPoints(): " + e );
+			e.printStackTrace();
+
+			return false;
+		}
 	}
 
 	@Override
-	public boolean deleteCorrespondingInterestPoints() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean deleteCorrespondingInterestPoints()
+	{
+		try
+		{
+			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+	
+			if (n5Writer.exists(corrDataset()))
+				n5Writer.remove(corrDataset());
+	
+			n5Writer.close();
+
+			return true;
+		}
+		catch ( Exception e )
+		{
+			IOFunctions.println( "InterestPointsN5.deleteCorrespondingInterestPoints(): " + e );
+			e.printStackTrace();
+
+			return false;
+		}
 	}
 
 }
