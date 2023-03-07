@@ -35,6 +35,8 @@ import mpicbg.spim.data.sequence.ViewId;
  */
 public abstract class InterestPoints
 {
+	public static boolean saveAsN5 = true;
+
 	File baseDir;
 	String parameters;
 
@@ -52,15 +54,26 @@ public abstract class InterestPoints
 		// TODO: N5-support
 		if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints/") )
 			return new InterestPointsTextFileList( baseDir, new File( fromXMLInfo ) );
+		else if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints.n5/") )
+			return new InterestPointsN5( baseDir, fromXMLInfo );
 		else
 			throw new RuntimeException( "unknown interestpoint representation: '" + fromXMLInfo + "' -- this should not happen.");
 	}
 
 	public static InterestPoints newInstance( final File baseDir, final ViewId viewId, final String label )
 	{
-		// TODO: N5-support
-		final String fileName = new InterestPointsTextFileList( null, null ).createXMLRepresentation( viewId, label );
-		final InterestPointsTextFileList list = new InterestPointsTextFileList( baseDir, new File( fileName ) );
+		final InterestPoints list;
+
+		if ( saveAsN5 )
+		{
+			final String n5path = new InterestPointsN5( null, null ).createXMLRepresentation( viewId, label );
+			list = new InterestPointsN5( baseDir, n5path );
+		}
+		else
+		{
+			final String fileName = new InterestPointsTextFileList( null, null ).createXMLRepresentation( viewId, label );
+			list = new InterestPointsTextFileList( baseDir, new File( fileName ) );
+		}
 
 		return list;
 	}
