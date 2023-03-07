@@ -47,6 +47,7 @@ import mpicbg.spim.data.registration.XmlIoViewRegistrations;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.XmlIoSequenceDescription;
 
+import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.jdom2.Element;
 
 public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, SpimData2 >
@@ -80,6 +81,14 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		this.handledTags.add( xmlIntensityAdjustments.getTag() );
 
 		this.clusterExt = clusterExt;
+
+		try
+		{
+			// trigger the N5-blosc error, because if it is triggered for the first
+			// time inside Spark, everything crashes
+			new N5FSWriter(null);
+		}
+		catch (Exception e ) {}
 	}
 
 	public void setClusterExt( final String clusterExt ) { this.clusterExt = clusterExt; }
