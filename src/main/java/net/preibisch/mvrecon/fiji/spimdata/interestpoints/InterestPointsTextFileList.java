@@ -68,6 +68,7 @@ public class InterestPointsTextFileList extends InterestPoints
 		return getFile().toString().replace( "\\", "/" );
 	}
 
+	@Override
 	public String createXMLRepresentation( final ViewId viewId, final String label )
 	{
 		return new File( "interestpoints", "tpId_" + viewId.getTimePointId() +
@@ -77,6 +78,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	/**
 	 * @return - a list of interest points (copied), tries to load from disc if null
 	 */
+	@Override
 	public synchronized List< InterestPoint > getInterestPointsCopy()
 	{
 		if ( this.interestPoints == null )
@@ -107,16 +109,19 @@ public class InterestPointsTextFileList extends InterestPoints
 	}
 
 	public File getFile() { return file; }
+
+	@Override
 	protected void setInterestPointsLocal( final List< InterestPoint > list )
 	{
 		this.interestPoints = list;
-		this.modifiedInterestPoints = true;
 	}
+
+	@Override
 	protected void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list )
 	{
 		this.correspondingInterestPoints = list;
-		this.modifiedCorrespondingInterestPoints = true;
 	}
+
 	public void setFile( final File file )
 	{
 		this.file = file;
@@ -127,6 +132,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	public String getInterestPointsExt() { return ".ip.txt"; }
 	public String getCorrespondencesExt() { return ".corr.txt"; }
 
+	@Override
 	public boolean saveInterestPoints( final boolean forceWrite )
 	{
 		if ( !modifiedInterestPoints && !forceWrite )
@@ -140,7 +146,7 @@ public class InterestPointsTextFileList extends InterestPoints
 		try
 		{
 			final File dir = new File( getBaseDir(), getFile().getParent() );
-			
+
 			if ( !dir.exists() )
 			{
 				IOFunctions.println( "Creating directory: " + dir );
@@ -173,6 +179,7 @@ public class InterestPointsTextFileList extends InterestPoints
 		}
 	}
 
+	@Override
 	public boolean saveCorrespondingInterestPoints( final boolean forceWrite )
 	{
 		if ( !modifiedCorrespondingInterestPoints && !forceWrite )
