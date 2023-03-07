@@ -52,7 +52,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	 * @param file - relative path to the file to load/save the list from, an extension is added automatically (.ip.txt &amp;&amp; .corr.txt)
 	 * for interestpoints and correspondences
 	 */
-	public InterestPointsTextFileList( final File baseDir, final File file )
+	protected InterestPointsTextFileList( final File baseDir, final File file )
 	{
 		super( baseDir );
 
