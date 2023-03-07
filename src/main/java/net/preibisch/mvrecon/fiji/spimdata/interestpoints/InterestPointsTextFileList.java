@@ -71,7 +71,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	public String createXMLRepresentation( final ViewId viewId, final String label )
 	{
 		return new File( "interestpoints", "tpId_" + viewId.getTimePointId() +
-		"_viewSetupId_" + viewId.getViewSetupId() + "." + label ).getAbsolutePath();
+		"_viewSetupId_" + viewId.getViewSetupId() + "." + label ).getPath();
 	}
 
 	/**
