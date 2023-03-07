@@ -107,12 +107,12 @@ public class InterestPointsTextFileList extends InterestPoints
 	}
 
 	public File getFile() { return file; }
-	public void setInterestPoints( final List< InterestPoint > list )
+	protected void setInterestPointsLocal( final List< InterestPoint > list )
 	{
 		this.interestPoints = list;
 		this.modifiedInterestPoints = true;
 	}
-	public void setCorrespondingInterestPoints( final List< CorrespondingInterestPoints > list )
+	protected void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list )
 	{
 		this.correspondingInterestPoints = list;
 		this.modifiedCorrespondingInterestPoints = true;

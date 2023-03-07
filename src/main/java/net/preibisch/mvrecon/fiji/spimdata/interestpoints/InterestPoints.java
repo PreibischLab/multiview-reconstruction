@@ -104,8 +104,21 @@ public abstract class InterestPoints
 	 * @return - the list of corresponding interest points (copied), tries to load from disc if null
 	 */
 	public abstract List< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy();
-	public abstract void setInterestPoints( final List< InterestPoint > list );
-	public abstract void setCorrespondingInterestPoints( final List< CorrespondingInterestPoints > list );
+
+	public void setInterestPoints( final List< InterestPoint > list )
+	{
+		this.modifiedInterestPoints = true;
+		setInterestPointsLocal( list );
+	}
+	public void setCorrespondingInterestPoints( final List< CorrespondingInterestPoints > list )
+	{
+		this.modifiedCorrespondingInterestPoints = true;
+		setCorrespondingInterestPointsLocal( list );
+	}
+
+	protected abstract void setInterestPointsLocal( final List< InterestPoint > list );
+	protected abstract void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list );
+
 	public abstract boolean saveInterestPoints( final boolean forceWrite );
 	public abstract boolean saveCorrespondingInterestPoints( final boolean forceWrite );
 
