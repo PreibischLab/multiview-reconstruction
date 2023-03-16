@@ -994,12 +994,19 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if (state.getMultiplicityMap().get( Angle.class ).equals( CheckResult.SINGLE ) && fileVariableToUse.get( Angle.class ).size() == 1)
 		{
 			final GenericDialogPlus gdAnglesFromPattern = new GenericDialogPlus( "Parse Angles from file pattern" );
+			final List<String> seenAngles = new ArrayList<>();
 
 			StringBuilder sbAngleInfo = new StringBuilder();
 			sbAngleInfo.append( "<html>No metadata for sample rotation found, but numeric patterns for Angle in filenames:" );
 			sbAngleInfo.append( "<ul>" );
 			for (String s: patternDetector.getValuesForVariable( fileVariableToUse.get( Angle.class ).get( 0 ) ) )
-				sbAngleInfo.append( "<li>" + s + "</li>" );
+			{
+				if(!seenAngles.contains(s))
+				{
+    				seenAngles.add(s);
+    				sbAngleInfo.append( "<li>" + s + "</li>" );
+				}
+			}
 			sbAngleInfo.append( "</ul>You can choose to interpret the pattern as rotation angles."
 					+ "<br/>Please check \"apply angle rotation\" in the next step to apply rotations to data immediately" );
 			sbAngleInfo.append( "</html>" );
