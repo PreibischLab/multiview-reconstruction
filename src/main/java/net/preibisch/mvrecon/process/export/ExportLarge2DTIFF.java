@@ -50,6 +50,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
@@ -93,13 +94,31 @@ public class ExportLarge2DTIFF implements ImgExport
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			final RandomAccessibleInterval<T> imgInterval,
+			RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
 			final String title,
 			final Group<? extends ViewId> fusionGroup )
 	{
+		// hack to make the interval divisable by 16 (see https://imagesc.zulipchat.com/#narrow/stream/212929-general/topic/Writing.20large.202D.20TIFFs)
+		if ( imgInterval.dimension( 0 ) % 16 != 0 || imgInterval.dimension( 1 ) % 16 != 0 )
+		{
+			final long[] min = imgInterval.minAsLongArray();
+			final long[] max = imgInterval.maxAsLongArray();
+
+			max[ 0 ] += ( 16 - imgInterval.dimension( 0 ) % 16 );
+			max[ 1 ] += ( 16 - imgInterval.dimension( 1 ) % 16 );
+
+			final Interval interval = new FinalInterval(min, max);
+
+			IOFunctions.println( "WARNING: changing output interval be divisible by 16:" );
+			IOFunctions.println( "OLD: " + Util.printInterval(imgInterval) );
+			IOFunctions.println( "NEW: " + Util.printInterval(interval) );
+
+			imgInterval = Views.interval( Views.extendZero( imgInterval ), interval );
+		}
+
 		// remember all fusiongroups
 		groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)imgInterval) );
 
@@ -251,6 +270,9 @@ public class ExportLarge2DTIFF implements ImgExport
 
 	public static void main( String[] args )
 	{
+		long size = 33;
+		System.out.println( size + " >> " + size + (16 - size % 16) );
+		
 		final FunctionRandomAccessible<ARGBType> checkerboard = new FunctionRandomAccessible<>(
 				2,
 				(location, value) -> {
@@ -261,6 +283,23 @@ public class ExportLarge2DTIFF implements ImgExport
 				ARGBType::new);
 
 		RandomAccessibleInterval<ARGBType> img = Views.interval( checkerboard , new FinalInterval( new long[] { 0, 0 }, new long[] { 500, 100 }));
+
+		if ( img.dimension( 0 ) % 16 != 0 || img.dimension( 1 ) % 16 != 0 )
+		{
+			final long[] min = img.minAsLongArray();
+			final long[] max = img.maxAsLongArray();
+
+			max[ 0 ] += ( 16 - img.dimension( 0 ) % 16 );
+			max[ 1 ] += ( 16 - img.dimension( 1 ) % 16 );
+
+			final Interval interval = new FinalInterval(min, max);
+
+			IOFunctions.println( "WARNING: changing output interval be divisible by 16:" );
+			IOFunctions.println( "OLD: " + Util.printInterval(img) );
+			IOFunctions.println( "NEW: " + Util.printInterval(interval) );
+
+			img = Views.interval( Views.extendZero( img ), interval );
+		}
 
 		ImageJFunctions.show( img  );
 		//SimpleMultiThreading.threadHaltUnClean();
@@ -277,7 +316,7 @@ public class ExportLarge2DTIFF implements ImgExport
 				.nResolutionLevels(1)
 				//.monitor(taskService) // Monitor
 				.maxTilesInQueue(60) // Number of blocks computed in advanced, default 10
-				.savePath("/Users/preibischs/Downloads/test2a.tiff")
+				.savePath("/Users/preibischs/Downloads/test24a.tiff")
 				.nThreads(Threads.numThreads())
 				.micrometer()
 				.create(createSourceAndConverter(img))
