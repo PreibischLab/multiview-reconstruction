@@ -42,7 +42,7 @@ public abstract class InterestPoints
 
 	boolean modifiedInterestPoints, modifiedCorrespondingInterestPoints;
 
-	public InterestPoints(final File baseDir)
+	protected InterestPoints(final File baseDir)
 	{
 		this.baseDir = baseDir;
 		this.modifiedInterestPoints = false;
@@ -51,7 +51,6 @@ public abstract class InterestPoints
 
 	public static InterestPoints instantiatefromXML( final File baseDir, final String fromXMLInfo )
 	{
-		// TODO: N5-support
 		if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints/") )
 			return new InterestPointsTextFileList( baseDir, new File( fromXMLInfo ) );
 		else if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints.n5/") )
