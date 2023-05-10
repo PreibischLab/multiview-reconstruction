@@ -42,6 +42,7 @@ import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.models.TranslationModel3D;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.TimePoint;
@@ -53,6 +54,8 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.global.GlobalOptimizationParameters;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.global.GlobalOptimizationParameters.GlobalOptType;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.CenterOfMassGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.FRGLDMGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.GeometricHashingGUI;
@@ -79,9 +82,17 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOpt;
+import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptIterative;
+import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptTwoRound;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
+import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.IterativeConvergenceStrategy;
+import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.SimpleIterativeConvergenceStrategy;
+import net.preibisch.mvrecon.process.interestpointregistration.global.linkremoval.MaxErrorLinkRemoval;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.PointMatchCreator;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.ImageCorrelationPointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.InterestPointMatchCreator;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.MetaDataWeakLinkFactory;
+import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.WeakLinkFactory;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwiseTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.PairwiseSetup;
@@ -90,6 +101,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.InterestPointGroupingMinDistance;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.overlap.OverlapDetection;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.overlap.SimpleBoundingBoxOverlap;
 
 /**
 *
@@ -211,7 +223,7 @@ public class Interest_Point_Registration implements PlugIn
 		for ( int i = 0; i < removed.size(); ++i )
 			IOFunctions.println( "Removed view " + Group.pvid( removed.get( i ) ) + " as the label '" + brp.labelMap.get( removed.get( i ) ) + "' was not present." );
 
-		// query advanced parameters
+		// query advanced parameters including global optimization now
 		final AdvancedRegistrationParameters arp = advancedRegistrationParameters( brp, timepointToProcess, data, viewIds );
 
 		if ( arp == null )
@@ -238,6 +250,7 @@ public class Interest_Point_Registration implements PlugIn
 		// run the registration
 		if ( !processRegistration(
 				setup,
+				data.getSequenceDescription().getViewSetups(),
 				brp.pwr,
 				gp.grouping,
 				brp.interestPointOverlapType,
@@ -249,6 +262,7 @@ public class Interest_Point_Registration implements PlugIn
 				data.getSequenceDescription().getViewDescriptions(),
 				data.getViewInterestPoints().getViewInterestPoints(),
 				brp.labelMap,
+				arp.globalOptParams,
 				arp.showStatistics ) )
 			return false;
 
@@ -269,6 +283,7 @@ public class Interest_Point_Registration implements PlugIn
 
 	public boolean processRegistration(
 			final PairwiseSetup< ViewId > setup,
+			final Map< Integer, ? extends BasicViewSetup > viewSetups,
 			final PairwiseGUI pairwiseMatching,
 			final InterestpointGroupingType groupingType,
 			final InterestPointOverlapType interestPointOverlapType,
@@ -280,6 +295,7 @@ public class Interest_Point_Registration implements PlugIn
 			final Map< ViewId, ViewDescription > viewDescriptions,
 			final Map< ViewId, ViewInterestPointLists > interestpointLists,
 			final Map< ViewId, String > labelMap,
+			final GlobalOptimizationParameters globalOptParameters,
 			final boolean collectStatistics )
 	{
 		final List< ViewId > viewIds = setup.getViews();
@@ -322,6 +338,7 @@ public class Interest_Point_Registration implements PlugIn
 			IOFunctions.println( "Removed " + subset.fixViews( fixedViews ).size() + " views due to fixing all views (in total " + fixedViews.size() + ")" );
 
 			HashMap< ViewId, Tile< ? extends AbstractModel< ? > > > models;
+			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs = new ArrayList<>();
 
 			if ( groupingType == InterestpointGroupingType.DO_NOT_GROUP )
 			{
@@ -354,10 +371,46 @@ public class Interest_Point_Registration implements PlugIn
 				}
 
 				// run global optimization
-				final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
 				final PointMatchCreator pmc = new InterestPointMatchCreator( result );
+				final AbstractModel model = pairwiseMatching.getMatchingModel().getModel();
 
-				models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, subset.getGroups() );
+				if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_SIMPLE )
+				{
+					final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
+
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute(
+									model,
+									pmc,
+									cs,
+									fixedViews,
+									subset.getGroups() );
+				}
+				else if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_ITERATIVE )
+				{
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptIterative.compute(
+									model,
+									pmc,
+									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
+									new MaxErrorLinkRemoval(),
+									removedInconsistentPairs,
+									fixedViews,
+									subset.getGroups() );
+				}
+				else //if ( globalOptParameters.method == GlobalOptType.TWO_ROUND_SIMPLE || globalOptParameters.method == GlobalOptType.TWO_ROUND_ITERATIVE )
+				{
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptTwoRound.compute(
+							model,
+							pmc,
+							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
+							new MaxErrorLinkRemoval(),
+							removedInconsistentPairs,
+							new MetaDataWeakLinkFactory(
+									registrations,
+									new SimpleBoundingBoxOverlap<>( viewSetups, registrations ) ),
+							new ConvergenceStrategy( Double.MAX_VALUE ),
+							fixedViews,
+							subset.getGroups() );
+				}
 			}
 			else
 			{
@@ -414,10 +467,48 @@ public class Interest_Point_Registration implements PlugIn
 					}
 
 				// run global optimization
-				final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
 				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed );
+				final AbstractModel model = pairwiseMatching.getMatchingModel().getModel();
 
-				models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, groups );
+				//models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, groups );
+
+				if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_SIMPLE )
+				{
+					final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
+
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute(
+									model,
+									pmc,
+									cs,
+									fixedViews,
+									groups );
+				}
+				else if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_ITERATIVE )
+				{
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptIterative.compute(
+									model,
+									pmc,
+									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
+									new MaxErrorLinkRemoval(),
+									removedInconsistentPairs,
+									fixedViews,
+									groups );
+				}
+				else //if ( globalOptParameters.method == GlobalOptType.TWO_ROUND_SIMPLE || globalOptParameters.method == GlobalOptType.TWO_ROUND_ITERATIVE )
+				{
+					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptTwoRound.compute(
+							model,
+							pmc,
+							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
+							new MaxErrorLinkRemoval(),
+							removedInconsistentPairs,
+							new MetaDataWeakLinkFactory(
+									registrations,
+									new SimpleBoundingBoxOverlap<>( viewSetups, registrations ) ),
+							new ConvergenceStrategy( Double.MAX_VALUE ),
+							fixedViews,
+							groups );
+				}
 			}
 
 			AffineTransform3D mapBack = null;
@@ -544,6 +635,8 @@ public class Interest_Point_Registration implements PlugIn
 
 		brp.pwr.addQuery( gd );
 
+		GlobalOptimizationParameters.addSimpleParametersToDialog( gd );
+
 		if ( timepointToProcess.size() > 1 )
 			gd.addCheckbox( "Show_timeseries_statistics", defaultShowStatistics );
 
@@ -599,6 +692,8 @@ public class Interest_Point_Registration implements PlugIn
 
 		if ( !brp.pwr.parseDialog( gd ) )
 			return null;
+
+		arp.globalOptParams = GlobalOptimizationParameters.parseSimpleParametersFromDialog( gd );
 
 		if ( timepointToProcess.size() > 1 )
 			defaultShowStatistics = arp.showStatistics = gd.getNextBoolean();
