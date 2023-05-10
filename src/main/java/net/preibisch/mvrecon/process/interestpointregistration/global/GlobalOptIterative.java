@@ -30,9 +30,7 @@ import java.util.HashMap;
 
 import mpicbg.models.Affine3D;
 import mpicbg.models.ErrorStatistic;
-import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
