@@ -42,8 +42,8 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -290,6 +290,6 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		if ( FloatType.class.isInstance( Views.iterable( input ).cursor().next() ) )
 			return (RandomAccessibleInterval< FloatType >)input;
 		else
-			return new ConvertedRandomAccessibleInterval< T, FloatType >( input, new RealFloatConverter< T >(),  new FloatType() );
+			return Converters.convert( input, new RealFloatConverter< T >(),  new FloatType() );
 	}
 }

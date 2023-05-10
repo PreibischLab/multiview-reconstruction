@@ -47,7 +47,7 @@ import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -109,7 +109,7 @@ public class IntensityAdjustmentTools
 			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model );
 
 			if ( existingAdjustments != null && existingAdjustments.containsKey( viewId ) )
-				inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+				inputImg = Converters.convert(
 						FusionTools.convertInput( inputImg ),
 						new IntensityAdjuster( existingAdjustments.get( viewId ) ),
 						new FloatType() );

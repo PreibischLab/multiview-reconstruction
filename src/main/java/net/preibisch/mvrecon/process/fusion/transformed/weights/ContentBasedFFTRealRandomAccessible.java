@@ -30,8 +30,8 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
@@ -71,7 +71,7 @@ public class ContentBasedFFTRealRandomAccessible< T extends RealType< T > > impl
 		this.n = input.numDimensions();
 		
 		this.contentBasedImg = approximateEntropy(
-				new ConvertedRandomAccessibleInterval< T, FloatType >( input, new RealFloatConverter< T >(),  new FloatType() ),
+				Converters.convert( input, new RealFloatConverter< T >(),  new FloatType() ),
 				imgFactory,
 				sigma1,
 				sigma2 );

@@ -42,8 +42,8 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converter;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealUnsignedShortConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
@@ -183,7 +183,7 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 				throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
 
 			final Converter<UnsignedByteType, UnsignedShortType> conv = new RealUnsignedShortConverter<UnsignedByteType>( 0, 255 );
-			return new ConvertedRandomAccessibleInterval< UnsignedByteType, UnsignedShortType >( img, conv, new UnsignedShortType() );
+			return Converters.convert( img, conv, new UnsignedShortType() );
 		}
 		else
 		{
