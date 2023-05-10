@@ -1,8 +1,9 @@
 /*-
  * #%L
- * Multiview stitching of large datasets.
+ * Software for the reconstruction of multi-view microscopic acquisitions
+ * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2016 - 2023 Big Stitcher developers.
+ * Copyright (C) 2012 - 2023 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
