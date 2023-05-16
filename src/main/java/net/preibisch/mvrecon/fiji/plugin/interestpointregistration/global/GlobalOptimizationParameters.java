@@ -149,8 +149,8 @@ public class GlobalOptimizationParameters
 		if (gd.wasCanceled())
 			return null;
 
-		final double relTh = gd.getNextNumber();
-		final double absTh = gd.getNextNumber();
+		double relTh = gd.getNextNumber();
+		double absTh = gd.getNextNumber();
 		final int methodIdx = defaultGlobalOpt = gd.getNextChoiceIndex();
 		final boolean expertGrouping = askForGrouping ? gd.getNextBoolean() : false;
 
@@ -160,7 +160,10 @@ public class GlobalOptimizationParameters
 		else if (methodIdx == 1)
 			method = GlobalOptType.ONE_ROUND_ITERATIVE;
 		else if (methodIdx == 2)
+		{
 			method = GlobalOptType.TWO_ROUND_SIMPLE;
+			relTh = absTh = Double.MAX_VALUE;
+		}
 		else
 			method = GlobalOptType.TWO_ROUND_ITERATIVE;
 
