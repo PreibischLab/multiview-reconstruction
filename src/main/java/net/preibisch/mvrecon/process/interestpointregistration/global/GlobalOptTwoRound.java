@@ -33,10 +33,8 @@ import mpicbg.models.Affine3D;
 import mpicbg.models.Model;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.IterativeConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.linkremoval.LinkRemovalStrategy;
@@ -64,7 +62,7 @@ public class GlobalOptTwoRound
 	 * @return map from view id to resulting transform
 	 * @param <M> mpicbg model type
 	 */
-	public static < M extends Model< M > > HashMap< ViewId, AffineTransform3D > compute(
+	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, M > computeModels(
 			final M model,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy csStrong,
@@ -74,7 +72,7 @@ public class GlobalOptTwoRound
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return compute( model, pmc, csStrong, lms, null, wlf, csWeak, fixedViews, groupsIn );
+		return computeModels( model, pmc, csStrong, lms, null, wlf, csWeak, fixedViews, groupsIn );
 	}
 
 	/**
@@ -96,7 +94,40 @@ public class GlobalOptTwoRound
 	 * @return map from view id to resulting transform
 	 * @param <M> mpicbg model type
 	 */
-	public static < M extends Model< M > > HashMap< ViewId, AffineTransform3D > compute(
+	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, M > computeModels(
+			final M model,
+			final PointMatchCreator pmc,
+			final IterativeConvergenceStrategy csStrong,
+			final LinkRemovalStrategy lms,
+			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs,
+			final WeakLinkFactory wlf,
+			final ConvergenceStrategy csWeak,
+			final Collection< ViewId > fixedViews,
+			final Collection< Group< ViewId > > groupsIn )
+	{
+		return GlobalOpt.toModels( computeTiles( model, pmc, csStrong, lms, removedInconsistentPairs, wlf, csWeak, fixedViews, groupsIn ) );
+	}
+
+	/**
+	 * 
+	 * @param model - the transformation model to run the global optimizations on
+	 * @param pmc - the pointmatch creator (makes mpicbg PointMatches from anything,
+	 * e.g. corresponding interest points or stitching results)
+	 * @param csStrong - the Iterative Convergence strategy applied to the strong links,
+	 * as created by the pmc
+	 * @param lms - decides for the iterative global optimization that is run on the
+	 * strong links, which link to drop in an iteration
+	 * @param removedInconsistentPairs - optional Collection in which pairs that were identified
+	 * to be inconsistent and were removed are added (can be null)
+	 * @param wlf - a factory for creating weak links for the not optimized views.
+	 * @param csWeak - the convergence strategy for optimizing the weak links, typically
+	 * this is a new ConvergenceStrategy( Double.MAX_VALUE );
+	 * @param fixedViews - which views are fixed
+	 * @param groupsIn - which views are grouped
+	 * @return map from view id to resulting transform
+	 * @param <M> mpicbg model type
+	 */
+	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy csStrong,
@@ -108,7 +139,7 @@ public class GlobalOptTwoRound
 			final Collection< Group< ViewId > > groupsIn )
 	{
 		// find strong links, run global opt iterative
-		final HashMap< ViewId, Tile< M > > models1 = GlobalOptIterative.compute( model, pmc, csStrong, lms, removedInconsistentPairs, fixedViews, groupsIn );
+		final HashMap< ViewId, Tile< M > > models1 = GlobalOptIterative.computeTiles( model, pmc, csStrong, lms, removedInconsistentPairs, fixedViews, groupsIn );
 
 		// identify groups of connected views
 		final List< Set< Tile< ? > > > sets = Tile.identifyConnectedGraphs( models1.values() );
@@ -118,13 +149,7 @@ public class GlobalOptTwoRound
 		if ( sets.size() == 1 )
 		{
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Not more than one group left after first round of global opt (all views are connected), this means we are already done." );
-
-			final HashMap< ViewId, AffineTransform3D > finalRelativeModels = new HashMap<>();
-
-			for ( final ViewId viewId : models1.keySet() )
-				finalRelativeModels.put( viewId, TransformationTools.getAffineTransform( (Affine3D< ? >)models1.get( viewId ).getModel() ) );
-
-			return finalRelativeModels;
+			return models1;
 		}
 
 		// every connected set becomes one group
@@ -143,21 +168,21 @@ public class GlobalOptTwoRound
 		final WeakLinkPointMatchCreator< M > wlpmc = wlf.create( models1 );
 
 		// run global opt without iterative
-		final HashMap< ViewId, Tile< M > > models2 = GlobalOpt.compute( model, wlpmc, csWeak, fixedViews, groupsNew );
+		final HashMap< ViewId, Tile< M > > models2 = GlobalOpt.computeTiles( model, wlpmc, csWeak, fixedViews, groupsNew );
 
 		// the combination of models from:
 		// the first round of global opt (strong links) + averageMapBack + the second round of global opt (weak links)
-		final HashMap< ViewId, AffineTransform3D > finalRelativeModels = new HashMap<>();
-
 		for ( final ViewId viewId : models2.keySet() )
 		{
-			final AffineTransform3D combined = TransformationTools.getAffineTransform( (Affine3D< ? >)models1.get( viewId ).getModel() );
-			combined.preConcatenate( TransformationTools.getAffineTransform( (Affine3D< ? >)models2.get( viewId ).getModel() ) );
-	
-			finalRelativeModels.put( viewId, combined );
+			final M combined = models1.get( viewId ).getModel().copy();
+			combined.preConcatenate( models2.get( viewId ).getModel() );
+			models1.get( viewId ).setModel( combined );
+
+			//final AffineTransform3D combined = TransformationTools.getAffineTransform( (Affine3D< ? >)models1.get( viewId ).getModel() );
+			//combined.preConcatenate( TransformationTools.getAffineTransform( (Affine3D< ? >)models2.get( viewId ).getModel() ) );
 		}
 
-		return finalRelativeModels;
+		return models1;
 	}
 
 	public static Group< ViewId > assembleViews( final Set< Tile< ? > > set, final HashMap< ViewId, ? extends Tile< ? > > models )

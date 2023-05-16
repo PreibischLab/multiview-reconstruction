@@ -46,7 +46,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class GlobalOptIterative
 {
-	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > compute(
+	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
 			final M model,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy ics,
@@ -54,10 +54,22 @@ public class GlobalOptIterative
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return compute( model, pmc, ics, lms, null, fixedViews, groupsIn );
+		return computeModels( model, pmc, ics, lms, null, fixedViews, groupsIn );
 	}
 
-	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > compute(
+	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
+			final M model,
+			final PointMatchCreator pmc,
+			final IterativeConvergenceStrategy ics,
+			final LinkRemovalStrategy lms,
+			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs,
+			final Collection< ViewId > fixedViews,
+			final Collection< Group< ViewId > > groupsIn )
+	{
+		return GlobalOpt.toModels( computeTiles( model, pmc, ics, lms, null, fixedViews, groupsIn ) );
+	}
+
+	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy ics,
