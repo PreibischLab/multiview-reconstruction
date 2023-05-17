@@ -37,6 +37,7 @@ import java.util.Set;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.models.AbstractModel;
+import mpicbg.models.Affine3D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
@@ -281,7 +282,7 @@ public class Interest_Point_Registration implements PlugIn
 		return true;
 	}
 
-	public boolean processRegistration(
+	public < M extends AbstractModel<M> & Affine3D<M>> boolean processRegistration(
 			final PairwiseSetup< ViewId > setup,
 			final Map< Integer, ? extends BasicViewSetup > viewSetups,
 			final PairwiseGUI pairwiseMatching,
@@ -337,7 +338,7 @@ public class Interest_Point_Registration implements PlugIn
 			fixedViews.addAll( viewsToFix );
 			IOFunctions.println( "Removed " + subset.fixViews( fixedViews ).size() + " views due to fixing all views (in total " + fixedViews.size() + ")" );
 
-			HashMap< ViewId, Tile< ? extends AbstractModel< ? > > > models;
+			HashMap< ViewId, Tile< M > > models;
 			final Collection< Pair< Group< ViewId >, Group< ViewId > > > removedInconsistentPairs = new ArrayList<>();
 
 			if ( groupingType == InterestpointGroupingType.DO_NOT_GROUP )
@@ -372,13 +373,13 @@ public class Interest_Point_Registration implements PlugIn
 
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( result );
-				final AbstractModel model = pairwiseMatching.getMatchingModel().getModel();
+				final M model = pairwiseMatching.getMatchingModel().getModel();
 
 				if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_SIMPLE )
 				{
 					final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
 
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute(
+					models = GlobalOpt.computeTiles(
 									model,
 									pmc,
 									cs,
@@ -387,7 +388,7 @@ public class Interest_Point_Registration implements PlugIn
 				}
 				else if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_ITERATIVE )
 				{
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptIterative.compute(
+					models = GlobalOptIterative.computeTiles(
 									model,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
@@ -398,7 +399,7 @@ public class Interest_Point_Registration implements PlugIn
 				}
 				else //if ( globalOptParameters.method == GlobalOptType.TWO_ROUND_SIMPLE || globalOptParameters.method == GlobalOptType.TWO_ROUND_ITERATIVE )
 				{
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptTwoRound.compute(
+					models = GlobalOptTwoRound.computeTiles(
 							model,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
@@ -468,7 +469,7 @@ public class Interest_Point_Registration implements PlugIn
 
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed );
-				final AbstractModel model = pairwiseMatching.getMatchingModel().getModel();
+				final M model = pairwiseMatching.getMatchingModel().getModel();
 
 				//models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, groups );
 
@@ -476,7 +477,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					final ConvergenceStrategy cs = new ConvergenceStrategy( pairwiseMatching.globalOptError() );
 
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute(
+					models = GlobalOpt.computeTiles(
 									model,
 									pmc,
 									cs,
@@ -485,7 +486,7 @@ public class Interest_Point_Registration implements PlugIn
 				}
 				else if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_ITERATIVE )
 				{
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptIterative.compute(
+					models = GlobalOptIterative.computeTiles(
 									model,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
@@ -496,7 +497,8 @@ public class Interest_Point_Registration implements PlugIn
 				}
 				else //if ( globalOptParameters.method == GlobalOptType.TWO_ROUND_SIMPLE || globalOptParameters.method == GlobalOptType.TWO_ROUND_ITERATIVE )
 				{
-					models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOptTwoRound.compute(
+					// TODO: returns HashMap< ViewId, AffineModel3D>????
+					models = GlobalOptTwoRound.computeTiles(
 							model,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
@@ -519,7 +521,7 @@ public class Interest_Point_Registration implements PlugIn
 				models = new HashMap<>();
 
 				for ( final ViewId viewId : subset.getViews() )
-					models.put( viewId, new Tile< AffineModel3D >( new AffineModel3D() ) );
+					models.put( viewId, new Tile< M >( pairwiseMatching.getMatchingModel().getModel() ) );
 
 				IOFunctions.println( "No transformations could be found, setting all models to identity transformation." );
 			}
