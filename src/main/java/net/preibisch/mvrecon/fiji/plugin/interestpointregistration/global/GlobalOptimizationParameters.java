@@ -26,10 +26,13 @@ import ij.gui.GenericDialog;
 public class GlobalOptimizationParameters
 {
 	public static int defaultGlobalOpt = 3;
-	public static int defaultSimple = 4;
+	public static int defaultSimple = 5;
 
-	public static double defaultRelativeError = 2.5;
-	public static double defaultAbsoluteError = 3.5;
+	final static double relativeBase = 2.5;
+	final static double absoluteBase = 3.5;
+
+	public static double defaultRelativeError = relativeBase;
+	public static double defaultAbsoluteError = absoluteBase;
 
 	public static boolean defaultExpertGrouping = false;
 
@@ -83,22 +86,25 @@ public class GlobalOptimizationParameters
 
 	public static GlobalOptimizationParameters parseSimpleParametersFromDialog( final GenericDialog gd )
 	{
-		final int selected = gd.getNextChoiceIndex();
+		return getGlobalOptimizationParametersForSelection( gd.getNextChoiceIndex() );
+	}
 
+	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected )
+	{
 		if ( selected == 6 )
 			return askUserForParameters( false );
 		else if ( selected == 0 )
 			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, false );
 		else if ( selected == 1 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
 		else if ( selected == 2 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
 		else if ( selected == 3 )
 			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.TWO_ROUND_SIMPLE, false );
 		else if ( selected == 4 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
 		else //if ( selected == 5 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
 	}
 
 	public static GlobalOptimizationParameters askUserForSimpleParameters()
