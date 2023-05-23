@@ -48,7 +48,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -370,7 +370,7 @@ public class NonRigidTools
 				inputImg = inputData.getA();
 
 				if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
-					inputImg = new ConvertedRandomAccessibleInterval< FloatType, FloatType >(
+					inputImg = Converters.convert(
 							FusionTools.convertInput( inputImg ),
 							new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
 							new FloatType() );

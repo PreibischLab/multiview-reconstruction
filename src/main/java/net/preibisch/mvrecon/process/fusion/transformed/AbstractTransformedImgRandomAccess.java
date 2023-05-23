@@ -25,8 +25,8 @@ package net.preibisch.mvrecon.process.fusion.transformed;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessible;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -65,10 +65,10 @@ public abstract class AbstractTransformedImgRandomAccess< T extends RealType< T 
 		else
 		{
 			input =
-				new ConvertedRandomAccessible< T, FloatType >(
-						img,
-						new RealFloatConverter< T >(),
-						new FloatType() );
+					Converters.convert(
+							img,
+							new RealFloatConverter< T >(),
+							new FloatType() );
 		}
 
 		// make the interpolator

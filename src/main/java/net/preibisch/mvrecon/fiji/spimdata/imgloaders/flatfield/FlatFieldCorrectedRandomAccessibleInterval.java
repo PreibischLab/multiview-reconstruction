@@ -128,13 +128,7 @@ public class FlatFieldCorrectedRandomAccessibleInterval <O extends RealType< O >
 		}
 
 		@Override
-		public Sampler< O > copy()
-		{
-			return copyRandomAccess();
-		}
-
-		@Override
-		public RandomAccess< O > copyRandomAccess()
+		public RandomAccess< O > copy()
 		{
 			final FlatFieldCorrectedRandomAccessibleInterval<O, T, S, R >.FlatFieldCorrectedRandomAccess copy = new FlatFieldCorrectedRandomAccess();
 			copy.setPosition( this );

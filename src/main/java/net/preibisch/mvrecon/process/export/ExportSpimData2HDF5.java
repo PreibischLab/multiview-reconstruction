@@ -48,8 +48,8 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealUnsignedShortConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -253,7 +253,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 
 		final RealUnsignedShortConverter< T > converter = new RealUnsignedShortConverter< T >( minmax[ 0 ], minmax[ 1 ] );
 
-		return new ConvertedRandomAccessibleInterval<T, UnsignedShortType>( img, converter, new UnsignedShortType() );
+		return Converters.convert( img, converter, new UnsignedShortType() );
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })

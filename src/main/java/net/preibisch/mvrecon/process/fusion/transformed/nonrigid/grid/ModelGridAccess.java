@@ -222,13 +222,7 @@ public class ModelGridAccess implements RealRandomAccess< NumericAffineModel3D >
 	public void setPosition( final long position, final int d ) { l[ d ] = position; }
 
 	@Override
-	public Sampler< NumericAffineModel3D > copy()
-	{
-		return copyRealRandomAccess();
-	}
-
-	@Override
-	public ModelGridAccess copyRealRandomAccess()
+	public RealRandomAccess< NumericAffineModel3D > copy()
 	{
 		ModelGridAccess r = new ModelGridAccess( grid, min, controlPointDistance );
 		r.setPosition( this );

@@ -105,13 +105,7 @@ public class VirtualGridRandomAccess extends AbstractLocalizableInt implements R
 	}
 
 	@Override
-	public Sampler< NumericAffineModel3D > copy()
-	{
-		return copyRandomAccess();
-	}
-
-	@Override
-	public VirtualGridRandomAccess copyRandomAccess()
+	public VirtualGridRandomAccess copy()
 	{
 		final VirtualGridRandomAccess r = new VirtualGridRandomAccess( min, controlPointDistance, alpha, ips, n );
 		r.setPosition( this );
