@@ -22,17 +22,16 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import ij.IJ;
-import ij.ImagePlus;
-import ij.io.Opener;
-import ij.process.ImageProcessor;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
+import ij.IJ;
+import ij.ImagePlus;
+import ij.io.Opener;
+import ij.process.ImageProcessor;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
@@ -50,7 +49,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -58,18 +56,17 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListLOCI;
-
 import ome.units.quantity.Length;
 import util.ImgLib2Tools;
 
 public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 {
 	public LegacyStackImgLoaderLOCI(
-			final File path, final String fileNamePattern, final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final File path, final String fileNamePattern,
 			final int layoutTP, final int layoutChannels, final int layoutIllum, final int layoutAngles, final int layoutTiles,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		super( path, fileNamePattern, imgFactory, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
+		super( path, fileNamePattern, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
 	}
 
 	/**
@@ -589,7 +586,7 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 	@Override
 	public String toString()
 	{
-		return new StackListLOCI().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return new StackListLOCI().getTitle() + ", ImgFactory=" + getImgFactory().getClass().getSimpleName();
 	}
 
 }

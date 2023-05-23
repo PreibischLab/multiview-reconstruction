@@ -86,7 +86,9 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
@@ -619,9 +621,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		final ImgLoader imgLoader;
 		if (withVirtualLoader)
-			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
+			imgLoader = new FileMapImgLoaderLOCI2( fileMap, sd, state.getWasZGrouped() );
 		else
-			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
+			imgLoader = new FileMapImgLoaderLOCI( fileMap, sd, state.getWasZGrouped() );
 		sd.setImgLoader( imgLoader );
 
 		double minResolution = Double.MAX_VALUE;

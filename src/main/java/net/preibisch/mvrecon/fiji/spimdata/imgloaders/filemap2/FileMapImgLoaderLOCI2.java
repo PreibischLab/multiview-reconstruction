@@ -31,8 +31,8 @@ import java.util.Set;
 import com.google.common.io.Files;
 
 import loci.formats.FileStitcher;
+import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
-import loci.formats.ImageReader;
 import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -54,6 +54,9 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.ShortType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
@@ -69,15 +72,14 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 	private final File tempDir;
 	public boolean zGrouped;
 
-	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement
+	public FileMapImgLoaderLOCI2(
+			final Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
 	{
-		this(fileMap, imgFactory, sequenceDescription, false);
+		this(fileMap, sequenceDescription, false);
 	}
 	
 	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory, // FIXME: remove this, only here to test quick replacement
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
 			final boolean zGrouped)
 	{
@@ -89,6 +91,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		this.sd = sequenceDescription;
 		this.zGrouped = zGrouped;
 		allTimepointsInSingleFiles = true;
+
 
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
@@ -139,16 +142,8 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			this.setupId = setupId;
 		}
 
-		@Override
-		public RandomAccessibleInterval< T > getImage(int timepointId, ImgLoaderHint... hints)
+		private IFormatReader getReader()
 		{
-			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
-
-			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
-
-			final Dimensions size = vd.getViewSetup().getSize();
-
 			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 			// use Memoizer to cache ReaderState for each File on disk
 			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
@@ -164,6 +159,21 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 				reader = new Memoizer( BioformatsReaderUtils.createImageReaderWithSetupHooks(), Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
 			}
 
+			return reader;
+		}
+
+		@Override
+		public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints)
+		{
+			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
+			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
+
+			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
+
+			final Dimensions size = vd.getViewSetup().getSize();
+
+			final IFormatReader reader = getReader();
+
 			RandomAccessibleInterval< T > img = null;
 			try
 			{
@@ -174,29 +184,6 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			catch ( IncompatibleTypeException e )
 			{
 				e.printStackTrace();
-			}
-
-			boolean loadCompletelyRequested = false;
-			for (ImgLoaderHint hint : hints)
-				if (hint == ImgLoaderHints.LOAD_COMPLETELY)
-					loadCompletelyRequested = true;
-
-			if (loadCompletelyRequested)
-			{
-				long numPx = 1;
-				for (int d = 0; d < img.numDimensions(); d++)
-					numPx *= img.dimension( d );
-				
-				final ImgFactory< T > imgFactory;
-				if (Math.log(numPx) / Math.log( 2 ) < 31)
-					imgFactory = new ArrayImgFactory<T>();
-				else
-					imgFactory = new CellImgFactory<T>();
-				
-				Img< T > loadedImg = imgFactory.create( img, getImageType() );
-				copy(Views.extendZero( img ), loadedImg);
-				
-				img = loadedImg;
 			}
 
 			return img;
@@ -211,6 +198,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			final BasicViewDescription< ? > aVd = getAnyPresentViewDescriptionForViewSetup( sd, setupId );
 			final Pair< File, Pair< Integer, Integer > > aPair = fileMap.get( aVd );
 
+			final IFormatReader reader = getReader();
 			VirtualRAIFactoryLOCI.setReaderFileAndSeriesIfNecessary( reader, aPair.getA(), aPair.getB().getA() );
 			
 			if (reader.getPixelType() == FormatTools.UINT8)

@@ -101,38 +101,6 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 		final Element fileMapElement = elem.getChild( FILES_TAG );		
 		final String container = XmlHelpers.getText( elem, IMGLIB2CONTAINER_PATTERN_TAG );
 		final boolean zGrouped = XmlHelpers.getBoolean( elem, ZGROUPED_TAG, false );
-
-		final ImgFactory< FloatType > imgFactory;
-
-		if ( container == null )
-		{
-			System.out.println( "WARNING: No Img implementation defined in XML, using ArrayImg." );
-
-			// if no factory is defined we define an ArrayImgFactory
-			imgFactory = new ArrayImgFactory< FloatType >();
-		}
-		else
-		{
-			if ( container.toLowerCase().contains( "cellimg" ) )
-			{
-				imgFactory = new CellImgFactory< FloatType >( 256 );
-			}
-			else if ( container.toLowerCase().contains( "arrayimg" ) )
-			{
-				imgFactory = new ArrayImgFactory< FloatType >();
-			}
-			else if ( container.toLowerCase().contains( "planarimg" ) )
-			{
-				imgFactory = new PlanarImgFactory< FloatType >();
-			}
-			else
-			{
-				// if factory is unknown we define an ArrayImgFactory
-				imgFactory = new ArrayImgFactory< FloatType >();
-				
-				System.out.println( "WARNING: Unknown Img implementation defined in XML:'" + container + "', using ArrayImg." );
-			}
-		}
 		
 		final HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > fileMap = new HashMap<>();
 		
@@ -149,7 +117,7 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 			fileMap.put( vd, p );
 		}
 		
-		return new FileMapImgLoaderLOCI( fileMap, imgFactory, sequenceDescription, zGrouped );
+		return new FileMapImgLoaderLOCI( fileMap, sequenceDescription, zGrouped );
 	}
 
 }

@@ -114,7 +114,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 			fileMap.put( vd, p );
 		}
 
-		return new FileMapImgLoaderLOCI2( fileMap, null, sequenceDescription, zGrouped );
+		return new FileMapImgLoaderLOCI2( fileMap, sequenceDescription, zGrouped );
 	}
 
 }

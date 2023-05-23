@@ -29,14 +29,8 @@ import ij.io.Opener;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.DatasetCreationUtils;
-import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoader;
@@ -53,19 +47,9 @@ public class StackListImageJ extends StackList
 {
 	public static SpimData2 createDataset( final String file, final StackListParameters params )
 	{
-		ImgFactory< ? extends NativeType< ? > > imgFactory = null;
-
-		switch( params.container )
-		{
-			case ArrayImg: imgFactory = new ArrayImgFactory< FloatType >();
-				break;
-			case CellImg: imgFactory = new CellImgFactory< FloatType >( 256 );
-				break;
-		}
-
 		// assemble timepints, viewsetups, missingviews and the imgloader
 		final SequenceDescription sequenceDescription = createSequenceDescription( params.timepoints, params.channels, params.illuminations, params.angles, params.tiles, loadCalibration(new File(file)) );
-		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( params.directory ), imgFactory, sequenceDescription, params );
+		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( params.directory ), sequenceDescription, params );
 		sequenceDescription.setImgLoader( imgLoader );
 
 		// get the minimal resolution of all calibrations
@@ -89,7 +73,7 @@ public class StackListImageJ extends StackList
 		return spimData;
 	}
 
-	static StackImgLoader createAndInitImgLoader( final String path, final File basePath, final ImgFactory< ? extends NativeType< ? > > imgFactory, final SequenceDescription sequenceDescription, final StackListParameters params )
+	static StackImgLoader createAndInitImgLoader( final String path, final File basePath, final SequenceDescription sequenceDescription, final StackListParameters params )
 	{
 		int hasMultipleAngles = 0, hasMultipleTimePoints = 0, hasMultipleChannels = 0, hasMultipleIlluminations = 0, hasMultipleTiles = 0;
 
@@ -129,7 +113,7 @@ public class StackListImageJ extends StackList
 		// TODO: Tiles are missing
 		return new StackImgLoaderIJ(
 				new File( basePath.getAbsolutePath(), path ),
-				fileNamePattern, imgFactory,
+				fileNamePattern,
 				hasMultipleTimePoints, hasMultipleChannels, hasMultipleIlluminations, hasMultipleAngles, hasMultipleTiles,
 				sequenceDescription );
 	}

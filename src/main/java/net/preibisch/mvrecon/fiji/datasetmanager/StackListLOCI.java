@@ -54,11 +54,11 @@ public class StackListLOCI extends StackList
 	}
 
 	@Override
-	protected StackImgLoader< ? > createAndInitImgLoader( final String path, final File basePath, final ImgFactory< ? extends NativeType< ? > > imgFactory, SequenceDescription sequenceDescription )
+	protected StackImgLoader< ? > createAndInitImgLoader( final String path, final File basePath, SequenceDescription sequenceDescription )
 	{
 		return new StackImgLoaderLOCI(
 				new File( basePath.getAbsolutePath(), path ),
-				fileNamePattern, imgFactory,
+				fileNamePattern,
 				hasMultipleTimePoints, hasMultipleChannels, hasMultipleIlluminations, hasMultipleAngles, hasMultipleTiles,
 				sequenceDescription );
 	}

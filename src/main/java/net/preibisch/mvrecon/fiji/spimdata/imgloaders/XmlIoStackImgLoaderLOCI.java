@@ -33,10 +33,10 @@ import net.imglib2.type.NativeType;
 public class XmlIoStackImgLoaderLOCI extends XmlIoStackImgLoader< StackImgLoaderLOCI >
 {
 	@Override
-	protected StackImgLoaderLOCI createImgLoader( File path, String fileNamePattern, ImgFactory< ? extends NativeType< ? >> imgFactory, 
+	protected StackImgLoaderLOCI createImgLoader( File path, String fileNamePattern,
 			int layoutTP, int layoutChannels, int layoutIllum, int layoutAngles, int layoutTiles,
 			AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		return new StackImgLoaderLOCI( path, fileNamePattern, imgFactory, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
+		return new StackImgLoaderLOCI( path, fileNamePattern, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
 	}
 }

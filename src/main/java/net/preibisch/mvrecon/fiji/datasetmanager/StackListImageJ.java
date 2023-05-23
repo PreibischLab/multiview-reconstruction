@@ -113,11 +113,11 @@ public class StackListImageJ extends StackList
 	protected double[] loadTileLocationFromMetaData(File file, int seriesOffset) { return null; }
 	
 	@Override
-	protected StackImgLoader createAndInitImgLoader( final String path, final File basePath, final ImgFactory< ? extends NativeType< ? > > imgFactory, SequenceDescription sequenceDescription )
+	protected StackImgLoader createAndInitImgLoader( final String path, final File basePath, SequenceDescription sequenceDescription )
 	{
 		return new StackImgLoaderIJ(
 				new File( basePath.getAbsolutePath(), path ),
-				fileNamePattern, imgFactory,
+				fileNamePattern,
 				hasMultipleTimePoints, hasMultipleChannels, hasMultipleIlluminations, hasMultipleAngles, hasMultipleTiles,
 				sequenceDescription );
 	}

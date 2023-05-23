@@ -52,19 +52,9 @@ public class StackListLOCI extends StackList
 {
 	public static SpimData2 createDataset( final String file, final StackListParameters params )
 	{
-		ImgFactory< ? extends NativeType< ? > > imgFactory = null;
-
-		switch( params.container )
-		{
-			case ArrayImg: imgFactory = new ArrayImgFactory< FloatType >();
-				break;
-			case CellImg: imgFactory = new CellImgFactory< FloatType >( 256 );
-				break;
-		}
-
 		// assemble timepints, viewsetups, missingviews and the imgloader
 		final SequenceDescription sequenceDescription = createSequenceDescription( params.timepoints, params.channels, params.illuminations, params.angles, params.tiles, loadCalibration(new File(file)) );
-		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( params.directory ), imgFactory, sequenceDescription, params );
+		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( params.directory ), sequenceDescription, params );
 		sequenceDescription.setImgLoader( imgLoader );
 
 		// get the minimal resolution of all calibrations
@@ -88,7 +78,7 @@ public class StackListLOCI extends StackList
 		return spimData;
 	}
 
-	static StackImgLoader createAndInitImgLoader( final String path, final File basePath, final ImgFactory< ? extends NativeType< ? > > imgFactory, final SequenceDescription sequenceDescription, final StackListParameters params )
+	static StackImgLoader createAndInitImgLoader( final String path, final File basePath, final SequenceDescription sequenceDescription, final StackListParameters params )
 	{
 		int hasMultipleAngles = 0, hasMultipleTimePoints = 0, hasMultipleChannels = 0, hasMultipleIlluminations = 0, hasMultipleTiles = 0;
 
@@ -128,7 +118,7 @@ public class StackListLOCI extends StackList
 		// TODO: Tiles are missing
 		return new StackImgLoaderLOCI(
 				new File( basePath.getAbsolutePath(), path ),
-				fileNamePattern, imgFactory,
+				fileNamePattern,
 				hasMultipleTimePoints, hasMultipleChannels, hasMultipleIlluminations, hasMultipleAngles, hasMultipleTiles,
 				sequenceDescription );
 	}
