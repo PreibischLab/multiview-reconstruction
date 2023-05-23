@@ -86,9 +86,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
@@ -126,10 +124,14 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
-	public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
+	//public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
+	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
 
 	public static boolean windowsHack = true;
+
+	public static int defaultLoadChoice = 0;
+	public static boolean defaultVirtual = true;
 
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
@@ -1080,7 +1082,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		GenericDialogPlus gdSave = new GenericDialogPlus( "Save dataset definition" );
 
 		addMessageAsJLabel("<html> <h1> Loading options </h1> <br /> </html>", gdSave);
-		gdSave.addChoice( "how_to_load_images", loadChoices, loadChoices[0] );
+		gdSave.addChoice( "how_to_load_images", loadChoicesNew, loadChoicesNew[defaultLoadChoice] );
+		gdSave.addCheckbox( "load_raw_data_virtually (also when resaving to HDF5/N5, slower, but supports larger stacks)", defaultVirtual );
 
 		addMessageAsJLabel("<html><h2> Save path </h2></html>", gdSave);
 
@@ -1125,8 +1128,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if ( gdSave.wasCanceled() )
 			return null;
 
-		final int loadChoice = gdSave.getNextChoiceIndex();
-		final boolean useVirtualLoader = loadChoice == 2; //"Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"
+		final int loadChoice = defaultLoadChoice = gdSave.getNextChoiceIndex();
+		final boolean useVirtualLoader = defaultVirtual = gdSave.getNextBoolean();
+
 		// re-build the SpimData if user explicitly doesn't want virtual loading
 		if (!useVirtualLoader)
 			data = buildSpimData( state, useVirtualLoader );
