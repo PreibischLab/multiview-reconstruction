@@ -410,7 +410,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 			if ( askForXMLPath )
 			{
 				gd.addMessage( "" );
-				PluginHelper.addSaveAsFileField( gd, "Export_path", lastExportPath, 25 );
+				PluginHelper.addSaveAsFileField( gd, "Export_path", lastExportPath, 45 );
 			}
 
 			if ( !is16bit )

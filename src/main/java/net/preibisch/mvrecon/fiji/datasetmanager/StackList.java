@@ -286,7 +286,7 @@ public abstract class StackList implements MultiViewDatasetDefinition
 	protected abstract StackImgLoader createAndInitImgLoader( final String path, final File basePath, SequenceDescription sequenceDescription );
 	
 	@Override
-	public SpimData2 createDataset()
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 		// collect all the information
 		if ( !queryInformation() )

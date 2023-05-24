@@ -648,7 +648,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 
 	@Override
-	public SpimData2 createDataset( )
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 
 		FileListChooser chooser = fileListChoosers.get( 0 );
@@ -1202,20 +1202,23 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		{
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( data.getSequenceDescription().getViewSetupsOrdered() );
 			final int firstviewSetupId = data.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
-			Generic_Resave_HDF5.lastExportPath = String.join( File.separator, chosenPath.getAbsolutePath(), "dataset");
-			final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
+			//Generic_Resave_HDF5.lastExportPath = String.join( File.separator, chosenPath.getAbsolutePath(), "dataset");
+			final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, true );
 
 			// HDF5 options dialog was cancelled
 			if (params == null)
 				return null;
 
+			params.setHDF5File(new File( chosenPath.getAbsolutePath(), xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".h5" ) );
+			params.setSeqFile(new File( chosenPath.getAbsolutePath(), xmlFileName ) );
+
 			final ProgressWriter progressWriter = new ProgressWriterIJ();
 			progressWriter.out().println( "starting export..." );
 
 			Generic_Resave_HDF5.writeHDF5( data, params, progressWriter );
-			
+
 			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): HDF5 resave finished." );
-			
+
 			net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
 
 			// ensure progressbar is gone
@@ -1230,7 +1233,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
 			Collections.sort( viewIds );
 
-			final File xmlFile = new File( chosenPath.getAbsolutePath(), "dataset.xml" );
+			final File xmlFile = new File( chosenPath.getAbsolutePath(), xmlFileName );
 
 			final SequenceDescription sd = data.getSequenceDescription();
 
@@ -1242,7 +1245,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if ( n5params == null )
 				return null;
 
-			n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
+			// n5-filename is same as XML name now (set in N5Parameters.getParamtersIJ)
+			//n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
 
 			Resave_N5.resaveN5( data, viewIds, n5params );
 
