@@ -235,8 +235,8 @@ public class FusionGUI implements FusionExportInterface
 				+ "(those values are displayed below -- except you previously changed them).\n"
 				+ "You can override these by selecting 'manual' and providing the values.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
-		gd.addMessage( "Tipp: 8-bit range [0..255], 16-bit range [0..65535]", GUIHelper.smallStatusFont, GUIHelper.neutral );
-		gd.addMessage( "Tipp: Usually you can leave everthing as-is, but if your original data\n"
+		gd.addMessage( "Tip: 8-bit range [0..255], 16-bit range [0..65535]", GUIHelper.smallStatusFont, GUIHelper.neutral );
+		gd.addMessage( "Tip: Usually you can leave everthing as-is, but if your original data\n"
 				+ "was 8-bit and you export as 8-bit you should specify [0..255] here.", GUIHelper.smallStatusFont, GUIHelper.warning );
 
 		gd.addChoice(
