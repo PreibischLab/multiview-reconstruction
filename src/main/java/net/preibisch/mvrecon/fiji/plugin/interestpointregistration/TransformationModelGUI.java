@@ -88,7 +88,7 @@ public class TransformationModelGUI
 		final GenericDialog gd = new GenericDialog( "Regularization Parameters" );
 
 		gd.addChoice( "Model_to_regularize_with", regularizationModelChoice, regularizationModelChoice[ defaultRegularizationModelIndex ] );
-		gd.addNumericField( "Lamba", defaultLambda, 2 );
+		gd.addNumericField( "Lambda", defaultLambda, 2 );
 
 		gd.showDialog();
 
