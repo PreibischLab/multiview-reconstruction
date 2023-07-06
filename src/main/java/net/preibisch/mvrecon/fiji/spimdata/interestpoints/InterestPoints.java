@@ -53,7 +53,7 @@ public abstract class InterestPoints
 	{
 		if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints/") )
 			return new InterestPointsTextFileList( baseDir, new File( fromXMLInfo ) );
-		else if ( fromXMLInfo.trim().toLowerCase().startsWith("tpId_") )
+		else if ( fromXMLInfo.trim().startsWith("tpId_") )
 			return new InterestPointsN5( baseDir, fromXMLInfo );
 		else
 			throw new RuntimeException( "unknown interestpoint representation: '" + fromXMLInfo + "' -- this should not happen.");

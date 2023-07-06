@@ -6,9 +6,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -20,6 +21,8 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.type.numeric.integer.UnsignedLongType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 
@@ -406,7 +409,6 @@ public class InterestPointsN5 extends InterestPoints
 	@Override
 	protected boolean loadCorrespondences()
 	{
-		// TODO: loading not implemented yet!!
 		try
 		{
 
@@ -419,8 +421,8 @@ public class InterestPointsN5 extends InterestPoints
 				return false;
 			}
 
-			String version = n5.getAttribute(dataset, "correspondences", String.class );
-			HashMap< String, Long > idMap = n5.getAttribute(dataset, "type", HashMap.class ); // to store ID
+			final String version = n5.getAttribute(dataset, "correspondences", String.class );
+			final HashMap< String, Long > idMap = n5.getAttribute(dataset, "idMap", HashMap.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
 
 			System.out.println( version + ", " + idMap.size() + " correspondence codes" );
 
@@ -432,18 +434,67 @@ public class InterestPointsN5 extends InterestPoints
 				return true;
 			}
 
+			final Map< Long, Pair<ViewId, String> > quickLookup = new HashMap<>();
+			for ( final Entry<String, Long> entry : idMap.entrySet() )
+			{
+				final int firstComma = entry.getKey().indexOf( "," );
+				final String tp = entry.getKey().substring( 0, firstComma );
+				String remaining = entry.getKey().substring( firstComma + 1, entry.getKey().length() );
+				final int secondComma = remaining.indexOf( "," );
+				final String setup = remaining.substring( 0, secondComma );
+				final String label = remaining.substring( secondComma + 1, remaining.length() );
+
+				final int tpInt = Integer.parseInt(tp);
+				final int setupInt = Integer.parseInt(setup);
+
+				final long id;
+
+				if ( Double.class.isInstance((Object)entry.getValue()))
+					id = Math.round( (Double)(Object)entry.getValue() ); // TODO: bug, a long maybe loaded as a double
+				else
+					id = entry.getValue();
+
+				final Pair<ViewId, String> value = new ValuePair<>( new ViewId( tpInt, setupInt ), label );
+				quickLookup.put( id , value );
+			}
+			
 			final String corrDataset = dataset + "/data";
 
 			// 3 x N array (which is a 2D array, ID_a, ID_b, ID)
-			final RandomAccessibleInterval< UnsignedLongType > idData = N5Utils.open( n5, corrDataset );
+			final RandomAccessibleInterval< UnsignedLongType > corrData = N5Utils.open( n5, corrDataset );
 
-			final RandomAccess< UnsignedLongType > corrRA = idData.randomAccess();
+			final RandomAccess< UnsignedLongType > corrRA = corrData.randomAccess();
 
 			final ArrayList< CorrespondingInterestPoints > correspondingInterestPoints = new ArrayList<>();
 
 			corrRA.setPosition( 0, 0 );
 			corrRA.setPosition( 0, 1 );
 
+			for ( int i = 0; i < corrData.dimension( 1 ); ++ i )
+			{
+				final long idA = corrRA.get().get();
+				corrRA.fwd(0);
+				final long idB = corrRA.get().get();
+				corrRA.fwd(0);
+				final long id = corrRA.get().get();
+
+				corrRA.bck(0);
+				corrRA.bck(0);
+
+				if ( i != corrData.dimension( 1 ) - 1 )
+					corrRA.fwd( 1 );
+
+				// final int detectionId, final ViewId correspondingViewId, final String correspondingLabel, final int correspondingDetectionId
+				final Pair<ViewId, String> value = quickLookup.get( id );
+				final CorrespondingInterestPoints cip = new CorrespondingInterestPoints( (int)idA, value.getA(), value.getB(), (int)idB );
+
+				correspondingInterestPoints.add( cip );
+			}
+
+			this.correspondingInterestPoints = correspondingInterestPoints;
+			modifiedCorrespondingInterestPoints = false;
+
+			n5.close();
 			/*
 			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
