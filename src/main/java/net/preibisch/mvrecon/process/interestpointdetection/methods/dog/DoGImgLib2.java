@@ -280,7 +280,7 @@ public class DoGImgLib2
 		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue, service );
 
 		if ( !silent )
-			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + peaks.size() + " peaks." );
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + peaks.size() + " initial peaks (before refinement)." );
 
 		final ArrayList< InterestPoint > finalPeaks;
 
@@ -324,7 +324,7 @@ public class DoGImgLib2
 		}
 		
 		if ( !silent )
-			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " peaks." );
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " final peaks." );
 
 		return finalPeaks;
 	}
