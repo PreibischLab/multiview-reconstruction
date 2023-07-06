@@ -357,7 +357,7 @@ public class InterestPointsN5 extends InterestPoints
 			locRA.setPosition( 0, 0 );
 			locRA.setPosition( 0, 1 );
 
-			for ( int i = 0; i < idData.dimension( 0 ); ++ i )
+			for ( int i = 0; i < idData.dimension( 1 ); ++ i )
 			{
 				final long id = idRA.get().get();
 				final double[] loc = new double[ n ];
@@ -373,7 +373,7 @@ public class InterestPointsN5 extends InterestPoints
 				for ( int d = 0; d < n - 1; ++d )
 					locRA.bck( 0 );
 
-				if ( i != idData.dimension( 0 ) - 1 )
+				if ( i != idData.dimension( 1 ) - 1 )
 				{
 					idRA.fwd( 1 );
 					locRA.fwd( 1 );
@@ -432,7 +432,18 @@ public class InterestPointsN5 extends InterestPoints
 				return true;
 			}
 
-			
+			final String corrDataset = dataset + "/data";
+
+			// 3 x N array (which is a 2D array, ID_a, ID_b, ID)
+			final RandomAccessibleInterval< UnsignedLongType > idData = N5Utils.open( n5, corrDataset );
+
+			final RandomAccess< UnsignedLongType > corrRA = idData.randomAccess();
+
+			final ArrayList< CorrespondingInterestPoints > correspondingInterestPoints = new ArrayList<>();
+
+			corrRA.setPosition( 0, 0 );
+			corrRA.setPosition( 0, 1 );
+
 			/*
 			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
