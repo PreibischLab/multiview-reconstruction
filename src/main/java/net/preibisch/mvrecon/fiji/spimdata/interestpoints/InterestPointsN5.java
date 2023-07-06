@@ -127,6 +127,8 @@ public class InterestPointsN5 extends InterestPoints
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
 
+			n5Writer.createGroup(dataset);
+
 			n5Writer.setAttribute(dataset, "pointcloud", "1.0.0");
 			n5Writer.setAttribute(dataset, "type", "list");
 
@@ -212,6 +214,8 @@ public class InterestPointsN5 extends InterestPoints
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
+
+			n5Writer.createGroup(dataset);
 
 			n5Writer.setAttribute( dataset, "correspondences", "1.0.0");
 
