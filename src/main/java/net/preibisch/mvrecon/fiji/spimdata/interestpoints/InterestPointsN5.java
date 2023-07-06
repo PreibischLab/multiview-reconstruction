@@ -409,6 +409,31 @@ public class InterestPointsN5 extends InterestPoints
 		// TODO: loading not implemented yet!!
 		try
 		{
+
+			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final String dataset = corrDataset();
+
+			if (!n5.exists(dataset))
+			{
+				IOFunctions.println( "InterestPointsN5.loadCorrespondences(): dataset '" + baseDir + ":/" + baseN5 + "/" + dataset + "' does not exist, cannot load interestpoints." );
+				return false;
+			}
+
+			String version = n5.getAttribute(dataset, "correspondences", String.class );
+			HashMap< String, Long > idMap = n5.getAttribute(dataset, "type", HashMap.class ); // to store ID
+
+			System.out.println( version + ", " + idMap.size() + " correspondence codes" );
+
+			if ( idMap.size() == 0 )
+			{
+				this.correspondingInterestPoints = new ArrayList<>();
+				modifiedCorrespondingInterestPoints = false;
+
+				return true;
+			}
+
+			
+			/*
 			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
 
@@ -424,6 +449,7 @@ public class InterestPointsN5 extends InterestPoints
 			modifiedCorrespondingInterestPoints = false;
 
 			n5.close();
+			*/
 
 			return true;
 		} 
