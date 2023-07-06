@@ -401,6 +401,7 @@ public class InterestPointsN5 extends InterestPoints
 	@Override
 	protected boolean loadCorrespondences()
 	{
+		// TODO: loading not implemented yet!!
 		try
 		{
 			final N5FSReader n5 = new N5FSReader( baseDir.getAbsolutePath() );
