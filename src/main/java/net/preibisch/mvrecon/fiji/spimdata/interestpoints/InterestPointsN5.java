@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -19,7 +18,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.position.FunctionRandomAccessible;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedLongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
@@ -28,6 +26,7 @@ import net.preibisch.legacy.io.IOFunctions;
 public class InterestPointsN5 extends InterestPoints
 {
 	public static int defaultBlockSize = 300_000;
+	public static final String baseN5 = "interestpoints.n5";
 
 	final String n5path;
 	ArrayList< InterestPoint > interestPoints;
@@ -50,7 +49,7 @@ public class InterestPointsN5 extends InterestPoints
 	@Override
 	public String createXMLRepresentation( final ViewId viewId, final String label )
 	{
-		return new File( "interestpoints.n5", "tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "/" + label ).getPath();
+		return new File( "tpId_" + viewId.getTimePointId() + "_viewSetupId_" + viewId.getViewSetupId() + "/" + label ).getPath();
 	}
 
 	/**
@@ -122,7 +121,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -132,8 +131,8 @@ public class InterestPointsN5 extends InterestPoints
 			n5Writer.setAttribute(dataset, "pointcloud", "1.0.0");
 			n5Writer.setAttribute(dataset, "type", "list");
 
-			final String idDataset = dataset + "-id";
-			final String locDataset = dataset + "-loc";
+			final String idDataset = dataset + "/id";
+			final String locDataset = dataset + "/loc";
 
 			if ( list.size() == 0 )
 			{
@@ -210,7 +209,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -218,6 +217,14 @@ public class InterestPointsN5 extends InterestPoints
 			n5Writer.createGroup(dataset);
 
 			n5Writer.setAttribute( dataset, "correspondences", "1.0.0");
+
+			final String corrDataset = dataset + "/data";
+
+			if ( list.size() == 0 )
+			{
+				n5Writer.setAttribute( dataset, "idMap", new HashMap< String, Long >() );
+				return true;
+			}
 
 			//
 			// assemble all ViewIds+Labels that there are correspondences with
@@ -261,8 +268,6 @@ public class InterestPointsN5 extends InterestPoints
 			}
 
 			n5Writer.setAttribute( dataset, "idMap", idMap );
-
-			final String corrDataset = dataset + "-corr";
 
 			// 3 x N array (which is a 2D array, ID_a, ID_b, ID)
 			final FunctionRandomAccessible< UnsignedLongType > corrId =
@@ -318,7 +323,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5FSReader n5 = new N5FSReader( baseDir.getAbsolutePath() );
+			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = ipDataset();
 
 			if (!n5.exists(dataset))
@@ -332,8 +337,8 @@ public class InterestPointsN5 extends InterestPoints
 
 			System.out.println( version + ", " + type );
 
-			final String idDataset = dataset + "-id";
-			final String locDataset = dataset + "-loc";
+			final String idDataset = dataset + "/id";
+			final String locDataset = dataset + "/loc";
 
 			// 1 x N array (which is a 2D array)
 			final RandomAccessibleInterval< UnsignedLongType > idData = N5Utils.open( n5, idDataset );
@@ -404,7 +409,7 @@ public class InterestPointsN5 extends InterestPoints
 		// TODO: loading not implemented yet!!
 		try
 		{
-			final N5FSReader n5 = new N5FSReader( baseDir.getAbsolutePath() );
+			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
 
 			if (!n5.exists(dataset))
