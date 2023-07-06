@@ -132,8 +132,8 @@ public class InterestPointsN5 extends InterestPoints
 			n5Writer.setAttribute(dataset, "pointcloud", "1.0.0");
 			n5Writer.setAttribute(dataset, "type", "list");
 
-			final String idDataset = dataset + "id";
-			final String locDataset = dataset + "loc";
+			final String idDataset = dataset + "-id";
+			final String locDataset = dataset + "-loc";
 
 			if ( list.size() == 0 )
 			{
@@ -332,8 +332,8 @@ public class InterestPointsN5 extends InterestPoints
 
 			System.out.println( version + ", " + type );
 
-			final String idDataset = dataset + "id";
-			final String locDataset = dataset + "loc";
+			final String idDataset = dataset + "-id";
+			final String locDataset = dataset + "-loc";
 
 			// 1 x N array (which is a 2D array)
 			final RandomAccessibleInterval< UnsignedLongType > idData = N5Utils.open( n5, idDataset );
