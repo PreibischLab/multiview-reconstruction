@@ -262,7 +262,7 @@ public class InterestPointsN5 extends InterestPoints
 
 			n5Writer.setAttribute( dataset, "idMap", idMap );
 
-			final String corrDataset = dataset + "corr";
+			final String corrDataset = dataset + "-corr";
 
 			// 3 x N array (which is a 2D array, ID_a, ID_b, ID)
 			final FunctionRandomAccessible< UnsignedLongType > corrId =
