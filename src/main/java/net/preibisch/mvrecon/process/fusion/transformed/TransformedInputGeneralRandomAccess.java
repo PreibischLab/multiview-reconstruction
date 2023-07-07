@@ -28,8 +28,8 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
-import net.imglib2.converter.read.ConvertedRandomAccessible;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.outofbounds.OutOfBoundsFactory;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -100,7 +100,7 @@ public class TransformedInputGeneralRandomAccess< T extends RealType< T > > exte
 		else
 		{
 			input =
-					new ConvertedRandomAccessible< T, FloatType >(
+					Converters.convert(
 						Views.extend( img, outOfBoundsFactory ),
 						new RealFloatConverter< T >(),
 						new FloatType() );

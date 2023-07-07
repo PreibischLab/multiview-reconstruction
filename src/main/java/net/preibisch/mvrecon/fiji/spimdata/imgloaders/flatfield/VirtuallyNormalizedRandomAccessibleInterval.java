@@ -85,13 +85,7 @@ public class VirtuallyNormalizedRandomAccessibleInterval <T extends RealType< T 
 		}
 
 		@Override
-		public Sampler< T > copy()
-		{
-			return copyRandomAccess();
-		}
-
-		@Override
-		public RandomAccess< T > copyRandomAccess()
+		public RandomAccess< T > copy()
 		{
 			return new VirtuallyNormalizedRandomAccess();
 		}

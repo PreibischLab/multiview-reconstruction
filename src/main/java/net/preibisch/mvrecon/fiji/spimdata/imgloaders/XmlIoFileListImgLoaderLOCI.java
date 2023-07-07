@@ -52,7 +52,6 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 	public static final String DIRECTORY_TAG = "imagedirectory";
 	public static final String FILES_TAG = "files";
 	public static final String FILE_MAPPING_TAG = "FileMapping";
-	public static final String IMGLIB2CONTAINER_PATTERN_TAG = "imglib2container";
 	public static final String ZGROUPED_TAG = "ZGrouped";
 	public static final String MAPPING_VS_TAG = "view_setup";
 	public static final String MAPPING_TP_TAG = "timepoint";
@@ -67,7 +66,6 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 		
 		final Element wholeElem = new Element( "ImageLoader" );
 		wholeElem.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, this.getClass().getAnnotation( ImgLoaderIo.class ).format() );
-		wholeElem.addContent( XmlHelpers.textElement( IMGLIB2CONTAINER_PATTERN_TAG, imgLoader.getImgFactory().getClass().getSimpleName() ) );
 		wholeElem.addContent( XmlHelpers.booleanElement( ZGROUPED_TAG, imgLoader.zGrouped ) );
 
 		final Element filesElement = new Element( FILES_TAG );
@@ -97,42 +95,9 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 	public FileMapImgLoaderLOCI fromXml(Element elem, File basePath,
 			AbstractSequenceDescription< ?, ?, ? > sequenceDescription)
 	{
-		//final File path = loadPath( elem, DIRECTORY_TAG, basePath );		
-		final Element fileMapElement = elem.getChild( FILES_TAG );		
-		final String container = XmlHelpers.getText( elem, IMGLIB2CONTAINER_PATTERN_TAG );
+		//final File path = loadPath( elem, DIRECTORY_TAG, basePath );
+		final Element fileMapElement = elem.getChild( FILES_TAG );
 		final boolean zGrouped = XmlHelpers.getBoolean( elem, ZGROUPED_TAG, false );
-
-		final ImgFactory< FloatType > imgFactory;
-
-		if ( container == null )
-		{
-			System.out.println( "WARNING: No Img implementation defined in XML, using ArrayImg." );
-
-			// if no factory is defined we define an ArrayImgFactory
-			imgFactory = new ArrayImgFactory< FloatType >();
-		}
-		else
-		{
-			if ( container.toLowerCase().contains( "cellimg" ) )
-			{
-				imgFactory = new CellImgFactory< FloatType >( 256 );
-			}
-			else if ( container.toLowerCase().contains( "arrayimg" ) )
-			{
-				imgFactory = new ArrayImgFactory< FloatType >();
-			}
-			else if ( container.toLowerCase().contains( "planarimg" ) )
-			{
-				imgFactory = new PlanarImgFactory< FloatType >();
-			}
-			else
-			{
-				// if factory is unknown we define an ArrayImgFactory
-				imgFactory = new ArrayImgFactory< FloatType >();
-				
-				System.out.println( "WARNING: Unknown Img implementation defined in XML:'" + container + "', using ArrayImg." );
-			}
-		}
 		
 		final HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > fileMap = new HashMap<>();
 		
@@ -149,7 +114,7 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 			fileMap.put( vd, p );
 		}
 		
-		return new FileMapImgLoaderLOCI( fileMap, imgFactory, sequenceDescription, zGrouped );
+		return new FileMapImgLoaderLOCI( fileMap, sequenceDescription, zGrouped );
 	}
 
 }

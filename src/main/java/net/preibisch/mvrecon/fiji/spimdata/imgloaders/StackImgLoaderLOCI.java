@@ -31,10 +31,10 @@ import net.imglib2.type.NativeType;
 public class StackImgLoaderLOCI extends StackImgLoader< LegacyStackImgLoaderLOCI >
 {
 	public StackImgLoaderLOCI(
-			final File path, final String fileNamePattern, final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final File path, final String fileNamePattern,
 			final int layoutTP, final int layoutChannels, final int layoutIllum, final int layoutAngles, final int layoutTiles,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		super( new LegacyStackImgLoaderLOCI( path, fileNamePattern, imgFactory, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription ) );
+		super( new LegacyStackImgLoaderLOCI( path, fileNamePattern, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription ) );
 	}
 }

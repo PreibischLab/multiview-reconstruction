@@ -54,11 +54,21 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
  */
 public class GlobalOpt
 {
+	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
+			final M model,
+			final PointMatchCreator pmc,
+			final ConvergenceStrategy cs,
+			final Collection< ViewId > fixedViews,
+			final Collection< Group< ViewId > > groupsIn )
+	{
+		return toModels( computeTiles( model, pmc, cs, fixedViews, groupsIn ) );
+	}
+
 	/*
 	 * Computes a global optimization based on the corresponding points
 	 * 
 	 */
-	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > compute(
+	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
 			final PointMatchCreator pmc,
 			final ConvergenceStrategy cs,
@@ -128,7 +138,7 @@ public class GlobalOpt
 			else
 				IOFunctions.println( output + ", " + TransformationTools.getScaling( (Affine3D<?>)tile.getModel() ) );
 		}
-		
+
 		return map;
 	}
 
@@ -256,6 +266,14 @@ public class GlobalOpt
 		}
 		
 		return map;
+	}
+
+	public static < M extends Model< M > > HashMap< ViewId, M > toModels( final HashMap< ViewId, Tile< M > > map )
+	{
+		final HashMap< ViewId, M > finalRelativeModels = new HashMap<>();
+		map.forEach( ( viewId, tile ) -> finalRelativeModels.put( viewId, tile.getModel() ) );
+
+		return finalRelativeModels;
 	}
 
 	public static void main( String[] args )

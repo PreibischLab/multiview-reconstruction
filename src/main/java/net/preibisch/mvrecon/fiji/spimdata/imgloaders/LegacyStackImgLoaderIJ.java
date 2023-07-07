@@ -58,11 +58,11 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 	Parameters params = null;
 
 	public LegacyStackImgLoaderIJ(
-			final File path, final String fileNamePattern, final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final File path, final String fileNamePattern,
 			final int layoutTP, final int layoutChannels, final int layoutIllum, final int layoutAngles, final int layoutTiles,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		super( path, fileNamePattern, imgFactory, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
+		super( path, fileNamePattern, layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, sequenceDescription );
 	}
 
 	public static ImagePlus open( File file )
@@ -243,7 +243,7 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 	@Override
 	public String toString()
 	{
-		return new StackListImageJ().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return new StackListImageJ().getTitle() + ", ImgFactory=" + getImgFactory().getClass().getSimpleName();
 	}
 
 	protected static Parameters queryParameters()

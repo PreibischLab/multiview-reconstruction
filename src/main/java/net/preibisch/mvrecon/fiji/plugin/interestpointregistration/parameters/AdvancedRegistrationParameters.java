@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.global.GlobalOptimizationParameters;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.BasicRegistrationParameters.RegistrationType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.AllToAll;
@@ -49,6 +50,7 @@ public class AdvancedRegistrationParameters
 {
 	public int range, referenceTimePoint, fixViewsIndex, mapBackIndex;
 	public boolean groupTimePoints, showStatistics;
+	public GlobalOptimizationParameters globalOptParams;
 
 	public PairwiseSetup< ViewId > pairwiseSetupInstance(
 			final RegistrationType registrationType,

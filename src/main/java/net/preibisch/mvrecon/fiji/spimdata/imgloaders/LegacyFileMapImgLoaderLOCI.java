@@ -42,7 +42,6 @@ import loci.formats.FileStitcher;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
-import loci.formats.ImageReader;
 import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -89,15 +88,13 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 
 	public LegacyFileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
 	{
-		this(fileMap, imgFactory, sequenceDescription, false);
+		this(fileMap, sequenceDescription, false);
 	}
 	
 	public LegacyFileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
 			final boolean zGrouped)
 	{
@@ -109,8 +106,6 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		this.fileMap.putAll( fileMap );
 
 		this.sd = sequenceDescription;
-
-		setImgFactory( imgFactory );
 
 		allTimepointsInSingleFiles = true;
 		this.zGrouped = zGrouped;
@@ -231,7 +226,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		for ( int d = 0; d < vs.getSize().numDimensions(); ++d )
 			dim[d] = (int) vs.getSize().dimension( d );
 
-		final Img< T > img = imgFactory.imgFactory( type ).create( dim );
+		final Img< T > img = getImgFactory().imgFactory( type ).create( dim );
 
 		if ( img == null )
 		{

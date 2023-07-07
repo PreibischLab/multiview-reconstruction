@@ -72,7 +72,6 @@ import net.preibisch.mvrecon.process.export.Save3dTIFF;
 public class Resave_TIFF implements PlugIn
 {
 	public static String defaultPath = null;
-	public static int defaultContainer = 1;
 	public static boolean defaultCompress = false;
 
 	public static void main( final String[] args )
@@ -82,13 +81,11 @@ public class Resave_TIFF implements PlugIn
 
 	public static class Parameters
 	{
-		public ImgFactory< ? extends NativeType< ? > > imgFactory;
 		public String xmlFile;
 		public boolean compress;
 		
 		public boolean compress() { return compress; }
 		public String getXMLFile() { return xmlFile; }
-		public ImgFactory< ? extends NativeType< ? > > getImgFactory() { return imgFactory; }
 	}
 
 	@Override
@@ -201,11 +198,6 @@ public class Resave_TIFF implements PlugIn
 
 		params.compress = false; //defaultCompress = gd.getNextBoolean();
 
-		if ( defaultContainer == 0 )
-			params.imgFactory = new ArrayImgFactory< FloatType >();
-		else
-			params.imgFactory = new CellImgFactory< FloatType >();
-
 		return params;
 	}
 
@@ -314,7 +306,7 @@ public class Resave_TIFF implements PlugIn
 
 		final StackImgLoaderIJ imgLoader = new StackImgLoaderIJ(
 				new File( params.xmlFile ).getParentFile(),
-				filename, params.imgFactory,
+				filename,
 				layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, newSpimData.getSequenceDescription() );
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );
 

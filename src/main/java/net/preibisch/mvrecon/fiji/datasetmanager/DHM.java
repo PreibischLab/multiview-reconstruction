@@ -73,7 +73,7 @@ public class DHM implements MultiViewDatasetDefinition
 	}
 
 	@Override
-	public SpimData2 createDataset()
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 		final DHMMetaData meta = queryDirectoryAndRatio();
 
@@ -207,6 +207,6 @@ public class DHM implements MultiViewDatasetDefinition
 
 	public static void main( String[] args )
 	{
-		new DHM().createDataset();
+		new DHM().createDataset( "dataset.xml" );
 	}
 }

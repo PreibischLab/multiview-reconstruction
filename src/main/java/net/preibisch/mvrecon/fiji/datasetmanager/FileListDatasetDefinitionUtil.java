@@ -40,9 +40,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.base.Strings;
 
 import ij.IJ;
 import ij.io.OpenDialog;
@@ -64,11 +61,6 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
@@ -489,39 +481,7 @@ public class FileListDatasetDefinitionUtil
 					( timepointNumberMap, new ValuePair<Map<ChannelInfo,List<Pair<Integer,Integer>>>,Map<Integer,List<Pair<Integer,Integer>>>> ( channelMap, illumMap ) );
 		
 	}
-	
-	protected static ImgFactory< ? extends NativeType< ? > > selectImgFactory( final Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMap )
-	{
-		long maxNumPixels = 0L;
 
-		for (Pair<Dimensions, VoxelDimensions> p : dimensionMap.values())
-		{	
-			Dimensions dims = p.getA();
-			long n = 1;
-			for ( int i = 0; i < dims.numDimensions(); ++i )
-				n *= dims.dimension( i );
-
-			maxNumPixels = Math.max( n, maxNumPixels );
-			
-		}
-		
-		int smallerLog2 = (int)Math.ceil( Math.log( maxNumPixels ) / Math.log( 2 ) );
-
-		String s = "Maximum number of pixels in any view: n=" + maxNumPixels + 
-				" (2^" + (smallerLog2-1) + " < n < 2^" + smallerLog2 + " px), ";
-
-		if ( smallerLog2 <= 31 )
-		{
-			IOFunctions.println( s + "using ArrayImg." );
-			return new ArrayImgFactory< FloatType >();
-		}
-		else
-		{
-			IOFunctions.println( s + "using CellImg(256)." );
-			return new CellImgFactory< FloatType >( 256 );
-		}
-	}
-	
 	public static <T> List<T> listIntersect(List<T> a, List<T> b)
 	{
 		List<T> result = new ArrayList<>();

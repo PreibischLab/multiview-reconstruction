@@ -126,10 +126,7 @@ public abstract class StackList implements MultiViewDatasetDefinition
 			"Load voxel-size(s) from file(s)",
 			"Load voxel-size(s) from file(s) and display for verification",
 			"User define voxel-size(s)" };
-	public static String[] imglib2Container = new String[]{ "ArrayImg (faster)", "CellImg (slower, larger files supported)" };
 
-	public static int defaultContainer = 0;
-	public ImgFactory< ? extends NativeType< ? > > imgFactory;
 	public static int defaultCalibration1 = 0;
 	public static int defaultCalibration2 = 1;
 	public int calibration1, calibration2;
@@ -286,10 +283,10 @@ public abstract class StackList implements MultiViewDatasetDefinition
 	 * @param sequenceDescription 
 	 * @return StackImgLoader
 	 */
-	protected abstract StackImgLoader createAndInitImgLoader( final String path, final File basePath, final ImgFactory< ? extends NativeType< ? > > imgFactory, SequenceDescription sequenceDescription );
+	protected abstract StackImgLoader createAndInitImgLoader( final String path, final File basePath, SequenceDescription sequenceDescription );
 	
 	@Override
-	public SpimData2 createDataset()
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 		// collect all the information
 		if ( !queryInformation() )
@@ -307,7 +304,7 @@ public abstract class StackList implements MultiViewDatasetDefinition
 		
 		// instantiate the sequencedescription
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, setups, null, missingViews );
-		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( directory ), imgFactory, sequenceDescription );
+		final ImgLoader imgLoader = createAndInitImgLoader( ".", new File( directory ), sequenceDescription );
 		sequenceDescription.setImgLoader( imgLoader );
 		
 		// FIXME: this is probably very inefficenient
@@ -699,13 +696,6 @@ public abstract class StackList implements MultiViewDatasetDefinition
 		gd.addChoice( "Calibration_Type", calibrationChoice1, calibrationChoice1[ defaultCalibration1 ] );
 		gd.addChoice( "Calibration_Definition", calibrationChoice2, calibrationChoice2[ defaultCalibration2 ] );
 
-		gd.addChoice( "ImgLib2_data_container", imglib2Container, imglib2Container[ defaultContainer ] );
-		gd.addMessage(
-				"Use ArrayImg if -ALL- input views are smaller than ~2048x2048x500 px (2^31 px), or if the\n" +
-				"program throws an OutOfMemory exception while processing.  CellImg is slower, but more\n" +
-				"memory efficient and supports much larger file sizes only limited by the RAM of the machine.", 
-				new Font( Font.SANS_SERIF, Font.ITALIC, 11 ) );
-		
 		gd.addCheckbox( "Show_list of filenames (to debug and it allows to deselect individual files)", showDebugFileNames );
 		gd.addMessage( "Note: this might take a few seconds if thousands of files are present", new Font( Font.SANS_SERIF, Font.ITALIC, 11 ) );
 		
@@ -838,13 +828,6 @@ public abstract class StackList implements MultiViewDatasetDefinition
 		defaultCalibration1 = calibration1 = gd.getNextChoiceIndex();
 		defaultCalibration2 = calibration2 = gd.getNextChoiceIndex();
 
-		defaultContainer = gd.getNextChoiceIndex();
-		
-		if ( defaultContainer == 0 )
-			imgFactory = new ArrayImgFactory< FloatType >();
-		else
-			imgFactory = new CellImgFactory< FloatType >( 256 );
-		
 		showDebugFileNames = gd.getNextBoolean();
 		
 		return true;		

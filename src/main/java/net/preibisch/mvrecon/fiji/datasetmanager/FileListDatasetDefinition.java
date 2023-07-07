@@ -124,10 +124,14 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
-	public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
+	//public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
+	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
 
 	public static boolean windowsHack = true;
+
+	public static int defaultLoadChoice = 0;
+	public static boolean defaultVirtual = true;
 
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
 	static
@@ -619,9 +623,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		final ImgLoader imgLoader;
 		if (withVirtualLoader)
-			imgLoader = new FileMapImgLoaderLOCI2( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
+			imgLoader = new FileMapImgLoaderLOCI2( fileMap, sd, state.getWasZGrouped() );
 		else
-			imgLoader = new FileMapImgLoaderLOCI( fileMap, FileListDatasetDefinitionUtil.selectImgFactory(state.getDimensionMap()), sd, state.getWasZGrouped() );
+			imgLoader = new FileMapImgLoaderLOCI( fileMap, sd, state.getWasZGrouped() );
 		sd.setImgLoader( imgLoader );
 
 		double minResolution = Double.MAX_VALUE;
@@ -644,7 +648,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 
 	@Override
-	public SpimData2 createDataset( )
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 
 		FileListChooser chooser = fileListChoosers.get( 0 );
@@ -994,12 +998,19 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if (state.getMultiplicityMap().get( Angle.class ).equals( CheckResult.SINGLE ) && fileVariableToUse.get( Angle.class ).size() == 1)
 		{
 			final GenericDialogPlus gdAnglesFromPattern = new GenericDialogPlus( "Parse Angles from file pattern" );
+			final List<String> seenAngles = new ArrayList<>();
 
 			StringBuilder sbAngleInfo = new StringBuilder();
 			sbAngleInfo.append( "<html>No metadata for sample rotation found, but numeric patterns for Angle in filenames:" );
 			sbAngleInfo.append( "<ul>" );
 			for (String s: patternDetector.getValuesForVariable( fileVariableToUse.get( Angle.class ).get( 0 ) ) )
-				sbAngleInfo.append( "<li>" + s + "</li>" );
+			{
+				if(!seenAngles.contains(s))
+				{
+    				seenAngles.add(s);
+    				sbAngleInfo.append( "<li>" + s + "</li>" );
+				}
+			}
 			sbAngleInfo.append( "</ul>You can choose to interpret the pattern as rotation angles."
 					+ "<br/>Please check \"apply angle rotation\" in the next step to apply rotations to data immediately" );
 			sbAngleInfo.append( "</html>" );
@@ -1071,7 +1082,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		GenericDialogPlus gdSave = new GenericDialogPlus( "Save dataset definition" );
 
 		addMessageAsJLabel("<html> <h1> Loading options </h1> <br /> </html>", gdSave);
-		gdSave.addChoice( "how_to_load_images", loadChoices, loadChoices[0] );
+		gdSave.addChoice( "how_to_load_images", loadChoicesNew, loadChoicesNew[defaultLoadChoice] );
+		gdSave.addCheckbox( "load_raw_data_virtually (also when resaving to HDF5/N5, slower, but supports larger stacks)", defaultVirtual );
 
 		addMessageAsJLabel("<html><h2> Save path </h2></html>", gdSave);
 
@@ -1116,8 +1128,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if ( gdSave.wasCanceled() )
 			return null;
 
-		final int loadChoice = gdSave.getNextChoiceIndex();
-		final boolean useVirtualLoader = loadChoice == 2; //"Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"
+		final int loadChoice = defaultLoadChoice = gdSave.getNextChoiceIndex();
+		final boolean useVirtualLoader = defaultVirtual = gdSave.getNextBoolean();
+
 		// re-build the SpimData if user explicitly doesn't want virtual loading
 		if (!useVirtualLoader)
 			data = buildSpimData( state, useVirtualLoader );
@@ -1189,20 +1202,23 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		{
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( data.getSequenceDescription().getViewSetupsOrdered() );
 			final int firstviewSetupId = data.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
-			Generic_Resave_HDF5.lastExportPath = String.join( File.separator, chosenPath.getAbsolutePath(), "dataset");
-			final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
+			//Generic_Resave_HDF5.lastExportPath = String.join( File.separator, chosenPath.getAbsolutePath(), "dataset");
+			final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, true );
 
 			// HDF5 options dialog was cancelled
 			if (params == null)
 				return null;
 
+			params.setHDF5File(new File( chosenPath.getAbsolutePath(), xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".h5" ) );
+			params.setSeqFile(new File( chosenPath.getAbsolutePath(), xmlFileName ) );
+
 			final ProgressWriter progressWriter = new ProgressWriterIJ();
 			progressWriter.out().println( "starting export..." );
 
 			Generic_Resave_HDF5.writeHDF5( data, params, progressWriter );
-			
+
 			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): HDF5 resave finished." );
-			
+
 			net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
 
 			// ensure progressbar is gone
@@ -1217,7 +1233,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
 			Collections.sort( viewIds );
 
-			final File xmlFile = new File( chosenPath.getAbsolutePath(), "dataset.xml" );
+			final File xmlFile = new File( chosenPath.getAbsolutePath(), xmlFileName );
 
 			final SequenceDescription sd = data.getSequenceDescription();
 
@@ -1229,7 +1245,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if ( n5params == null )
 				return null;
 
-			n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
+			// n5-filename is same as XML name now (set in N5Parameters.getParamtersIJ)
+			//n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
 
 			Resave_N5.resaveN5( data, viewIds, n5params );
 

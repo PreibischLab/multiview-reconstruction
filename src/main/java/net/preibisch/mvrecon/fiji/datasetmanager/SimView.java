@@ -76,7 +76,7 @@ public class SimView implements MultiViewDatasetDefinition
 	public static boolean defaultLittleEndian = true;
 
 	@Override
-	public SpimData2 createDataset()
+	public SpimData2 createDataset( final String xmlFileName )
 	{
 		final File rootDir = queryRootDir();
 
@@ -362,7 +362,7 @@ public class SimView implements MultiViewDatasetDefinition
 	{
 		defaultDir = "/nrs/aic/Wait/for_stephan/Run2_20190909_155416";
 
-		SpimData2 sd = new SimView().createDataset();
+		SpimData2 sd = new SimView().createDataset( "dataset.xml");
 
 		if ( sd == null )
 			IOFunctions.println( "Failed to define dataset.");

@@ -39,26 +39,32 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 
 public class SimpleBoundingBoxOverlap< V extends ViewId > implements OverlapDetection< V >
 {
-	final ViewRegistrations vrs;
+	final Map< ViewId, ViewRegistration > vrs;
 	final Map< Integer, ? extends BasicViewSetup > vss;
 
 	public SimpleBoundingBoxOverlap( final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ?, ? > > spimData )
 	{
 		this.vss = spimData.getSequenceDescription().getViewSetups();
-		this.vrs = spimData.getViewRegistrations();
+		this.vrs = spimData.getViewRegistrations().getViewRegistrations();
 	}
 
 	public SimpleBoundingBoxOverlap( final SequenceDescription sd, final ViewRegistrations vrs )
 	{
 		this.vss = sd.getViewSetups();
+		this.vrs = vrs.getViewRegistrations();
+	}
+
+	public SimpleBoundingBoxOverlap( final Map< Integer, ? extends BasicViewSetup > viewSetups, final Map< ViewId, ViewRegistration >  vrs )
+	{
+		this.vss = viewSetups;
 		this.vrs = vrs;
 	}
 
 	@Override
 	public boolean overlaps( final V view1, final V view2 )
 	{
-		final BoundingBox bb1 = getBoundingBox( view1, vss, vrs );
-		final BoundingBox bb2 = getBoundingBox( view2, vss, vrs );
+		final BoundingBox bb1 = getBoundingBox( vss.get( view1.getViewSetupId() ), vrs.get( view1 ) );
+		final BoundingBox bb2 = getBoundingBox( vss.get( view2.getViewSetupId() ), vrs.get( view2 ) );
 
 		if ( bb1 == null )
 			throw new RuntimeException( "view1 has no image size" );
@@ -72,8 +78,8 @@ public class SimpleBoundingBoxOverlap< V extends ViewId > implements OverlapDete
 	@Override
 	public RealInterval getOverlapInterval( final V view1, final V view2 )
 	{
-		final RealInterval bb1 = getBoundingBoxReal( view1, vss, vrs );
-		final RealInterval bb2 = getBoundingBoxReal( view2, vss, vrs );
+		final RealInterval bb1 = getBoundingBoxReal( vss.get( view1.getViewSetupId() ), vrs.get( view1 ) );
+		final RealInterval bb2 = getBoundingBoxReal( vss.get( view2.getViewSetupId() ), vrs.get( view2 ) );
 
 		if ( bb1 == null )
 			throw new RuntimeException( "view1 has no image size" );
@@ -84,7 +90,7 @@ public class SimpleBoundingBoxOverlap< V extends ViewId > implements OverlapDete
 		double[] min = new double[ bb1.numDimensions() ];
 		double[] max = new double[ bb1.numDimensions() ];
 
-		if ( overlaps( getBoundingBox( view1, vss, vrs ), getBoundingBox( view2, vss, vrs ) ) )
+		if ( overlaps( getBoundingBox( vss.get( view1.getViewSetupId() ), vrs.get( view1 ) ), getBoundingBox( vss.get( view2.getViewSetupId() ), vrs.get( view2 ) ) ) )
 		{
 			for ( int d = 0; d < bb1.numDimensions(); ++d )
 			{

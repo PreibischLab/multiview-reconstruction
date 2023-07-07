@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>33.2.0</version>
+		<version>35.1.1</version>
 		<relativePath />
 	</parent>
 
 	<groupId>net.preibisch</groupId>
 	<artifactId>multiview-reconstruction</artifactId>
-	<version>1.2.9-SNAPSHOT</version>
+	<version>2.0.3-SNAPSHOT</version>
 
 	<name>Multiview Reconstruction</name>
 	<description>Software for the reconstruction of multi-view microscopic acquisitions
@@ -99,10 +99,18 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<license.licenseName>gpl_v2</license.licenseName>
 		<license.copyrightOwners>Multiview Reconstruction developers.</license.copyrightOwners>
 
-		<multiview-simulation.version>0.2.0</multiview-simulation.version>
+		<pyramidio.version>1.1.0</pyramidio.version>
+		<ijp-kheops.version>0.3.4</ijp-kheops.version>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
+
+		<imglib2.version>6.1.0</imglib2.version>
+		<imglib2-algorithm.version>0.13.2</imglib2-algorithm.version>
+		<imglib2-cache.version>1.0.0-beta-17</imglib2-cache.version>
+		<bigdataviewer-core.version>10.4.6</bigdataviewer-core.version>
+		<bigdataviewer-vistools.version>1.0.0-beta-32</bigdataviewer-vistools.version>
+		<n5-imglib2.version>5.0.0</n5-imglib2.version>
 	</properties>
 
 	<repositories>
@@ -158,7 +166,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm</artifactId>
-			<version>0.13.0</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
@@ -241,7 +248,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>args4j</groupId>
 			<artifactId>args4j</artifactId>
-			<version>2.33</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
@@ -262,12 +268,12 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>gov.nist.isg</groupId>
 			<artifactId>pyramidio</artifactId>
-			<version>1.1.0</version>
+			<version>${pyramidio.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.epfl.biop</groupId>
 			<artifactId>ijp-kheops</artifactId>
-			<version>0.3.4</version>
+			<version>${ijp-kheops.version}</version>
 		</dependency>
 	</dependencies>
 	

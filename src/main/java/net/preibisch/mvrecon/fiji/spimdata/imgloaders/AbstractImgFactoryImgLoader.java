@@ -23,12 +23,14 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.real.FloatType;
 
 public abstract class AbstractImgFactoryImgLoader extends AbstractImgLoader
 {
-	protected ImgFactory< ? extends NativeType< ? > > imgFactory = null;
+	protected ImgFactory< ? extends NativeType< ? > > imgFactory1 = new CellImgFactory<>( new FloatType() );
 
-	public ImgFactory< ? extends NativeType< ? > > getImgFactory() { return imgFactory; }
-	public void setImgFactory( final ImgFactory< ? extends NativeType< ? > > imgFactory ) { this.imgFactory = imgFactory; }
+	public ImgFactory< ? extends NativeType< ? > > getImgFactory() { return imgFactory1; }
+	public void setImgFactory( final ImgFactory< ? extends NativeType< ? > > imgFactory ) { this.imgFactory1 = imgFactory; }
 }

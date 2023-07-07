@@ -120,7 +120,6 @@ public abstract class LegacyStackImgLoader extends AbstractImgFactoryImgLoader
 	 * 
 	 * @param path - the path
 	 * @param fileNamePattern - the filename pattern
-	 * @param imgFactory - ImgFactory
 	 * @param layoutTP - 0 == one, 1 == one per file, 2 == all in one file
 	 * @param layoutChannels - 0 == one, 1 == one per file, 2 == all in one file
 	 * @param layoutIllum - 0 == one, 1 == one per file, 2 == all in one file
@@ -129,7 +128,7 @@ public abstract class LegacyStackImgLoader extends AbstractImgFactoryImgLoader
 	 * @param sequenceDescription - the sequence description
 	 */
 	public LegacyStackImgLoader(
-			final File path, final String fileNamePattern, final ImgFactory< ? extends NativeType< ? > > imgFactory,
+			final File path, final String fileNamePattern,
 			final int layoutTP, final int layoutChannels, final int layoutIllum, final int layoutAngles, final int layoutTiles,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
@@ -143,13 +142,11 @@ public abstract class LegacyStackImgLoader extends AbstractImgFactoryImgLoader
 		this.layoutTiles = layoutTiles;
 		this.sequenceDescription = sequenceDescription;
 		
-		this.init( imgFactory );
+		this.init();
 	}
 
-	protected void init( final ImgFactory< ? extends NativeType< ? > > imgFactory )
+	protected void init( )
 	{
-		setImgFactory( imgFactory );
-		
 		replaceTimepoints = replaceChannels = replaceIlluminations = replaceAngles = replaceTiles = null;
 		numDigitsTimepoints = numDigitsChannels = numDigitsIlluminations = numDigitsAngles = numDigitsTiles = -1;
 		

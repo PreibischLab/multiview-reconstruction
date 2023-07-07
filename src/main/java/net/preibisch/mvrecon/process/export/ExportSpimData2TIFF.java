@@ -124,8 +124,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	@Override
 	public boolean finish()
 	{
-		final FileMapImgLoaderLOCI imgLoader = new FileMapImgLoaderLOCI(
-				fileMap, new CellImgFactory<>(), newSpimData.getSequenceDescription() );
+		final FileMapImgLoaderLOCI imgLoader = new FileMapImgLoaderLOCI( fileMap, newSpimData.getSequenceDescription() );
 
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );
 

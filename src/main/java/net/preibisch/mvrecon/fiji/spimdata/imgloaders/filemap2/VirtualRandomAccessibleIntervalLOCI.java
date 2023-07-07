@@ -142,13 +142,7 @@ class VirtualRandomAccessibleIntervalLOCI<T extends RealType< T > & NativeType< 
 		}
 
 		@Override
-		public Sampler< T > copy()
-		{
-			return copyRandomAccess();
-		}
-
-		@Override
-		public RandomAccess< T > copyRandomAccess()
+		public RandomAccess< T > copy()
 		{
 			return new VirtualRandomAccessLOCI();
 		}

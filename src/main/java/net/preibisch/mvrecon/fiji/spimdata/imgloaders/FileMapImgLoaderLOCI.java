@@ -40,19 +40,17 @@ public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortT
 
 	public FileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
 	{
-		this(fileMap, imgFactory, sequenceDescription, false);
+		this(fileMap, sequenceDescription, false);
 	}
 
 	public FileMapImgLoaderLOCI(
 			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final ImgFactory< ? extends NativeType< ? > > imgFactory,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
 			final boolean zGrouped)
 	{
-		super( new LegacyFileMapImgLoaderLOCI( fileMap, imgFactory, sequenceDescription, zGrouped ) );
+		super( new LegacyFileMapImgLoaderLOCI( fileMap, sequenceDescription, zGrouped ) );
 		this.zGrouped = zGrouped;
 	}
 

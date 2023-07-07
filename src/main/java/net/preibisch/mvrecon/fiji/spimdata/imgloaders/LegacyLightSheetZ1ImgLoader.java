@@ -174,7 +174,7 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 			dim = meta.imageSizes().get( a.getId() );
 		}
 
-		final Img< T > img = imgFactory.imgFactory( type ).create( dim, type );
+		final Img< T > img = getImgFactory().imgFactory( type ).create( dim, type );
 
 		if ( img == null )
 			throw new RuntimeException( "Could not instantiate " + getImgFactory().getClass().getSimpleName() + " for '" + cziFile + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ", most likely out of memory." );
@@ -443,6 +443,6 @@ public class LegacyLightSheetZ1ImgLoader extends AbstractImgFactoryImgLoader
 	@Override
 	public String toString()
 	{
-		return new LightSheetZ1().getTitle() + ", ImgFactory=" + imgFactory.getClass().getSimpleName();
+		return new LightSheetZ1().getTitle() + ", ImgFactory=" + getImgFactory().getClass().getSimpleName();
 	}
 }

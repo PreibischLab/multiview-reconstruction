@@ -95,7 +95,7 @@ public class TestGlobalOptTwoRound
 		new ViewRegistration( 0, 2, tr2 );
 		vrMap.put( view2, new ViewRegistration( 0, 2, tr2 ) );
 
-		final HashMap< ViewId, AffineTransform3D > computeResults = GlobalOptTwoRound.compute(
+		final HashMap< ViewId, TranslationModel3D > computeResults = GlobalOptTwoRound.computeModels(
 				new TranslationModel3D(),
 				pmc,
 				cs,

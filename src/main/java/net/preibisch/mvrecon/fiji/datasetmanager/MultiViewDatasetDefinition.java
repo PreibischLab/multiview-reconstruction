@@ -50,9 +50,10 @@ public interface MultiViewDatasetDefinition
 	 * query all necessary data from the user to build up a SpimData object and
 	 * save it as an XML file.
 	 * 
+	 * @param xmlFileName - the filename of the XML that was selected (no path!)
 	 * @return - the saved {@link SpimData} object
 	 */
-	public SpimData2 createDataset();
+	public SpimData2 createDataset( final String xmlFileName );
 	
 	/**
 	 * @return - a new instance of this implementation
