@@ -208,10 +208,12 @@ public class InterestPointsN5 extends InterestPoints
 			N5Utils.save( locData, n5Writer, locDataset, new int[] { (int)locData.dimension( 0 ), defaultBlockSize }, new GzipCompression() );
 
 			n5Writer.close();
+
+			IOFunctions.println( "Saved: " + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset );
 		}
 		catch (IOException e)
 		{
-			IOFunctions.println("Couldn't write interestpoints to N5 '" + baseDir + ":/" + dataset + "': " + e );
+			IOFunctions.println("Couldn't write interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
 			e.printStackTrace();
 			return false;
 		}
@@ -331,11 +333,14 @@ public class InterestPointsN5 extends InterestPoints
 					datasetAttributes,
 					new long[] {0});
 			*/
+
+			IOFunctions.println( "Saved: " + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset );
+
 			n5Writer.close();
 		}
 		catch (IOException e)
 		{
-			IOFunctions.println("Couldn't write corresponding interestpoints to N5 '" + baseDir + ":/" + dataset + "': " + e );
+			IOFunctions.println("Couldn't write corresponding interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
 			e.printStackTrace();
 			return false;
 		}
@@ -353,7 +358,7 @@ public class InterestPointsN5 extends InterestPoints
 
 			if (!n5.exists(dataset))
 			{
-				IOFunctions.println( "InterestPointsN5.loadInterestPoints(): dataset '" + baseDir + ":/" + dataset + "' does not exist, cannot load interestpoints." );
+				IOFunctions.println( "InterestPointsN5.loadInterestPoints(): dataset '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "' does not exist, cannot load interestpoints." );
 				return false;
 			}
 
