@@ -46,7 +46,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	List< CorrespondingInterestPoints > correspondingInterestPoints;
 
 	/**
-	 * Instantiates a new {@link InterestPointList}
+	 * Instantiates a new {@link InterestPoints}
 	 * 
 	 * @param baseDir - the path where the xml is
 	 * @param file - relative path to the file to load/save the list from, an extension is added automatically (.ip.txt &amp;&amp; .corr.txt)
