@@ -36,7 +36,7 @@ public class CorrespondingInterestPoints implements Comparable< CorrespondingInt
 	private static final long serialVersionUID = -3165385812553510745L;
 
 	/**
-	 * The detection id of the interest point in this {@link InterestPointList}
+	 * The detection id of the interest point in this {@link InterestPoints}
 	 */
 	final int detectionId;
 	
@@ -47,12 +47,12 @@ public class CorrespondingInterestPoints implements Comparable< CorrespondingInt
 	final int correspondingViewIdTP, correspondingViewIdSetup;
 	
 	/**
-	 * The label of {@link InterestPointList} as stored in the {@link ViewInterestPointLists} HashMap
+	 * The label of {@link InterestPoints} as stored in the {@link ViewInterestPointLists} HashMap
 	 */
 	final String correspondingLabel;
 	
 	/**
-	 * The detection id of the corresponding interest point in the {@link InterestPointList}
+	 * The detection id of the corresponding interest point in the {@link InterestPoints}
 	 */
 	final int correspondingDetectionId;
 
@@ -82,7 +82,7 @@ public class CorrespondingInterestPoints implements Comparable< CorrespondingInt
 	}
 
 	/**
-	 * @return The detection id of the interest point in this {@link InterestPointList}
+	 * @return The detection id of the interest point in this {@link InterestPoints}
 	 */
 	final public int getDetectionId() { return detectionId; }
 
@@ -92,12 +92,12 @@ public class CorrespondingInterestPoints implements Comparable< CorrespondingInt
 	final public ViewId getCorrespondingViewId() { return new ViewId( correspondingViewIdTP, correspondingViewIdSetup ); }
 	
 	/**
-	 * @return The label of {@link InterestPointList} as stored in the {@link ViewInterestPointLists} HashMap
+	 * @return The label of {@link InterestPoints} as stored in the {@link ViewInterestPointLists} HashMap
 	 */
 	final public String getCorrespodingLabel() { return correspondingLabel; }
 	
 	/**
-	 * @return The detection id of the corresponding interest point in the {@link InterestPointList}
+	 * @return The detection id of the corresponding interest point in the {@link InterestPoints}
 	 */
 	final public int getCorrespondingDetectionId() { return correspondingDetectionId; }
 

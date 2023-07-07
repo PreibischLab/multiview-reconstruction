@@ -103,6 +103,9 @@ public abstract class InterestPoints
 	public abstract String getXMLRepresentation();
 
 	/**
+	 * @param viewId the viewId
+	 * @param label the label
+	 * 
 	 * @return a string that is stored in the XML and that is used to load/save interestpoints and corresponding interest points
 	 */
 	public abstract String createXMLRepresentation( final ViewId viewId, final String label );
