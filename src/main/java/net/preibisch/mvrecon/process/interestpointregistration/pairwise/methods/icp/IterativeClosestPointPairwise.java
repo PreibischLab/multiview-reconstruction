@@ -172,8 +172,6 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 		// use the world and not the local coordinates
 		for ( int i = 0; i < listA.size(); ++ i )
 		{
-			listA.get( i ).setUseW( true );
-			listB.get( i ).setUseW( true );
 			IOFunctions.println( Util.printCoordinates( listA.get( i ).getL() ) + " >>> " + Util.printCoordinates( listB.get( i ).getL() ) + ", d=" + Point.distance( listA.get( i ), listB.get( i ) ) );
 		}
 
