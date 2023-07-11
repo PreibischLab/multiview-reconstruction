@@ -52,14 +52,8 @@ public class GeometricHashingPairwise< I extends InterestPoint > implements Matc
 		final PairwiseResult< I > result = new PairwiseResult<>( true );
 		final GeometricHasher< I > hasher = new GeometricHasher<>();
 		
-		final ArrayList< I > listA = new ArrayList<>();
-		final ArrayList< I > listB = new ArrayList<>();
-
-		for ( final I i : listAIn )
-			listA.add( i );
-
-		for ( final I i : listBIn )
-			listB.add( i );
+		final ArrayList< I > listA = new ArrayList<>(listAIn);
+		final ArrayList< I > listB = new ArrayList<>(listBIn);
 
 		final int minPoints = 3 + gp.getRedundancy() + 1;
 

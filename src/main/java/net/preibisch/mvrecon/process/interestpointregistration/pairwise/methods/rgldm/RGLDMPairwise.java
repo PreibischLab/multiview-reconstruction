@@ -56,14 +56,8 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 		final PairwiseResult< I > result = new PairwiseResult< I >( true );
 		result.setPrintOut( printResult );
 
-		final ArrayList< I > listA = new ArrayList< I >();
-		final ArrayList< I > listB = new ArrayList< I >();
-
-		for ( final I i : listAIn )
-			listA.add( i );
-
-		for ( final I i : listBIn )
-			listB.add( i );
+		final ArrayList< I > listA = new ArrayList<>( listAIn );
+		final ArrayList< I > listB = new ArrayList<>( listBIn );
 
 		final int minPoints = dp.getNumNeighbors() + dp.getRedundancy() + 1;
 

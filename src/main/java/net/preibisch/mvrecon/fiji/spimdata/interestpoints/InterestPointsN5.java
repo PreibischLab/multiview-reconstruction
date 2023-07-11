@@ -264,17 +264,7 @@ public class InterestPointsN5 extends InterestPoints
 			{
 				final ViewId viewId = cip.getCorrespondingViewId();
 				final String label = cip.getCorrespodingLabel();
-
-				if ( viewidToLabels.containsKey( viewId ) )
-				{
-					viewidToLabels.get( viewId ).add( label );
-				}
-				else
-				{
-					final HashSet< String > labels = new HashSet<>();
-					labels.add( label );
-					viewidToLabels.put( viewId, labels );
-				}
+				viewidToLabels.computeIfAbsent( viewId, id -> new HashSet<>() ).add( label );
 			}
 
 			final HashMap< String, Long > idMap = new HashMap<>(); // to store ID

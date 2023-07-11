@@ -27,15 +27,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import fiji.util.KDTree;
-import fiji.util.node.Leaf;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.RealLocalizable;
-import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.LinkedInterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.exception.NoSuitablePointsException;
@@ -65,8 +62,7 @@ public class ICP < P extends RealLocalizable >
 	/**
 	 * Instantiates a new {@link ICP} object with the {@link List} of target and reference points as well as the {@link PointMatchIdentification} interface that defines
 	 * how corresponding points are identified. <br>
-	 * Note that the elements of the {@link List}s have to implement {@link Point}(for compatibility with {@link Model}) and {@link Leaf}(for compatibility with {@link KDTree}). 
-	 * 
+	 *
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
 	 * @param pointMatchIdentifier - the {@link PointMatchIdentification} which defines how correspondences are established
