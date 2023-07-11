@@ -82,7 +82,7 @@ public class Data_Explorer implements PlugIn
 	{
 		String text = "Welcome to the Multiview Reconstruction Software!\n\n";
 
-		text += "Here are a few tipps & tricks that hopefully get you started. The first thing you should do is to\n";
+		text += "Here are a few tips & tricks that hopefully get you started. The first thing you should do is to\n";
 		text += "have a look at the online documentation, which is growing (http://fiji.sc/Multiview-Reconstruction).\n\n";
 
 		text += "For newcomers, the basic steps you need to do are the following:\n";
@@ -95,11 +95,11 @@ public class Data_Explorer implements PlugIn
 		text += "6) Fuse or deconvolve the dataset\n";
 		text += "\n";
 
-		text += "Please note that the outlined steps above should work out of the box it you have fluoresecent beads\n";
-		text += "sourrounding your sample. If you want to use sample features like nuclei, you need to apply approximate\n";
+		text += "Please note that the outlined steps above should work out of the box if you have fluoresecent beads\n";
+		text += "surrounding your sample. If you want to use sample features like nuclei, you need to apply approximate\n";
 		text += "transformations first (known rotation axis & angles) and register using translation-invariant matching.\n";
 		text += "\n";
-		text += "Tipp: If you get too many detections inside the sample and you just want to find beads, you can remove\n";
+		text += "Tip: If you get too many detections inside the sample and you just want to find beads, you can remove\n";
 		text += "them based on their distance to each other (Remove Interest Points > By Distance ...) - remove all that\n";
 		text += "too close to each other (e.g. less than 5 pixels)\n";
 
