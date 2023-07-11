@@ -52,14 +52,8 @@ public class FRGLDMPairwise< I extends InterestPoint > implements MatcherPairwis
 		final PairwiseResult< I > result = new PairwiseResult<>( true );
 		final FRGLDMMatcher< I > hasher = new FRGLDMMatcher<>();
 		
-		final ArrayList< I > listA = new ArrayList<>();
-		final ArrayList< I > listB = new ArrayList<>();
-
-		for ( final I i : listAIn )
-			listA.add( i );
-
-		for ( final I i : listBIn )
-			listB.add( i );
+		final ArrayList< I > listA = new ArrayList<>(listAIn);
+		final ArrayList< I > listB = new ArrayList<>(listBIn);
 
 		final int minPoints = fp.getNumNeighbors() + fp.getRedundancy() + 1;
 
