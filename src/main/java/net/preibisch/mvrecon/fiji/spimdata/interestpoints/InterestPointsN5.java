@@ -155,6 +155,7 @@ public class InterestPointsN5 extends InterestPoints
 
 			n5Writer.setAttribute(dataset, "pointcloud", "1.0.0");
 			n5Writer.setAttribute(dataset, "type", "list");
+			n5Writer.setAttribute(dataset, "list version", "1.0.0");
 
 			final String idDataset = dataset + "/id";
 			final String locDataset = dataset + "/loc";
@@ -355,7 +356,11 @@ public class InterestPointsN5 extends InterestPoints
 			String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			String type = n5.getAttribute(dataset, "type", String.class );
 
-			System.out.println( version + ", " + type );
+			if ( !type.equals("list") )
+			{
+				IOFunctions.println( "unsupported point cloud type: " + type );
+				return false;
+			}
 
 			final String idDataset = dataset + "/id";
 			final String locDataset = dataset + "/loc";
