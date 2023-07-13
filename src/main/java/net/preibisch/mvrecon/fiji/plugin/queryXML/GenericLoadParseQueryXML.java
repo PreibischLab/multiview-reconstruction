@@ -717,7 +717,7 @@ public class GenericLoadParseQueryXML<
 			this.message1 = neutralMsg1a;
 		else
 			this.message1 = neutralMsg1b;
-		this.message2 = noMsg2;
+		this.message2 = this.message2.startsWith( "To access simulated" ) ? this.message2 : noMsg2;
 		this.color = GUIHelper.neutral;
 		this.data = null;
 		
