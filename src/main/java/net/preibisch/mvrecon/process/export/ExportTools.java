@@ -77,6 +77,7 @@ public class ExportTools {
 			final long[] dimensions,
 			final Compression compression,
 			final int[] blockSize,
+			final int[][] downsamplings,
 			final ViewId viewId,
 			final String n5Path,
 			final String xmlOutPathString,
@@ -118,7 +119,11 @@ public class ExportTools {
 				driverVolumeWriter.setAttribute(ds, "blockSize", blockSize );
 				driverVolumeWriter.setAttribute(ds, "dimensions", dimensions );
 				driverVolumeWriter.setAttribute(ds, "compression", compression );
-				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[][] {{1,1,1}} );
+
+				if ( downsamplings == null || downsamplings.length == 0 )
+					driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[][] {{1,1,1}} );
+				else
+					driverVolumeWriter.setAttribute(ds, "downsamplingFactors", downsamplings );
 			}
 
 			// set N5 attributes for timepoint
@@ -126,11 +131,23 @@ public class ExportTools {
 			ds ="setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId();
 			driverVolumeWriter.setAttribute(ds, "resolution", new double[] {1,1,1} );
 			driverVolumeWriter.setAttribute(ds, "saved_completely", true );
-			driverVolumeWriter.setAttribute(ds, "multiScale", false );
+			driverVolumeWriter.setAttribute(ds, "multiScale", downsamplings != null && downsamplings.length != 0 );
 
-			// set additional N5 attributes for s0 dataset
-			ds = ds + "/s0";
-			driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
+			if ( downsamplings == null || downsamplings.length == 0 )
+			{
+				// set additional N5 attributes for s0 dataset
+				ds = ds + "/s0";
+				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
+			}
+			else
+			{
+				for ( int level = 0; level < downsamplings.length; ++level )
+				{
+					// set additional N5 attributes for s0 ... sN datasets
+					final String dsLevel = ds + "/s" + level;
+					driverVolumeWriter.setAttribute(dsLevel, "downsamplingFactors", downsamplings[ level ] );
+				}
+			}
 
 			return true;
 		}
@@ -158,20 +175,45 @@ public class ExportTools {
 			// if viewsetup does not exist
 			if ( !exists.getB() )
 			{
-				final Img<IntType> subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } );
-				final Img<DoubleType> resolutions = ArrayImgs.doubles( new double[] { 1,1,1}, new long[] { 3, 1 } );
+				final Img<IntType> subdivisions;
+				final Img<DoubleType> resolutions;
 
+				if ( downsamplings == null || downsamplings.length == 0 )
+				{
+					subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } ); // blocksize
+					resolutions = ArrayImgs.doubles( new double[] { 1,1,1 }, new long[] { 3, 1 } ); // downsampling
+				}
+				else
+				{
+					final int[] blocksizes = new int[ 3 * downsamplings.length ];
+					final double[] downsamples = new double[ 3 * downsamplings.length ];
+
+					int i = 0;
+					for ( int level = 0; level < downsamplings.length; ++level )
+					{
+						downsamples[ i ] = downsamplings[ level ][ 0 ];
+						blocksizes[ i++ ] = blockSize[ 0 ];
+						downsamples[ i ] = downsamplings[ level ][ 1 ];
+						blocksizes[ i++ ] = blockSize[ 1 ];
+						downsamples[ i ] = downsamplings[ level ][ 2 ];
+						blocksizes[ i++ ] = blockSize[ 2 ];
+					}
+
+					subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
+					resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
+				}
+				
 				driverVolumeWriter.createDataset(
 						"s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions",
-						new long[] { 3, 1 },
-						new int[] { 3, 1 },
+						subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+						new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
 						DataType.INT32,
 						new RawCompression() );
 
 				driverVolumeWriter.createDataset(
 						"s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions",
-						new long[] { 3, 1 },
-						new int[] { 3, 1 },
+						resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+						new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
 						DataType.FLOAT64,
 						new RawCompression() );
 
@@ -343,6 +385,22 @@ public class ExportTools {
 		System.out.println( "path=" + path );
 
 		return path;
+	}
+
+	public static String createDownsampledBDVPath( final String s0path, final int level, final StorageType storageType )
+	{
+		if ( StorageType.N5.equals(storageType) )
+		{
+			return s0path.substring( 0, s0path.length() - 3 ) + "/s" + level;
+		}
+		else if ( StorageType.HDF5.equals(storageType) )
+		{
+			return s0path.substring( 0, s0path.length() - 8 ) + "/" + level + "/cells";
+		}
+		else
+		{
+			throw new RuntimeException( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
+		}
 	}
 
 	@FunctionalInterface
