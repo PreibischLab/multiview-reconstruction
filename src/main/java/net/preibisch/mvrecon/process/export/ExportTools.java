@@ -137,6 +137,7 @@ public class ExportTools {
 			{
 				// set additional N5 attributes for s0 dataset
 				ds = ds + "/s0";
+				driverVolumeWriter.createGroup( ds );
 				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
 			}
 			else
@@ -145,6 +146,7 @@ public class ExportTools {
 				{
 					// set additional N5 attributes for s0 ... sN datasets
 					final String dsLevel = ds + "/s" + level;
+					driverVolumeWriter.createGroup( dsLevel );
 					driverVolumeWriter.setAttribute(dsLevel, "downsamplingFactors", downsamplings[ level ] );
 				}
 			}
