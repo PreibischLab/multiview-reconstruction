@@ -245,7 +245,7 @@ public class ExportN5API implements ImgExport
 		//
 		if ( driverVolumeWriter.exists( dataset ) )
 		{
-			IOFunctions.println( "Dataset '" + dataset + "'. STOPPING!" );
+			IOFunctions.println( "Dataset '" + dataset + "' exists. STOPPING!" );
 			return false;
 		}
 
