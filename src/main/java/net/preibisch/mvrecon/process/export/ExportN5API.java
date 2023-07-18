@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,15 +41,23 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
+import bdv.export.ExportMipmapInfo;
+import bdv.export.ProposeMipmaps;
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.DefaultVoxelDimensions;
+import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.VoxelDimensions;
+import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converters;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.ShortType;
@@ -61,8 +70,10 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
 import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
@@ -78,6 +89,7 @@ public class ExportN5API implements ImgExport
 	public static String defaultDatasetExtension = "/s0";
 
 	public static boolean defaultBDV = false;
+	public static boolean defaultMultiRes = false;
 	public static String defaultXMLOut = null;
 	public static boolean defaultManuallyAssignViewId = false;
 	public static int defaultTpId = 0;
@@ -111,6 +123,8 @@ public class ExportN5API implements ImgExport
 	int vsId = defaultVSId;
 	int splittingType;
 	Map<ViewId, ViewDescription> vdMap;
+
+	int[][] downsampling = null; //if downsampling is desired
 
 	int bsX = defaultBlocksizeX_N5;
 	int bsY = defaultBlocksizeY_N5;
@@ -269,6 +283,7 @@ public class ExportN5API implements ImgExport
 						bb.dimensionsAsLongArray(),
 						compression,
 						blocksize(),
+						this.downsampling,
 						viewId,
 						path,
 						xmlOut,
@@ -299,49 +314,12 @@ public class ExportN5API implements ImgExport
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
 
-		final long time = System.currentTimeMillis();
-
+		long time = System.currentTimeMillis();
 		final ExecutorService ex = DeconViews.createExecutorService();
 
-		/*
-		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
-
-		for ( final long[][] gridBlock : grid )
-		{
-			tasks.add( new Callable< Void >()
-			{
-				@Override
-				public Void call() throws Exception
-				{
-					
-					try {
-
-						final Interval block =
-								Intervals.translate(
-										new FinalInterval( gridBlock[1] ), // blocksize
-										gridBlock[0] ); // block offset
-
-						final RandomAccessibleInterval< T > source = Views.interval( img, block );
-
-						final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-						N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, dataset, gridBlock[2]);
-					}
-					catch (IOException e) 
-					{
-						IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " );
-						e.printStackTrace();
-					}
-
-					return null;
-				}
-			});
-		}
-
-		FusionTools.execTasks( tasks, ex, "copy image" );
-
-		ex.shutdown();
-		*/
-
+		//
+		// save full-resolution data (s0)
+		//
 		ex.submit(() ->
 			grid.parallelStream().forEach(
 					gridBlock -> {
@@ -368,7 +346,7 @@ public class ExportN5API implements ImgExport
 		try
 		{
 			ex.shutdown();
-			ex.awaitTermination( 10000000, TimeUnit.HOURS);
+			ex.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
 		}
 		catch (InterruptedException e)
 		{
@@ -378,7 +356,161 @@ public class ExportN5API implements ImgExport
 		}
 
 		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
-		IOFunctions.println( "Saved, took: " + (System.currentTimeMillis() - time ) + " ms." );
+		IOFunctions.println( "Saved full resolution, took: " + (System.currentTimeMillis() - time ) + " ms." );
+
+		//
+		// save multiresolution pyramid (s1 ... sN)
+		//
+		if ( this.downsampling != null )
+		{
+			long[] previousDim = bb.dimensionsAsLongArray();
+			String previousDataset = dataset;
+
+			for ( int level = 1; level < this.downsampling.length; ++level )
+			{
+				final int[] ds = new int[ this.downsampling[ 0 ].length ];
+
+				for ( int d = 0; d < ds.length; ++d )
+					ds[ d ] = this.downsampling[ level ][ d ] / this.downsampling[ level - 1 ][ d ];
+
+				IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ level ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
+
+				final long[] dim = new long[ previousDim.length ];
+				for ( int d = 0; d < dim.length; ++d )
+					dim[ d ] = previousDim[ d ] / ds[ d ];
+
+				final String datasetDownsampling = bdv ? ExportTools.createDownsampledBDVPath(dataset, level, storageType) : null;
+
+				try
+				{
+					driverVolumeWriter.createDataset(
+							datasetDownsampling,
+							dim, // dimensions
+							blocksize(),
+							dataType,
+							compression );
+				}
+				catch ( IOException e )
+				{
+					IOFunctions.println( "Couldn't create downsampling level " + level + " for container '" + path + "', dataset '" + datasetDownsampling + "': " + e );
+					return false;
+				}
+
+				final List<long[][]> gridDS = Grid.create(
+						dim,
+						new int[] {
+								blocksize()[0],
+								blocksize()[1],
+								blocksize()[2]
+						},
+						blocksize());
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + gridDS.size() );
+
+				final String datasetPrev = previousDataset;
+				final ExecutorService e = DeconViews.createExecutorService();
+
+				time = System.currentTimeMillis();
+
+				e.submit(() ->
+					grid.parallelStream().forEach(
+							gridBlock ->
+							{
+								try
+								{
+									if ( dataType == DataType.UINT16 )
+									{
+										RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
+
+										for ( int d = 0; d < downsampled.numDimensions(); ++d )
+											if ( ds[ d ] > 1 )
+												downsampled = LazyHalfPixelDownsample2x.init(
+													downsampled,
+													new FinalInterval( downsampled ),
+													new UnsignedShortType(),
+													blocksize(),
+													d);
+
+										final RandomAccessibleInterval<UnsignedShortType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
+										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new UnsignedShortType());
+									}
+									else if ( dataType == DataType.UINT8 )
+									{
+										RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
+
+										for ( int d = 0; d < downsampled.numDimensions(); ++d )
+											if ( ds[ d ] > 1 )
+												downsampled = LazyHalfPixelDownsample2x.init(
+													downsampled,
+													new FinalInterval( downsampled ),
+													new UnsignedByteType(),
+													blocksize(),
+													d);
+
+										final RandomAccessibleInterval<UnsignedByteType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
+										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new UnsignedByteType());
+									}
+									else if ( dataType == DataType.FLOAT32 )
+									{
+										RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
+
+										for ( int d = 0; d < downsampled.numDimensions(); ++d )
+											if ( ds[ d ] > 1 )
+												downsampled = LazyHalfPixelDownsample2x.init(
+													downsampled,
+													new FinalInterval( downsampled ),
+													new FloatType(),
+													blocksize(),
+													d);
+
+										final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
+										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new FloatType());
+									}
+									else
+									{
+										throw new RuntimeException("Unsupported pixel type: " + dataType );
+									}
+
+									/*
+									final Interval block =
+											Intervals.translate(
+													new FinalInterval( gridBlock[1] ), // blocksize
+													gridBlock[0] ); // block offset
+			
+									final RandomAccessibleInterval< T > source = Views.interval( img, block );
+			
+									final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
+									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, dataset, gridBlock[2]);*/
+								}
+								catch (IOException exc) 
+								{
+									IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " + exc );
+									exc.printStackTrace();
+								}
+							} )
+					);
+
+				try
+				{
+					e.shutdown();
+					e.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
+				}
+				catch (InterruptedException exc)
+				{
+					IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + exc );
+					exc.printStackTrace();
+					return false;
+				}
+
+				IOFunctions.println( "Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
+
+				// for next downsampling level
+				previousDim = dim.clone();
+				previousDataset = datasetDownsampling;
+			}
+		}
+
+		driverVolumeWriter.close();
 
 		return true;
 	}
@@ -419,6 +551,8 @@ public class ExportN5API implements ImgExport
 				+ "add the fused image to an existing dataset so you can specify a ViewId that does not exist yet.",
 				GUIHelper.smallStatusFont, GUIHelper.neutral );
 
+		gdInit.addCheckbox( "Create multi-resolution pyramid", defaultMultiRes );
+
 		gdInit.showDialog();
 		if ( gdInit.wasCanceled() )
 			return false;
@@ -426,6 +560,7 @@ public class ExportN5API implements ImgExport
 		final int previousExportOption = defaultOption;
 		this.storageType = StorageType.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
 		this.bdv = defaultBDV = gdInit.getNextBoolean();
+		final boolean multiRes = defaultMultiRes = gdInit.getNextBoolean();
 		this.splittingType = fusion.getSplittingType();
 		this.instantiate = new InstantiateViewSetupBigStitcher( splittingType );
 
@@ -508,7 +643,8 @@ public class ExportN5API implements ImgExport
 					"Note: Data inside the HDF5/N5/ZARR container are stored in datasets (similar to a filesystem).\n"
 					+ "Each fused volume will be named according to its content (e.g. fused_tp0_ch2) and become a\n"
 					+ "dataset inside the 'base dataset'. You can add a dataset extension for each volume,\n"
-					+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution.", GUIHelper.smallStatusFont, GUIHelper.neutral );
+					+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution. If you select multi-resolution\n"
+					+ "output the dataset extension MUST end with /s0 since it will also create /s1, /s2, ...", GUIHelper.smallStatusFont, GUIHelper.neutral );
 		}
 
 		// export type changed or undefined
@@ -633,6 +769,57 @@ public class ExportN5API implements ImgExport
 				bsX = defaultBlocksizeX_N5; bsY = defaultBlocksizeY_N5; bsZ = defaultBlocksizeZ_N5;
 				bsFactorX = defaultBlocksizeFactorX_N5; bsFactorY = defaultBlocksizeFactorY_N5; bsFactorZ = defaultBlocksizeFactorZ_N5;
 			}
+		}
+
+		if ( multiRes )
+		{
+			if ( !bdv && !this.datasetExtension.endsWith("/s0") )
+			{
+				IOFunctions.println( "The selected dataset extension does not end with '/s0'. Cannot continue since it is unclear how to store multi-resolution levels '/s1', '/s2', ..." );
+				return false;
+			}
+
+			final double aniso = fusion.getAnisotropyFactor();
+			final Interval bb = fusion.getDownsampledBoundingBox();
+
+			final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
+			final BasicViewSetup setup = new BasicViewSetup(0, "fusion", new FinalDimensions( bb.dimensionsAsLongArray() ), v );
+
+			final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
+
+			final GenericDialog gdp = new GenericDialog( "Adjust downsampling options" );
+
+			final String extShort = datasetExtension.substring(0, datasetExtension.length() - 3 );
+			gdp.addStringField( "Subsampling_factors (downsampling)", ProposeMipmaps.getArrayString( emi.getExportResolutions() ), 40 );
+			gdp.addMessage( "Blocksize: "+bsX+"x"+bsY+"x"+bsZ, GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+			gdp.addMessage( "Multi-resolution datasets will be stored as:\n" +
+					"   " + this.path + "/\n" +
+					"      " + this.baseDataset + "{id}" + extShort + "/s1\n" +
+					"      " + this.baseDataset + "{id}" + extShort + "/s2\n" +
+					"      " + this.baseDataset + "{id}" + extShort + "/...", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
+
+			gdp.showDialog();
+			if ( gdp.wasCanceled() )
+				return false;
+
+			final String subsampling = gdp.getNextString();
+			this.downsampling = PluginHelper.parseResolutionsString( subsampling );
+
+			if ( this.downsampling == null || downsampling.length == 0 || downsampling[0] == null || downsampling[0].length == 0)
+			{
+				IOFunctions.println( "Could not parse resolution level string '" + subsampling + "'. Stopping." );
+				return false;
+			}
+
+			String mres = "[" + Util.printCoordinates( downsampling[ 0 ] );
+			for ( int i = 1; i < downsampling.length; ++i )
+				mres += ", " + Util.printCoordinates( downsampling[ i ] );
+			mres += "]";
+			IOFunctions.println( "Multi-resolution steps: " + mres);
+		}
+		else
+		{
+			this.downsampling = null; // no downsampling
 		}
 
 		return true;
