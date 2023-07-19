@@ -513,8 +513,6 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
-		driverVolumeWriter.close();
-
 		return true;
 	}
 
