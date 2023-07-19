@@ -381,7 +381,8 @@ public class ExportN5API implements ImgExport
 				for ( int d = 0; d < dim.length; ++d )
 					dim[ d ] = previousDim[ d ] / ds[ d ];
 
-				final String datasetDownsampling = bdv ? ExportTools.createDownsampledBDVPath(dataset, level, storageType) : null;
+				final String datasetDownsampling =
+						bdv ? ExportTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
 
 				try
 				{
