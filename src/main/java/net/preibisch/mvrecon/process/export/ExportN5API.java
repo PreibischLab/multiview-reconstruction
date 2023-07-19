@@ -361,6 +361,8 @@ public class ExportN5API implements ImgExport
 		//
 		// save multiresolution pyramid (s1 ... sN)
 		//
+
+		// TODO: doesn't work yet somehow ...
 		if ( this.downsampling != null )
 		{
 			long[] previousDim = bb.dimensionsAsLongArray();
@@ -413,7 +415,7 @@ public class ExportN5API implements ImgExport
 				time = System.currentTimeMillis();
 
 				e.submit(() ->
-					grid.parallelStream().forEach(
+					gridDS.parallelStream().forEach(
 							gridBlock ->
 							{
 								try
