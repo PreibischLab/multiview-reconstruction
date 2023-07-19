@@ -57,6 +57,7 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converters;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -413,6 +414,8 @@ public class ExportN5API implements ImgExport
 				final String datasetPrev = previousDataset;
 				final ExecutorService e = DeconViews.createExecutorService();
 
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + datasetPrev + "', downsampled will be written as '" + datasetDownsampling + "'." );
+
 				time = System.currentTimeMillis();
 
 				e.submit(() ->
@@ -469,21 +472,36 @@ public class ExportN5API implements ImgExport
 										final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
 										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new FloatType());
 									}
+									else if ( dataType == DataType.INT16 )
+									{
+										// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
+										// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
+										// https://github.com/bigdataviewer/bigdataviewer-core/issues/154
+										// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
+										RandomAccessibleInterval<UnsignedShortType> downsampled =
+												Converters.convertRAI(
+														(RandomAccessibleInterval<ShortType>)(Object)N5Utils.open(driverVolumeWriter, datasetPrev),
+														(i,o)->o.set( i.getShort() ),
+														new UnsignedShortType());
+
+										for ( int d = 0; d < downsampled.numDimensions(); ++d )
+											if ( ds[ d ] > 1 )
+												downsampled = LazyHalfPixelDownsample2x.init(
+													downsampled,
+													new FinalInterval( downsampled ),
+													new UnsignedShortType(),
+													blocksize(),
+													d);
+
+										final RandomAccessibleInterval<ShortType> sourceGridBlock =
+												Converters.convertRAI( Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]), (i,o)->o.set( i.getShort() ), new ShortType() );
+										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new ShortType());
+									}
 									else
 									{
+										IOFunctions.println( "Unsupported pixel type: " + dataType );
 										throw new RuntimeException("Unsupported pixel type: " + dataType );
 									}
-
-									/*
-									final Interval block =
-											Intervals.translate(
-													new FinalInterval( gridBlock[1] ), // blocksize
-													gridBlock[0] ); // block offset
-			
-									final RandomAccessibleInterval< T > source = Views.interval( img, block );
-			
-									final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, dataset, gridBlock[2]);*/
 								}
 								catch (IOException exc) 
 								{
@@ -790,14 +808,8 @@ public class ExportN5API implements ImgExport
 
 			final GenericDialog gdp = new GenericDialog( "Adjust downsampling options" );
 
-			final String extShort = datasetExtension.substring(0, datasetExtension.length() - 3 );
 			gdp.addStringField( "Subsampling_factors (downsampling)", ProposeMipmaps.getArrayString( emi.getExportResolutions() ), 40 );
 			gdp.addMessage( "Blocksize: "+bsX+"x"+bsY+"x"+bsZ, GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
-			gdp.addMessage( "Multi-resolution datasets will be stored as:\n" +
-					"   " + this.path + "/\n" +
-					"      " + this.baseDataset + "{id}" + extShort + "/s1\n" +
-					"      " + this.baseDataset + "{id}" + extShort + "/s2\n" +
-					"      " + this.baseDataset + "{id}" + extShort + "/...", GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
 
 			gdp.showDialog();
 			if ( gdp.wasCanceled() )
