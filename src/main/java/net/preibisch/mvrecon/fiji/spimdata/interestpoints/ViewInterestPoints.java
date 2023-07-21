@@ -66,19 +66,22 @@ public class ViewInterestPoints
 
 	public ViewInterestPointLists getViewInterestPointLists( final ViewId viewId )
 	{
+		if ( !interestPointCollectionLookup.containsKey( viewId ) )
+			interestPointCollectionLookup.put( viewId, new ViewInterestPointLists( viewId.getTimePointId(), viewId.getViewSetupId() ) );
+
 		return interestPointCollectionLookup.get( viewId );
 	}
-	
-	/**
+
+	/*
 	 * Assembles the {@link ViewInterestPoints} object consisting of a list of {@link ViewInterestPointLists} objects for all {@link ViewDescription}s that are present
 	 *
 	 * @param viewDescriptions - the view description map
 	 *
 	 */
-	public void createViewInterestPoints( final Map< ViewId, ViewDescription > viewDescriptions )
+	/*public void createViewInterestPoints( final Map< ViewId, ViewDescription > viewDescriptions )
 	{
 		for ( final ViewDescription viewDescription : viewDescriptions.values() )
 			if ( viewDescription.isPresent() )
 				interestPointCollectionLookup.put( viewDescription, new ViewInterestPointLists( viewDescription.getTimePointId(), viewDescription.getViewSetupId() ) );
-	}
+	}*/
 }

@@ -118,7 +118,7 @@ public class LightSheetZ1 extends DefineDataSet
 
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
-		viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
+		//viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
 
 		// finally create the SpimData itself based on the sequence description and the view registration
 		final SpimData2 spimData = new SpimData2(

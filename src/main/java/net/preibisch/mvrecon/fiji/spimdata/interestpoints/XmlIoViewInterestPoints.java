@@ -79,7 +79,7 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 	public ViewInterestPoints fromXml( final Element allInterestPointLists, final File basePath, final Map< ViewId, ViewDescription > viewDescriptions ) throws SpimDataException
 	{
 		final ViewInterestPoints viewsInterestPoints = super.fromXml( allInterestPointLists );
-		viewsInterestPoints.createViewInterestPoints( viewDescriptions );
+		//viewsInterestPoints.createViewInterestPoints( viewDescriptions );
 
 		for ( final Element viewInterestPointsElement : allInterestPointLists.getChildren( VIEWINTERESTPOINTSFILE_TAG ) )
 		{

@@ -178,7 +178,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		if ( elem == null )
 		{
 			viewsInterestPoints = new ViewInterestPoints();
-			viewsInterestPoints.createViewInterestPoints( seq.getViewDescriptions() );
+			//viewsInterestPoints.createViewInterestPoints( seq.getViewDescriptions() );
 		}
 		else
 		{

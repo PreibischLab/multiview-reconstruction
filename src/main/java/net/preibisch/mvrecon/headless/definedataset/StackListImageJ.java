@@ -65,7 +65,7 @@ public class StackListImageJ extends StackList
 
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
-		viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
+		//viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
 
 		// finally create the SpimData itself based on the sequence description and the view registration
 		final SpimData2 spimData = new SpimData2( new File( params.directory ), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );

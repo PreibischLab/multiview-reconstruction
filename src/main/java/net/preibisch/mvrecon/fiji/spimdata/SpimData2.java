@@ -547,7 +547,7 @@ public class SpimData2 extends SpimData
 		final SequenceDescription s = data1.getSequenceDescription();
 		final ViewRegistrations vr = data1.getViewRegistrations();
 		final ViewInterestPoints vipl = new ViewInterestPoints();
-		vipl.createViewInterestPoints( data1.getSequenceDescription().getViewDescriptions() );
+		//vipl.createViewInterestPoints( data1.getSequenceDescription().getViewDescriptions() );
 		final BoundingBoxes bb = new BoundingBoxes();
 		final PointSpreadFunctions psfs = new PointSpreadFunctions();
 		final StitchingResults sr = new StitchingResults();
