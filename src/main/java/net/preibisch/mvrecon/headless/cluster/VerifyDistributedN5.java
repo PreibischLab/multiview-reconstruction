@@ -80,7 +80,7 @@ public class VerifyDistributedN5
 				if ( attribs.containsKey( finishedAttribute ) )
 					saved = n5.getAttribute( BdvN5Format.getPathName( v.getViewSetupId(), v.getTimePointId() ), finishedAttribute, Boolean.class );
 			}
-			catch ( IOException e )
+			catch ( Exception e )
 			{
 				saved = false;
 			}

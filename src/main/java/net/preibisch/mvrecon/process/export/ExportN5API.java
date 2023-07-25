@@ -188,7 +188,7 @@ public class ExportN5API implements ImgExport
 				else
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
 			}
-			catch ( IOException e )
+			catch ( Exception e )
 			{
 				IOFunctions.println( "Couldn't create " + storageType + " container '" + path + "': " + e );
 				return false;
@@ -263,7 +263,7 @@ public class ExportN5API implements ImgExport
 
 			driverVolumeWriter.setAttribute( dataset, "min", bb.minAsLongArray() );
 		}
-		catch ( IOException e )
+		catch ( Exception e )
 		{
 			IOFunctions.println( "Couldn't create " + storageType + " container '" + path + "': " + e );
 			return false;
@@ -336,7 +336,7 @@ public class ExportN5API implements ImgExport
 							final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
 							N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, dataset, gridBlock[2]);
 						}
-						catch (IOException e) 
+						catch (Exception e) 
 						{
 							IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " );
 							e.printStackTrace();
@@ -394,7 +394,7 @@ public class ExportN5API implements ImgExport
 							dataType,
 							compression );
 				}
-				catch ( IOException e )
+				catch ( Exception e )
 				{
 					IOFunctions.println( "Couldn't create downsampling level " + level + " for container '" + path + "', dataset '" + datasetDownsampling + "': " + e );
 					return false;
@@ -503,7 +503,7 @@ public class ExportN5API implements ImgExport
 										throw new RuntimeException("Unsupported pixel type: " + dataType );
 									}
 								}
-								catch (IOException exc) 
+								catch (Exception exc) 
 								{
 									IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " + exc );
 									exc.printStackTrace();

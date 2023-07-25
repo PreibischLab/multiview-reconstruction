@@ -212,7 +212,7 @@ public class InterestPointsN5 extends InterestPoints
 
 			IOFunctions.println( "Saved: " + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset );
 		}
-		catch (IOException e)
+		catch (Exception e)
 		{
 			IOFunctions.println("Couldn't write interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
 			e.printStackTrace();
@@ -329,7 +329,7 @@ public class InterestPointsN5 extends InterestPoints
 
 			n5Writer.close();
 		}
-		catch (IOException e)
+		catch (Exception e)
 		{
 			IOFunctions.println("Couldn't write corresponding interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
 			e.printStackTrace();

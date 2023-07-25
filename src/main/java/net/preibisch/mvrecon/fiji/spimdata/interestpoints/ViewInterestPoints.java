@@ -37,7 +37,7 @@ import mpicbg.spim.data.sequence.ViewId;
  */
 public class ViewInterestPoints
 {
-	protected final Map< ViewId, ViewInterestPointLists > interestPointCollectionLookup;
+	private final Map< ViewId, ViewInterestPointLists > interestPointCollectionLookup;
 
 	public ViewInterestPoints()
 	{
