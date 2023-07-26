@@ -60,7 +60,8 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 	String clusterExt, lastFileName;
 	public static int numBackups = 5;
-	
+	public static boolean initN5Writing = true;
+
 	public XmlIoSpimData2( final String clusterExt )
 	{
 		super( SpimData2.class, new XmlIoSequenceDescription(), new XmlIoViewRegistrations() );
@@ -82,13 +83,16 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 		this.clusterExt = clusterExt;
 
-		try
+		if ( initN5Writing )
 		{
-			// trigger the N5-blosc error, because if it is triggered for the first
-			// time inside Spark, everything crashes
-			new N5FSWriter(null);
+			try
+			{
+				// trigger the N5-blosc error, because if it is triggered for the first
+				// time inside Spark, everything crashes
+				new N5FSWriter(null);
+			}
+			catch (Exception e ) {}
 		}
-		catch (Exception e ) {}
 	}
 
 	public void setClusterExt( final String clusterExt ) { this.clusterExt = clusterExt; }
@@ -138,6 +142,8 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 
 		super.save( spimData, xmlFilename );
+
+		// save also as zarr metadata object
 	}
 
 	public String lastFileName() { return lastFileName; }
