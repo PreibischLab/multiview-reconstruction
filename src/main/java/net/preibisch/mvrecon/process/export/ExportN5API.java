@@ -363,7 +363,6 @@ public class ExportN5API implements ImgExport
 		// save multiresolution pyramid (s1 ... sN)
 		//
 
-		// TODO: doesn't work yet somehow ...
 		if ( this.downsampling != null )
 		{
 			long[] previousDim = bb.dimensionsAsLongArray();
@@ -800,15 +799,11 @@ public class ExportN5API implements ImgExport
 
 			final double aniso = fusion.getAnisotropyFactor();
 			final Interval bb = fusion.getDownsampledBoundingBox();
-
-			final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
-			final BasicViewSetup setup = new BasicViewSetup(0, "fusion", new FinalDimensions( bb.dimensionsAsLongArray() ), v );
-
-			final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
+			final int[][] proposedDownsampling = ExportTools.estimateMultiResPyramid( new FinalDimensions( bb.dimensionsAsLongArray() ), aniso );
 
 			final GenericDialog gdp = new GenericDialog( "Adjust downsampling options" );
 
-			gdp.addStringField( "Subsampling_factors (downsampling)", ProposeMipmaps.getArrayString( emi.getExportResolutions() ), 40 );
+			gdp.addStringField( "Subsampling_factors (downsampling)", ProposeMipmaps.getArrayString( proposedDownsampling ), 40 );
 			gdp.addMessage( "Blocksize: "+bsX+"x"+bsY+"x"+bsZ, GUIHelper.mediumstatusNonItalicfont, GUIHelper.neutral );
 
 			gdp.showDialog();

@@ -36,11 +36,14 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
+import bdv.export.ExportMipmapInfo;
+import bdv.export.ProposeMipmaps;
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.XmlIoSpimData;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
@@ -69,6 +72,15 @@ import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ExportTools {
+
+	public static int[][] estimateMultiResPyramid( final Dimensions dimensions, final double aniso )
+	{
+		final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
+		final BasicViewSetup setup = new BasicViewSetup(0, "fusion", dimensions, v );
+		final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
+
+		return emi.getExportResolutions();
+	}
 
 	public static boolean writeBDVMetaData(
 			final N5Writer driverVolumeWriter,
