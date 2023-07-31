@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -297,21 +298,64 @@ public class FileListDatasetDefinitionUtil
 		else
 			return CheckResult.SINGLE;
 	}
-	
+
+	protected static HashSet<Integer> extractFullResSeries( IFormatReader r, final int nSeries )
+	{
+		HashSet<Integer> fullResSeries = null;
+
+		// TODO: do not do a hack specific to Bitplane Imaris 5.5 (HDF)
+		if ( r.getFormat().contains( "Bitplane Imaris" ) && r.getFormat().contains("(HDF)" ))
+		{
+			int maxSizeX = -1;
+
+			IOFunctions.println( "Detected Bitplane Imaris format, trying to ignore multi-resolution pyramid for input");
+			for (int i = 0; i < nSeries; i++)
+			{
+				r.setSeries( i );
+				final int size = r.getSizeX();
+				maxSizeX = Math.max( size, maxSizeX );
+
+				IOFunctions.println( "SizeX = " + size + " for series " + (i+1) + "/" + nSeries );
+			}
+
+			IOFunctions.println( "Keeping only images with full-res size " + maxSizeX );
+
+			fullResSeries = new HashSet<>();
+
+			for (int i = 0; i < nSeries; i++)
+			{
+				r.setSeries( i );
+				if ( r.getSizeX() == maxSizeX )
+					fullResSeries.add( i );
+			}
+		}
+
+		return fullResSeries;
+	}
+
 	public static List<TileOrAngleInfo> predictTilesAndAngles( IFormatReader r )
 	{
 		final int nSeries = r.getSeriesCount();
 		final MetadataRetrieve mr = (MetadataRetrieve) r.getMetadataStore();
-		
+
+		// TODO: right now this is a hack specific to Bitplane Imaris format
+		final HashSet<Integer> fullResSeries = extractFullResSeries(r, nSeries);
+
 		final List<TileOrAngleInfo> result = new ArrayList<>();
 		
 		for (int i = 0; i < nSeries; i++)
 		{
+			if ( fullResSeries != null && !fullResSeries.contains( i ) )
+				continue;
+
 			r.setSeries( i );
 			final TileOrAngleInfo infoI = new TileOrAngleInfo();
 			infoI.index = i;
-			
-			
+
+			//System.out.println( r.getCurrentFile() );
+			//System.out.println( r.getFormat() );
+			//System.out.println( r.getSizeX() );
+
 			// query x position
 			Length posX = null;
 			try {
@@ -321,7 +365,7 @@ public class FileListDatasetDefinitionUtil
 			{				
 			}
 			infoI.locationX = posX != null ? posX.value().doubleValue() : null ;
-			
+
 			// query y position
 			Length posY = null;
 			try {
@@ -347,7 +391,7 @@ public class FileListDatasetDefinitionUtil
 			
 			result.add( infoI );
 			
-			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Tiles and Angles in Series " + (i+1) + " of " + nSeries );
+			IOFunctions.println("" + new Date(System.currentTimeMillis()) + ": Detecting Tiles and Angles in Series " + (i+1) + " of " + nSeries );
 		}
 		
 		return result;
@@ -357,7 +401,10 @@ public class FileListDatasetDefinitionUtil
 	public static List<Pair<Integer, List<ChannelOrIlluminationInfo>>> predictTimepointsChannelsAndIllums( IFormatReader r )
 	{
 		final int nSeries = r.getSeriesCount();
-		
+
+		// TODO: right now this is a hack specific to Bitplane Imaris format
+		final HashSet<Integer> fullResSeries = extractFullResSeries(r, nSeries);
+
 		final Modulo cMod = r.getModuloC();			
 		final boolean hasModulo = cMod != null && (cMod.start != cMod.end);
 		final int cModStep = hasModulo ? (int) cMod.step : r.getSizeC();
@@ -368,6 +415,9 @@ public class FileListDatasetDefinitionUtil
 		
 		for (int i = 0; i < nSeries; i++)
 		{
+			if ( fullResSeries != null && !fullResSeries.contains( i ) )
+				continue;
+
 			r.setSeries( i );
 			final List<ChannelOrIlluminationInfo> channelandIllumInfos = new ArrayList<>();
 			for (int c = 0; c < r.getSizeC(); c++)
@@ -394,7 +444,7 @@ public class FileListDatasetDefinitionUtil
 			final int numTPs = (!r.isOrderCertain() && r.getSizeZ() <= 1 && r.getSizeT() > 1 ) ? r.getSizeZ() : r.getSizeT();
 			result.add( new ValuePair<>( numTPs, channelandIllumInfos ));
 			
-			IJ.log("" + new Date(System.currentTimeMillis()) + ": Detecting Channels and Illuminations in Series " + (i+1) + " of " + nSeries );
+			IOFunctions.println("" + new Date(System.currentTimeMillis()) + ": Detecting Channels and Illuminations in Series " + (i+1) + " of " + nSeries );
 		}
 		
 		return result;
@@ -1060,7 +1110,7 @@ public class FileListDatasetDefinitionUtil
 			reader.setMetadataStore( new OMEXMLMetadataImpl());
 		}
 
-		IJ.log("" + new Date(System.currentTimeMillis()) + ": Investigating file " + file.getAbsolutePath() );
+		IOFunctions.println("" + new Date(System.currentTimeMillis()) + ": Investigating file " + file.getAbsolutePath() );
 
 		try
 		{
