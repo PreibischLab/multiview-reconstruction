@@ -41,27 +41,18 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
-import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.DefaultVoxelDimensions;
-import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.Converters;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.ShortType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -71,7 +62,6 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
@@ -200,7 +190,8 @@ public class ExportN5API implements ImgExport
 
 		if ( UnsignedByteType.class.isInstance( type ) )
 			dataType = DataType.UINT8;
-		else if ( UnsignedShortType.class.isInstance( type ) && bdv && storageType == StorageType.HDF5 )
+		// can be removed because: https://github.com/bigdataviewer/bigdataviewer-core/pull/157
+		/*else if ( UnsignedShortType.class.isInstance( type ) && bdv && storageType == StorageType.HDF5 )
 		{
 			// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
 			// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
@@ -208,7 +199,7 @@ public class ExportN5API implements ImgExport
 			// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
 			imgInterval = (RandomAccessibleInterval)Converters.convertRAI( (RandomAccessibleInterval<UnsignedShortType>)(Object)imgInterval, (i,o)->o.set( i.getShort() ), new ShortType() );
 			dataType = DataType.INT16;
-		}
+		}*/
 		else if ( UnsignedShortType.class.isInstance( type ) )
 			dataType = DataType.UINT16;
 		else if ( FloatType.class.isInstance( type ) )
@@ -471,6 +462,8 @@ public class ExportN5API implements ImgExport
 										final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
 										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new FloatType());
 									}
+									// this can be removed because of: https://github.com/bigdataviewer/bigdataviewer-core/pull/157
+									/*
 									else if ( dataType == DataType.INT16 )
 									{
 										// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
@@ -495,7 +488,7 @@ public class ExportN5API implements ImgExport
 										final RandomAccessibleInterval<ShortType> sourceGridBlock =
 												Converters.convertRAI( Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]), (i,o)->o.set( i.getShort() ), new ShortType() );
 										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new ShortType());
-									}
+									}*/
 									else
 									{
 										IOFunctions.println( "Unsupported pixel type: " + dataType );
