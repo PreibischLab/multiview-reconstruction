@@ -78,7 +78,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ? extends AbstractSpimData< ? >, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
 	{
 		this.panel = panel;
 		return this;

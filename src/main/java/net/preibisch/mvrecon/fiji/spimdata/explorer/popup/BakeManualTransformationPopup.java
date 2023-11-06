@@ -24,7 +24,6 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
@@ -33,8 +32,6 @@ import bdv.AbstractSpimSource;
 import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.state.SourceState;
 import bdv.viewer.state.ViewerState;
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
@@ -44,8 +41,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorerPanel;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class BakeManualTransformationPopup extends JMenuItem implements ExplorerWindowSetable
 {
@@ -61,7 +56,7 @@ public class BakeManualTransformationPopup extends JMenuItem implements Explorer
 	}
 
 	@Override
-	public JComponent setExplorerWindow( ExplorerWindow<? extends AbstractSpimData<? extends AbstractSequenceDescription<?, ?, ?>>, ?> panel )
+	public JComponent setExplorerWindow( ExplorerWindow< ?, ? > panel )
 	{
 		this.panel = panel;
 		return this;

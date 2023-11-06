@@ -35,8 +35,6 @@ import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 
 import fiji.util.gui.GenericDialogPlus;
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.ImgLoader;
@@ -54,7 +52,7 @@ public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindo
 {
 
 	private static final long serialVersionUID = 950277697000203629L;
-	private ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel;
+	private ExplorerWindow< ?, ? > panel;
 
 	public FlatFieldCorrectionPopup()
 	{
@@ -63,8 +61,7 @@ public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindo
 	}
 
 	@Override
-	public JComponent setExplorerWindow(
-			ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel)
+	public JComponent setExplorerWindow( ExplorerWindow< ?, ? > panel )
 	{
 		this.panel = panel;
 		return this;

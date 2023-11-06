@@ -45,7 +45,7 @@ public class SpecifyCalibrationPopup extends JMenuItem implements ExplorerWindow
 	private static final long serialVersionUID = 5234649267634013390L;
 	public static boolean showWarning = true;
 
-	ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel;
+	ExplorerWindow< ?, ? > panel;
 
 	public SpecifyCalibrationPopup()
 	{
@@ -55,7 +55,7 @@ public class SpecifyCalibrationPopup extends JMenuItem implements ExplorerWindow
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
 	{
 		this.panel = panel;
 		return this;
