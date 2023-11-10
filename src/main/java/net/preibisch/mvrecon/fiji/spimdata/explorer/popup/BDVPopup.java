@@ -9,12 +9,12 @@
  * it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 2 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
@@ -22,12 +22,16 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.explorer.popup;
 
+import bdv.tools.brightness.ConverterSetup;
+import bdv.util.Bounds;
+import bdv.viewer.ConverterSetups;
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.ViewerFrame;
+import bdv.viewer.ViewerState;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
+import java.util.Collection;
 
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -35,14 +39,10 @@ import javax.swing.JOptionPane;
 import bdv.AbstractSpimSource;
 import bdv.BigDataViewer;
 import bdv.tools.InitializeViewerState;
-import bdv.tools.brightness.MinMaxGroup;
-import bdv.tools.brightness.SetupAssignments;
 import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.Source;
 import bdv.viewer.ViewerOptions;
 import bdv.viewer.ViewerPanel;
-import bdv.viewer.state.SourceState;
-import bdv.viewer.state.ViewerState;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.registration.ViewRegistration;
 import net.imglib2.Interval;
@@ -52,6 +52,9 @@ import net.imglib2.histogram.Histogram1d;
 import net.imglib2.histogram.Real1dBinMapper;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.util.Cast;
 import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
@@ -84,6 +87,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		return this;
 	}
 
+	// TODO (TP): replace with method and method reference
 	public class MyActionListener implements ActionListener
 	{
 		@Override
@@ -95,6 +99,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 				return;
 			}
 
+			// TODO (TP): replace with lambda
 			new Thread( new Runnable()
 			{
 				@Override
@@ -144,52 +149,35 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		if ( bdv == null )
 			return;
 
-		for ( final ViewRegistration r : panel.getSpimData().getViewRegistrations().getViewRegistrationsOrdered() )
-			r.updateModel();
+		final Collection< ViewRegistration > regs = panel.getSpimData().getViewRegistrations().getViewRegistrations().values();
+		regs.forEach( ViewRegistration::updateModel );
 
-		final ViewerPanel viewerPanel = bdv.getViewer();
-		final ViewerState viewerState = viewerPanel.getState();
-		final List< SourceState< ? > > sources = viewerState.getSources();
-		
-		for ( final SourceState< ? > state : sources )
-		{
-			Source< ? > source = state.getSpimSource();
+		final ViewerPanel viewer = bdv.getViewer();
 
-			while ( TransformedSource.class.isInstance( source ) )
-			{
-				source = ( ( TransformedSource< ? > ) source ).getWrappedSource();
-			}
-
-			if ( AbstractSpimSource.class.isInstance( source ) )
-			{
-				final AbstractSpimSource< ? > s = ( AbstractSpimSource< ? > ) source;
-
-				final int tpi = getCurrentTimePointIndex( s );
-				callLoadTimePoint( s, tpi );
-//				forceBDVReload( s );
-			}
-
-			if ( state.asVolatile() != null )
-			{
-				source = state.asVolatile().getSpimSource();
-				while ( TransformedSource.class.isInstance( source ) )
-				{
-					source = ( ( TransformedSource< ? > ) source ).getWrappedSource();
-				}
-
-				if ( AbstractSpimSource.class.isInstance( source ) )
-				{
-					final AbstractSpimSource< ? > s = ( AbstractSpimSource< ? > ) source;
-
-					final int tpi = getCurrentTimePointIndex( s );
-					callLoadTimePoint( s, tpi );
-//					forceBDVReload( s );
-				}
-			}
-		}
-
-		bdv.getViewer().requestRepaint();
+		final ViewerState state = viewer.state().snapshot();
+		state.getSources().forEach( BDVPopup::reloadTransformFromViewRegistrations );
+		viewer.requestRepaint();
 	}
+
+	/**
+	 * Calls {@link AbstractSpimSource#reload} on volatile and non-volatile
+	 * versions nested under {@code source}. This reloads transformations from
+	 * modified {@code ViewRegistrations}.
+	 */
+	private static void reloadTransformFromViewRegistrations( final SourceAndConverter< ? > source )
+	{
+		Source< ? > s = source.getSpimSource();
+
+		if ( s instanceof TransformedSource )
+			s = ( ( TransformedSource<?> ) s ).getWrappedSource();
+
+		if ( s instanceof AbstractSpimSource )
+			( ( AbstractSpimSource< ? > ) s ).reload();
+
+		if ( source.asVolatile() != null )
+			reloadTransformFromViewRegistrations( source.asVolatile() );
+	}
+
 
 	@Override
 	public boolean bdvRunning()
@@ -198,71 +186,99 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		return ( p != null && p.getBDV() != null && p.getBDV().getViewerFrame().isVisible() );
 	}
 
-	
+
 	public void setBDV(BigDataViewer bdv)
 	{
 		// close existing bdv if necessary
 		if (bdvRunning())
 			new Thread(() -> {closeBDV();}).start();
-		
+
 		this.bdv = bdv;
 		ViewSetupExplorerPanel.updateBDV( this.bdv, panel.colorMode(), panel.getSpimData(), panel.firstSelectedVD(), ((GroupedRowWindow)panel).selectedRowsGroups() );
 	}
-	
+
 	/**
 	 * set BDV brightness by sampling the mid z plane (and 1/4 and 3/4 if z is large enough )
 	 * of the currently selected source (typically the first source) and getting quantiles from intensity histogram
 	 * (slightly modified version of InitializeViewerState.initBrightness)
 	 *
-	 * @param cumulativeMinCutoff - quantile of min 
-	 * @param cumulativeMaxCutoff - quantile of max
-	 * @param state - Bdv's ViewerSate
-	 * @param setupAssignments - Bdv's View assignments
-	 * @param <T> - type extending RealType
+	 * @param cumulativeMinCutoff
+	 * 		fraction of pixels that are allowed to be saturated at the lower end of the range.
+	 * @param cumulativeMaxCutoff
+	 * 		fraction of pixels that are allowed to be saturated at the upper end of the range.
+	 * @param viewerFrame
+	 *      the ViewerFrame containing ViewerState and ConverterSetups
 	 */
-	public static <T extends RealType<T>> void initBrightness( final double cumulativeMinCutoff, final double cumulativeMaxCutoff, final ViewerState state, final SetupAssignments setupAssignments )
+	public static void initBrightness( final double cumulativeMinCutoff, final double cumulativeMaxCutoff, final ViewerFrame viewerFrame )
 	{
-		final Source< ? > source = state.getSources().get( state.getCurrentSource() ).getSpimSource();
+		initBrightness( cumulativeMinCutoff, cumulativeMaxCutoff, viewerFrame.getViewerPanel().state().snapshot(), viewerFrame.getConverterSetups() );
+	}
+
+	private static void initBrightness( final double cumulativeMinCutoff, final double cumulativeMaxCutoff, final ViewerState state, final ConverterSetups converterSetups )
+	{
+		final SourceAndConverter< ? > current = state.getCurrentSource();
+		if ( current == null )
+			return;
+		final Source< ? > source = current.getSpimSource();
 		final int timepoint = state.getCurrentTimepoint();
-		if ( !source.isPresent( timepoint ) )
-			return;
-		if ( !RealType.class.isInstance( source.getType() ) )
-			return;
-		@SuppressWarnings( "unchecked" )
-		final RandomAccessibleInterval< T > img = ( RandomAccessibleInterval< T > ) source.getSource( timepoint, source.getNumMipmapLevels() - 1 );
-		final long z = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 2;
-
-		final int numBins = 6535;
-		final Histogram1d< T > histogram = new Histogram1d< T >( Views.iterable( Views.hyperSlice( img, 2, z ) ), new Real1dBinMapper< T >( 0, 65535, numBins, false ) );
-
-		// sample some more planes if we have enough
-		if ( (img.max( 2 ) + 1 -  img.min( 2 ) ) > 4 )
+		final Bounds bounds = estimateSourceRange( source, timepoint, cumulativeMinCutoff, cumulativeMaxCutoff );
+		for ( final SourceAndConverter< ? > s : state.getSources() )
 		{
-			final long z14 = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 4;
-			final long z34 = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 4 * 3;
-			histogram.addData(  Views.iterable( Views.hyperSlice( img, 2, z14 ) ) );
-			histogram.addData(  Views.iterable( Views.hyperSlice( img, 2, z34 ) ) );
+			final ConverterSetup setup = converterSetups.getConverterSetup( s );
+			setup.setDisplayRange( bounds.getMinBound(), bounds.getMaxBound() );
 		}
+	}
 
-		final DiscreteFrequencyDistribution dfd = histogram.dfd();
-		final long[] bin = new long[] { 0 };
-		double cumulative = 0;
-		int i = 0;
-		for ( ; i < numBins && cumulative < cumulativeMinCutoff; ++i )
+	/**
+	 * @param cumulativeMinCutoff
+	 * 		fraction of pixels that are allowed to be saturated at the lower end of the range.
+	 * @param cumulativeMaxCutoff
+	 * 		fraction of pixels that are allowed to be saturated at the upper end of the range.
+	 */
+	private static < T extends RealType< T > > Bounds estimateSourceRange( final Source< ? > source, final int timepoint, final double cumulativeMinCutoff, final double cumulativeMaxCutoff )
+	{
+		final Object type = source.getType();
+		if ( type instanceof UnsignedShortType && source.isPresent( timepoint ) )
 		{
-			bin[ 0 ] = i;
-			cumulative += dfd.relativeFrequency( bin );
+			final RandomAccessibleInterval< T > img = Cast.unchecked( source.getSource( timepoint, source.getNumMipmapLevels() - 1 ) );
+			final double sZ0 = img.min( 2 );
+			final double sZ1 = img.max( 2 );
+			final long z = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 2;
+
+			final int numBins = 6535;
+			final Histogram1d< T > histogram = new Histogram1d<>( Views.hyperSlice( img, 2, z ), new Real1dBinMapper<>( 0, 65535, numBins, false ) );
+
+			// sample some more planes if we have enough
+			if ( img.dimension( 2 ) > 4 )
+			{
+				final long z14 = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 4;
+				final long z34 = ( img.min( 2 ) + img.max( 2 ) + 1 ) / 4 * 3;
+				histogram.addData( Views.hyperSlice( img, 2, z14 ) );
+				histogram.addData( Views.hyperSlice( img, 2, z34 ) );
+			}
+
+			final DiscreteFrequencyDistribution dfd = histogram.dfd();
+			final long[] bin = new long[] { 0 };
+			double cumulative = 0;
+			int i = 0;
+			for ( ; i < numBins && cumulative < cumulativeMinCutoff; ++i )
+			{
+				bin[ 0 ] = i;
+				cumulative += dfd.relativeFrequency( bin );
+			}
+			final int min = i * 65535 / numBins;
+			for ( ; i < numBins && cumulative < cumulativeMaxCutoff; ++i )
+			{
+				bin[ 0 ] = i;
+				cumulative += dfd.relativeFrequency( bin );
+			}
+			final int max = i * 65535 / numBins;
+			return new Bounds( min, max );
 		}
-		final int min = i * 65535 / numBins;
-		for ( ; i < numBins && cumulative < cumulativeMaxCutoff; ++i )
-		{
-			bin[ 0 ] = i;
-			cumulative += dfd.relativeFrequency( bin );
-		}
-		final int max = i * 65535 / numBins;
-		final MinMaxGroup minmax = setupAssignments.getMinMaxGroups().get( 0 );
-		minmax.getMinBoundedValue().setCurrentValue( min );
-		minmax.getMaxBoundedValue().setCurrentValue( max );
+		else if ( type instanceof UnsignedByteType )
+			return new Bounds( 0, 255 );
+		else
+			return new Bounds( 0, 65535 );
 	}
 
 	public static BigDataViewer createBDV( final ExplorerWindow< ?, ? > panel )
@@ -276,7 +292,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 		return bdv;
 	}
-	
+
 	public static BigDataViewer createBDV(
 			final AbstractSpimData< ? > spimData,
 			final String xml )
@@ -292,12 +308,9 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 				return null;
 		}
 
-		BigDataViewer bdv = BigDataViewer.open( spimData, xml, IOFunctions.getProgressWriter(), ViewerOptions.options() );
-
-//		if ( !bdv.tryLoadSettings( panel.xml() ) ) TODO: this should work, but currently tryLoadSettings is protected. fix that.
-
-		InitializeViewerState.initBrightness( 0.001, 0.999, bdv.getViewer(), bdv.getSetupAssignments() );
-		//initBrightness( 0.001, 0.999, bdv.getViewer().getState(), bdv.getSetupAssignments() );
+		final BigDataViewer bdv = BigDataViewer.open( spimData, xml, IOFunctions.getProgressWriter(), ViewerOptions.options() );
+		if ( !bdv.tryLoadSettings( xml ) )
+			InitializeViewerState.initBrightness( 0.001, 0.999, bdv.getViewerFrame() );
 
 		// do not rotate BDV view by default
 		BDVPopup.initTransform( bdv.getViewer() );
@@ -338,21 +351,25 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 	public static void initTransform( final ViewerPanel viewer )
 	{
-		final Dimension dim = viewer.getDisplay().getSize();
-		final ViewerState state = viewer.getState();
-		final AffineTransform3D viewerTransform = initTransform( dim.width, dim.height, false, state );
-		viewer.setCurrentViewerTransform( viewerTransform );
+		final Dimension dim = viewer.getDisplayComponent().getSize();
+		final AffineTransform3D viewerTransform = initTransform( dim.width, dim.height, false, viewer.state().snapshot() );
+		viewer.state().setViewerTransform( viewerTransform );
 	}
 
+	// TODO (TP) Add initTransform without rotation to bdv-core
 	public static AffineTransform3D initTransform( final int viewerWidth, final int viewerHeight, final boolean zoomedIn, final ViewerState state )
 	{
-		final int cX = viewerWidth / 2;
-		final int cY = viewerHeight / 2;
+		final AffineTransform3D viewerTransform = new AffineTransform3D();
+		final double cX = viewerWidth / 2.0;
+		final double cY = viewerHeight / 2.0;
 
-		final Source< ? > source = state.getSources().get( state.getCurrentSource() ).getSpimSource();
+		final SourceAndConverter< ? > current = state.getCurrentSource();
+		if ( current == null )
+			return viewerTransform;
+		final Source< ? > source = current.getSpimSource();
 		final int timepoint = state.getCurrentTimepoint();
 		if ( !source.isPresent( timepoint ) )
-			return new AffineTransform3D();
+			return viewerTransform;
 
 		final AffineTransform3D sourceTransform = new AffineTransform3D();
 		source.getSourceTransform( timepoint, 0, sourceTransform );
@@ -364,9 +381,9 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		final double sY1 = sourceInterval.max( 1 );
 		final double sZ0 = sourceInterval.min( 2 );
 		final double sZ1 = sourceInterval.max( 2 );
-		final double sX = ( sX0 + sX1 + 1 ) / 2;
-		final double sY = ( sY0 + sY1 + 1 ) / 2;
-		final double sZ = ( sZ0 != 0 || sZ1 != 0 ) ? ( sZ0 + sZ1 + 1 ) / 2 : 0;
+		final double sX = ( sX0 + sX1 ) / 2;
+		final double sY = ( sY0 + sY1 ) / 2;
+		final double sZ = Math.round( ( sZ0 + sZ1 ) / 2 ); // z-slice in the middle of a pixel
 
 		final double[][] m = new double[ 3 ][ 4 ];
 
@@ -383,7 +400,6 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		LinAlgHelpers.scale( translation, -1, translation );
 		LinAlgHelpers.setCol( 3, translation, m );
 
-		final AffineTransform3D viewerTransform = new AffineTransform3D();
 		viewerTransform.set( m );
 
 		// scale
@@ -402,11 +418,10 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 		viewerTransform.scale( scale );
 
 		// window center offset
-		viewerTransform.set( viewerTransform.get( 0, 3 ) + cX, 0, 3 );
-		viewerTransform.set( viewerTransform.get( 1, 3 ) + cY, 1, 3 );
+		viewerTransform.set( viewerTransform.get( 0, 3 ) + cX - 0.5, 0, 3 );
+		viewerTransform.set( viewerTransform.get( 1, 3 ) + cY - 0.5, 1, 3 );
 		return viewerTransform;
 	}
-
 
 	/*
 	This does not work yet, because invalidateAll is not implemented yet.
@@ -457,76 +472,4 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 	}
 	*/
-
-	private static final void callLoadTimePoint( final AbstractSpimSource< ? > s, final int timePointIndex )
-	{
-		try
-		{
-			Class< ? > clazz = null;
-			boolean found = false;
-	
-			do
-			{
-				if ( clazz == null )
-					clazz = s.getClass();
-				else
-					clazz = clazz.getSuperclass();
-	
-				if ( clazz != null )
-					for ( final Method method : clazz.getDeclaredMethods() )
-						if ( method.getName().equals( "loadTimepoint" ) )
-							found = true;
-			}
-			while ( !found && clazz != null );
-	
-			if ( !found )
-			{
-				System.out.println( "Failed to find SpimSource.loadTimepoint method. Quiting." );
-				return;
-			}
-	
-			final Method loadTimepoint = clazz.getDeclaredMethod( "loadTimepoint", Integer.TYPE );
-			loadTimepoint.setAccessible( true );
-			loadTimepoint.invoke( s, timePointIndex );
-		}
-		catch ( Exception e ) { e.printStackTrace(); }
-	}
-
-	private static final int getCurrentTimePointIndex( final AbstractSpimSource< ? > s )
-	{
-		try
-		{
-			Class< ? > clazz = null;
-			Field currentTimePointIndex = null;
-
-			do
-			{
-				if ( clazz == null )
-					clazz = s.getClass();
-				else
-					clazz = clazz.getSuperclass();
-
-				if ( clazz != null )
-					for ( final Field field : clazz.getDeclaredFields() )
-						if ( field.getName().equals( "currentTimePointIndex" ) )
-							currentTimePointIndex = field;
-			}
-			while ( currentTimePointIndex == null && clazz != null );
-
-			if ( currentTimePointIndex == null )
-			{
-				System.out.println( "Failed to find AbstractSpimSource.currentTimePointIndex. Quiting." );
-				return -1;
-			}
-
-			currentTimePointIndex.setAccessible( true );
-
-			return currentTimePointIndex.getInt( s );
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-			return -1;
-		}
-	}
 }
