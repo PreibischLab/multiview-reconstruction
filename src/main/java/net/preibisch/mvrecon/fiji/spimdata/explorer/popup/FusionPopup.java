@@ -39,7 +39,7 @@ public class FusionPopup extends JMenuItem implements ExplorerWindowSetable
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public FusionPopup()
 	{
@@ -49,7 +49,7 @@ public class FusionPopup extends JMenuItem implements ExplorerWindowSetable
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

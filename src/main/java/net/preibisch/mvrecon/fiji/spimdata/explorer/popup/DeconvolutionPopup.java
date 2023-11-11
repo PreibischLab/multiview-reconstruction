@@ -39,7 +39,7 @@ public class DeconvolutionPopup extends JMenuItem implements ExplorerWindowSetab
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public DeconvolutionPopup()
 	{
@@ -49,7 +49,7 @@ public class DeconvolutionPopup extends JMenuItem implements ExplorerWindowSetab
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

@@ -40,7 +40,7 @@ public class VisualizeDetectionsPopup extends JMenuItem implements ExplorerWindo
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public VisualizeDetectionsPopup()
 	{
@@ -50,7 +50,7 @@ public class VisualizeDetectionsPopup extends JMenuItem implements ExplorerWindo
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

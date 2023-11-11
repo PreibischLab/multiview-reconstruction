@@ -70,7 +70,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	public ExplorerWindow< ?, ? > panel;
+	public ExplorerWindow< ? > panel;
 	public BigDataViewer bdv = null;
 
 	public BDVPopup()
@@ -81,7 +81,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;
@@ -281,7 +281,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 			return new Bounds( 0, 65535 );
 	}
 
-	public static BigDataViewer createBDV( final ExplorerWindow< ?, ? > panel )
+	public static BigDataViewer createBDV( final ExplorerWindow< ? > panel )
 	{
 		final BigDataViewer bdv = createBDV( panel.getSpimData(), panel.xml() );
 

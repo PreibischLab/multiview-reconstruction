@@ -46,7 +46,7 @@ public class BakeManualTransformationPopup extends JMenuItem implements Explorer
 {
 	private static final long serialVersionUID = 4627408819269954486L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public BakeManualTransformationPopup()
 	{
@@ -56,7 +56,7 @@ public class BakeManualTransformationPopup extends JMenuItem implements Explorer
 	}
 
 	@Override
-	public JComponent setExplorerWindow( ExplorerWindow< ?, ? > panel )
+	public JComponent setExplorerWindow( ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

@@ -46,7 +46,7 @@ public class ReorientSamplePopup extends JMenuItem implements ExplorerWindowSeta
 	private static final long serialVersionUID = 5234649267634013390L;
 	public static boolean showWarning = true;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public ReorientSamplePopup()
 	{
@@ -56,7 +56,7 @@ public class ReorientSamplePopup extends JMenuItem implements ExplorerWindowSeta
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

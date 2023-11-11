@@ -43,7 +43,7 @@ public class IntensityAdjustmentPopup extends JMenu implements ExplorerWindowSet
 {
 	private static final long serialVersionUID = 1L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	protected static String[] types = new String[]{ "Compute ...", "List all", "Remove" };
 
@@ -65,7 +65,7 @@ public class IntensityAdjustmentPopup extends JMenu implements ExplorerWindowSet
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

@@ -47,7 +47,7 @@ public class ApplyTransformationPopup extends JMenuItem implements ExplorerWindo
 	private static final long serialVersionUID = 5234649267634013390L;
 	public static boolean showWarning = true;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public ApplyTransformationPopup()
 	{
@@ -57,19 +57,19 @@ public class ApplyTransformationPopup extends JMenuItem implements ExplorerWindo
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;
 	}
 
-	public static final List< ViewId > getSelectedViews( final ExplorerWindow< ?, ? > panel )
+	public static final List< ViewId > getSelectedViews( final ExplorerWindow< ? > panel )
 	{
 		return getSelectedViews( panel, true );
 	}
 
 	public static final List< ViewId > getSelectedViews(
-			final ExplorerWindow< ?, ? > panel,
+			final ExplorerWindow< ? > panel,
 			final boolean filterMissing )
 	{
 		final List< ViewId > viewIds = new ArrayList<>();

@@ -69,7 +69,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 {
 	private static final long serialVersionUID = -4858927229313796971L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	final private static String[] displayOptions = new String[] {
 					"Overlay all views affine vs. non-rigid",
@@ -87,7 +87,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

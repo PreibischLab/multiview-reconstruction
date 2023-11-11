@@ -244,7 +244,7 @@ public class MultiViewTableModelDecorator < AS extends AbstractSpimData< ? > > i
 	}
 
 	@Override
-	public ExplorerWindow<AS, ?> getPanel() { return decorated.getPanel(); }
+	public ExplorerWindow<AS> getPanel() { return decorated.getPanel(); }
 
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex)

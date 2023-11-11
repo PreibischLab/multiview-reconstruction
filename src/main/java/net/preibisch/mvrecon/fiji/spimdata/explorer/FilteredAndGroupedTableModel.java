@@ -57,8 +57,8 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	private static final long serialVersionUID = -6526338840427674269L;
 
 	protected List< List< BasicViewDescription< ? > >> elements = null;
-	
-	final ExplorerWindow< AS, ? > panel;
+
+	final ExplorerWindow< AS > panel;
 	Set<Class<? extends Entity>> groupingFactors;
 	Map<Class<? extends Entity>, List<? extends Entity>> filters;
 	List<Class<? extends Entity>> columnClasses;
@@ -68,7 +68,7 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	 * @see gui.ISpimDataTableModel#getPanel()
 	 */
 	@Override
-	public ExplorerWindow< AS, ? > getPanel() {
+	public ExplorerWindow< AS > getPanel() {
 		return panel;
 	}
 
@@ -155,7 +155,7 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 		return res;
 	}
 
-	public FilteredAndGroupedTableModel( final ExplorerWindow< AS, ? > panel )
+	public FilteredAndGroupedTableModel( final ExplorerWindow< AS > panel )
 	{
 		groupingFactors = new HashSet<>();
 		filters = new HashMap<>();

@@ -40,15 +40,15 @@ import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 
-public class RegistrationExplorer< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > >
+public class RegistrationExplorer< AS extends AbstractSpimData< ? > >
 	implements SelectedViewDescriptionListener< AS >
 {
 	final String xml;
 	final JFrame frame;
 	final RegistrationExplorerPanel panel;
-	final FilteredAndGroupedExplorer< AS, X > viewSetupExplorer;
-	
-	public RegistrationExplorer( final String xml, final X io, final FilteredAndGroupedExplorer< AS, X > viewSetupExplorer )
+	final FilteredAndGroupedExplorer< AS > viewSetupExplorer;
+
+	public RegistrationExplorer( final String xml, final XmlIoAbstractSpimData< ?, AS > io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
 	{
 		this.xml = xml;
 		this.viewSetupExplorer = viewSetupExplorer;

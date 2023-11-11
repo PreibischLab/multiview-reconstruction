@@ -31,6 +31,6 @@ import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 
 public interface ExplorerWindowSetable
 {
-	public JComponent setExplorerWindow( final ExplorerWindow< ?, ? > panel );
+	public JComponent setExplorerWindow( final ExplorerWindow< ? > panel );
 }
 // AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >

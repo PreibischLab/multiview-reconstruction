@@ -41,7 +41,7 @@ public class LabelPopUp extends JLabel implements ExplorerWindowSetable
 	}
 
 	@Override
-	public JLabel setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JLabel setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		return this;
 	}

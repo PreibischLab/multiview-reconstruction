@@ -111,7 +111,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 
-public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > extends FilteredAndGroupedExplorerPanel< AS, X > implements ExplorerWindow< AS, X >
+public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends FilteredAndGroupedExplorerPanel< AS > implements ExplorerWindow< AS >
 {
 	private static final long serialVersionUID = -2512096359830259015L;
 
@@ -145,7 +145,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? >, X extends
 	@Override
 	public boolean channelsGrouped() { return false; }
 
-	public ViewSetupExplorerPanel( final FilteredAndGroupedExplorer< AS, X > explorer, final AS data, final String xml, final X io, boolean requestStartBDV )
+	public ViewSetupExplorerPanel( final FilteredAndGroupedExplorer< AS > explorer, final AS data, final String xml, final XmlIoAbstractSpimData< ?, AS > io, boolean requestStartBDV )
 	{
 		super( explorer, data, xml, io );
 

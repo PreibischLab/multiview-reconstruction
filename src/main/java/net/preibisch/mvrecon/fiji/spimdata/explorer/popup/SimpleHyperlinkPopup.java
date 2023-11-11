@@ -52,7 +52,7 @@ public class SimpleHyperlinkPopup extends JMenuItem implements ExplorerWindowSet
 	}
 
 	@Override
-	public JComponent setExplorerWindow( ExplorerWindow< ?, ? > panel )
+	public JComponent setExplorerWindow( ExplorerWindow< ? > panel )
 	{
 		return this;
 	}

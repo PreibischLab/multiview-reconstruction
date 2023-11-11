@@ -46,15 +46,15 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.SelectedViewDescriptionListe
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 
-public class InterestPointExplorer< AS extends SpimData2, X extends XmlIoAbstractSpimData< ?, AS > >
+public class InterestPointExplorer< AS extends SpimData2 >
 	implements SelectedViewDescriptionListener< AS >
 {
 	final String xml;
 	final JFrame frame;
 	final InterestPointExplorerPanel panel;
-	final FilteredAndGroupedExplorer< AS, X > viewSetupExplorer;
+	final FilteredAndGroupedExplorer< AS > viewSetupExplorer;
 
-	public InterestPointExplorer( final String xml, final X io, final FilteredAndGroupedExplorer< AS, X > viewSetupExplorer )
+	public InterestPointExplorer( final String xml, final XmlIoAbstractSpimData< ?, AS > io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
 	{
 		this.xml = xml;
 		this.viewSetupExplorer = viewSetupExplorer;

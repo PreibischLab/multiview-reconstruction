@@ -41,8 +41,8 @@ public class RegistrationExplorerPopup extends JMenuItem implements ExplorerWind
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	FilteredAndGroupedExplorerPanel< ?, ? > panel;
-	RegistrationExplorer< ?, ? > re = null;
+	FilteredAndGroupedExplorerPanel< ? > panel;
+	RegistrationExplorer< ? > re = null;
 
 	public RegistrationExplorerPopup()
 	{
@@ -52,9 +52,9 @@ public class RegistrationExplorerPopup extends JMenuItem implements ExplorerWind
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
-		this.panel = (FilteredAndGroupedExplorerPanel< ?, ? >)panel;
+		this.panel = ( FilteredAndGroupedExplorerPanel< ? > ) panel;
 		return this;
 	}
 
@@ -88,8 +88,8 @@ public class RegistrationExplorerPopup extends JMenuItem implements ExplorerWind
 		}
 	}
 
-	private static final < AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > RegistrationExplorer< AS, X > instanceFor( final FilteredAndGroupedExplorerPanel< AS, X > panel )
+	private static < AS extends AbstractSpimData< ? > > RegistrationExplorer< AS > instanceFor( final FilteredAndGroupedExplorerPanel< AS > panel )
 	{
-		return new RegistrationExplorer< AS, X >( panel.xml(), panel.io(), panel.explorer() );
+		return new RegistrationExplorer<>( panel.xml(), panel.io(), panel.explorer() );
 	}
 }

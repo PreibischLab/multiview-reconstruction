@@ -69,10 +69,10 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 
-public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS >>
-		extends JPanel implements ExplorerWindow< AS, X >, GroupedRowWindow
+public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimData< ? > >
+		extends JPanel implements ExplorerWindow< AS >, GroupedRowWindow
 {
-	public static FilteredAndGroupedExplorerPanel< ?, ? > currentInstance = null;
+	public static FilteredAndGroupedExplorerPanel< ? > currentInstance = null;
 
 	protected ArrayList< ExplorerWindowSetable > popups;
 
@@ -89,18 +89,17 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	protected ISpimDataTableModel< AS > tableModel;
 	protected ArrayList< SelectedViewDescriptionListener< AS > > listeners;
 	protected AS data;
-	protected FilteredAndGroupedExplorer< AS, X > explorer;
+	protected FilteredAndGroupedExplorer< AS > explorer;
 	protected final String xml;
-	protected final X io;
+	protected final XmlIoAbstractSpimData< ?, AS > io;
 	protected final boolean isMac;
 	protected boolean colorMode = false;
-	
 
-	final protected HashSet< List<BasicViewDescription< ? extends BasicViewSetup >> > selectedRows;
+	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
 	protected BasicViewDescription< ? extends BasicViewSetup > firstSelectedVD;
 
-	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS, X > explorer, final AS data,
-			final String xml, final X io)
+	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data,
+			final String xml, final XmlIoAbstractSpimData< ?, AS > io)
 	{
 		
 		
@@ -165,12 +164,12 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		return xml;
 	}
 
-	public X io()
+	public XmlIoAbstractSpimData< ?, AS > io()
 	{
 		return io;
 	}
 
-	public FilteredAndGroupedExplorer< AS, X > explorer()
+	public FilteredAndGroupedExplorer< AS > explorer()
 	{
 		return explorer;
 	}
@@ -220,8 +219,8 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	{
 		this.listeners.add( listener );
 
-		List<List<BasicViewDescription< ? extends BasicViewSetup >>> selectedList = new ArrayList<>();
-		for (List<BasicViewDescription< ? extends BasicViewSetup >> selectedI : selectedRows)
+		List<List<BasicViewDescription<?>>> selectedList = new ArrayList<>();
+		for (List<BasicViewDescription<?>> selectedI : selectedRows)
 			selectedList.add( selectedI );
 		
 		listener.selectedViewDescriptions( selectedList );
@@ -238,7 +237,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	{
 		ArrayList<Entity> selectedInstances = new ArrayList<>();
 		selectedInstances.add( selectedInstance );
-		tableModel.addFilter( entityClass, selectedInstances );		
+		tableModel.addFilter( entityClass, selectedInstances );
 	}
 	
 	protected static List<String> getEntityNamesOrIds(List<? extends Entity> entities)
@@ -300,8 +299,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 					selectedRows.add( tableModel.getElements().get( row ) );
 				}
 				
-				List<List<BasicViewDescription< ? extends BasicViewSetup >>> selectedList = new ArrayList<>();
-				for (List<BasicViewDescription< ? extends BasicViewSetup >> selectedI : selectedRows)
+
+				List<List<BasicViewDescription< ? >>> selectedList = new ArrayList<>();
+				for (List<BasicViewDescription< ? >> selectedI : selectedRows)
 					selectedList.add( selectedI );
 								
 				for ( int i = 0; i < listeners.size(); ++i )
@@ -385,7 +385,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	
 	public static void updateBDV(final BigDataViewer bdv, final boolean colorMode, final AbstractSpimData< ? > data,
 			BasicViewDescription< ? extends BasicViewSetup > firstVD,
-			final Collection< List< BasicViewDescription< ? extends BasicViewSetup >> > selectedRows)
+			final Collection< List< BasicViewDescription< ? > > > selectedRows )
 	{
 		
 		// bdv is not open
@@ -720,7 +720,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public abstract ArrayList< ExplorerWindowSetable > initPopups();
 
 	@Override
-	public Collection< List< BasicViewDescription< ? extends BasicViewSetup > > > selectedRowsGroups()
+	public Collection< List< BasicViewDescription< ? > > > selectedRowsGroups()
 	{
 		return selectedRows;
 	}

@@ -117,7 +117,7 @@ public class MissingViewsTableModelDecorator < AS extends AbstractSpimData< ? > 
 	}
 
 	@Override
-	public ExplorerWindow< AS, ? > getPanel()
+	public ExplorerWindow< AS > getPanel()
 	{
 		return decorated.getPanel();
 	}

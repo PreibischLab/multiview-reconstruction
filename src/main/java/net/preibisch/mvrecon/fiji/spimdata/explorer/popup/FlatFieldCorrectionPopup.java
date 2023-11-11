@@ -52,7 +52,7 @@ public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindo
 {
 
 	private static final long serialVersionUID = 950277697000203629L;
-	private ExplorerWindow< ?, ? > panel;
+	private ExplorerWindow< ? > panel;
 
 	public FlatFieldCorrectionPopup()
 	{
@@ -61,7 +61,7 @@ public class FlatFieldCorrectionPopup extends JMenuItem implements ExplorerWindo
 	}
 
 	@Override
-	public JComponent setExplorerWindow( ExplorerWindow< ?, ? > panel )
+	public JComponent setExplorerWindow( ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

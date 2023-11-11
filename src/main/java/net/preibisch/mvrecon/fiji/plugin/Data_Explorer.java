@@ -73,7 +73,7 @@ public class Data_Explorer implements PlugIn
 		final String xml = result.getXMLFileName();
 		final XmlIoSpimData2 io = result.getIO();
 
-		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( data, xml, io );
+		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( data, xml, io );
 
 		explorer.getFrame().toFront();
 	}
