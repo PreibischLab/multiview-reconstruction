@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.explorer;
 
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 
-public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimData< ? > >
+public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimData< ? > >
 		extends JPanel implements ExplorerWindow< AS >, GroupedRowWindow
 {
 	public static FilteredAndGroupedExplorerPanel< ? > currentInstance = null;
@@ -81,8 +82,8 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		IOFunctions.printIJLog = true;
 	}
 
-	
-	
+
+
 	private static final long serialVersionUID = -3767947754096099774L;
 
 	public JTable table;
@@ -101,11 +102,11 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data,
 			final String xml, final XmlIoAbstractSpimData< ?, AS > io)
 	{
-		
-		
-		
+
+
+
 		this.explorer = explorer;
-		this.listeners = new ArrayList< SelectedViewDescriptionListener< AS > >();
+		this.listeners = new ArrayList<>();
 		this.data = data;
 
 		// normalize the xml path
@@ -118,9 +119,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		this.selectedRows = new HashSet<>();
 		this.firstSelectedVD = null;
 
-		
+
 		popups = initPopups();
-		
+
 		// for access to the current BDV
 		currentInstance = this;
 	}
@@ -129,8 +130,8 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public BDVPopup bdvPopup()
 	{
 		for ( final ExplorerWindowSetable s : popups )
-			if ( BDVPopup.class.isInstance( s ) )
-				return ( (BDVPopup) s );
+			if ( s instanceof BDVPopup )
+				return ( BDVPopup ) s;
 
 		return null;
 	}
@@ -142,7 +143,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	}
 
 	@Override
-	public BasicViewDescription< ? extends BasicViewSetup > firstSelectedVD()
+	public BasicViewDescription< ? > firstSelectedVD()
 	{
 		return firstSelectedVD;
 	}
@@ -174,10 +175,10 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		return explorer;
 	}
 
-	@SuppressWarnings("unchecked")
-	public void setSpimData(final Object data)
+	@SuppressWarnings( "unchecked" )
+	public void setSpimData( final Object data )
 	{
-		this.data = (AS) data;
+		this.data = ( AS ) data;
 		this.getTableModel().updateElements();
 	}
 
@@ -190,11 +191,11 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	}
 
 	@Override
-	public List< BasicViewDescription< ? extends BasicViewSetup > > selectedRows()
+	public List< BasicViewDescription< ? > > selectedRows()
 	{
 		// TODO: this will break the grouping of selected Views -> change interface???
-		final ArrayList< BasicViewDescription< ? extends BasicViewSetup > > list = new ArrayList< BasicViewDescription< ? extends BasicViewSetup > >();
-		for (List<BasicViewDescription< ? >> vds : selectedRows)
+		final ArrayList< BasicViewDescription< ? > > list = new ArrayList<>();
+		for ( List< BasicViewDescription< ? > > vds : selectedRows )
 			list.addAll( vds );
 		Collections.sort( list );
 		return list;
@@ -204,13 +205,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	public List< ViewId > selectedRowsViewId()
 	{
 		// TODO: adding Grouped Views here, not all selected ViewIds individually
-		final ArrayList< ViewId > list = new ArrayList< ViewId >();
-		for (List<BasicViewDescription< ? >> vds : selectedRows)
-		{
-			ArrayList< ViewId > vids = new ArrayList<>();
-			vids.addAll( vds );
-			list.add( new GroupedViews( vids ));
-		}
+		final ArrayList< ViewId > list = new ArrayList<>();
+		for ( List< BasicViewDescription< ? > > vds : selectedRows )
+			list.add( new GroupedViews( new ArrayList<>( vds ) ) );
 		Collections.sort( list );
 		return list;
 	}
@@ -219,10 +216,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	{
 		this.listeners.add( listener );
 
-		List<List<BasicViewDescription<?>>> selectedList = new ArrayList<>();
-		for (List<BasicViewDescription<?>> selectedI : selectedRows)
-			selectedList.add( selectedI );
-		
+		final List< List< BasicViewDescription< ? > > > selectedList = new ArrayList<>( selectedRows );
 		listener.selectedViewDescriptions( selectedList );
 	}
 
@@ -232,48 +226,43 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	}
 
 	public abstract void initComponent();
-	
-	public void updateFilter(Class<? extends Entity> entityClass, Entity selectedInstance)
+
+	public void updateFilter( Class< ? extends Entity > entityClass, Entity selectedInstance )
 	{
-		ArrayList<Entity> selectedInstances = new ArrayList<>();
+		ArrayList< Entity > selectedInstances = new ArrayList<>();
 		selectedInstances.add( selectedInstance );
 		tableModel.addFilter( entityClass, selectedInstances );
 	}
-	
-	protected static List<String> getEntityNamesOrIds(List<? extends Entity> entities)
+
+	protected static List< String > getEntityNamesOrIds( List< ? extends Entity > entities )
 	{
-		ArrayList<String> names = new ArrayList<>();
-		
-		for (Entity e : entities)
-			names.add( NamedEntity.class.isInstance( e ) ? ((NamedEntity)e).getName() : Integer.toString( e.getId()));
-		
+		ArrayList< String > names = new ArrayList<>();
+
+		for ( Entity e : entities )
+			names.add( e instanceof NamedEntity ? ( ( NamedEntity ) e ).getName() : Integer.toString( e.getId() ) );
+
 		return names;
 	}
-	
-	public static Entity getInstanceFromNameOrId(AbstractSequenceDescription<?,?,?> sd, Class<? extends Entity> entityClass, String nameOrId)
+
+	public static Entity getInstanceFromNameOrId( AbstractSequenceDescription< ?, ?, ? > sd, Class< ? extends Entity > entityClass, String nameOrId )
 	{
-		for (Entity e : SpimDataTools.getInstancesOfAttribute( sd, entityClass ))
-			if (NamedEntity.class.isInstance( e ) && ((NamedEntity)e).getName().equals( nameOrId ) || Integer.toString( e.getId()).equals( nameOrId ))
+		for ( Entity e : SpimDataTools.getInstancesOfAttribute( sd, entityClass ) )
+			if ( e instanceof NamedEntity && ( ( NamedEntity ) e ).getName().equals( nameOrId ) || Integer.toString( e.getId() ).equals( nameOrId ) )
 				return e;
 		return null;
 	}
 
 	protected void addHelp()
 	{
-		table.addKeyListener( new KeyListener()
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( KeyEvent e )
 			{
-				public void keyTyped( KeyEvent e ) {}
-	
-				@Override
-				public void keyReleased( KeyEvent e ) {}
-	
-				@Override
-				public void keyPressed( KeyEvent e )
-				{
-					if ( e.getKeyCode() == 112 )
-						new HelpDialog( explorer().getFrame(), this.getClass().getResource( getHelpHtml() ) ).setVisible( true );
-				}
-			} );
+				if ( e.getKeyCode() == 112 )
+					new HelpDialog( explorer().getFrame(), this.getClass().getResource( getHelpHtml() ) ).setVisible( true );
+			}
+		} );
 	}
 
 	protected abstract String getHelpHtml();
@@ -298,15 +287,15 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 
 					selectedRows.add( tableModel.getElements().get( row ) );
 				}
-				
+
 
 				List<List<BasicViewDescription< ? >>> selectedList = new ArrayList<>();
 				for (List<BasicViewDescription< ? >> selectedI : selectedRows)
 					selectedList.add( selectedI );
-								
+
 				for ( int i = 0; i < listeners.size(); ++i )
 					listeners.get( i ).selectedViewDescriptions( selectedList );
-				
+
 				/*
 				if ( table.getSelectedRowCount() != 1 )
 				{
@@ -354,47 +343,47 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 				*/
 
 				if ( b != null && b.bdv != null )
-				{	
+				{
 					updateBDV( b.bdv, colorMode, data, firstSelectedVD, selectedRows);
-					
+
 				}
-					
-				
+
+
 			}
 
-			
+
 		};
 	}
 
-	
-
-
-	public static void resetBDVManualTransformations(BigDataViewer bdv)
+	public static void resetBDVManualTransformations( BigDataViewer bdv )
 	{
 		if ( bdv == null )
 			return;
-		
+
 		// reset manual transform for all views
-		for (int sourceIdx = 0; sourceIdx <bdv.getViewer().getVisibilityAndGrouping().getSources().size(); sourceIdx++)
+		for ( int sourceIdx = 0; sourceIdx < bdv.getViewer().getVisibilityAndGrouping().getSources().size(); sourceIdx++ )
 		{
-			SourceState<?> s = bdv.getViewer().getVisibilityAndGrouping().getSources().get( sourceIdx );
-			((TransformedSource< ? >)s.getSpimSource()).setFixedTransform( new AffineTransform3D() );
-			((TransformedSource< ? >)s.getSpimSource()).setIncrementalTransform( new AffineTransform3D() );
+			SourceState< ? > s = bdv.getViewer().getVisibilityAndGrouping().getSources().get( sourceIdx );
+			( ( TransformedSource< ? > ) s.getSpimSource() ).setFixedTransform( new AffineTransform3D() );
+			( ( TransformedSource< ? > ) s.getSpimSource() ).setIncrementalTransform( new AffineTransform3D() );
 		}
 	}
-	
-	public static void updateBDV(final BigDataViewer bdv, final boolean colorMode, final AbstractSpimData< ? > data,
+
+	public static void updateBDV(
+			final BigDataViewer bdv,
+			final boolean colorMode,
+			final AbstractSpimData< ? > data,
 			BasicViewDescription< ? extends BasicViewSetup > firstVD,
 			final Collection< List< BasicViewDescription< ? > > > selectedRows )
 	{
-		
+
 		// bdv is not open
 		if ( bdv == null )
 			return;
-		
+
 		// we always set the fused mode
 		//setFusedModeSimple( bdv, data );
-		
+
 		//resetBDVManualTransformations( bdv );
 
 		if ( selectedRows == null || selectedRows.size() == 0 )
@@ -425,51 +414,48 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		bdv.getViewer().requestRepaint();
 	}
 
-	public static void setFusedModeSimple(final BigDataViewer bdv, final AbstractSpimData< ? > data)
+	public static void setFusedModeSimple( final BigDataViewer bdv, final AbstractSpimData< ? > data )
 	{
 		if ( bdv == null )
 			return;
 
-		
-		
 		if ( bdv.getViewer().getVisibilityAndGrouping().getDisplayMode() != DisplayMode.FUSED )
 		{
-			final boolean[] active = new boolean[data.getSequenceDescription().getViewSetupsOrdered().size()];
-			active[0] = true;
+			final boolean[] active = new boolean[ data.getSequenceDescription().getViewSetupsOrdered().size() ];
+			active[ 0 ] = true;
 			setVisibleSources( bdv.getViewer().getVisibilityAndGrouping(), active );
 			bdv.getViewer().getVisibilityAndGrouping().setDisplayMode( DisplayMode.FUSED );
 		}
 	}
 
-	public static void colorSources(final List< ConverterSetup > cs, AbstractSpimData< ? > data, Map<Channel, ARGBType> channelColors)
+	public static void colorSources( final List< ConverterSetup > cs, AbstractSpimData< ? > data, Map< Channel, ARGBType > channelColors )
 	{
 		for ( int i = 0; i < cs.size(); ++i )
-		{			
-			Channel ch = data.getSequenceDescription().getViewSetups().get(cs.get( i ).getSetupId()).getAttribute( Channel.class );			
+		{
+			Channel ch = data.getSequenceDescription().getViewSetups().get( cs.get( i ).getSetupId() ).getAttribute( Channel.class );
 			cs.get( i ).setColor( channelColors.get( ch ) );
 		}
 	}
 
-	public static void whiteSources(final List< ConverterSetup > cs)
+	public static void whiteSources( final List< ConverterSetup > cs )
 	{
 		for ( int i = 0; i < cs.size(); ++i )
 			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 255 ) ) );
 	}
 
-	public static void sameColorSources(final List< ConverterSetup > cs, final int r, final int g, final int b, final int a)
+	public static void sameColorSources( final List< ConverterSetup > cs, final int r, final int g, final int b, final int a )
 	{
 		for ( int i = 0; i < cs.size(); ++i )
 			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( r, g, b, a ) ) );
 	}
 
-	public static void setVisibleSources(final VisibilityAndGrouping vag, final boolean[] active)
+	public static void setVisibleSources( final VisibilityAndGrouping vag, final boolean[] active )
 	{
 		for ( int i = 0; i < active.length; ++i )
-			vag.setSourceActive( i, active[i] );
-		
+			vag.setSourceActive( i, active[ i ] );
 	}
 
-	public static int getBDVTimePointIndex(final TimePoint t, final AbstractSpimData< ? > data)
+	public static int getBDVTimePointIndex( final TimePoint t, final AbstractSpimData< ? > data )
 	{
 		final List< TimePoint > list = data.getSequenceDescription().getTimePoints().getTimePointsOrdered();
 
@@ -480,7 +466,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		return 0;
 	}
 
-	public static int getBDVSourceIndex(final BasicViewSetup vs, final AbstractSpimData< ? > data)
+	public static int getBDVSourceIndex( final BasicViewSetup vs, final AbstractSpimData< ? > data )
 	{
 		final List< ? extends BasicViewSetup > list = data.getSequenceDescription().getViewSetupsOrdered();
 
@@ -491,14 +477,14 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		return 0;
 	}
 
-	public HashSet< List<BasicViewDescription< ? extends BasicViewSetup > >> getSelectedRows()
+	public HashSet< List< BasicViewDescription< ? extends BasicViewSetup > > > getSelectedRows()
 	{
 		return selectedRows;
 	}
 
 	public void showInfoBox()
 	{
-		new ViewSetupExplorerInfoBox< AS >( data, xml );
+		new ViewSetupExplorerInfoBox<>( data, xml );
 	}
 
 	@Override
@@ -511,9 +497,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			for ( final SelectedViewDescriptionListener< AS > l : listeners )
 				l.save();
 
-			if ( SpimData2.class.isInstance( data ) )
+			if ( data instanceof SpimData2 )
 			{
-				final ViewInterestPoints vip = ( (SpimData2) data ).getViewInterestPoints();
+				final ViewInterestPoints vip = ( ( SpimData2 ) data ).getViewInterestPoints();
 
 				for ( final ViewInterestPointLists vipl : vip.getViewInterestPoints().values() )
 				{
@@ -535,7 +521,7 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 		}
 	}
 
-	protected void addPopupMenu(final JTable table)
+	protected void addPopupMenu( final JTable table )
 	{
 		final JPopupMenu popupMenu = new JPopupMenu();
 
@@ -547,10 +533,10 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 
 	protected void addColorMode()
 	{
-		table.addKeyListener( new KeyListener()
+		table.addKeyListener( new KeyAdapter()
 		{
 			@Override
-			public void keyPressed(final KeyEvent arg0)
+			public void keyPressed( final KeyEvent arg0 )
 			{
 				if ( arg0.getKeyChar() == 'c' || arg0.getKeyChar() == 'C' )
 				{
@@ -560,28 +546,18 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 
 					final BDVPopup p = bdvPopup();
 					if ( p != null && p.bdv != null && p.bdv.getViewerFrame().isVisible() )
-						updateBDV( p.bdv, colorMode, data, null, selectedRows);
+						updateBDV( p.bdv, colorMode, data, null, selectedRows );
 				}
-			}
-
-			@Override
-			public void keyReleased(final KeyEvent arg0)
-			{
-			}
-
-			@Override
-			public void keyTyped(final KeyEvent arg0)
-			{
 			}
 		} );
 	}
 
 	protected void addReCenterShortcut()
 	{
-		table.addKeyListener( new KeyListener()
+		table.addKeyListener( new KeyAdapter()
 		{
 			@Override
-			public void keyPressed(final KeyEvent arg0)
+			public void keyPressed( final KeyEvent arg0 )
 			{
 				if ( arg0.getKeyChar() == 'r' || arg0.getKeyChar() == 'R' )
 				{
@@ -589,18 +565,13 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 					if ( p != null && p.bdv != null && p.bdv.getViewerFrame().isVisible() )
 					{
 						TransformationTools.reCenterViews( p.bdv,
-								selectedRows.stream().collect( 
+								selectedRows.stream().collect(
 										HashSet< BasicViewDescription< ? > >::new,
-										(a, b) -> a.addAll( b ), (a, b) -> a.addAll( b ) ),
-										data.getViewRegistrations() );
+										( a, b ) -> a.addAll( b ), ( a, b ) -> a.addAll( b ) ),
+								data.getViewRegistrations() );
 					}
 				}
 			}
-
-			@Override
-			public void keyReleased(final KeyEvent arg0){}
-			@Override
-			public void keyTyped(final KeyEvent arg0){}
 		} );
 	}
 
@@ -611,21 +582,21 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 			boolean appleKeyDown = false;
 
 			@Override
-			public void keyTyped(KeyEvent arg0)
+			public void keyTyped( KeyEvent arg0 )
 			{
 				if ( appleKeyDown && arg0.getKeyChar() == 'a' )
 					table.selectAll();
 			}
 
 			@Override
-			public void keyReleased(KeyEvent arg0)
+			public void keyReleased( KeyEvent arg0 )
 			{
 				if ( arg0.getKeyCode() == 157 )
 					appleKeyDown = false;
 			}
 
 			@Override
-			public void keyPressed(KeyEvent arg0)
+			public void keyPressed( KeyEvent arg0 )
 			{
 				if ( arg0.getKeyCode() == 157 )
 					appleKeyDown = true;
@@ -637,17 +608,17 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 
 	protected void addScreenshot()
 	{
-		table.addKeyListener( new KeyListener()
+		table.addKeyListener( new KeyAdapter()
 		{
 			@Override
-			public void keyPressed(final KeyEvent arg0)
+			public void keyPressed( final KeyEvent arg0 )
 			{
 				if ( arg0.getKeyChar() == 'E' )
 				{
 					enableFlyThrough = true;
 
 					IOFunctions.println( "EASTER EGG activated." );
-					IOFunctions.println( "You can now record a fly-through: ");
+					IOFunctions.println( "You can now record a fly-through: " );
 					IOFunctions.println( "   press 'a' to add the current view as keypoint" );
 					IOFunctions.println( "   press 'x' to remove all keypoints" );
 					IOFunctions.println( "   press 'd' to remove last keypoint" );
@@ -672,13 +643,13 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 							} ).start();
 						else
 							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
-	
+
 					if ( arg0.getKeyChar() == 'a' )
 						if (bdvRunning)
 							BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv.getViewer() );
 						else
 							IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
-	
+
 					if ( arg0.getKeyChar() == 'x' )
 						BDVFlyThrough.clearAllViewerTransform();
 
@@ -688,32 +659,19 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 					if ( arg0.getKeyChar() == 'j' )
 						BDVFlyThrough.jumpToLastViewerTransform( bdvPopup().bdv.getViewer() );
 
-					if ( arg0.getKeyChar() == 's' ) {
+					if ( arg0.getKeyChar() == 's' )
 						try { BDVFlyThrough.saveViewerTransforms(); } catch ( Exception e ) { IOFunctions.println( "couldn't save json: " + e ); }
-					}
 
-					if ( arg0.getKeyChar() == 'l' ){
+					if ( arg0.getKeyChar() == 'l' )
 						try { BDVFlyThrough.loadViewerTransforms(); } catch ( Exception e ) { IOFunctions.println( "couldn't load json: " + e ); }
-					}
 
 					if ( arg0.getKeyChar() == 'R' )
-						if (bdvRunning)
-							new Thread( new Runnable()
-							{
-								@Override
-								public void run()
-								{ BDVFlyThrough.renderScreenshot( bdvPopup().bdv.getViewer() ); }
-							} ).start();
+						if ( bdvRunning )
+							new Thread( () -> BDVFlyThrough.renderScreenshot( bdvPopup().bdv.getViewer() ) ).start();
 						else
-							IOFunctions.println("Please open BigDataViewer to make a screenshot.");
+							IOFunctions.println( "Please open BigDataViewer to make a screenshot." );
 				}
 			}
-
-			@Override
-			public void keyReleased(final KeyEvent arg0) {}
-
-			@Override
-			public void keyTyped(final KeyEvent arg0){}
 		} );
 	}
 
@@ -728,13 +686,9 @@ public abstract class FilteredAndGroupedExplorerPanel<AS extends AbstractSpimDat
 	@Override
 	public List< List< ViewId > > selectedRowsViewIdGroups()
 	{
-		final ArrayList< List<ViewId >> list = new ArrayList<>();
-		for (List<BasicViewDescription< ? >> vds : selectedRows)
-		{
-			ArrayList< ViewId > vids = new ArrayList<>();
-			vids.addAll( vds );
-			list.add( vids);
-		}
+		final ArrayList< List< ViewId > > list = new ArrayList<>();
+		for ( List< BasicViewDescription< ? > > vds : selectedRows )
+			list.add( new ArrayList<>( vds ) );
 		//Collections.sort( list );
 		return list;
 	}
