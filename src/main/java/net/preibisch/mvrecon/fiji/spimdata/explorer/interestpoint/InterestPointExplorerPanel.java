@@ -84,12 +84,12 @@ public class InterestPointExplorerPanel extends JPanel
 
 	public InterestPointTableModel getTableModel() { return tableModel; }
 	public JTable getTable() { return table; }
-	
-	public void updateViewDescription( final List< BasicViewDescription< ? extends BasicViewSetup > > viewDescriptionsUnfiltered )
-	{
-		final ArrayList< BasicViewDescription< ? extends BasicViewSetup > > viewDescriptions = new ArrayList<>();
 
-		for ( final BasicViewDescription< ? extends BasicViewSetup > vd : viewDescriptionsUnfiltered )
+	public void updateViewDescription( final List< BasicViewDescription< ? > > viewDescriptionsUnfiltered )
+	{
+		final ArrayList< BasicViewDescription< ? > > viewDescriptions = new ArrayList<>();
+
+		for ( final BasicViewDescription< ? > vd : viewDescriptionsUnfiltered )
 			if ( vd.isPresent() )
 				viewDescriptions.add( vd );
 

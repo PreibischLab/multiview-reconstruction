@@ -124,7 +124,7 @@ public class MultiViewTableModelDecorator < AS extends AbstractSpimData< ? > > i
 
 		if ( vds.size() == 1 )
 		{
-			final BasicViewDescription< ? extends BasicViewSetup > vd = vds.get( 0 );
+			final BasicViewDescription< ? > vd = vds.get( 0 );
 
 			if ( vd.isPresent() )
 			{

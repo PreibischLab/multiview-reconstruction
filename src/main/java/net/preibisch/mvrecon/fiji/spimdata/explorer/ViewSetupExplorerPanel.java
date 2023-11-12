@@ -344,9 +344,9 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends 
 
 					selectedRows.add( tableModel.getElements().get( row ) );
 				}
-				
-				List<List<BasicViewDescription< ? extends BasicViewSetup >>> selectedList = new ArrayList<>();
-				for (List<BasicViewDescription< ? extends BasicViewSetup >> selectedI : selectedRows)
+
+				List<List<BasicViewDescription< ? >>> selectedList = new ArrayList<>();
+				for (List<BasicViewDescription< ? >> selectedI : selectedRows)
 					selectedList.add( selectedI );
 								
 				for ( int i = 0; i < listeners.size(); ++i )
@@ -415,8 +415,8 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends 
 	}
 	
 	public static void updateBDV(final BigDataViewer bdv, final boolean colorMode, final AbstractSpimData< ? > data,
-			BasicViewDescription< ? extends BasicViewSetup > firstVD,
-			final Collection< List< BasicViewDescription< ? extends BasicViewSetup >> > selectedRows)
+			BasicViewDescription< ? > firstVD,
+			final Collection< List< BasicViewDescription< ? >> > selectedRows)
 	{
 		// we always set the fused mode
 		setFusedModeSimple( bdv, data );

@@ -170,12 +170,12 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 		elements();
 	}
 
-	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements()
+	protected List<List< BasicViewDescription< ? > >> elements()
 	{
 		return elements(false);
 	}
 
-	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements( boolean forceUpdate )
+	protected List<List< BasicViewDescription< ? > >> elements( boolean forceUpdate )
 	{
 		if (!forceUpdate && elements != null)
 			return elements;
@@ -235,12 +235,12 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	@Override
 	public Object getValueAt( final int row, final int column )
 	{
-		final List<BasicViewDescription< ? extends BasicViewSetup >> vds = elements().get( row );
+		final List<BasicViewDescription< ? >> vds = elements().get( row );
 
 		Class <? extends Entity> c = columnClasses.get(column);
 		final HashSet<Entity> entries = new HashSet<>();
-		
-		for (BasicViewDescription< ? extends BasicViewSetup > vd : vds)
+
+		for (BasicViewDescription< ? > vd : vds)
 		{
 			if ( c == TimePoint.class )
 				entries.add(vd.getTimePoint());

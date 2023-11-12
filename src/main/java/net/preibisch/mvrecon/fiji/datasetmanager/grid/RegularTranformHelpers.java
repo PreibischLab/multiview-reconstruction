@@ -264,8 +264,8 @@ public class RegularTranformHelpers
 	}
 
 	public static <AS extends AbstractSpimData<?> > void applyToSpimData(
-			AS data, 
-			List<? extends Group< ? extends BasicViewDescription< ? extends BasicViewSetup > > > viewDescriptions,
+			AS data,
+			List<? extends Group< ? extends BasicViewDescription< ? > > > viewDescriptions,
 			RegularTranslationParameters params,
 			boolean applyToAllTimePoints)
 	{
@@ -313,8 +313,8 @@ public class RegularTranformHelpers
 	}
 
 	private static <AS extends AbstractSpimData<?> > void applyToSpimDataSingleTP(
-			AS data, 
-			List< ? extends Group< ? extends BasicViewDescription< ? extends BasicViewSetup > > > viewDescriptions,
+			AS data,
+			List< ? extends Group< ? extends BasicViewDescription< ? > > > viewDescriptions,
 			RegularTranslationParameters params,
 			TimePoint tp)
 	{

@@ -53,11 +53,11 @@ import util.ImgLib2Tools;
 public class LegacyMicroManagerImgLoader extends AbstractImgLoader
 {
 	final File mmFile;
-	final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sequenceDescription;
+	final AbstractSequenceDescription< ?, ?, ? > sequenceDescription;
 
 	public LegacyMicroManagerImgLoader(
 			final File mmFile,
-			final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sequenceDescription )
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
 		super();
 		this.mmFile = mmFile;

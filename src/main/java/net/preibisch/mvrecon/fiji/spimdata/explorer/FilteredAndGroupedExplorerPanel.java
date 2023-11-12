@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Set;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
@@ -97,7 +98,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 	protected boolean colorMode = false;
 
 	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
-	protected BasicViewDescription< ? extends BasicViewSetup > firstSelectedVD;
+	protected BasicViewDescription< ? > firstSelectedVD;
 
 	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data,
 			final String xml, final XmlIoAbstractSpimData< ?, AS > io)
@@ -373,7 +374,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 			final BigDataViewer bdv,
 			final boolean colorMode,
 			final AbstractSpimData< ? > data,
-			BasicViewDescription< ? extends BasicViewSetup > firstVD,
+			BasicViewDescription< ? > firstVD,
 			final Collection< List< BasicViewDescription< ? > > > selectedRows )
 	{
 
@@ -399,7 +400,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 
 		final boolean[] active = new boolean[data.getSequenceDescription().getViewSetupsOrdered().size()];
 
-		for ( final List< ? extends BasicViewDescription< ? extends BasicViewSetup > > vds : selectedRows )
+		for ( final List< ? extends BasicViewDescription< ? > > vds : selectedRows )
 			for ( BasicViewDescription< ? > vd : vds){
 				if ( vd.getTimePointId() == firstTP.getId() )
 					active[getBDVSourceIndex( vd.getViewSetup(), data )] = true;
@@ -477,7 +478,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 		return 0;
 	}
 
-	public HashSet< List< BasicViewDescription< ? extends BasicViewSetup > > > getSelectedRows()
+	public Set< List< BasicViewDescription< ? > > > getSelectedRows()
 	{
 		return selectedRows;
 	}

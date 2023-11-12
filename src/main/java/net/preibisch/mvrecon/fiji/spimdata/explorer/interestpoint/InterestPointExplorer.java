@@ -91,12 +91,12 @@ public class InterestPointExplorer< AS extends SpimData2 >
 	public JFrame frame() { return frame; }
 
 	@Override
-	public void selectedViewDescriptions( final List< List< BasicViewDescription< ? extends BasicViewSetup > > > viewDescriptions )
+	public void selectedViewDescriptions( final List< List< BasicViewDescription< ? > > > viewDescriptions )
 	{
-		final ArrayList< BasicViewDescription< ? extends BasicViewSetup > > fullList = new ArrayList<>();
+		final ArrayList< BasicViewDescription< ? > > fullList = new ArrayList<>();
 
-		for ( final List< BasicViewDescription< ? extends BasicViewSetup > > list : viewDescriptions )
-			for ( final BasicViewDescription< ? extends BasicViewSetup > vd : list )
+		for ( final List< BasicViewDescription< ? > > list : viewDescriptions )
+			for ( final BasicViewDescription< ? > vd : list )
 				if ( vd.isPresent() )
 					fullList.add( vd );
 

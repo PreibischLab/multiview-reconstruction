@@ -78,10 +78,10 @@ public class RegistrationExplorer< AS extends AbstractSpimData< ? > >
 	public void save() {}
 
 	@Override
-	public void selectedViewDescriptions( final List<List< BasicViewDescription< ? extends BasicViewSetup > >> viewDescriptions )
+	public void selectedViewDescriptions( final List<List< BasicViewDescription< ? > >> viewDescriptions )
 	{
-		List<BasicViewDescription< ? extends BasicViewSetup >> vdsFlat = new ArrayList<>();
-		for (List<BasicViewDescription< ? extends BasicViewSetup >> vdsI : viewDescriptions)
+		List<BasicViewDescription< ? >> vdsFlat = new ArrayList<>();
+		for (List<BasicViewDescription< ? >> vdsI : viewDescriptions)
 			vdsFlat.addAll( vdsI );
 		panel.updateViewDescriptions( vdsFlat );
 		System.out.println( viewDescriptions );
