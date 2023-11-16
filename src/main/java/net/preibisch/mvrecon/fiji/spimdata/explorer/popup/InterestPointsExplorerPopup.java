@@ -40,8 +40,8 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ViewSetupExplorerPanel< ?, ? > panel;
-	InterestPointExplorer< ?, ? > ipe = null;
+	ViewSetupExplorerPanel< ? > panel;
+	InterestPointExplorer< ? > ipe = null;
 
 	public InterestPointsExplorerPopup()
 	{
@@ -52,9 +52,9 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
-		this.panel = (ViewSetupExplorerPanel< ?, ? >)panel;
+		this.panel = (ViewSetupExplorerPanel< ? >)panel;
 		return this;
 	}
 
@@ -94,8 +94,8 @@ public class InterestPointsExplorerPopup extends JMenuItem implements ExplorerWi
 		}
 	}
 
-	private static final < AS extends SpimData2, X extends XmlIoAbstractSpimData< ?, AS > > InterestPointExplorer< AS, X > instanceFor( final FilteredAndGroupedExplorerPanel< AS, X > panel )
+	private static < AS extends SpimData2 > InterestPointExplorer< AS > instanceFor( final FilteredAndGroupedExplorerPanel< AS > panel )
 	{
-		return new InterestPointExplorer< AS, X >( panel.xml(), panel.io(), panel.explorer() );
+		return new InterestPointExplorer<>( panel.xml(), panel.io(), panel.explorer() );
 	}
 }

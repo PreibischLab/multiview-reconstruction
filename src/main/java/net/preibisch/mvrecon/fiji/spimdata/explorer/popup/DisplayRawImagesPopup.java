@@ -42,7 +42,7 @@ public class DisplayRawImagesPopup extends JMenu implements ExplorerWindowSetabl
 	public static final int askWhenMoreThan = 5;
 	private static final long serialVersionUID = 5234649262342301390L;
 
-	ExplorerWindow< ?, ? > panel = null;
+	ExplorerWindow< ? > panel = null;
 
 	public DisplayRawImagesPopup()
 	{
@@ -59,7 +59,7 @@ public class DisplayRawImagesPopup extends JMenu implements ExplorerWindowSetabl
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 

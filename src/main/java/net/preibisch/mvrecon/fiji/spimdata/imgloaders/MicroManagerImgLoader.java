@@ -34,7 +34,7 @@ public class MicroManagerImgLoader extends LegacyImgLoaderWrapper< UnsignedShort
 {
 	public MicroManagerImgLoader(
 			final File mmFile,
-			final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sequenceDescription )
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
 		super( new LegacyMicroManagerImgLoader( mmFile, sequenceDescription ) );
 	}

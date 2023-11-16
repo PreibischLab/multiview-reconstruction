@@ -71,7 +71,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 
 	private static final long serialVersionUID = -4895470813542722644L;
 
-	ExplorerWindow< ?, ? > panel = null;
+	ExplorerWindow< ? > panel = null;
 
 	public DisplayFusedImagesPopup()
 	{
@@ -162,7 +162,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 

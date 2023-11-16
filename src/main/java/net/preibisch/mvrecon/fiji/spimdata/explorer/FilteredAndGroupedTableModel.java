@@ -57,8 +57,8 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	private static final long serialVersionUID = -6526338840427674269L;
 
 	protected List< List< BasicViewDescription< ? > >> elements = null;
-	
-	final ExplorerWindow< AS, ? > panel;
+
+	final ExplorerWindow< AS > panel;
 	Set<Class<? extends Entity>> groupingFactors;
 	Map<Class<? extends Entity>, List<? extends Entity>> filters;
 	List<Class<? extends Entity>> columnClasses;
@@ -68,7 +68,7 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	 * @see gui.ISpimDataTableModel#getPanel()
 	 */
 	@Override
-	public ExplorerWindow< AS, ? > getPanel() {
+	public ExplorerWindow< AS > getPanel() {
 		return panel;
 	}
 
@@ -155,7 +155,7 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 		return res;
 	}
 
-	public FilteredAndGroupedTableModel( final ExplorerWindow< AS, ? > panel )
+	public FilteredAndGroupedTableModel( final ExplorerWindow< AS > panel )
 	{
 		groupingFactors = new HashSet<>();
 		filters = new HashMap<>();
@@ -170,12 +170,12 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 		elements();
 	}
 
-	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements()
+	protected List<List< BasicViewDescription< ? > >> elements()
 	{
 		return elements(false);
 	}
 
-	protected List<List< BasicViewDescription< ? extends BasicViewSetup > >> elements( boolean forceUpdate )
+	protected List<List< BasicViewDescription< ? > >> elements( boolean forceUpdate )
 	{
 		if (!forceUpdate && elements != null)
 			return elements;
@@ -235,12 +235,12 @@ public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > e
 	@Override
 	public Object getValueAt( final int row, final int column )
 	{
-		final List<BasicViewDescription< ? extends BasicViewSetup >> vds = elements().get( row );
+		final List<BasicViewDescription< ? >> vds = elements().get( row );
 
 		Class <? extends Entity> c = columnClasses.get(column);
 		final HashSet<Entity> entries = new HashSet<>();
-		
-		for (BasicViewDescription< ? extends BasicViewSetup > vd : vds)
+
+		for (BasicViewDescription< ? > vd : vds)
 		{
 			if ( c == TimePoint.class )
 				entries.add(vd.getTimePoint());

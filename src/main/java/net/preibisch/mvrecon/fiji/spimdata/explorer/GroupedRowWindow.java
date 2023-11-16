@@ -31,6 +31,6 @@ import mpicbg.spim.data.sequence.ViewId;
 
 public interface GroupedRowWindow
 {
-	public Collection<List< BasicViewDescription< ? extends BasicViewSetup > >> selectedRowsGroups();
+	public Collection< List< BasicViewDescription< ? > > > selectedRowsGroups();
 	public List<List< ViewId >> selectedRowsViewIdGroups();
 }

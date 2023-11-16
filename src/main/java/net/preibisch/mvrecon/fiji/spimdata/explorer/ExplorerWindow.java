@@ -32,9 +32,9 @@ import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
 
-public interface ExplorerWindow< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > >
+public interface ExplorerWindow< AS extends AbstractSpimData< ? > >
 {
-	public List< BasicViewDescription< ? extends BasicViewSetup > > selectedRows();
+	public List< BasicViewDescription< ? > > selectedRows();
 	public List< ViewId > selectedRowsViewId();
 	public AS getSpimData();
 	public void updateContent();
@@ -48,5 +48,5 @@ public interface ExplorerWindow< AS extends AbstractSpimData< ? >, X extends Xml
 	// BDV-specific
 	public BasicBDVPopup bdvPopup();
 	public boolean colorMode();
-	public BasicViewDescription< ? extends BasicViewSetup > firstSelectedVD();
+	public BasicViewDescription< ? > firstSelectedVD();
 }

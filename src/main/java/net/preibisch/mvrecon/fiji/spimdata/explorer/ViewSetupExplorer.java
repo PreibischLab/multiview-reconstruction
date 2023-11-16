@@ -34,17 +34,17 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 
-public class ViewSetupExplorer< AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS > > extends FilteredAndGroupedExplorer< AS, X >
+public class ViewSetupExplorer< AS extends AbstractSpimData< ? > > extends FilteredAndGroupedExplorer< AS >
 {
 	public static final double xPos = 0.4;
 	public static final double yPos = 0.4;
 	public static final double xPosLog = 0.0;
 	public static final double yPosLog = 0.8;
 
-	public ViewSetupExplorer( final AS data, final String xml, final X io )
+	public ViewSetupExplorer( final AS data, final String xml, final XmlIoAbstractSpimData< ?, AS > io )
 	{
 		frame = new JFrame( "ViewSetup Explorer" );
-		panel = new ViewSetupExplorerPanel< AS, X >( this, data, xml, io, true );
+		panel = new ViewSetupExplorerPanel< AS >( this, data, xml, io, true );
 
 		frame.add( panel, BorderLayout.CENTER );
 		frame.setSize( panel.getPreferredSize() );

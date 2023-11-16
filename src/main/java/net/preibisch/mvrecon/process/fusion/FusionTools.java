@@ -662,7 +662,7 @@ public class FusionTools
 	 * @param border - the target blending border, e.g. 0
 	 * @param transformationModel - the transformation model used to map from the (downsampled) input to the output
 	 */
-	public static void adjustBlending( final BasicViewDescription< ? extends BasicViewSetup > vd, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
+	public static void adjustBlending( final BasicViewDescription< ? > vd, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
 	{
 		adjustBlending( vd.getViewSetup().getSize(), Group.pvid( vd ), blending, border, transformationModel );
 	}
@@ -691,7 +691,7 @@ public class FusionTools
 	 * @param sigma2 - the target sigma2 for entropy approximation, e.g. 40
 	 * @param usedDownsampleFactors - the downsampling factors used to load the input image
 	 */
-	public static void adjustContentBased( final BasicViewDescription< ? extends BasicViewSetup > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors )
+	public static void adjustContentBased( final BasicViewDescription< ? > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors )
 	{
 		for ( int d = 0; d < sigma1.length; ++d )
 		{
@@ -700,7 +700,7 @@ public class FusionTools
 		}
 	}
 
-	public static double getMinRes( final BasicViewDescription< ? extends BasicViewSetup > desc )
+	public static double getMinRes( final BasicViewDescription< ? > desc )
 	{
 		final VoxelDimensions size = ViewSetupUtils.getVoxelSize( desc.getViewSetup() );
 

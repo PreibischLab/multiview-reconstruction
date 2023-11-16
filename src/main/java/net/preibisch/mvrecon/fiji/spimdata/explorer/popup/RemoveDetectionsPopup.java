@@ -57,7 +57,7 @@ public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetabl
 {
 	private static final long serialVersionUID = 1L;
 
-	ExplorerWindow< ?, ? > panel = null;
+	ExplorerWindow< ? > panel = null;
 
 	public static int defaultLabel = 0;
 	public static String defaultNewLabel = "Manually removed";
@@ -141,7 +141,7 @@ public class RemoveDetectionsPopup extends JMenu implements ExplorerWindowSetabl
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 

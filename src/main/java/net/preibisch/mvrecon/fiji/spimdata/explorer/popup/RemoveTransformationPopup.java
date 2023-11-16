@@ -42,7 +42,7 @@ public class RemoveTransformationPopup extends JMenu implements ExplorerWindowSe
 	public static final int askWhenMoreThan = 5;
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	protected static String[] types = new String[]{ "Latest/Newest Transformation", "First/Oldest Transformation" };
 
@@ -61,7 +61,7 @@ public class RemoveTransformationPopup extends JMenu implements ExplorerWindowSe
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;
