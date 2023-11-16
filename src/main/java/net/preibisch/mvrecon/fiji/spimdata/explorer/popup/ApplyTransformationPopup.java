@@ -39,8 +39,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.GroupedRowWindow;
 
 import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 
@@ -49,7 +47,7 @@ public class ApplyTransformationPopup extends JMenuItem implements ExplorerWindo
 	private static final long serialVersionUID = 5234649267634013390L;
 	public static boolean showWarning = true;
 
-	ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public ApplyTransformationPopup()
 	{
@@ -59,20 +57,20 @@ public class ApplyTransformationPopup extends JMenuItem implements ExplorerWindo
 	}
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;
 	}
 
-	public static final List< ViewId > getSelectedViews(
-			final ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel)
+	public static final List< ViewId > getSelectedViews( final ExplorerWindow< ? > panel )
 	{
 		return getSelectedViews( panel, true );
 	}
+
 	public static final List< ViewId > getSelectedViews(
-			final ExplorerWindow< ? extends AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? > >, ? > panel,
-			final boolean filterMissing)
+			final ExplorerWindow< ? > panel,
+			final boolean filterMissing )
 	{
 		final List< ViewId > viewIds = new ArrayList<>();
 		if (GroupedRowWindow.class.isInstance( panel ))

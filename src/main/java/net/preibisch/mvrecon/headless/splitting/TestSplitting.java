@@ -60,7 +60,7 @@ public class TestSplitting
 		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 200, 200, 40 } );
 		// drosophila with 1000 views
 
-		final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, fileOut, new XmlIoSpimData2( "" ) );
+		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, fileOut, new XmlIoSpimData2( "" ) );
 		explorer.getFrame().toFront();
 	}
 

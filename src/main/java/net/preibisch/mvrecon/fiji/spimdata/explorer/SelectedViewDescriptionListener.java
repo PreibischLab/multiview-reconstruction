@@ -30,7 +30,7 @@ import java.util.List;
 public interface SelectedViewDescriptionListener< AS extends AbstractSpimData< ? > >
 {
 	//public void firstSelectedViewDescriptions( List< BasicViewDescription< ? extends BasicViewSetup > > viewDescriptions );
-	public void selectedViewDescriptions( List< List< BasicViewDescription< ? extends BasicViewSetup > > > viewDescriptions );
+	public void selectedViewDescriptions( List< List< BasicViewDescription< ? > > > viewDescriptions );
 	public void updateContent( final AS data );
 	public void save();
 	public void quit();

@@ -63,7 +63,7 @@ public class InterestPointExplorerPanel extends JPanel
 {
 	private static final long serialVersionUID = -3767947754096099774L;
 
-	final FilteredAndGroupedExplorer< ?, ? > viewSetupExplorer;
+	final FilteredAndGroupedExplorer< ? > viewSetupExplorer;
 
 	protected JTable table;
 	protected InterestPointTableModel tableModel;
@@ -73,7 +73,7 @@ public class InterestPointExplorerPanel extends JPanel
 	//protected ArrayList< Pair< InterestPointList, ViewId > > save;
 	protected ArrayList< Pair< InterestPoints, ViewId > > delete;
 
-	public InterestPointExplorerPanel( final ViewInterestPoints viewInterestPoints, final FilteredAndGroupedExplorer< ?, ? > viewSetupExplorer )
+	public InterestPointExplorerPanel( final ViewInterestPoints viewInterestPoints, final FilteredAndGroupedExplorer< ? > viewSetupExplorer )
 	{
 		//this.save = new ArrayList< Pair< InterestPointList, ViewId > >();
 		this.delete = new ArrayList< Pair< InterestPoints, ViewId > >();
@@ -84,12 +84,12 @@ public class InterestPointExplorerPanel extends JPanel
 
 	public InterestPointTableModel getTableModel() { return tableModel; }
 	public JTable getTable() { return table; }
-	
-	public void updateViewDescription( final List< BasicViewDescription< ? extends BasicViewSetup > > viewDescriptionsUnfiltered )
-	{
-		final ArrayList< BasicViewDescription< ? extends BasicViewSetup > > viewDescriptions = new ArrayList<>();
 
-		for ( final BasicViewDescription< ? extends BasicViewSetup > vd : viewDescriptionsUnfiltered )
+	public void updateViewDescription( final List< BasicViewDescription< ? > > viewDescriptionsUnfiltered )
+	{
+		final ArrayList< BasicViewDescription< ? > > viewDescriptions = new ArrayList<>();
+
+		for ( final BasicViewDescription< ? > vd : viewDescriptionsUnfiltered )
 			if ( vd.isPresent() )
 				viewDescriptions.add( vd );
 

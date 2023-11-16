@@ -42,7 +42,7 @@ public class BoundingBoxPopup extends JMenuItem implements ExplorerWindowSetable
 {
 	private static final long serialVersionUID = 5234649267634013390L;
 
-	ExplorerWindow< ?, ? > panel;
+	ExplorerWindow< ? > panel;
 
 	public BoundingBoxPopup()
 	{
@@ -52,7 +52,7 @@ public class BoundingBoxPopup extends JMenuItem implements ExplorerWindowSetable
 	}
 
 	@Override
-	public JComponent setExplorerWindow( ExplorerWindow<? extends AbstractSpimData<? extends AbstractSequenceDescription<?, ?, ?>>, ?> panel )
+	public JComponent setExplorerWindow( ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 		return this;

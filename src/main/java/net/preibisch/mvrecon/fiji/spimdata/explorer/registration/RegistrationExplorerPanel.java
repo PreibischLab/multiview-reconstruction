@@ -77,9 +77,9 @@ import net.imglib2.util.Pair;
 public class RegistrationExplorerPanel extends JPanel
 {
 	private static final long serialVersionUID = -3767947754096099774L;
-	
-	final RegistrationExplorer< ?, ? > explorer;
-	
+
+	final RegistrationExplorer< ? > explorer;
+
 	protected JTable table;
 	protected RegistrationTableModel tableModel;
 	protected JLabel label;
@@ -89,8 +89,8 @@ public class RegistrationExplorerPanel extends JPanel
 	protected List<BasicViewDescription<?>> lastSelectedVDs;
 	
 	protected ArrayList< ViewTransform > cache;
-	
-	public RegistrationExplorerPanel( final ViewRegistrations viewRegistrations, final RegistrationExplorer< ?, ? > explorer )
+
+	public RegistrationExplorerPanel( final ViewRegistrations viewRegistrations, final RegistrationExplorer< ? > explorer )
 	{
 		this.cache = new ArrayList< ViewTransform >();
 		this.explorer = explorer;

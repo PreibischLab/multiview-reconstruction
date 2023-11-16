@@ -51,7 +51,7 @@ import util.ImgLib2Tools;
 public class LegacyDHMImgLoader extends AbstractImgLoader
 {
 	final File directory;
-	final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sd;
+	final AbstractSequenceDescription< ?, ?, ? > sd;
 	final List< String > timepoints;
 	final List< String > zPlanes;
 	final String stackDir;
@@ -71,7 +71,7 @@ public class LegacyDHMImgLoader extends AbstractImgLoader
 			final String extension,
 			final int ampChannelId,
 			final int phaseChannelId,
-			final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sd )
+			final AbstractSequenceDescription< ?, ?, ? > sd )
 	{
 		this.directory = directory;
 		this.stackDir = stackDir;

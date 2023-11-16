@@ -50,10 +50,10 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 {
 	private static final long serialVersionUID = 1L;
 
-	ExplorerWindow< ?, ? > panel = null;
+	ExplorerWindow< ? > panel = null;
 
 	@Override
-	public JMenuItem setExplorerWindow( final ExplorerWindow< ?, ? > panel )
+	public JMenuItem setExplorerWindow( final ExplorerWindow< ? > panel )
 	{
 		this.panel = panel;
 

@@ -86,7 +86,7 @@ public class Split_Views implements PlugIn
 
 		if ( display )
 		{
-			final ViewSetupExplorer< SpimData2, XmlIoSpimData2 > explorer = new ViewSetupExplorer<SpimData2, XmlIoSpimData2 >( newSD, saveAs, new XmlIoSpimData2( "" ) );
+			final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, saveAs, new XmlIoSpimData2( "" ) );
 			explorer.getFrame().toFront();
 		}
 		else

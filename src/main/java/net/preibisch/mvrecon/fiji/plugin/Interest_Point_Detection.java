@@ -66,7 +66,7 @@ public class Interest_Point_Detection implements PlugIn
 
 	public static boolean defaultGroupTiles = true;
 	public static boolean defaultGroupIllums = true;
-	public static ExplorerWindow< ?, ? > currentPanel;
+	public static ExplorerWindow< ? > currentPanel;
 
 	static
 	{

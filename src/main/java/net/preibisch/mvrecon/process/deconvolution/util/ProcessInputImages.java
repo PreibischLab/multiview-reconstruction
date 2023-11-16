@@ -66,7 +66,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class ProcessInputImages< V extends ViewId >
 {
-	final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData;
+	final AbstractSpimData< ? > spimData;
 	final ArrayList< Group< V > > groups;
 	final Interval bb;
 	Interval downsampledBB;
@@ -81,7 +81,7 @@ public class ProcessInputImages< V extends ViewId >
 	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
 	public ProcessInputImages(
-			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
+			final AbstractSpimData< ? > spimData,
 			final Collection< Group< V > > groups,
 			final ExecutorService service,
 			final Interval bb,
@@ -116,7 +116,7 @@ public class ProcessInputImages< V extends ViewId >
 	}
 
 	public ProcessInputImages(
-			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
+			final AbstractSpimData< ? > spimData,
 			final Collection< Group< V > > groups,
 			final ExecutorService service,
 			final Interval bb,
@@ -131,7 +131,7 @@ public class ProcessInputImages< V extends ViewId >
 	}
 
 	public ProcessInputImages(
-			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
+			final AbstractSpimData< ? > spimData,
 			final Collection< Group< V > > groups,
 			final ExecutorService service,
 			final Interval bb,
@@ -275,7 +275,7 @@ public class ProcessInputImages< V extends ViewId >
 	}
 
 	public static < V extends ViewId > Interval fuseGroups(
-			final AbstractSpimData< ? extends AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? extends BasicImgLoader > > spimData,
+			final AbstractSpimData< ? > spimData,
 			final HashMap< Group< V >, RandomAccessibleInterval< FloatType > > tImgs,
 			final HashMap< Group< V >, RandomAccessibleInterval< FloatType > > tWeights,
 			final HashMap< V, AffineTransform3D > models,

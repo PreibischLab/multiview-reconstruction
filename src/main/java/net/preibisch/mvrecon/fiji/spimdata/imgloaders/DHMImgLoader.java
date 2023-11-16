@@ -43,7 +43,7 @@ public class DHMImgLoader extends LegacyImgLoaderWrapper< UnsignedShortType, Leg
 			final String extension,
 			final int ampChannelId,
 			final int phaseChannelId,
-			final AbstractSequenceDescription< ? extends BasicViewSetup, ? extends BasicViewDescription< ? >, ? > sd )
+			final AbstractSequenceDescription< ?, ?, ? > sd )
 	{
 		super( new LegacyDHMImgLoader( directory, stackDir, amplitudeDir, phaseDir, timepoints, zPlanes, extension, ampChannelId, phaseChannelId, sd ) );
 	}

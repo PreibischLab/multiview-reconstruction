@@ -42,9 +42,9 @@ public interface ISpimDataTableModel<AS extends AbstractSpimData<?>> extends Tab
 	}
 	
 	public int getSpecialColumn(SpecialColumnType type);
-	
-	public ExplorerWindow< AS, ? > getPanel();
-	
+
+	public ExplorerWindow< AS > getPanel();
+
 	public Set<Class<? extends Entity>> getGroupingFactors();
 	
 	public void clearSortingFactors();
@@ -61,7 +61,7 @@ public interface ISpimDataTableModel<AS extends AbstractSpimData<?>> extends Tab
 
 	public Map<Class<? extends Entity> , List<? extends Entity>> getFilters();
 
-	public List<List< BasicViewDescription< ?  >> > getElements();
+	public List< List< BasicViewDescription< ? > > > getElements();
 
 	public void updateElements();
 

@@ -27,19 +27,18 @@ import java.util.ArrayList;
 import javax.swing.JFrame;
 
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 
-public abstract class FilteredAndGroupedExplorer<AS extends AbstractSpimData< ? >, X extends XmlIoAbstractSpimData< ?, AS >>
+public abstract class FilteredAndGroupedExplorer<AS extends AbstractSpimData< ? > >
 {
 
 	protected JFrame frame;
-	protected FilteredAndGroupedExplorerPanel< AS, X > panel;
+	protected FilteredAndGroupedExplorerPanel< AS > panel;
 
 
 	public AS getSpimData()
 	{ return panel.getSpimData(); }
 
-	public FilteredAndGroupedExplorerPanel< AS, X > getPanel()
+	public FilteredAndGroupedExplorerPanel< AS > getPanel()
 	{ return panel; }
 
 	public JFrame getFrame()
