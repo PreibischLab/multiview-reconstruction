@@ -316,7 +316,7 @@ public class GenericLoadParseQueryXML<
 		this.gd = gd;
 
 		gd.addMessage( "" );
-		GUIHelper.addPreibischLabWebsite( gd );
+		GUIHelper.addCredits( gd );
 
 		gd.showDialog();
 		

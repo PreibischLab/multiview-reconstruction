@@ -73,13 +73,13 @@ public class GUIHelper
 
 	public static Font staticfont = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
 
-	final public static String myURL = "http://preibischlab.mdc-berlin.de/";
-	final public static String paperURL = "http://www.nature.com/nmeth/journal/v7/n6/full/nmeth0610-418.html";
-	final public static String messagePaper = "Please note that the SPIM Registration is based on a publication.\n" +
+	final public static String myURL = "https://www.janelia.org/open-science/overview/open-science-software-initiative-ossi";
+	final public static String paperURL = "https://www.nature.com/articles/s41592-019-0501-0";
+	final public static String messagePaper = "Please note that BigStitcher is based on a publication.\n" +
 											  "If you use it successfully for your research please be so kind to cite our work:\n" +
-											  "Preibisch et al., Nature Methods (2010), 7(6):418-419\n";
+											  "Nature Methods 16: 870–874 (2019)\n";
 
-	final public static String messageWebsite = "This plugin is written and maintained by the Preibisch Lab (click for webpage)\n";
+	final public static String messageWebsite = "This plugin was written by the Preibisch Lab is now supported by the HHMI Janelia Open Science Software initative\n";
 
 	public static void addNatMethBeadsPaper( final GenericDialog gd ) { addNatMethBeadsPaper( gd, messagePaper ); }
 	public static void addNatMethBeadsPaper( final GenericDialog gd, final String msg )  { addHyperLink( gd, msg, paperURL ); }
@@ -94,11 +94,11 @@ public class GUIHelper
 		GUIHelper.addHyperLinkListener( text, url );
 	}
 
-	public static final void addPreibischLabWebsite( final GenericDialog gd )
+	public static final void addCredits( final GenericDialog gd )
 	{
-		gd.addMessage( "This software is developed by the Preibisch Lab in collaboration with the ImgLib2 and Fiji team\nhttp://preibischlab.mdc-berlin.de/", new Font( Font.SANS_SERIF, Font.BOLD, 12 ) );
+		gd.addMessage( "This software was developed by the Preibisch Lab (MDC Berlin) and is now supported by the\nHHMI Janelia Open Science Software initative in collaboration with the ImgLib2 and Fiji team", new Font( Font.SANS_SERIF, Font.BOLD, 12 ) );
 		MultiLineLabel text =  (MultiLineLabel) gd.getMessage();
-		GUIHelper.addHyperLinkListener( text, "http://preibischlab.github.io/preibisch-labsite" );
+		GUIHelper.addHyperLinkListener( text, "https://www.janelia.org/open-science/overview/open-science-software-initiative-ossi" );
 	}
 
 	public static void displayRegistrationNames( final GenericDialog gd, final HashMap< String, Integer > names )
