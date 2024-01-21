@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.fusion;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -449,6 +450,9 @@ public class FusionTools
 
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
 		final ArrayList< RandomAccessibleInterval< FloatType > > weights = new ArrayList<>();
+
+		// to be able to use the "lowest ViewId" wins strategy
+		Collections.sort( viewIdsToProcess );
 
 		for ( final ViewId viewId : viewIdsToProcess )
 		{

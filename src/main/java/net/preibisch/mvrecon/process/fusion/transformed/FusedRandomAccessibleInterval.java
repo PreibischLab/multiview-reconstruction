@@ -34,7 +34,7 @@ import net.imglib2.type.numeric.real.FloatType;
 
 public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< FloatType >
 {
-	public enum Fusion {AVG, MAX};
+	public enum Fusion {AVG, MAX, FIRST_WINS};
 
 	final int n;
 
@@ -42,7 +42,7 @@ public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< 
 	final List< ? extends RandomAccessible< FloatType > > images;
 	final List< ? extends RandomAccessible< FloatType > > weights;
 
-	Fusion fusion = Fusion.AVG;
+	public Fusion fusion = Fusion.AVG;
 
 	public FusedRandomAccessibleInterval(
 			final Interval interval,
@@ -95,9 +95,13 @@ public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< 
 			else
 				return new FusedRandomAccess( n, images, weights );
 		}
-		else
+		else if ( fusion == Fusion.MAX )
 		{
 			return new FusedRandomAccessMax( n, images );
+		}
+		else
+		{
+			return new FusedRandomAccessFirstWins( n, images, weights );
 		}
 	}
 
