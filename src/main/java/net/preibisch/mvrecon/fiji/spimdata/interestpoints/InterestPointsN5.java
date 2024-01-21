@@ -444,7 +444,7 @@ public class InterestPointsN5 extends InterestPoints
 			}
 
 			final String version = n5.getAttribute(dataset, "correspondences", String.class );
-			final HashMap< String, Long > idMap = n5.getAttribute(dataset, "idMap", HashMap.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
+			final Map< String, Long > idMap = n5.getAttribute(dataset, "idMap", Map.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
 
 			System.out.println( version + ", " + idMap.size() + " correspondence codes" );
 
