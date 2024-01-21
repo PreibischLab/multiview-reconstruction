@@ -252,7 +252,7 @@ public class ExportN5API implements ImgExport
 					dataType,
 					compression );
 
-			driverVolumeWriter.setAttribute( dataset, "min", bb.minAsLongArray() );
+			driverVolumeWriter.setAttribute( dataset, "offset", bb.minAsLongArray() );
 		}
 		catch ( Exception e )
 		{
