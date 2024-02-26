@@ -542,6 +542,7 @@ public class Interest_Point_Registration implements PlugIn
 
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Final transformation models (without mapback model):" );
 
+			// TODO: sort by time and viewid
 			// pre-concatenate models to spimdata2 viewregistrations (from SpimData(2))
 			for ( final ViewId viewId : subset.getViews() )
 			{
