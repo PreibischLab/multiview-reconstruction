@@ -71,7 +71,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 {
 	protected static final int[] ds = { 1, 2, 4, 8, 16, 32, 64 };
 
-	public static String[] downsampleChoiceXY = { ds[ 0 ] + "x", ds[ 1 ] + "x", ds[ 2 ] + "x", ds[ 3 ] + "x", "Match Z Resolution (less downsampling)", "Match Z Resolution (more downsampling)"  };
+	public static String[] downsampleChoiceXY = { ds[ 0 ] + "x", ds[ 1 ] + "x", ds[ 2 ] + "x", ds[ 3 ] + "x", ds[ 4 ] + "x", ds[ 5 ] + "x", ds[ 6 ] + "x", "Match Z Resolution (less downsampling)", "Match Z Resolution (more downsampling)"  };
 	public static String[] downsampleChoiceZ = { ds[ 0 ] + "x", ds[ 1 ] + "x", ds[ 2 ] + "x", ds[ 3 ] + "x" };
 	public static String[] localizationChoice = { "None", "3-dimensional quadratic fit", "Gaussian mask localization fit" };	
 	public static String[] brightnessChoice = { "Very weak & small (beads)", "Weak & small (beads)", "Comparable to Sample & small (beads)", "Strong & small (beads)", "Advanced ...", "Interactive ..." };
@@ -253,6 +253,12 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 		else if ( dsxy == 3 )
 			downsampleXYIndex = 8;
 		else if ( dsxy == 4 )
+			downsampleXYIndex = 16;
+		else if ( dsxy == 5 )
+			downsampleXYIndex = 32;
+		else if ( dsxy == 6 )
+			downsampleXYIndex = 64;
+		else if ( dsxy == 7 )
 			downsampleXYIndex = 0;
 		else
 			downsampleXYIndex = -1;
