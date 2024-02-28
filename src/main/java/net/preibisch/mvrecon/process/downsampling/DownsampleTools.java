@@ -33,6 +33,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -104,7 +105,7 @@ public class DownsampleTools
 			final double[][] mipmapResolutions = mrImgLoader.getSetupImgLoader( viewId.getViewSetupId() ).getMipmapResolutions();
 
 			// best possible step size in the output image when using original data
-			final float[] sizeMaxResolution = getStepSize( m );
+			final double[] sizeMaxResolution = getStepSize( m );
 
 			//System.out.println( Util.printCoordinates( sizeMaxResolution ) );
 			float acceptedError = 0.02f;
@@ -129,7 +130,7 @@ public class DownsampleTools
 				AffineTransform3D model = m.copy();
 				model.concatenate( s );
 
-				final float[] size = getStepSize( model );
+				final double[] size = getStepSize( model );
 
 				boolean isValid = true;
 				
@@ -182,29 +183,16 @@ public class DownsampleTools
 		}
 	}
 
-	private static float[] getStepSize( final AffineTransform3D model )
+	private static double[] getStepSize( final AffineTransform3D model )
 	{
-		final float[] size = new float[ 3 ];
-
+		final double[] size = new double[ 3 ];
 		final double[] tmp = new double[ 3 ];
-		final double[] o0 = new double[ 3 ];
-
-		model.apply( tmp, o0 );
-
 		for ( int d = 0; d < 3; ++d )
 		{
-			final double[] o1 = new double[ 3 ];
-
-			for ( int i = 0; i < tmp.length; ++i )
-				tmp[ i ] = 0;
-
-			tmp[ d ] = 1;
-
-			model.apply( tmp, o1 );
-			
-			size[ d ] = (float)length( o1, o0 );
+			for ( int i = 0; i < 3; ++i )
+				tmp[ i ] = model.get( i, d );
+			size[ d ] = LinAlgHelpers.length( tmp );
 		}
-
 		return size;
 	}
 
