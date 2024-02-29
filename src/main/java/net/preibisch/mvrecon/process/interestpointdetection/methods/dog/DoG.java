@@ -142,15 +142,15 @@ public class DoG
 
 				final ExecutorService service = Threads.createFixedExecutorService( Threads.numThreads() );
 
-				// TODO: downsampling is not virtual!
+				// downsampling is not virtual!
 				@SuppressWarnings({"rawtypes" })
 				final Pair<RandomAccessibleInterval, AffineTransform3D> input =
 						DownsampleTools.openAndDownsample(
 								dog.imgloader,
 								vd,
-								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ } );
+								new long[] { dog.downsampleXY, dog.downsampleXY, dog.downsampleZ },
+								false );
 
-				@SuppressWarnings("unchecked")
 				List< InterestPoint > ips = DoGImgLib2.computeDoG(
 							Views.extendMirrorSingle( input.getA() ),
 							null, // mask
