@@ -70,7 +70,7 @@ public class SplitSetupImgLoader< T > implements SetupImgLoader< T >
 		// TODO: this is stupid, remove capablitity to get FloatType images!
 		if ( normalize )
 		{
-			return ImgLib2Tools.normalizeVirtual( img );
+			return ImgLib2Tools.normalizeVirtualRAI( img );
 		}
 		else
 		{

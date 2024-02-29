@@ -61,7 +61,6 @@ import net.imglib2.FinalDimensions;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -139,9 +138,9 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage(ViewId view, boolean normalize)
 	{
 		if ( normalize )
-			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtualRAI( getImage( view ) );
 		else
-			return ImgLib2Tools.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtualRAI( getImage( view ) );
 	}
 
 	

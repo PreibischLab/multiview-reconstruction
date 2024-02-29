@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import ij.IJ;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -60,7 +61,7 @@ public class DoG
 		return interestPoints;
 	}
 
-	/**
+	/*
 	 * finds all interest points and returns them as InterestPoints (which is a mpicbg Point and implements RealLocalizable),
 	 * by default returns world coordinates
 	 *
@@ -92,8 +93,9 @@ public class DoG
 		// compute Difference-of-Gaussian (includes normalization)
 		//
 		List< InterestPoint > ips = DoGImgLib2.computeDoG(
-				Views.zeroMin( input ),
+				Views.extendMirrorSingle( Views.zeroMin( input ) ),
 				null,
+				new FinalInterval( Views.zeroMin( input ) ),
 				sigma,
 				threshold,
 				1, // 0 = no subpixel localization, 1 = quadratic fit
@@ -150,8 +152,9 @@ public class DoG
 
 				@SuppressWarnings("unchecked")
 				List< InterestPoint > ips = DoGImgLib2.computeDoG(
-							input.getA(),
+							Views.extendMirrorSingle( input.getA() ),
 							null, // mask
+							new FinalInterval( input.getA() ),
 							dog.sigma,
 							dog.threshold,
 							dog.localization,

@@ -53,11 +53,9 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -82,7 +80,6 @@ import net.preibisch.mvrecon.process.interestpointdetection.Localization;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyGauss;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.lazygauss.LazyWeightedGauss;
 import util.ImgLib2Tools;
-import util.Lazy;
 
 public class DoGImgLib2
 {
@@ -112,7 +109,7 @@ public class DoGImgLib2
 
 		// 1388x1040x81 = 116925120
 		final ArrayList<InterestPoint> points = 
-				computeDoG(inputCropped, null, 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 8 ) );
+				computeDoG( Views.extendMirrorDouble( inputCropped ), Views.extendZero( mask ), new FinalInterval( inputCropped ), 2.000, 0.03, 1/*localization*/, false /*findMin*/, true /*findMax*/, 0, 255, Executors.newFixedThreadPool( 8 ) );
 
 		System.out.println( System.currentTimeMillis() - time );
 
@@ -141,8 +138,9 @@ public class DoGImgLib2
 	}
 
 	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
-			final RandomAccessibleInterval< T > input,
-			final RandomAccessibleInterval< T > mask,
+			final RandomAccessible< T > input,
+			final RandomAccessible< T > mask,
+			final Interval interval,
 			final double sigma,
 			final double threshold,
 			final int localization,
@@ -152,12 +150,13 @@ public class DoGImgLib2
 			final double maxIntensity,
 			final ExecutorService service )
 	{
-		return computeDoG(input, mask, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service, null, null, false, 0.0 );
+		return computeDoG(input, mask, interval, sigma, threshold, localization, findMin, findMax, minIntensity, maxIntensity, blockSize, service, null, null, false, 0.0 );
 	}
 
 	public static < T extends RealType< T > > ArrayList< InterestPoint > computeDoG(
-			final RandomAccessibleInterval< T > input,
-			final RandomAccessibleInterval< T > mask,
+			final RandomAccessible< T > input,
+			final RandomAccessible< T > mask,
+			final Interval interval,
 			final double sigma,
 			final double threshold,
 			final int localization,
@@ -189,9 +188,9 @@ public class DoGImgLib2
 			final float[] minmax;
 			
 			if ( mask == null )
-				minmax = FusionTools.minMax( input, service );
+				minmax = FusionTools.minMax( Views.interval( input, interval ), service );
 			else
-				minmax = minMax( input, mask, service );
+				minmax = minMax( Views.interval( input, interval ), Views.interval( mask, interval ), service );
 
 			min = minmax[ 0 ];
 			max = minmax[ 1 ];
@@ -206,7 +205,7 @@ public class DoGImgLib2
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): min intensity = " + min + ", max intensity = " + max );
 
 		// normalize image
-		final RandomAccessibleInterval< FloatType > inputFloat = ImgLib2Tools.normalizeVirtual( input, min, max );
+		final RandomAccessible< FloatType > inputFloat = ImgLib2Tools.normalizeVirtual( input, min, max );
 
 		final float k = LaPlaceFunctions.computeK( 4 );
 		final float K_MIN1_INV = LaPlaceFunctions.computeKWeight(k);
@@ -232,10 +231,10 @@ public class DoGImgLib2
 				"threshold=" + minPeakValue + ", sigma1=" + Util.printCoordinates( sigma1 ) + ", sigma2=" + Util.printCoordinates( sigma2 ) + ")" );
 
 		final long[] minInterval = new long[ inputFloat.numDimensions() ];
-		inputFloat.min( minInterval );
+		interval.min( minInterval );
 
 		final RandomAccessibleInterval< FloatType > gauss1, gauss2;
-		final RandomAccessibleInterval< FloatType > maskFloat;
+		final RandomAccessible< FloatType > maskFloat;
 
 		if ( mask == null )
 		{
@@ -243,22 +242,22 @@ public class DoGImgLib2
 
 			if ( cuda == null )
 			{
-				gauss1 = LazyGauss.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
-				gauss2 = LazyGauss.init( Views.extendMirrorDouble( inputFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
+				gauss1 = LazyGauss.init( inputFloat, interval, new FloatType(), sigma1, blockSize );
+				gauss2 = LazyGauss.init( inputFloat, interval , new FloatType(), sigma2, blockSize );
 			}
 			else
 			{
 				// TODO: untested
-				gauss1 = computeGaussCUDA( inputFloat, sigma1, cuda, cudaDevice, accurateCUDA, percentGPUMem );
-				gauss2 = computeGaussCUDA( inputFloat, sigma2, cuda, cudaDevice, accurateCUDA, percentGPUMem );
+				gauss1 = computeGaussCUDA( Views.interval( inputFloat, interval ), sigma1, cuda, cudaDevice, accurateCUDA, percentGPUMem );
+				gauss2 = computeGaussCUDA( Views.interval( inputFloat, interval ), sigma2, cuda, cudaDevice, accurateCUDA, percentGPUMem );
 			}
 		}
 		else
 		{
-			maskFloat = Converters.convertRAI( mask, (i,o) -> o.set( i.getRealFloat() ), new FloatType());//ImgLib2Tools.convertVirtual( mask );
+			maskFloat = Converters.convert( mask, (i,o) -> o.set( i.getRealFloat() ), new FloatType());//ImgLib2Tools.convertVirtual( mask );
 
-			gauss1 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma1, blockSize );
-			gauss2 = LazyWeightedGauss.init( Views.extendMirrorSingle( inputFloat ), Views.extendZero( maskFloat ), new FinalInterval( inputFloat ), new FloatType(), sigma2, blockSize );
+			gauss1 = LazyWeightedGauss.init( inputFloat, maskFloat, interval, new FloatType(), sigma1, blockSize ); // mask zero oobs
+			gauss2 = LazyWeightedGauss.init( inputFloat, maskFloat, interval, new FloatType(), sigma2, blockSize );
 		}
 
 		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()
@@ -277,7 +276,7 @@ public class DoGImgLib2
 		if ( !silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
-		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat, minInitialPeakValue, service );
+		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, Views.interval( maskFloat, interval ), minInitialPeakValue, service );
 
 		if ( !silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + peaks.size() + " initial peaks (before refinement)." );

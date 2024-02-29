@@ -96,7 +96,7 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 		// TODO: this is stupid, remove capablitity to get FloatType images!
 		if ( normalize )
 		{
-			return ImgLib2Tools.normalizeVirtual( img );
+			return ImgLib2Tools.normalizeVirtualRAI( img );
 		}
 		else
 		{

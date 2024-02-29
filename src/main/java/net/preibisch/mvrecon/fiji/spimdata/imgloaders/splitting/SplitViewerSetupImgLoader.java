@@ -156,9 +156,9 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final boolean normalize, final ImgLoaderHint... hints )
 	{
 		if ( normalize )
-			return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
+			return ImgLib2Tools.normalizeVirtualRAI( getImage( timepointId, hints ) );
 		else
-			return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
+			return ImgLib2Tools.convertVirtualRAI( getImage( timepointId, hints ) );
 	}
 
 	@Override
