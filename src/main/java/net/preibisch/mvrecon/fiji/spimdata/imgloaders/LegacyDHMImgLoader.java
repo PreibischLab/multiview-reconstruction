@@ -31,7 +31,6 @@ import ij.ImagePlus;
 import ij.io.Opener;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -98,9 +97,9 @@ public class LegacyDHMImgLoader extends AbstractImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtualRAI( getImage( view ) );
 		else
-			return ImgLib2Tools.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtualRAI( getImage( view ) );
 	}
 
 	@Override

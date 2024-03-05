@@ -22,6 +22,7 @@
  */
 package util;
 
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.numeric.RealType;
@@ -30,17 +31,17 @@ import net.imglib2.view.Views;
 
 public class ImgLib2Tools
 {
-	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> convertVirtual( final RandomAccessibleInterval< T > img )
+	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> convertVirtualRAI( final RandomAccessibleInterval< T > img )
 	{
 		return Converters.convertRAI( img, (i,o) -> o.set( i.getRealFloat() ), new FloatType());
-		/*
-		return new ConvertedRandomAccessibleInterval<T, FloatType>(
-				img,
-				new RealFloatConverter<T>(),
-				new FloatType() );*/
 	}
 
-	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtual( final RandomAccessibleInterval< T > img, final double min, final double max )
+	public static final < T extends RealType< T > > RandomAccessible<FloatType> convertVirtual( final RandomAccessible< T > img )
+	{
+		return Converters.convert( img, (i,o) -> o.set( i.getRealFloat() ), new FloatType());
+	}
+
+	public static final < T extends RealType< T > > RandomAccessible<FloatType> normalizeVirtual( final RandomAccessible< T > img, final double min, final double max )
 	{
 		final float minf = (float)min;
 		final float maxf = (float)max;
@@ -51,7 +52,18 @@ public class ImgLib2Tools
 				new FloatType() );
 	}
 
-	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtual( final RandomAccessibleInterval< T > img )
+	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtualRAI( final RandomAccessibleInterval< T > img, final double min, final double max )
+	{
+		final float minf = (float)min;
+		final float maxf = (float)max;
+		
+		return Converters.convert(
+				img,
+				( input, output ) -> output.set( ( input.getRealFloat() - minf ) / ( maxf - minf ) ),
+				new FloatType() );
+	}
+
+	public static final < T extends RealType< T > > RandomAccessibleInterval<FloatType> normalizeVirtualRAI( final RandomAccessibleInterval< T > img )
 	{
 		double min = Double.MAX_VALUE;
 		double max = -Double.MAX_VALUE;
@@ -67,6 +79,6 @@ public class ImgLib2Tools
 				max = v;
 		}
 
-		return normalizeVirtual( img, min, max );
+		return normalizeVirtualRAI( img, min, max );
 	}
 }

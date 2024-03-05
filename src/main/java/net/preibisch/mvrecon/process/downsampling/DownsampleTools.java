@@ -34,11 +34,15 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.LinAlgHelpers;
+import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.process.downsampling.lazy.LazyDownsample2x;
+import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
 
 public class DownsampleTools
 {
@@ -382,7 +386,7 @@ public class DownsampleTools
 	{
 		final AffineTransform3D mmt = new AffineTransform3D();
 
-		openAndDownsample( imgLoader, vd, mmt, downsampleFactors, true );
+		openAndDownsample( imgLoader, vd, mmt, downsampleFactors, true, false );
 
 		return mmt;
 	}
@@ -394,17 +398,19 @@ public class DownsampleTools
 	 * @param imgLoader the imgloader
 	 * @param vd the view id
 	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @param virtualDownsampling - use virtual downsampling if the requested downsamplefactors are not precomputed
 	 * @return opened image and the mipmap transform
 	 */
 	@SuppressWarnings({ "rawtypes" })
 	public static Pair<RandomAccessibleInterval, AffineTransform3D> openAndDownsample(
 			final BasicImgLoader imgLoader,
 			final ViewId vd,
-			final long[] downsampleFactors )
+			final long[] downsampleFactors,
+			final boolean virtualDownsampling )
 	{
 		final AffineTransform3D mipMapTransform = new AffineTransform3D();
 
-		final RandomAccessibleInterval img = openAndDownsample(imgLoader, vd, mipMapTransform, downsampleFactors, false );
+		final RandomAccessibleInterval img = openAndDownsample(imgLoader, vd, mipMapTransform, downsampleFactors, false, virtualDownsampling );
 
 		return new ValuePair<RandomAccessibleInterval, AffineTransform3D>( img, mipMapTransform );
 	}
@@ -417,6 +423,7 @@ public class DownsampleTools
 	 * @param vd the view id
 	 * @param mipMapTransform - will be filled if downsampling is performed, otherwise identity transform
 	 * @param downsampleFactors - specify which downsampling in each dimension (e.g. 1,2,4,8 )
+	 * @param virtualDownsampling - use virtual downsampling if the requested downsamplefactors are not precomputed
 	 * @param transformOnly - if true does not open any images but only provides the mipMapTransform (METHOD WILL RETURN NULL!)
 	 * @return opened image
 	 */
@@ -426,14 +433,9 @@ public class DownsampleTools
 			final ViewId vd,
 			final AffineTransform3D mipMapTransform,
 			long[] downsampleFactors,
-			final boolean transformOnly ) // only for ImgLib1 legacy code
+			final boolean transformOnly, // only for ImgLib1 legacy code
+			final boolean virtualDownsampling )
 	{
-
-		//if ( !transformOnly )
-		//	IOFunctions.println(
-		//		"(" + new Date(System.currentTimeMillis()) + "): "
-		//		+ "Requesting Img from ImgLoader (tp=" + vd.getTimePointId() + ", setup=" + vd.getViewSetupId() + "), downsampling: " + Util.printCoordinates( downsampleFactors ) );
-
 		long dsx = downsampleFactors[0];
 		long dsy = downsampleFactors[1];
 		long dsz = (downsampleFactors.length > 2) ? downsampleFactors[ 2 ] : 1;
@@ -473,31 +475,14 @@ public class DownsampleTools
 
 			if ( !transformOnly )
 			{
-				//IOFunctions.println(
-				//		"(" + new Date(System.currentTimeMillis()) + "): " +
-				//		"Using precomputed Multiresolution Images [" + fx + "x" + fy + "x" + fz + "], " +
-				//		"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
-
-				//if ( openAsFloat )
-				//	input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel ) );
-				//else
-					input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
+				input = mrImgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId(), bestLevel );
 			}
 		}
 		else
 		{
 			if ( !transformOnly )
 			{
-				//IOFunctions.println(
-				//		"(" + new Date(System.currentTimeMillis()) + "): " +
-				//		"Using precomputed Multiresolution Images [1x1x1], " +
-				//		"Remaining downsampling [" + dsx + "x" + dsy + "x" + dsz + "]" );
-
-				// we only need to do the complete opening when we do not perform additional downsampling below
-				//if ( openAsFloat )
-				//	input = ImgLib2Tools.convertVirtual( (RandomAccessibleInterval)imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() ) );
-				//else
-					input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
+				input = imgLoader.getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
 			}
 
 			if ( mipMapTransform != null )
@@ -509,7 +494,7 @@ public class DownsampleTools
 			// the additional downsampling (performed below)
 			final AffineTransform3D additonalDS = new AffineTransform3D();
 			additonalDS.set( dsx, 0.0, 0.0, 0.0, 0.0, dsy, 0.0, 0.0, 0.0, 0.0, dsz, 0.0 );
-	
+
 			// we need to concatenate since when correcting for the downsampling we first multiply by whatever
 			// the manual downsampling did, and just then by the scaling+offset of the HDF5
 			//
@@ -522,15 +507,29 @@ public class DownsampleTools
 
 		if ( !transformOnly )
 		{
-			// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
-			for ( ;dsx > 1; dsx /= 2 )
-				input = Downsample.simple2x( input, new boolean[]{ true, false, false } );
+			if ( virtualDownsampling )
+			{
+				for ( ;dsx > 1; dsx /= 2 )
+					input = LazyDownsample2x.init( Views.extendBorder( input ), input, new FloatType(), DoGImgLib2.blockSize, 0 );
 
-			for ( ;dsy > 1; dsy /= 2 )
-				input = Downsample.simple2x( input, new boolean[]{ false, true, false } );
+				for ( ;dsy > 1; dsy /= 2 )
+					input = LazyDownsample2x.init( Views.extendBorder( input ), input, new FloatType(), DoGImgLib2.blockSize, 1 );
 
-			for ( ;dsz > 1; dsz /= 2 )
-				input = Downsample.simple2x( input, new boolean[]{ false, false, true } );
+				for ( ;dsz > 1; dsz /= 2 )
+					input = LazyDownsample2x.init( Views.extendBorder( input ), input, new FloatType(), DoGImgLib2.blockSize, 2 );
+			}
+			else
+			{
+				// note: every pixel is read exactly once, therefore caching the virtual input would not give any advantages
+				for ( ;dsx > 1; dsx /= 2 )
+					input = Downsample.simple2x( input, new boolean[]{ true, false, false } );
+
+				for ( ;dsy > 1; dsy /= 2 )
+					input = Downsample.simple2x( input, new boolean[]{ false, true, false } );
+
+				for ( ;dsz > 1; dsz /= 2 )
+					input = Downsample.simple2x( input, new boolean[]{ false, false, true } );
+			}
 		}
 
 		return input;

@@ -220,9 +220,9 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 				ImgLoaderHint... hints)
 		{
 			if ( normalize )
-				return ImgLib2Tools.normalizeVirtual( getImage( timepointId, hints ) );
+				return ImgLib2Tools.normalizeVirtualRAI( getImage( timepointId, hints ) );
 			else
-				return ImgLib2Tools.convertVirtual( getImage( timepointId, hints ) );
+				return ImgLib2Tools.convertVirtualRAI( getImage( timepointId, hints ) );
 		}
 
 		@Override

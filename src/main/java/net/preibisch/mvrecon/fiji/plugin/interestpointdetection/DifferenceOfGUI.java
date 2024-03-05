@@ -485,7 +485,8 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 		RandomAccessibleInterval<RealType<?>> imgGeneric = DownsampleTools.openAndDownsample(
 			spimData.getSequenceDescription().getImgLoader(),
 			viewDescription,
-			new long[] { downsampleXY, downsampleXY, downsampleZ } ).getA();
+			new long[] { downsampleXY, downsampleXY, downsampleZ },
+			true ).getA();
 
 		if ( imgGeneric == null )
 		{

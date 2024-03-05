@@ -372,6 +372,16 @@ public class InterestPointsN5 extends InterestPoints
 			final RandomAccessibleInterval< DoubleType > locData = N5Utils.open( n5, locDataset );
 			final int n = (int)locData.dimension( 0 );
 
+			// empty list
+			if ( n == 0 )
+			{
+				this.interestPoints = new ArrayList<>();
+				modifiedInterestPoints = false;
+
+				n5.close();
+				return true;
+			}
+
 			final RandomAccess< UnsignedLongType > idRA = idData.randomAccess();
 			final RandomAccess< DoubleType > locRA = locData.randomAccess();
 

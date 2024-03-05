@@ -82,9 +82,9 @@ public class LegacyStackImgLoaderLOCI extends LegacyStackImgLoader
 	public RandomAccessibleInterval< FloatType > getFloatImage( final ViewId view, final boolean normalize )
 	{
 		if ( normalize )
-			return ImgLib2Tools.normalizeVirtual( getImage( view ) );
+			return ImgLib2Tools.normalizeVirtualRAI( getImage( view ) );
 		else
-			return ImgLib2Tools.convertVirtual( getImage( view ) );
+			return ImgLib2Tools.convertVirtualRAI( getImage( view ) );
 	}
 
 	/**
