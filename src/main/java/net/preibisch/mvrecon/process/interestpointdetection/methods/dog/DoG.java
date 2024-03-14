@@ -30,6 +30,7 @@ import ij.IJ;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -152,7 +153,7 @@ public class DoG
 								false );
 
 				List< InterestPoint > ips = DoGImgLib2.computeDoG(
-							Views.extendMirrorSingle( input.getA() ),
+							(RandomAccessible)Views.extendMirrorSingle( input.getA() ),
 							null, // mask
 							new FinalInterval( input.getA() ),
 							dog.sigma,
