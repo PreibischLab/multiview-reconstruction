@@ -199,14 +199,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<dependency>
-			<groupId>org.openmicroscopy</groupId>
-			<artifactId>ome-xml</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.openmicroscopy</groupId>
-			<artifactId>ome-common</artifactId>
-		</dependency>
 
 		<!-- Third party dependencies -->
 		<dependency>
