@@ -276,7 +276,7 @@ public class DoGImgLib2
 		if ( !silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Detecting peaks." );
 
-		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, Views.interval( maskFloat, interval ), minInitialPeakValue, service );
+		final ArrayList< SimplePeak > peaks = findPeaks( dogCached, maskFloat == null ? null : Views.interval( maskFloat, interval ), minInitialPeakValue, service );
 
 		if ( !silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + peaks.size() + " initial peaks (before refinement)." );

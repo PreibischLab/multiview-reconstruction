@@ -76,7 +76,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 	public static String[] localizationChoice = { "None", "3-dimensional quadratic fit", "Gaussian mask localization fit" };	
 	public static String[] brightnessChoice = { "Very weak & small (beads)", "Weak & small (beads)", "Comparable to Sample & small (beads)", "Strong & small (beads)", "Advanced ...", "Interactive ..." };
 
-	public static int defaultDownsampleXYIndex = 4;
+	public static int defaultDownsampleXYIndex = 7;
 	public static int defaultDownsampleZIndex = 0;
 
 	public static int defaultLocalization = 1;
