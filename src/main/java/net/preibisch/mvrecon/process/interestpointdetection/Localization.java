@@ -50,6 +50,9 @@ public class Localization
 		if ( !DoGImgLib2.silent )
 			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): NO subpixel localization" );
 
+		if ( peaks == null || peaks.size() == 0 )
+			return new ArrayList<>();
+
 		final int n = peaks.get( 0 ).location.length;
 		final ArrayList< InterestPoint > peaks2 = new ArrayList< InterestPoint >();
 		

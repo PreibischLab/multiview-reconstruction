@@ -243,7 +243,7 @@ public class DoGImgLib2
 			if ( cuda == null )
 			{
 				gauss1 = LazyGauss.init( inputFloat, interval, new FloatType(), sigma1, blockSize );
-				gauss2 = LazyGauss.init( inputFloat, interval , new FloatType(), sigma2, blockSize );
+				gauss2 = LazyGauss.init( inputFloat, interval, new FloatType(), sigma2, blockSize );
 			}
 			else
 			{
@@ -269,8 +269,8 @@ public class DoGImgLib2
 			}
 		}, new FloatType() );
 
-		//avoid double-caching for weighted gauss (i.e. mask != null)
-		//final RandomAccessibleInterval< FloatType > dogCached = (mask == null) ? FusionTools.cacheRandomAccessibleInterval( dog, new FloatType(), blockSize ) : dog;
+
+		// no caching since it is a simple subtraction operation, the underlying Gauss is expensive
 		final RandomAccessibleInterval< FloatType > dogCached = dog;
 
 		if ( !silent )
@@ -289,15 +289,6 @@ public class DoGImgLib2
 		}
 		else if ( localization == 1 )
 		{
-			// TODO: remove last Imglib1 crap
-			//final Img< FloatType > dogCopy = new ArrayImgFactory<>( new FloatType() ).create( dogCached );
-
-			//if ( !silent )
-			//	IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Mem-copying image." );
-
-			//FusionTools.copyImg( Views.zeroMin( dogCached ), dogCopy, service );
-			//final Image<mpicbg.imglib.type.numeric.real.FloatType> imglib1 = ImgLib2.wrapArrayFloatToImgLib1( dogCopy );
-
 			for ( final SimplePeak peak : peaks )
 				for ( int d = 0; d < peak.location.length; ++d )
 					peak.location[ d ] -= minInterval[ d ];
@@ -305,6 +296,7 @@ public class DoGImgLib2
 			if ( !silent )
 				IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Quadratic localization." );
 
+			// TODO: something requires a zeroMin dataset in here
 			finalPeaks = Localization.computeQuadraticLocalization( peaks, Views.extendMirrorDouble( Views.zeroMin( dogCached ) ), new FinalInterval( Views.zeroMin( dogCached ) ), findMin, findMax, minPeakValue, true, service );
 
 			// adjust detections for min coordinates of the RandomAccessibleInterval
