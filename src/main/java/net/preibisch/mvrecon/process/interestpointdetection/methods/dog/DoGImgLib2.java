@@ -60,7 +60,9 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
+import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.registration.bead.laplace.LaPlaceFunctions;
@@ -207,24 +209,11 @@ public class DoGImgLib2
 		// normalize image
 		final RandomAccessible< FloatType > inputFloat = ImgLib2Tools.normalizeVirtual( input, min, max );
 
-		final float k = LaPlaceFunctions.computeK( 4 );
-		final float K_MIN1_INV = LaPlaceFunctions.computeKWeight(k);
-		final int steps = 3;
-		
-		//
-		// Compute the Sigmas for the gaussian convolution
-		//
-		final double[] sigma1 = new double[ input.numDimensions() ];
-		final double[] sigma2 = new double[ input.numDimensions() ];
-		
-		for ( int d = 0; d < input.numDimensions(); ++d )
-		{
-			final float[] sigmaStepsX = LaPlaceFunctions.computeSigma( steps, k, initialSigma );
-			final float[] sigmaStepsDiffX = LaPlaceFunctions.computeSigmaDiff( sigmaStepsX, 0.5f );
-			
-			sigma1[ d ] = sigmaStepsDiffX[0];
-			sigma2[ d ] = sigmaStepsDiffX[1];
-		}
+		// compute sigmas
+		final Pair< double[][], Float > sigmas = computeSigmas( initialSigma, inputFloat.numDimensions() );
+		final double[] sigma1 = sigmas.getA()[ 0 ];
+		final double[] sigma2 = sigmas.getA()[ 1 ];
+		final float K_MIN1_INV = sigmas.getB();
 
 		if ( !silent )
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): computing DoG with (sigma=" + initialSigma + ", " +
@@ -260,15 +249,7 @@ public class DoGImgLib2
 			gauss2 = LazyWeightedGauss.init( inputFloat, maskFloat, interval, new FloatType(), sigma2, blockSize );
 		}
 
-		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, new BiConverter<FloatType, FloatType, FloatType>()
-		{
-			@Override
-			public void convert( final FloatType inputA, final FloatType inputB, final FloatType output)
-			{
-				output.setReal( ( inputA.getRealDouble() - inputB.getRealDouble() ) * K_MIN1_INV );	
-			}
-		}, new FloatType() );
-
+		final RandomAccessibleInterval< FloatType > dog = Converters.convert(gauss2, gauss1, (iA,iB,o) -> o.setReal( ( iA.getRealDouble() - iB.getRealDouble() ) * K_MIN1_INV ), new FloatType() );
 
 		// no caching since it is a simple subtraction operation, the underlying Gauss is expensive
 		final RandomAccessibleInterval< FloatType > dogCached = dog;
@@ -320,6 +301,28 @@ public class DoGImgLib2
 		return finalPeaks;
 	}
 
+	public static Pair<double[][], Float > computeSigmas( final float initialSigma, final int n )
+	{
+		final float k = LaPlaceFunctions.computeK( 4 );
+		final float K_MIN1_INV = LaPlaceFunctions.computeKWeight(k);
+		final int steps = 3;
+		
+		//
+		// Compute the Sigmas for the gaussian convolution
+		//
+		final double[][] sigma = new double[2][ n ];
+		
+		for ( int d = 0; d < n; ++d )
+		{
+			final float[] sigmaStepsX = LaPlaceFunctions.computeSigma( steps, k, initialSigma );
+			final float[] sigmaStepsDiffX = LaPlaceFunctions.computeSigmaDiff( sigmaStepsX, 0.5f );
+			
+			sigma[0][ d ] = sigmaStepsDiffX[0];
+			sigma[1][ d ] = sigmaStepsDiffX[1];
+		}
+
+		return new ValuePair<>( sigma, K_MIN1_INV );
+	}
 	public static ArrayList<SimplePeak> findPeaks( final RandomAccessibleInterval< FloatType > laPlace, final RandomAccessibleInterval< FloatType > laPlaceMask, final float minValue, final ExecutorService service )
 	{
 		final Interval interval = Intervals.expand( laPlace, -1 );
