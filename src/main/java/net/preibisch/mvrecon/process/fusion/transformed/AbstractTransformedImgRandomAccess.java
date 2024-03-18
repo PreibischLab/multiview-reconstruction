@@ -27,9 +27,11 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 public abstract class AbstractTransformedImgRandomAccess< T extends RealType< T > > extends AbstractTransformedIntervalRandomAccess
@@ -58,17 +60,13 @@ public abstract class AbstractTransformedImgRandomAccess< T extends RealType< T 
 		// extend input image and convert to floats
 		final RandomAccessible< FloatType > input;
 
-		if ( FloatType.class.isInstance( Views.iterable( img ).cursor().next() ) )
+		if ( Util.getTypeFromInterval( img ) instanceof FloatType )
 		{
-			input = (RandomAccessible< FloatType >)img;
+			input = ( RandomAccessible< FloatType > ) img;
 		}
 		else
 		{
-			input =
-					Converters.convert(
-							img,
-							new RealFloatConverter< T >(),
-							new FloatType() );
+			input = RealTypeConverters.convert( img, new FloatType() );
 		}
 
 		// make the interpolator
