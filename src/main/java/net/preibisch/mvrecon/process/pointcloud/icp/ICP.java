@@ -54,6 +54,7 @@ public class ICP < P extends RealLocalizable >
 
 	final boolean useRANSAC;
 	final double maxEpsilonRANSAC;
+	final double minInlierRatio;
 	final int maxIterationsRANSAC;
 
 	double avgError, maxError;
@@ -67,6 +68,7 @@ public class ICP < P extends RealLocalizable >
 	 * @param reference - the {@link List} of reference points
 	 * @param pointMatchIdentifier - the {@link PointMatchIdentification} which defines how correspondences are established
 	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param minInlierRatio - minInlierRatio for RANSAC
 	 * @param maxEpsilonRANSAC - max error for RANSAC if used
 	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
@@ -74,7 +76,8 @@ public class ICP < P extends RealLocalizable >
 			final List< P > target,
 			final List< P > reference,
 			final PointMatchIdentification< P > pointMatchIdentifier,
-			final boolean useRANSAC, 
+			final boolean useRANSAC,
+			final double minInlierRatio,
 			final double maxEpsilonRANSAC,
 			final int maxIterationsRANSAC )
 	{
@@ -103,6 +106,7 @@ public class ICP < P extends RealLocalizable >
 		this.pointMatchIdentifier = pointMatchIdentifier;
 
 		this.useRANSAC = useRANSAC;
+		this.minInlierRatio = minInlierRatio;
 		this.maxEpsilonRANSAC = maxEpsilonRANSAC;
 		this.maxIterationsRANSAC = maxIterationsRANSAC;
 
@@ -118,6 +122,7 @@ public class ICP < P extends RealLocalizable >
 	 * @param reference - the {@link List} of reference points
 	 * @param distanceThreshold - the maximal distance of {@link SimplePointMatchIdentification}, so that the nearest neighbor of a point is still counted as a corresponding point
 	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param minInlierRatio - minInlierRatio for RANSAC
 	 * @param maxEpsilonRANSAC - max error for RANSAC if used
 	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
@@ -126,10 +131,11 @@ public class ICP < P extends RealLocalizable >
 			final List< P > reference,
 			final double distanceThreshold,
 			final boolean useRANSAC,
+			final double minInlierRatio,
 			final double maxEpsilonRANSAC,
 			final int maxIterationsRANSAC )
 	{
-		this( target, reference, new SimplePointMatchIdentification< P >( distanceThreshold ), useRANSAC, maxEpsilonRANSAC, maxIterationsRANSAC );
+		this( target, reference, new SimplePointMatchIdentification< P >( distanceThreshold ), useRANSAC, minInlierRatio, maxEpsilonRANSAC, maxIterationsRANSAC );
 	}
 
 	/**
@@ -138,17 +144,19 @@ public class ICP < P extends RealLocalizable >
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
 	 * @param useRANSAC - use RANSAC during every iteration
+	 * @param minInlierRatio - minInlierRatio for RANSAC
 	 * @param maxEpsilonRANSAC - max error for RANSAC if used
 	 * @param maxIterationsRANSAC - max iterations for RANSAC if used
 	 */
 	public ICP(
 			final List< P > target,
 			final List< P > reference,
-			final boolean useRANSAC, 
+			final boolean useRANSAC,
+			final double minInlierRatio,
 			final double maxEpsilonRANSAC,
 			final int maxIterationsRANSAC )
 	{
-		this( target, reference, new SimplePointMatchIdentification<P>(), useRANSAC, maxEpsilonRANSAC, maxIterationsRANSAC );
+		this( target, reference, new SimplePointMatchIdentification<P>(), useRANSAC, minInlierRatio, maxEpsilonRANSAC, maxIterationsRANSAC );
 	}
 
 	/**
@@ -176,7 +184,7 @@ public class ICP < P extends RealLocalizable >
 
 		if ( useRANSAC )
 		{
-			newModel.filterRansac( candidates, matches, maxIterationsRANSAC, maxEpsilonRANSAC, 0.0f );
+			newModel.filterRansac( candidates, matches, maxIterationsRANSAC, maxEpsilonRANSAC, minInlierRatio );
 			//IOFunctions.println( "RANSAC: " + matches.size() + "/" + candidates.size() );
 		}
 		else

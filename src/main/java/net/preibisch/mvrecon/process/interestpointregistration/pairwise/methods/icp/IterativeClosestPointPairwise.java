@@ -81,7 +81,7 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 			return result;
 		}
 
-		final ICP< I > icp = new ICP< I >( listA, listB, (float)ip.getMaxDistance(), ip.useRANSAC(), ip.getMaxEpsilonRANSAC(), ip.getMaxIterationsRANSAC() );
+		final ICP< I > icp = new ICP< I >( listA, listB, (float)ip.getMaxDistance(), ip.useRANSAC(), ip.getMinInlierRatio(), ip.getMaxEpsilonRANSAC(), ip.getMaxIterationsRANSAC() );
 
 		int i = 0;
 		double lastAvgError = 0;
@@ -175,7 +175,7 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 			IOFunctions.println( Util.printCoordinates( listA.get( i ).getL() ) + " >>> " + Util.printCoordinates( listB.get( i ).getL() ) + ", d=" + Point.distance( listA.get( i ), listB.get( i ) ) );
 		}
 
-		final ICP< InterestPoint > icp = new ICP< InterestPoint >( listA, listB, maxError, false, 0, 0 );
+		final ICP< InterestPoint > icp = new ICP< InterestPoint >( listA, listB, maxError, false, 0.0, 0, 0 );
 		
 		// identity transform
 		TranslationModel3D model = new TranslationModel3D();

@@ -32,13 +32,15 @@ public class IterativeClosestPointParameters
 	public static double defaultMaxEpsionRANSAC = maxDistance / 2.0;
 	public static int defaultNumIterationsRANSAC = 200;
 	public static int defaultMinNumPoints = 12;
+	public static double defaultMinInlierRatio = 0.1;
 
-	private double d;
-	private int maxIt;
-	private boolean useRANSAC;
-	private double maxEpsilonRANSAC;
-	private int maxIterationsRANSAC;
-	private int minNumPoints;
+	final private double d;
+	final private int maxIt;
+	final private boolean useRANSAC;
+	final private double maxEpsilonRANSAC;
+	final private double minInlierRatio;
+	final private int maxIterationsRANSAC;
+	final private int minNumPoints;
 
 	private Model< ? > model = null;
 
@@ -46,7 +48,8 @@ public class IterativeClosestPointParameters
 			final Model< ? > model,
 			final double maxDistance,
 			final int maxIterations,
-			final boolean useRANSAC, 
+			final boolean useRANSAC,
+			final double minInlierRatio,
 			final double maxEpsilonRANSAC,
 			final int maxIterationsRANSAC,
 			final int minNumPoints )
@@ -56,6 +59,7 @@ public class IterativeClosestPointParameters
 		this.maxIt = maxIterations;
 		this.useRANSAC = useRANSAC;
 		this.maxEpsilonRANSAC = maxEpsilonRANSAC;
+		this.minInlierRatio = minInlierRatio;
 		this.maxIterationsRANSAC = maxIterationsRANSAC;
 		this.minNumPoints = minNumPoints;
 	}
@@ -64,16 +68,17 @@ public class IterativeClosestPointParameters
 			final Model< ? > model,
 			IterativeClosestPointParameters p )
 	{
-		this( model, p.getMaxDistance(), p.getMaxNumIterations(), p.useRANSAC(), p.getMaxEpsilonRANSAC(), p.getMaxIterationsRANSAC(), p.getMinNumPoints() );
+		this( model, p.getMaxDistance(), p.getMaxNumIterations(), p.useRANSAC(), p.getMinInlierRatio(), p.getMaxEpsilonRANSAC(), p.getMaxIterationsRANSAC(), p.getMinNumPoints() );
 	}
 
 	public IterativeClosestPointParameters( final Model< ? > model )
 	{
-		this( model, maxDistance, maxIterations, defaultUseRANSAC, defaultMaxEpsionRANSAC, defaultNumIterationsRANSAC, defaultMinNumPoints );
+		this( model, maxDistance, maxIterations, defaultUseRANSAC, defaultMinInlierRatio, defaultMaxEpsionRANSAC, defaultNumIterationsRANSAC, defaultMinNumPoints );
 	}
 
 	public Model< ? > getModel() { return model.copy(); }
 	public double getMaxDistance() { return d; }
+	public double getMinInlierRatio() { return minInlierRatio; }
 	public int getMaxNumIterations() { return maxIt; }
 	public boolean useRANSAC() { return useRANSAC; }
 	public double getMaxEpsilonRANSAC() { return maxEpsilonRANSAC; }
