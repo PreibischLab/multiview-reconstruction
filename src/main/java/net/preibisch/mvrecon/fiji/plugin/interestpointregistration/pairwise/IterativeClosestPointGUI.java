@@ -101,7 +101,7 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 		final int numIterationsRANSAC = IterativeClosestPointParameters.defaultNumIterationsRANSAC = (int)Math.round( gd.getNextNumber() );
 		final int minNumPoints = IterativeClosestPointParameters.defaultMinNumPoints = (int)Math.round( gd.getNextNumber() );
 
-		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations, useRANSAC, maxEpsilonRANSAC, numIterationsRANSAC, minNumPoints );
+		this.parameters = new IterativeClosestPointParameters( model.getModel(), maxDistance, maxIterations, useRANSAC, 0.0, maxEpsilonRANSAC, numIterationsRANSAC, minNumPoints );
 
 		return true;
 	}
