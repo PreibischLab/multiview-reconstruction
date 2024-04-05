@@ -78,4 +78,10 @@ public class NonRigidRasteredRandomAccessible< T > implements RandomAccessible< 
 
 	@Override
 	public RandomAccess< T > randomAccess( final Interval interval ) { return randomAccess(); }
+
+	@Override
+	public T getType()
+	{
+		return realRandomAccessible.getType();
+	}
 }

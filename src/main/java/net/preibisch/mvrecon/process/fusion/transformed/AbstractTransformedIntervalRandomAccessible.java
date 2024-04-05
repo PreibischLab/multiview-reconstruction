@@ -79,4 +79,10 @@ public abstract class AbstractTransformedIntervalRandomAccessible implements Ran
 	{
 		return n;
 	}
+
+	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
 }

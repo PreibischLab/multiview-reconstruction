@@ -161,6 +161,12 @@ public class FRCRealRandomAccessible< T extends RealType< T > > implements RealR
 		return realRandomAccess();
 	}
 
+	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
+
 	public RealRandomAccessible< FloatType > getRealRandomAccessible()
 	{
 		final NearestNeighborSearch< FloatType > search = new NearestNeighborSearchOnKDTree<>( new KDTree<>( qualityList ) );

@@ -61,7 +61,13 @@ public class VirtuallyNormalizedRandomAccessibleInterval <T extends RealType< T 
 	{
 		return randomAccess();
 	}
-	
+
+	@Override
+	public T getType()
+	{
+		return input.getType();
+	}
+
 	private class VirtuallyNormalizedRandomAccess extends Point implements RandomAccess< T >
 	{
 		private final T value;

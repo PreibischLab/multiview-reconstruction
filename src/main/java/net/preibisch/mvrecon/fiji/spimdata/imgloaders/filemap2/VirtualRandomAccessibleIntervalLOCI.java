@@ -73,6 +73,12 @@ class VirtualRandomAccessibleIntervalLOCI<T extends RealType< T > & NativeType< 
 		return randomAccess();
 	}
 
+	@Override
+	public T getType()
+	{
+		return type;
+	}
+
 	private class VirtualRandomAccessLOCI extends Point implements RandomAccess< T >
 	{
 
