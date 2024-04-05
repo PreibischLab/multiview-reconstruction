@@ -67,6 +67,12 @@ public class VirtualGrid implements RandomAccessibleInterval< NumericAffineModel
 	}
 
 	@Override
+	public NumericAffineModel3D getType()
+	{
+		return new NumericAffineModel3D();
+	}
+
+	@Override
 	public int numDimensions()
 	{
 		return n;
