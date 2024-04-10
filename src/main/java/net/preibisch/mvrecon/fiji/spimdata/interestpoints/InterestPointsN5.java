@@ -148,8 +148,12 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
-			//final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer;
+
+			if ( baseDir.toString().contains( ":/" ) )
+				n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
+			else // avoid dependency hell if it is a local file
+				n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -240,8 +244,12 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
-			//final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer;
+
+			if ( baseDir.toString().contains( ":/" ) )
+				n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
+			else // avoid dependency hell if it is a local file
+				n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -369,8 +377,12 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Reader n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
-			//final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Reader n5;
+
+			if ( baseDir.toString().contains( ":/" ) )
+				n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
+			else // avoid dependency hell if it is a local file
+				n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			final String dataset = ipDataset();
 
@@ -470,8 +482,12 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Reader n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
-			//final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Reader n5;
+
+			if ( baseDir.toString().contains( ":/" ) )
+				n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
+			else // avoid dependency hell if it is a local file
+				n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			final String dataset = corrDataset();
 
