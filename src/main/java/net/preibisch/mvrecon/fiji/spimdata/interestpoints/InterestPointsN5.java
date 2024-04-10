@@ -23,7 +23,6 @@
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +34,10 @@ import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccess;
@@ -146,7 +148,8 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
+			//final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -237,7 +240,8 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer = new N5Factory().openWriter( assembleURI( baseDir, baseN5 ) );
+			//final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -339,12 +343,35 @@ public class InterestPointsN5 extends InterestPoints
 		return true;
 	}
 
+	// TODO: this is a hack, we should support URI instead of baseDir, which is a File
+	// it modifies and cuts of addresses such as s3://janelia-bigstitcher-spark/Stitching
+	// and turns it into s3:/janelia-bigstitcher-spark/Stitching/.
+	public static String assembleURI( final File baseDir, final String baseN5 )
+	{
+		String uri = baseDir.toString();
+
+		if ( uri.endsWith( "." ) )
+			uri = uri.substring( 0, uri.length() - 1 );
+
+		if ( uri.endsWith( "/" ) )
+			uri = uri.substring( 0, uri.length() - 1 );
+
+		if ( uri.contains( ":/" ) && !uri.contains( "://" ) )
+			uri = uri.replace( ":/", "://" );
+
+		uri = uri + "/" + baseN5;
+
+		return uri;
+	}
+
 	@Override
 	protected boolean loadInterestPoints()
 	{
 		try
 		{
-			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Reader n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
+			//final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+
 			final String dataset = ipDataset();
 
 			if (!n5.exists(dataset))
@@ -443,8 +470,9 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
+			final N5Reader n5 = new N5Factory().openReader( assembleURI( baseDir, baseN5 ) );
+			//final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
-			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
 
 			if (!n5.exists(dataset))
