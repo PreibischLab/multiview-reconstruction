@@ -60,8 +60,13 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 			{
 				final Tile<?> connectedTile = t.findConnectedTile( pm );
 
+				// TODO: I think connectedTile can be null if it was linking to a tile that was removed in a previous round
+				// since we only drop connections, but not pointmatches
+				if ( connectedTile == null )
+					continue;
+
 				// make sure that pm is not the only connection of the connected tile either 
-				if ( connectedTile.getConnectedTiles().size() <= 1 )
+				if ( connectedTile.getConnectedTiles().size() <= 1 ) // NPE
 					continue;
 
 				double quality = 0.01; // between [0.01, 1.00]
