@@ -40,7 +40,7 @@ public abstract class AbstractTransformedIntervalRandomAccessible implements Ran
 
 	final protected int n;
 
-	protected InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
+	protected InterpolatorFactory< FloatType, RandomAccessible< FloatType > > interpolatorFactory = new NLinearInterpolatorFactory<>();
 
 	public AbstractTransformedIntervalRandomAccessible(
 			final Interval interval, // from ImgLoader
@@ -60,12 +60,12 @@ public abstract class AbstractTransformedIntervalRandomAccessible implements Ran
 
 	public void setLinearInterpolation()
 	{
-		this.interpolatorFactory = new NLinearInterpolatorFactory< FloatType >();
+		this.interpolatorFactory = new NLinearInterpolatorFactory<>();
 	}
 
 	public void setNearestNeighborInterpolation()
 	{
-		this.interpolatorFactory = new NearestNeighborInterpolatorFactory< FloatType >();
+		this.interpolatorFactory = new NearestNeighborInterpolatorFactory<>();
 	}
 
 	@Override

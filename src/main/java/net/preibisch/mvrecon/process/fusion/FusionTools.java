@@ -666,6 +666,7 @@ public class FusionTools
 	 * @param border - the target blending border, e.g. 0
 	 * @param transformationModel - the transformation model used to map from the (downsampled) input to the output
 	 */
+	// NOTE (TP) blending and border are modified
 	public static void adjustBlending( final BasicViewDescription< ? > vd, final float[] blending, final float[] border, final AffineTransform3D transformationModel )
 	{
 		adjustBlending( vd.getViewSetup().getSize(), Group.pvid( vd ), blending, border, transformationModel );
