@@ -65,13 +65,13 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 		this.sizes = new Dimensions[ levels ];
 		this.scaledIntervals = new Interval[ levels ];
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
-		this.mipmapTransforms = new AffineTransform3D[ levels ];
+		this.mipmapTransforms = underlyingSetupImgLoader.getMipmapTransforms();//new AffineTransform3D[ levels ];
 
 		this.isUpdated = new boolean[ levels ];
 		for ( int l = 0; l < levels; ++l )
 			this.isUpdated[ l ] = false;
 
-		SplitViewerSetupImgLoader.setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
+		SplitViewerSetupImgLoader.setUpMultiRes( levels, n, interval, mipmapResolutions, /*mipmapTransforms, */sizes, scaledIntervals/*, underlyingSetupImgLoader.getMipmapTransforms()*/ );
 	}
 
 	@Override

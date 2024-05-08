@@ -81,13 +81,13 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 		this.sizes = new Dimensions[ levels ];
 		this.scaledIntervals = new Interval[ levels ];
 		this.mipmapResolutions = underlyingSetupImgLoader.getMipmapResolutions();
-		this.mipmapTransforms = new AffineTransform3D[ levels ];
+		this.mipmapTransforms = underlyingSetupImgLoader.getMipmapTransforms();//new AffineTransform3D[ levels ];
 
 		this.isUpdated = new boolean[ levels ];
 		for ( int l = 0; l < levels; ++l )
 			this.isUpdated[ l ] = false;
 
-		setUpMultiRes( levels, n, interval, mipmapResolutions, mipmapTransforms, sizes, scaledIntervals, underlyingSetupImgLoader.getMipmapTransforms() );
+		setUpMultiRes( levels, n, interval, mipmapResolutions, /*mipmapTransforms,*/ sizes, scaledIntervals/*, underlyingSetupImgLoader.getMipmapTransforms()*/ );
 	}
 
 	protected static final void setUpMultiRes(
@@ -95,10 +95,11 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 			final int n,
 			final Interval interval,
 			final double[][] mipmapResolutions,
-			final AffineTransform3D[] mipmapTransforms,
+			//final AffineTransform3D[] mipmapTransforms,
 			final Dimensions[] sizes,
-			final Interval[] scaledIntervals,
-			final AffineTransform3D[] oldmipmapTransforms )
+			final Interval[] scaledIntervals
+			//final AffineTransform3D[] oldmipmapTransforms
+			)
 	{
 		// precompute intervals and new mipmaptransforms (because of rounding of interval borders)
 		for ( int level = 0; level < levels; ++level )
@@ -124,6 +125,7 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 			sizes[ level ] = new FinalDimensions( size );
 			scaledIntervals[ level ] = new FinalInterval( minL, maxL );
 
+			/*
 			final AffineTransform3D mipMapTransform = oldmipmapTransforms[ level ].copy();
 
 			// the additional downsampling (performed below)
@@ -132,9 +134,12 @@ public class SplitViewerSetupImgLoader implements ViewerSetupImgLoader< Unsigned
 					1.0, 0.0, 0.0, (minL[ 0 ] - min[ 0 ]),
 					0.0, 1.0, 0.0, (minL[ 1 ] - min[ 1 ]),
 					0.0, 0.0, 1.0, (minL[ 2 ] - min[ 2 ]) );
-	
+
+			System.out.println( additonalTranslation );
+
 			mipMapTransform.concatenate( additonalTranslation );
 			mipmapTransforms[ level ] = mipMapTransform;
+			*/
 		}
 	}
 
