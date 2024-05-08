@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.headless.splitting;
 
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
+import net.preibisch.mvrecon.fiji.plugin.Split_Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -56,8 +57,19 @@ public class TestSplitting
 		// load drosophila
 		spimData = new XmlIoSpimData2( "" ).load( file );
 
+		final long[] minStepSize = Split_Views.findMinStepSize( spimData );
+
 		//SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 15 }, new long[] { 600, 600, 300 } );
-		SpimData2 newSD = SplittingTools.splitImages( spimData, new long[] { 30, 30, 10 }, new long[] { 200, 200, 40 } );
+		SpimData2 newSD =
+				SplittingTools.splitImages(
+						spimData,
+						new long[] { 30, 30, 10 },
+						new long[] {
+								Split_Views.closestLongDivisableBy( 200, minStepSize[ 0 ] ),
+								Split_Views.closestLongDivisableBy( 200, minStepSize[ 1 ] ),
+								Split_Views.closestLongDivisableBy( 40, minStepSize[ 2 ] ) },
+						minStepSize,
+						true );
 		// drosophila with 1000 views
 
 		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, fileOut, new XmlIoSpimData2( "" ) );
