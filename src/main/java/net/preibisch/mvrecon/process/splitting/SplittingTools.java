@@ -192,6 +192,7 @@ public class SplittingTools
 									"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
 									"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );*/
 							newIpl.setInterestPoints( newIp );
+							newIpl.setParameters( oldIpl.getParameters() );
 							newVipl.addInterestPointList( label, newIpl ); // still add
 						}
 					}
