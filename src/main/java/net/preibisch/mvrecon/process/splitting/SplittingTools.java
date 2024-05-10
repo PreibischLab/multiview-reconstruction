@@ -196,7 +196,7 @@ public class SplittingTools
 								}
 							}
 
-							final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), newViewId, label);
+							final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), newViewId, label + "_split" );
 							newIpl.setInterestPoints( newIp );
 							newIpl.setParameters( oldIpl.getParameters() );
 							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
