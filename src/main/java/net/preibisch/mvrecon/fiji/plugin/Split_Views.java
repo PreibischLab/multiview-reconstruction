@@ -49,6 +49,8 @@ import net.preibisch.mvrecon.process.splitting.SplittingTools;
 
 public class Split_Views implements PlugIn
 {
+	public static boolean roundMipmapResolutions = false;
+
 	public static long defaultImgX = 500;
 	public static long defaultImgY = 500;
 	public static long defaultImgZ = 200;
@@ -284,7 +286,8 @@ public class Split_Views implements PlugIn
 				for ( int d = 0; d < minStepSize.length; ++d )
 				{
 					if ( lowestResolution[ d ] % 1 != 0.0 )
-						throw new RuntimeException( "Downsampling has a fraction, cannot split dataset" );
+						if ( !roundMipmapResolutions )
+							throw new RuntimeException( "Downsampling has a fraction, cannot split dataset" );
 
 					minStepSize[ d ] = lowestCommonMultiplier( minStepSize[ d ], Math.round( lowestResolution[ d ] ) );
 				}
