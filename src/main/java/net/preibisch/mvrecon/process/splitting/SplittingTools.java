@@ -365,6 +365,7 @@ public class SplittingTools
 					if ( lastImageSize <= s / 2 )
 					{
 						// increase image size until lastImageSize goes towards zero, then large
+						System.out.println( "small" );
 
 						do
 						{
@@ -373,7 +374,7 @@ public class SplittingTools
 							delta = lastImageSize - currentLastImageSize;
 
 							lastImageSize = currentLastImageSize;
-							//System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
+							System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
 						}
 						while ( delta > 0 );
 
@@ -382,6 +383,7 @@ public class SplittingTools
 					else
 					{
 						// decrease image size until lastImageSize is maximal 
+						System.out.println( "large" );
 
 						do
 						{
@@ -390,7 +392,7 @@ public class SplittingTools
 							delta = lastImageSize - currentLastImageSize;
 
 							lastImageSize = currentLastImageSize;
-							//System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
+							System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
 						}
 						while ( delta < 0 );
 
@@ -444,13 +446,19 @@ public class SplittingTools
 
 	public static long lastImageSize( final long l, final long s, final long o)
 	{
-		return o + ( l - 2 * ( s-o ) - o ) % ( s - 2 * o + o );
+		long size = o + ( l - 2 * ( s-o ) - o ) % ( s - 2 * o + o );
+
+		// this happens when it is only two overlapping images
+		if ( size < 0 )
+			size = l + size;
+
+		return size;
 	}
 
-	public static double numCenterBlocks( final double l, final double s, final double o )
-	{
-		return 	( l - 2.0 * ( s-o ) - o ) / ( s - 2.0 * o + o );
-	}
+	//public static double numCenterBlocks( final double l, final double s, final double o )
+	//{
+	//	return 	( l - 2.0 * ( s-o ) - o ) / ( s - 2.0 * o + o );
+	//}
 
 	public static ArrayList< Pair< Long, Long > > splitDim(
 			final Interval input,
@@ -482,11 +490,11 @@ public class SplittingTools
 
 	public static void main( String[] args )
 	{
-		Interval input = new FinalInterval( new long[]{ 0 }, new long[] { 2048 - 1 } );
+		Interval input = new FinalInterval( new long[]{ 0 }, new long[] { 14192 - 1 } );
 
-		long[] overlapPx = new long[] { 17 };
-		long[] targetSize = new long[] { 500 };
-		long[] minStepSize = new long[] { 32 };
+		long[] overlapPx = new long[] { 128 };
+		long[] targetSize = new long[] { 6000 };
+		long[] minStepSize = new long[] { 64 };
 
 		targetSize[ 0 ] = Split_Views.closestLongDivisableBy( targetSize[ 0 ], minStepSize[ 0 ] );
 		overlapPx[ 0 ] = Split_Views.closestLargerLongDivisableBy( overlapPx[ 0 ], minStepSize[ 0 ] );
