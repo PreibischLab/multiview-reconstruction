@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import bdv.ViewerImgLoader;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -179,20 +180,18 @@ public class SplittingTools
 							{
 								if ( contains( ip.getL(), interval ) )
 								{
-									final double[] l = ip.getL();
+									final double[] l = ip.getL().clone();
 									for ( int d = 0; d < interval.numDimensions(); ++d )
-										l[ d ] -= interval.min( d );
+										l[ d ] -= interval.min( d );// + (rnd.nextDouble() - 0.5);
 	
 									newIp.add( new InterestPoint( id++, l ) );
 								}
 							}
 
 							final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), newViewId, label);
-							/*final InterestPointList newIpl = new InterestPointList( oldIpl.getBaseDir(), new File(
-									"interestpoints", "new_tpId_" + newViewId.getTimePointId() +
-									"_viewSetupId_" + newViewId.getViewSetupId() + "." + label ) );*/
 							newIpl.setInterestPoints( newIp );
 							newIpl.setParameters( oldIpl.getParameters() );
+							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
 							newVipl.addInterestPointList( label, newIpl ); // still add
 						}
 					}
