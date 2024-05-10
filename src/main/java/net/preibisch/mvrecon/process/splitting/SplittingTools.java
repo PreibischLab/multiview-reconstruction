@@ -74,6 +74,8 @@ import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 
 public class SplittingTools
 {
+	public static boolean assingIlluminationsFromTileIds = false;
+
 	public static SpimData2 splitImages( final SpimData2 spimData, final long[] overlapPx, final long[] targetSize, final long[] minStepSize, final boolean optimize  )
 	{
 		final TimePoints timepoints = spimData.getSequenceDescription().getTimePoints();
@@ -100,6 +102,11 @@ public class SplittingTools
 		// by multiplying it with maxspread and then +1 for each new tile
 		// so each new one has to be the same across channel & illumination!
 		final int maxIntervalSpread = maxIntervalSpread( oldSetups, overlapPx, targetSize, minStepSize, optimize );
+
+		// check that there is only one illumination
+		if ( assingIlluminationsFromTileIds )
+			if ( spimData.getSequenceDescription().getAllIlluminationsOrdered().size() > 1 )
+				throw new IllegalArgumentException( "Cannot SplittingTools.assingIlluminationsFromTileIds because more than one Illumination exists." );
 
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
@@ -139,7 +146,8 @@ public class SplittingTools
 				final int newTileId = oldTile.getId() * maxIntervalSpread + localNewTileId;
 				localNewTileId++;
 				final Tile newTile = new Tile( newTileId, Integer.toString( newTileId ), location );
-				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, illum );
+				final Illumination newIllum = assingIlluminationsFromTileIds ? new Illumination( oldTile.getId(), "old_tile_" + oldTile.getId() ) : illum;
+				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, newIllum );
 				newSetups.add( newSetup );
 
 				// update registrations and interest points for all timepoints
