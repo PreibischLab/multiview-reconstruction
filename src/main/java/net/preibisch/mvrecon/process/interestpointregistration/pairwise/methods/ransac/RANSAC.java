@@ -24,15 +24,20 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
 
+import mpicbg.models.Model;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.PointMatch;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.LinkedPoint;
-import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.PointMatch;
 
 /**
  * 
@@ -41,9 +46,9 @@ import mpicbg.models.PointMatch;
  */
 public class RANSAC
 {
-	public static < I extends InterestPoint > Pair< String, Double > computeRANSAC( 
-			final ArrayList< PointMatchGeneric < I > > correspondenceCandidates, 
-			final ArrayList< PointMatchGeneric < I > > inlierList, 
+	public static < I extends InterestPoint > Pair< String, Double > computeRANSAC(
+			final ArrayList< PointMatchGeneric < I > > correspondenceCandidates,
+			final ArrayList< PointMatchGeneric < I > > inlierList,
 			final Model<?> model, 
 			final double maxEpsilon, 
 			final double minInlierRatio, 
@@ -52,12 +57,6 @@ public class RANSAC
 	{
 		final int numCorrespondences = correspondenceCandidates.size();
 		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), (int)Math.round( model.getMinNumMatches() * minNumberInlierFactor ) );
-		
-		/*
-		 * First remove the inconsistent correspondences
-		 */
-		// I do not think anymore that this is required
-		// removeInconsistentCorrespondences( correspondenceCandidates );
 
 		// if there are not enough correspondences for the used model
 		if ( numCorrespondences < minNumCorrespondences )
@@ -67,9 +66,8 @@ public class RANSAC
 		 * The ArrayList that stores the inliers after RANSAC, contains PointMatches of LinkedPoints
 		 * so that MultiThreading is possible
 		 */
-		//final ArrayList< PointMatchGeneric<LinkedPoint<T>> > candidates = new ArrayList<PointMatchGeneric<LinkedPoint<T>>>();		
-		final ArrayList< PointMatch > candidates = new ArrayList< PointMatch >();
-		final ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
+		ArrayList< PointMatch > candidates = new ArrayList< PointMatch >();
+		ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
 		
 		// clone the beads for the RANSAC as we are working multithreaded and they will be modified
 		for ( final PointMatchGeneric< I > correspondence : correspondenceCandidates )
@@ -105,24 +103,57 @@ public class RANSAC
 		{
 			return new ValuePair< String, Double >( e.toString(), Double.NaN );
 		}
-			
+
 		final NumberFormat nf = NumberFormat.getPercentInstance();
 		final double ratio = ( (double)inliers.size() / (double)candidates.size() );
 		
 		if ( modelFound && inliers.size() >= minNumCorrespondences )
-		{			
+		{
+			// remove the inconsistent inliers
+			final int numCorr = inliers.size();
+			inliers = removeInconsistentMatches( inliers );
+
+			if ( inliers.size() < minNumCorrespondences )
+			{
+				final int numRemoved = numCorr - inliers.size();
+
+				// and try again with cleaned correspondences
+				candidates = removeInconsistentMatches( candidates );
+				inliers.clear();
+
+				try
+				{
+					modelFound = model.filterRansac(
+							candidates,
+							inliers,
+							numIterations,
+							maxEpsilon, minInlierRatio );
+				}
+				catch ( NotEnoughDataPointsException e )
+				{
+					return new ValuePair< String, Double >( e.toString(), Double.NaN );
+				}
+
+				if ( !modelFound || inliers.size() < minNumCorrespondences )
+					return new ValuePair< String, Double >( "NO Model found after removing " + numRemoved + " inconsistent matches and re-running RANSAC using " + candidates.size(), Double.NaN );
+			}
+
 			for ( final PointMatch pointMatch : inliers )
 			{
 				@SuppressWarnings("unchecked")
 				final PointMatchGeneric<LinkedPoint< I > > pm = (PointMatchGeneric< LinkedPoint< I > >) pointMatch;
-				
+
 				final I detectionA = pm.getPoint1().getLinkedObject();
 				final I detectionB = pm.getPoint2().getLinkedObject();
-				
+
 				inlierList.add( new PointMatchGeneric< I >( detectionA, detectionB ) );
 			}
 
-			return new ValuePair< String, Double >( "Remaining inliers after RANSAC: " + inliers.size() + " of " + candidates.size() + " (" + nf.format(ratio) + ") with average error " + model.getCost(), model.getCost() );
+			String inconsistent = "";
+			if ( numCorr != inliers.size() )
+				inconsistent = " [removed " + (numCorr - inliers.size() ) + " inconsistent inliers]";
+
+			return new ValuePair< String, Double >( "Remaining inliers after RANSAC: " + inliers.size() + " of " + candidates.size() + " (" + nf.format(ratio) + ") with average error " + model.getCost() + "" + inconsistent, model.getCost() );
 		}
 		else
 		{
@@ -131,5 +162,96 @@ public class RANSAC
 			else
 				return new ValuePair< String, Double >( "NO Model found after RANSAC of " + candidates.size(), Double.NaN );
 		}
+	}
+
+	/**
+	 * a class that computes hash and equals only using the coordinates of a double[] array
+	 */
+	private static class HashableDoubleArray
+	{
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + Arrays.hashCode(l);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			HashableDoubleArray other = (HashableDoubleArray) obj;
+			return Arrays.equals(l, other.l);
+		}
+
+		final double[] l;
+
+		public HashableDoubleArray( final double[] l ) { this.l = l; }
+	}
+
+	public static < P extends PointMatch > ArrayList< P > removeInconsistentMatches( final List< P > matches )
+	{
+		final HashMap< HashableDoubleArray, ArrayList< Integer > > p1 = new HashMap<>();
+		final HashMap< HashableDoubleArray, ArrayList< Integer > > p2 = new HashMap<>();
+
+		for ( int i = 0; i < matches.size(); ++i )
+		{
+			final P pm = matches.get( i );
+
+			// only the underlying detections are the same objects
+			final HashableDoubleArray detectionA = new HashableDoubleArray( pm.getP1().getL() );
+			final HashableDoubleArray detectionB = new HashableDoubleArray( pm.getP2().getL() );
+
+			//System.out.println( Arrays.toString( detectionA.l ) + " " + Arrays.toString( detectionB.l ) + " " + detectionA.hashCode() + " = " + detectionB.hashCode() );
+
+			if ( p1.containsKey( detectionA ) )
+			{
+				p1.get( detectionA ).add( i );
+			}
+			else
+			{
+				final ArrayList<Integer> list = new ArrayList<>();
+				list.add( i );
+				p1.put( detectionA, list );
+			}
+
+			if ( p2.containsKey( detectionB ) )
+			{
+				p2.get( detectionB ).add( i );
+			}
+			else
+			{
+				final ArrayList<Integer> list = new ArrayList<>();
+				list.add( i );
+				p2.put( detectionB, list );
+			}
+		}
+
+		// build a HashSet of all indicies that collide
+		final HashSet< Integer > toRemove = new HashSet<>();
+
+		for ( final Entry< HashableDoubleArray, ArrayList< Integer > > entry : p1.entrySet() )
+			if (entry.getValue().size() > 1 )
+				toRemove.addAll( entry.getValue() );
+
+		for ( final Entry< HashableDoubleArray, ArrayList< Integer > > entry : p2.entrySet() )
+			if (entry.getValue().size() > 1 )
+				toRemove.addAll( entry.getValue() );
+
+		//System.out.println( "Removing " + toRemove.size() + " matches." );
+
+		final ArrayList< P > newList = new ArrayList<>();
+		for ( int i = 0; i < matches.size(); ++i )
+		{
+			if ( !toRemove.contains( i ) )
+				newList.add( matches.get( i ) );
+		}
+
+		return newList;
 	}
 }
