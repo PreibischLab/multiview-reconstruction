@@ -200,7 +200,7 @@ public class SplittingTools
 							newIpl.setInterestPoints( newIp );
 							newIpl.setParameters( oldIpl.getParameters() );
 							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
-							newVipl.addInterestPointList( label, newIpl ); // still add
+							newVipl.addInterestPointList( label + "_split", newIpl ); // still add
 						}
 					}
 					newInterestpoints.put( newViewId, newVipl );
