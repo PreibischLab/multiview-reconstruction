@@ -87,7 +87,7 @@ public class GlobalOptimizationParameters
 
 	public static GlobalOptimizationParameters parseSimpleParametersFromDialog( final GenericDialog gd )
 	{
-		return getGlobalOptimizationParametersForSelection( gd.getNextChoiceIndex() );
+		return getGlobalOptimizationParametersForSelection( defaultSimple = gd.getNextChoiceIndex() );
 	}
 
 	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected )
