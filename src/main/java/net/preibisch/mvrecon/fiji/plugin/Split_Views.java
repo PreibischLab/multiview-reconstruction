@@ -61,6 +61,11 @@ public class Split_Views implements PlugIn
 
 	public static boolean defaultOptimize = true;
 
+	public static boolean defaultAddIPs = true;
+	public static int defaultDensity = 100;
+
+	public static boolean defaultAssignIlluminations = true;
+
 	public static String defaultPath = null;
 
 	public static int defaultChoice = 0;
@@ -85,10 +90,12 @@ public class Split_Views implements PlugIn
 			final long[] targetSize,
 			final long[] overlap,
 			final long[] minStepSize,
+			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
+			final int pointDensity,
 			final boolean display )
 	{
-		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, optimize );
+		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, pointDensity );
 
 		if ( display )
 		{
@@ -140,7 +147,12 @@ public class Split_Views implements PlugIn
 		gd.addMessage( "Note: overlap will be adjusted to be divisible by " + Arrays.toString( minStepSize ), GUIHelper.mediumstatusfont, Color.RED );
 		gd.addMessage( "Minimal image sizes per dimension: " + Util.printCoordinates( imgSizes.getB() ), GUIHelper.mediumstatusfont, Color.DARK_GRAY );
 
+		gd.addCheckbox( "Add_fake_interest_points", defaultAddIPs );
+		gd.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 0 );
 		gd.addMessage( "" );
+
+		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
+			gd.addCheckbox( "Assign_old_tiles_as_illuminations (great for visualization)", defaultAssignIlluminations );
 
 		IOFunctions.println( fileName );
 		if ( defaultPath == null || defaultPath.trim().length() == 0 )
@@ -152,7 +164,7 @@ public class Split_Views implements PlugIn
 				defaultPath = fileName + ".split.xml";
 		}
 
-		gd.addFileField("New_XML_File", defaultPath);
+		gd.addFileField("New_XML_File", defaultPath, 30);
 		gd.addChoice( "Split_Result", resultChoice, resultChoice[ defaultChoice ] );
 
 		gd.showDialog();
@@ -170,6 +182,19 @@ public class Split_Views implements PlugIn
 		final long oy = defaultOverlapY = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 1 ] );
 		final long oz = defaultOverlapZ = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 2 ] );
 
+		final boolean addIPs = defaultAddIPs = gd.getNextBoolean();
+		final int density = defaultDensity = addIPs ? (int)Math.round( gd.getNextNumber() ) : 0;
+		final boolean assignIllum;
+		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
+			assignIllum = defaultAssignIlluminations = gd.getNextBoolean();
+		else
+			assignIllum = false;
+
+		gd.addMessage( "" );
+
+		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
+			gd.addCheckbox( "Assign_old_tiles_as_illuminations (great for visualization)", defaultAssignIlluminations );
+
 		final String saveAs = defaultPath = gd.getNextString();
 		final int choice = defaultChoice = gd.getNextChoiceIndex();
 
@@ -182,7 +207,7 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, optimize, choice == 0 );
+		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, density, choice == 0 );
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )
@@ -285,9 +310,9 @@ public class Split_Views implements PlugIn
 
 				for ( int d = 0; d < minStepSize.length; ++d )
 				{
-					if ( lowestResolution[ d ] % 1 != 0.0 )
+					if ( Math.abs( lowestResolution[ d ] % 1 ) > 0.001 )
 						if ( !roundMipmapResolutions )
-							throw new RuntimeException( "Downsampling has a fraction, cannot split dataset" );
+							throw new RuntimeException( "Downsampling has a fraction > 0.001, cannot split dataset since it does not seem to be a rounding error." );
 
 					minStepSize[ d ] = lowestCommonMultiplier( minStepSize[ d ], Math.round( lowestResolution[ d ] ) );
 				}
@@ -307,7 +332,7 @@ public class Split_Views implements PlugIn
 	{
 		new ImageJ();
 
-		GenericLoadParseQueryXML.defaultXMLfilename = "/Users/preibischs/SparkTest/IP/dataset.xml";
+		GenericLoadParseQueryXML.defaultXMLfilename = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
 
 		new Split_Views().run( null );
 		//SpimData2 data = new XmlIoSpimData2("").load( GenericLoadParseQueryXML.defaultXMLfilename );

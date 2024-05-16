@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.splitting;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -74,10 +76,29 @@ import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 
 public class SplittingTools
 {
-	public static boolean assingIlluminationsFromTileIds = false;
+	//public static boolean assingIlluminationsFromTileIds = false;
+	public static double error = 0.5;
+	public static int minPoints = 20;
 
-	public static SpimData2 splitImages( final SpimData2 spimData, final long[] overlapPx, final long[] targetSize, final long[] minStepSize, final boolean optimize  )
-	{
+	/**
+	 * 
+	 * @param spimData - the spimdata object to split up
+	 * @param overlapPx - the expected overlap
+	 * @param targetSize - roughly the expected size of each subdivided tile
+	 * @param minStepSize - step size or multipleOf for coordinates and sizes (except size of last tile), e.g. 8 - defined by the lowest downsampling step
+	 * @param assingIlluminationsFromTileIds - use illumination attribute to remember former tiles
+	 * @param optimize - whether to optimize overlap size
+	 * @param pointDensity - how many points per 100x100x100 volume
+	 * @return
+	 */
+	public static SpimData2 splitImages(
+			final SpimData2 spimData,
+			final long[] overlapPx,
+			final long[] targetSize,
+			final long[] minStepSize,
+			final boolean assingIlluminationsFromTileIds,
+			final boolean optimize,
+			final int pointDensity) {
 		final TimePoints timepoints = spimData.getSequenceDescription().getTimePoints();
 
 		final List< ViewSetup > oldSetups = new ArrayList<>();
@@ -108,6 +129,8 @@ public class SplittingTools
 			if ( spimData.getSequenceDescription().getAllIlluminationsOrdered().size() > 1 )
 				throw new IllegalArgumentException( "Cannot SplittingTools.assingIlluminationsFromTileIds because more than one Illumination exists." );
 
+		final Random rnd = new Random( 23424459 );
+
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
 			final int oldID = oldSetup.getId();
@@ -124,6 +147,8 @@ public class SplittingTools
 			IOFunctions.println( "ViewId " + oldSetup.getId() + " with interval " + Util.printInterval( input ) + " will be split as follows: " );
 
 			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize, minStepSize, optimize );
+
+			final HashMap< Interval, ViewSetup > interval2ViewSetup = new HashMap<>();
 
 			for ( int i = 0; i < intervals.size(); ++i )
 			{
@@ -149,6 +174,8 @@ public class SplittingTools
 				final Illumination newIllum = assingIlluminationsFromTileIds ? new Illumination( oldTile.getId(), "old_tile_" + oldTile.getId() ) : illum;
 				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, newIllum );
 				newSetups.add( newSetup );
+
+				interval2ViewSetup.put( interval, newSetup );
 
 				// update registrations and interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
@@ -179,11 +206,12 @@ public class SplittingTools
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
+							int id = 0;
+
+							final ArrayList< InterestPoint > newIp = new ArrayList<>();
 							final InterestPoints oldIpl = oldVipl.getInterestPointList( label );
 							final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
-							final ArrayList< InterestPoint > newIp = new ArrayList<>();
-	
-							int id = 0;
+
 							for ( final InterestPoint ip : oldIp )
 							{
 								if ( contains( ip.getL(), interval ) )
@@ -193,6 +221,81 @@ public class SplittingTools
 										l[ d ] -= interval.min( d );// + (rnd.nextDouble() - 0.5);
 	
 									newIp.add( new InterestPoint( id++, l ) );
+								}
+							}
+
+							// adding random corresponding interest points
+							if ( Double.isFinite( pointDensity ) && pointDensity > 0 )
+							{
+								// for each overlapping tile that has not been processed yet
+								for ( int j = 0; j < i; ++j )
+								{
+									final Interval otherInterval = intervals.get( j );
+									final Interval intersection = Intervals.intersect( interval, otherInterval );
+
+									// find the overlap
+									if ( !Intervals.isEmpty( intersection ) )
+									{
+										final ViewSetup otherSetup = interval2ViewSetup.get( otherInterval );
+										final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
+										final ViewInterestPointLists otherIPs = newInterestpoints.get( otherViewId );
+
+										// TODO: maybe find the area for both that do not contain interest points yet
+
+										// add points as function of the area
+										final int n = intersection.numDimensions();
+										long numPixels = 1;
+										for ( int d = 0; d < n; ++d )
+											numPixels *= intersection.dimension( d );
+
+										final int numPoints = Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) );
+										System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
+
+										final List< InterestPoint > otherPoints;
+										int otherId;
+										if ( otherIPs.getInterestPointList( label + "_split" ) == null )
+										{
+											otherPoints = new ArrayList<>( numPoints );
+											otherId = 0;
+										}
+										else
+										{
+											otherPoints = otherIPs.getInterestPointList( label + "_split" ).getInterestPointsCopy();
+											otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
+										}
+
+										for ( int k = 0; k < numPoints; ++k )
+										{
+											final double[] p = new double[ n ];
+											final double[] op = new double[ n ];
+
+											for ( int d = 0; d < n; ++d )
+											{
+												final double l = rnd.nextDouble() * intersection.dimension( d ) + intersection.min( d );
+												p[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - interval.min( d );
+												op[ d ] = (l - (rnd.nextDouble()-0.5)*error ) - otherInterval.min( d );
+											}
+
+											newIp.add( new InterestPoint( id++, p ) );
+											otherPoints.add( new InterestPoint( otherId++, op ) );
+										}
+
+										// store the interest points for the overlapping interval
+										if ( otherIPs.getInterestPointList( label + "_split" ) == null )
+										{
+											// this should only happens for the first pair
+											final InterestPoints newOtherIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), otherViewId, label + "_split" );
+											newOtherIpl.setInterestPoints( newIp );
+											newOtherIpl.setParameters( oldIpl.getParameters() );
+											newOtherIpl.setCorrespondingInterestPoints( new ArrayList<>() );
+											otherIPs.addInterestPointList( label + "_split", newOtherIpl ); // still add
+											
+										}
+										else
+										{
+											otherIPs.getInterestPointList( label + "_split" ).setInterestPoints( otherPoints );
+										}
+									}
 								}
 							}
 
