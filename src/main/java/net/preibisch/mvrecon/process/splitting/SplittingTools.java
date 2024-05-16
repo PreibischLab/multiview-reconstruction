@@ -77,8 +77,9 @@ import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 public class SplittingTools
 {
 	//public static boolean assingIlluminationsFromTileIds = false;
-	public static double error = 0.5;
-	public static int minPoints = 20;
+	//public static double error = 0.5;
+	//public static int minPoints = 20;
+	//public static int maxPoints = 500;
 
 	/**
 	 * 
@@ -89,6 +90,9 @@ public class SplittingTools
 	 * @param assingIlluminationsFromTileIds - use illumination attribute to remember former tiles
 	 * @param optimize - whether to optimize overlap size
 	 * @param pointDensity - how many points per 100x100x100 volume
+	 * @param minPoints - min number of generated points per pair
+	 * @param maxPoints - max number of generated points per pair
+	 * @param error - artifical error for matching points
 	 * @return
 	 */
 	public static SpimData2 splitImages(
@@ -98,7 +102,10 @@ public class SplittingTools
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
-			final int pointDensity) {
+			final double pointDensity,
+			final int minPoints,
+			final int maxPoints,
+			final double error ) {
 		final TimePoints timepoints = spimData.getSequenceDescription().getTimePoints();
 
 		final List< ViewSetup > oldSetups = new ArrayList<>();
@@ -248,7 +255,7 @@ public class SplittingTools
 										for ( int d = 0; d < n; ++d )
 											numPixels *= intersection.dimension( d );
 
-										final int numPoints = Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) );
+										final int numPoints = Math.min( maxPoints, Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) ) );
 										System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
 
 										final List< InterestPoint > otherPoints;

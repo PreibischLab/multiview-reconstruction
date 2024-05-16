@@ -62,7 +62,10 @@ public class Split_Views implements PlugIn
 	public static boolean defaultOptimize = true;
 
 	public static boolean defaultAddIPs = true;
-	public static int defaultDensity = 100;
+	public static double defaultDensity = 100;
+	public static int defaultMinPoints = 20;
+	public static int defaultMaxPoints = 500;
+	public static double defaultError = 0.5;
 
 	public static boolean defaultAssignIlluminations = true;
 
@@ -92,10 +95,13 @@ public class Split_Views implements PlugIn
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
-			final int pointDensity,
+			final double pointDensity,
+			final int minPoints,
+			final int maxPoints,
+			final double error,
 			final boolean display )
 	{
-		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, pointDensity );
+		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, pointDensity, minPoints, maxPoints, error );
 
 		if ( display )
 		{
@@ -148,7 +154,10 @@ public class Split_Views implements PlugIn
 		gd.addMessage( "Minimal image sizes per dimension: " + Util.printCoordinates( imgSizes.getB() ), GUIHelper.mediumstatusfont, Color.DARK_GRAY );
 
 		gd.addCheckbox( "Add_fake_interest_points", defaultAddIPs );
-		gd.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 0 );
+		gd.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 2 );
+		gd.addNumericField( "Min_total number of points", defaultMinPoints, 0 );
+		gd.addNumericField( "Max_total number of points", defaultMaxPoints, 0 );
+		gd.addNumericField( "Artificial error (px)", defaultError, 2 );
 		gd.addMessage( "" );
 
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
@@ -183,7 +192,11 @@ public class Split_Views implements PlugIn
 		final long oz = defaultOverlapZ = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 2 ] );
 
 		final boolean addIPs = defaultAddIPs = gd.getNextBoolean();
-		final int density = defaultDensity = addIPs ? (int)Math.round( gd.getNextNumber() ) : 0;
+		final double density = defaultDensity = addIPs ? gd.getNextNumber() : 0;
+		final int minPoints = defaultMinPoints = addIPs ? (int)Math.round(gd.getNextNumber()) : 0;
+		final int maxPoints = defaultMaxPoints = addIPs ? (int)Math.round(gd.getNextNumber()) : 0;
+		final double error = defaultError = addIPs ? gd.getNextNumber() : 0;
+
 		final boolean assignIllum;
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
 			assignIllum = defaultAssignIlluminations = gd.getNextBoolean();
@@ -207,7 +220,7 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, density, choice == 0 );
+		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, density, minPoints, maxPoints, error, choice == 0 );
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )

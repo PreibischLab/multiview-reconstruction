@@ -71,7 +71,10 @@ public class TestSplitting
 						minStepSize,
 						true,
 						true,
-						100 );
+						100,
+						20,
+						50,
+						0.5 );
 		// drosophila with 1000 views
 
 		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, fileOut, new XmlIoSpimData2( "" ) );
