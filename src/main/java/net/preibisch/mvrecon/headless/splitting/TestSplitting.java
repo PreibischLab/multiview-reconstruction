@@ -69,12 +69,14 @@ public class TestSplitting
 								Split_Views.closestLongDivisableBy( 200, minStepSize[ 1 ] ),
 								Split_Views.closestLongDivisableBy( 40, minStepSize[ 2 ] ) },
 						minStepSize,
-						true,
-						true,
+						true, // assingIlluminationsFromTileIds
+						true, // optimize
+						true, // addIPs
 						100,
 						20,
 						50,
-						0.5 );
+						0.5,
+						20.0 );
 		// drosophila with 1000 views
 
 		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, fileOut, new XmlIoSpimData2( "" ) );
