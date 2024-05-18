@@ -53,7 +53,10 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.KDTree;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
+import net.imglib2.neighborsearch.RadiusNeighborSearch;
+import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
@@ -89,10 +92,12 @@ public class SplittingTools
 	 * @param minStepSize - step size or multipleOf for coordinates and sizes (except size of last tile), e.g. 8 - defined by the lowest downsampling step
 	 * @param assingIlluminationsFromTileIds - use illumination attribute to remember former tiles
 	 * @param optimize - whether to optimize overlap size
+	 * @param addIPs - if fake interest points should be added
 	 * @param pointDensity - how many points per 100x100x100 volume
-	 * @param minPoints - min number of generated points per pair
-	 * @param maxPoints - max number of generated points per pair
+	 * @param minPoints - min number of generated fake points per pair
+	 * @param maxPoints - max number of generated fake points per pair
 	 * @param error - artifical error for matching points
+	 * @param excludeRadius - the radius around existing points in which fake points cannot be put
 	 * @return
 	 */
 	public static SpimData2 splitImages(
@@ -102,10 +107,12 @@ public class SplittingTools
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
+			final boolean addIPs,
 			final double pointDensity,
 			final int minPoints,
 			final int maxPoints,
-			final double error ) {
+			final double error,
+			final double excludeRadius ) {
 		final TimePoints timepoints = spimData.getSequenceDescription().getTimePoints();
 
 		final List< ViewSetup > oldSetups = new ArrayList<>();
@@ -162,6 +169,7 @@ public class SplittingTools
 				final Interval interval = intervals.get( i );
 
 				IOFunctions.println( "Interval " + (i+1) + ": " + Util.printInterval( interval ) );
+				//System.out.println( "Interval " + i + ": " + Util.printInterval( interval ) );
 
 				// from the new ID get the old ID and the corresponding interval
 				new2oldSetupId.put( newId, oldID );
@@ -232,13 +240,16 @@ public class SplittingTools
 							}
 
 							// adding random corresponding interest points
-							if ( Double.isFinite( pointDensity ) && pointDensity > 0 )
+							if ( addIPs )
 							{
 								// for each overlapping tile that has not been processed yet
 								for ( int j = 0; j < i; ++j )
 								{
 									final Interval otherInterval = intervals.get( j );
 									final Interval intersection = Intervals.intersect( interval, otherInterval );
+
+									//System.out.println( "vs. interval " + j + ": " + Util.printInterval( otherInterval ));
+									//System.out.println( "error: " + error );
 
 									// find the overlap
 									if ( !Intervals.isEmpty( intersection ) )
@@ -247,7 +258,12 @@ public class SplittingTools
 										final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
 										final ViewInterestPointLists otherIPs = newInterestpoints.get( otherViewId );
 
-										// TODO: maybe find the area for both that do not contain interest points yet
+										//System.out.println( "Intersection between " + Util.printInterval( interval ) + " & " + Util.printInterval( otherInterval ) + ":");
+										//System.out.println( Util.printInterval( intersection ) );
+
+										// find the area for both that do not contain interest points yet
+										final KDTree< InterestPoint > tree = new KDTree<>( oldIp, oldIp );
+										final RadiusNeighborSearch< InterestPoint > search = new RadiusNeighborSearchOnKDTree<>( tree );
 
 										// add points as function of the area
 										final int n = intersection.numDimensions();
@@ -271,6 +287,8 @@ public class SplittingTools
 											otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
 										}
 
+										final double[] tmp = new double[ n ];
+
 										for ( int k = 0; k < numPoints; ++k )
 										{
 											final double[] p = new double[ n ];
@@ -280,11 +298,22 @@ public class SplittingTools
 											{
 												final double l = rnd.nextDouble() * intersection.dimension( d ) + intersection.min( d );
 												p[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - interval.min( d );
-												op[ d ] = (l - (rnd.nextDouble()-0.5)*error ) - otherInterval.min( d );
+												op[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - otherInterval.min( d );
+												tmp[ d ] = l;
+											}
+											//System.out.println( Arrays.toString( tmp ) + ", " + Arrays.toString( op ));
+
+											if ( excludeRadius > 0 )
+											{
+												final InterestPoint tmpIP = new InterestPoint( 0, tmp );
+												search.search( tmpIP, excludeRadius, false );
 											}
 
-											newIp.add( new InterestPoint( id++, p ) );
-											otherPoints.add( new InterestPoint( otherId++, op ) );
+											if ( excludeRadius <= 0 || search.numNeighbors() == 0 )
+											{
+												newIp.add( new InterestPoint( id++, p ) );
+												otherPoints.add( new InterestPoint( otherId++, op ) );
+											}
 										}
 
 										// store the interest points for the overlapping interval
@@ -444,7 +473,7 @@ public class SplittingTools
 
 		for ( int d = 0; d < input.numDimensions(); ++d )
 		{
-			System.out.println( "dim="+ d);
+			//System.out.println( "dim="+ d);
 			final ArrayList< Pair< Long, Long > > dimIntervals = new ArrayList<>();
 	
 			final long length = input.dimension( d );
@@ -456,7 +485,7 @@ public class SplittingTools
 				final long max = input.max( d );
 
 				dimIntervals.add( new ValuePair< Long, Long >( min, max ) );
-				System.out.println( "one block from " + min + " to " + max );
+				//System.out.println( "one block from " + min + " to " + max );
 			}
 			else
 			{
@@ -468,10 +497,10 @@ public class SplittingTools
 
 				long lastImageSize = lastImageSize(l, s, o);// o + ( l - 2 * ( s-o ) - o ) % ( s - 2 * o + o );
 
-				System.out.println( "length: " + l );
-				System.out.println( "overlap: " + o );
-				System.out.println( "targetSize: " + s );
-				System.out.println( "lastImageSize: " + lastImageSize );
+				//System.out.println( "length: " + l );
+				//System.out.println( "overlap: " + o );
+				//System.out.println( "targetSize: " + s );
+				//System.out.println( "lastImageSize: " + lastImageSize );
 
 				final long finalSize;
 
@@ -483,7 +512,7 @@ public class SplittingTools
 					if ( lastImageSize <= s / 2 )
 					{
 						// increase image size until lastImageSize goes towards zero, then large
-						System.out.println( "small" );
+						//System.out.println( "small" );
 
 						do
 						{
@@ -492,7 +521,7 @@ public class SplittingTools
 							delta = lastImageSize - currentLastImageSize;
 
 							lastImageSize = currentLastImageSize;
-							System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
+							//System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
 						}
 						while ( delta > 0 );
 
@@ -501,7 +530,7 @@ public class SplittingTools
 					else
 					{
 						// decrease image size until lastImageSize is maximal 
-						System.out.println( "large" );
+						//System.out.println( "large" );
 
 						do
 						{
@@ -510,7 +539,7 @@ public class SplittingTools
 							delta = lastImageSize - currentLastImageSize;
 
 							lastImageSize = currentLastImageSize;
-							System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
+							//System.out.println( lastSize + ": " + lastImageSize + ", delta=" + delta );
 						}
 						while ( delta < 0 );
 
@@ -522,8 +551,8 @@ public class SplittingTools
 					finalSize = s;
 				}
 
-				System.out.println( "finalSize: " + finalSize );
-				System.out.println( "finalLastImageSize: " + lastImageSize(l, finalSize, o) );
+				//System.out.println( "finalSize: " + finalSize );
+				//System.out.println( "finalLastImageSize: " + lastImageSize(l, finalSize, o) );
 
 				dimIntervals.addAll( splitDim( input, d, finalSize, overlapPx[ d ] ) );
 			}
@@ -584,7 +613,7 @@ public class SplittingTools
 			final long s,
 			final long o )
 	{
-		System.out.println( "min=" + input.min( d ) + ", max=" + input.max( d ) );
+		//System.out.println( "min=" + input.min( d ) + ", max=" + input.max( d ) );
 
 		final ArrayList< Pair< Long, Long > > dimIntervals = new ArrayList<>();
 
@@ -596,7 +625,7 @@ public class SplittingTools
 			to = Math.min( input.max( d ), from + s - 1 );
 			dimIntervals.add( new ValuePair<>( from, to ) );
 
-			System.out.println( "block " + (dimIntervals.size() - 1) + ": " + from + " " + to + " (size=" + (to-from+1) + ")" );
+			//System.out.println( "block " + (dimIntervals.size() - 1) + ": " + from + " " + to + " (size=" + (to-from+1) + ")" );
 
 			//SimpleMultiThreading.threadWait( 100 );
 			from = to - o + 1;
