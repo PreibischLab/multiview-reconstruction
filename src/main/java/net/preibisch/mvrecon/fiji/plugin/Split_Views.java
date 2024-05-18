@@ -51,9 +51,9 @@ public class Split_Views implements PlugIn
 {
 	public static boolean roundMipmapResolutions = false;
 
-	public static long defaultImgX = 500;
-	public static long defaultImgY = 500;
-	public static long defaultImgZ = 200;
+	public static long defaultImgX = 256;
+	public static long defaultImgY = 256;
+	public static long defaultImgZ = 128;
 
 	public static long defaultOverlapX = 60;
 	public static long defaultOverlapY = 60;
@@ -66,6 +66,7 @@ public class Split_Views implements PlugIn
 	public static int defaultMinPoints = 20;
 	public static int defaultMaxPoints = 500;
 	public static double defaultError = 0.5;
+	public static double defaultExclusionRadius = 20;
 
 	public static boolean defaultAssignIlluminations = true;
 
@@ -95,13 +96,15 @@ public class Split_Views implements PlugIn
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
+			final boolean addIPs,
 			final double pointDensity,
 			final int minPoints,
 			final int maxPoints,
 			final double error,
+			final double excludeRadius,
 			final boolean display )
 	{
-		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, pointDensity, minPoints, maxPoints, error );
+		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, addIPs, pointDensity, minPoints, maxPoints, error, excludeRadius );
 
 		if ( display )
 		{
@@ -158,6 +161,7 @@ public class Split_Views implements PlugIn
 		gd.addNumericField( "Min_total number of points", defaultMinPoints, 0 );
 		gd.addNumericField( "Max_total number of points", defaultMaxPoints, 0 );
 		gd.addNumericField( "Artificial error (px)", defaultError, 2 );
+		gd.addNumericField( "Exclusion_radius (px)", defaultExclusionRadius, 2 );
 		gd.addMessage( "" );
 
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
@@ -192,10 +196,11 @@ public class Split_Views implements PlugIn
 		final long oz = defaultOverlapZ = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 2 ] );
 
 		final boolean addIPs = defaultAddIPs = gd.getNextBoolean();
-		final double density = defaultDensity = addIPs ? gd.getNextNumber() : 0;
-		final int minPoints = defaultMinPoints = addIPs ? (int)Math.round(gd.getNextNumber()) : 0;
-		final int maxPoints = defaultMaxPoints = addIPs ? (int)Math.round(gd.getNextNumber()) : 0;
-		final double error = defaultError = addIPs ? gd.getNextNumber() : 0;
+		final double density = defaultDensity = gd.getNextNumber();
+		final int minPoints = defaultMinPoints = (int)Math.round(gd.getNextNumber());
+		final int maxPoints = defaultMaxPoints = (int)Math.round(gd.getNextNumber());
+		final double error = defaultError = gd.getNextNumber();
+		final double exclusionRadius = defaultExclusionRadius = gd.getNextNumber();
 
 		final boolean assignIllum;
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
@@ -220,7 +225,7 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, density, minPoints, maxPoints, error, choice == 0 );
+		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )
