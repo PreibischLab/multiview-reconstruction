@@ -72,7 +72,13 @@ public class FlatFieldCorrectedRandomAccessibleInterval <O extends RealType< O >
 	{
 		return randomAccess();
 	}
-	
+
+	@Override
+	public O getType()
+	{
+		return type;
+	}
+
 	private class FlatFieldCorrectedRandomAccess extends Point implements RandomAccess< O >
 	{
 		/*

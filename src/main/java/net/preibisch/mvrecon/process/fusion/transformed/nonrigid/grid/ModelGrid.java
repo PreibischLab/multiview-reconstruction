@@ -157,4 +157,10 @@ public class ModelGrid implements RealRandomAccessible< NumericAffineModel3D >
 
 	@Override
 	public RealRandomAccess< NumericAffineModel3D > realRandomAccess( final RealInterval interval ) { return realRandomAccess(); }
+
+	@Override
+	public NumericAffineModel3D getType()
+	{
+		return new NumericAffineModel3D();
+	}
 }

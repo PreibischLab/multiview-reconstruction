@@ -197,4 +197,9 @@ public class ContentBasedFFTRealRandomAccessible< T extends RealType< T > > impl
 		ImageJFunctions.show( cb.getContentBasedImg() );
 	}
 
+	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
 }

@@ -109,6 +109,12 @@ public class ContentBasedRealRandomAccessible implements RealRandomAccessible< F
 	}
 
 	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
+
+	@Override
 	public int numDimensions() { return entropy.numDimensions(); }
 
 	public RandomAccessibleInterval< FloatType > getEntropy() { return entropy; }
