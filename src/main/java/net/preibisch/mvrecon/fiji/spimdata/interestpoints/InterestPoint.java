@@ -38,6 +38,7 @@ public class InterestPoint extends Point implements RealLocalizable, Serializabl
 	private static final long serialVersionUID = 5615112297702152070L;
 
 	protected final int id;
+	protected double weight = 1.0;
 
 	public InterestPoint( final int id, final double[] l )
 	{
@@ -46,6 +47,8 @@ public class InterestPoint extends Point implements RealLocalizable, Serializabl
 	}
 
 	public int getId() { return id; }
+	public void setWeight( final double weight ) { this.weight = weight; }
+	public double getWeight() { return weight; }
 
 	@Override
 	public int numDimensions() { return l.length; }

@@ -667,7 +667,7 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap )
+			final Map< V, HashMap< String, Double > > labelMap )
 	{
 		return getAllInterestPoints( viewIds, registrations, interestpoints, labelMap, true );
 	}
@@ -677,7 +677,7 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap,
+			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
 		final HashMap< V, List< InterestPoint > > transformedInterestpoints =
@@ -694,7 +694,7 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap )
+			final Map< V, HashMap< String, Double > > labelMap )
 	{
 		return getInterestPoints( viewId, registrations, interestpoints, labelMap, true );
 	}
@@ -704,21 +704,31 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap,
+			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
-		final List< InterestPoint > list = interestpoints.get( viewId ).getInterestPointList( labelMap.get( viewId ) ).getInterestPointsCopy();
+		final List< InterestPoint > list = new ArrayList<>();
 
-		if ( list.size() == 0 )
-		{
-			if ( ViewId.class.isInstance( viewId  ))
-				IOFunctions.println( "WARNING: no interestpoints available for " + Group.pvid( (ViewId)viewId ) + ", label '" + labelMap.get( viewId ) + "'" );
-			else
-				IOFunctions.println( "WARNING: no interestpoints available for " + viewId + ", label '" + labelMap.get( viewId ) + "'" );
+		labelMap.get( viewId ).forEach( ( label, weight ) -> {
 
-			return list;
-		}
-		else if ( transform )
+			final List< InterestPoint > listLocal = interestpoints.get( viewId ).getInterestPointList( label ).getInterestPointsCopy();
+
+			// set weights
+			for ( final InterestPoint p : listLocal )
+				p.setWeight( weight );
+
+			list.addAll( listLocal );
+
+			if ( listLocal.size() == 0 )
+			{
+				if ( ViewId.class.isInstance( viewId ))
+					IOFunctions.println( "WARNING: no interestpoints available for " + Group.pvid( (ViewId)viewId ) + ", label '" + label + "'" );
+				else
+					IOFunctions.println( "WARNING: no interestpoints available for " + viewId + ", label '" + label + "'" );
+			}
+		});
+
+		if ( transform )
 		{
 			final AffineTransform3D t = getTransform( viewId, registrations );
 			return applyTransformation( list, t );

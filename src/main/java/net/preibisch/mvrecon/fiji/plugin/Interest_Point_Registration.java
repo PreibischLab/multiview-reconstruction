@@ -296,7 +296,7 @@ public class Interest_Point_Registration implements PlugIn
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewDescription > viewDescriptions,
 			final Map< ViewId, ViewInterestPointLists > interestpointLists,
-			final Map< ViewId, String > labelMap,
+			final Map< ViewId, HashMap< String, Double > > labelMap,
 			final GlobalOptimizationParameters globalOptParameters,
 			final boolean collectStatistics )
 	{
