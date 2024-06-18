@@ -326,6 +326,8 @@ public class Split_Views implements PlugIn
 				// lowest resolution defines the minimal steps size 
 				final double[] lowestResolution = mipmapResolutions[ mipmapResolutions.length - 1 ];
 
+				IOFunctions.println( "lowest resolution: " + Arrays.toString( lowestResolution ) );
+
 				for ( int d = 0; d < minStepSize.length; ++d )
 				{
 					if ( Math.abs( lowestResolution[ d ] % 1 ) > 0.001 && ( 1.0 - Math.abs( lowestResolution[ d ] % 1 ) ) > 0.001 )
@@ -334,6 +336,9 @@ public class Split_Views implements PlugIn
 
 					minStepSize[ d ] = lowestCommonMultiplier( minStepSize[ d ], Math.round( lowestResolution[ d ] ) );
 				}
+
+				IOFunctions.println( "updated min step size: " + Arrays.toString( minStepSize ) );
+
 			}
 		}
 		else
