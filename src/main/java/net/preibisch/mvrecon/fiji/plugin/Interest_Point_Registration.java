@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
@@ -220,7 +221,7 @@ public class Interest_Point_Registration implements PlugIn
 		if ( brp == null )
 			return false;
 
-		removed = filterRemainingViewIds( viewIds, brp.labelMap, data.getViewInterestPoints().getViewInterestPoints() );
+		removed = filterRemainingViewIdsAndLabels( viewIds, brp.labelMap, data.getViewInterestPoints().getViewInterestPoints() );
 		for ( int i = 0; i < removed.size(); ++i )
 			IOFunctions.println( "Removed view " + Group.pvid( removed.get( i ) ) + " as the label '" + brp.labelMap.get( removed.get( i ) ) + "' was not present." );
 
@@ -566,26 +567,62 @@ public class Interest_Point_Registration implements PlugIn
 		return true;
 	}
 
-	public ArrayList< ViewId > filterRemainingViewIds( final List< ViewId > viewIds, final Map< ViewId, String > labelMap, final Map< ViewId, ViewInterestPointLists > interestpointLists )
+	// filtering viewIds and labelMap
+	public List< ViewId > filterRemainingViewIdsAndLabels( final List< ViewId > viewIds, final Map< ViewId, HashMap< String, Double > > labelMap, final Map< ViewId, ViewInterestPointLists > interestpointLists )
 	{
-		final ArrayList< ViewId > keep = new ArrayList<>();
-		final ArrayList< ViewId > remove = new ArrayList<>();
+		final HashSet< ViewId > keep = new HashSet<>();
+		final Map< ViewId, HashMap< String, Double > > labelMapKeep = new HashMap<>();
 
-		for ( final ViewId viewId : viewIds )
+		labelMap.forEach( (viewId, labelAndWeight) -> labelAndWeight.forEach( (label, weight) ->
 		{
-			final String label = labelMap.get( viewId );
-	
 			// does it exist for this viewId?
 			final ViewInterestPointLists lists = interestpointLists.get( viewId );
 
 			if ( lists.getHashMap().keySet().contains( label ) && lists.getHashMap().get( label ) != null )
+			{
 				keep.add( viewId );
-			else
+
+				if ( !labelMapKeep.containsKey( viewId ) )
+					labelMapKeep.put( viewId, new HashMap<>() );
+
+				labelMapKeep.get( viewId ).put( label, weight );
+			}
+		} ) );
+
+		final List< ViewId > remove =
+				viewIds.stream().filter( viewId -> !keep.contains( viewId ) ).collect( Collectors.toList() );
+
+		/*
+		final List< ViewId > remove = new ArrayList<>();
+		viewIds.forEach( viewId -> {
+			if ( !keep.contains( viewId ) )
 				remove.add( viewId );
+		} );
+		*/
+
+		/*
+		for ( final ViewId viewId : viewIds )
+		{
+			for ( final Entry< String, Double > labelAndWeight : labelMap.get( viewId ).entrySet() )
+			{
+				final String label = labelMap.get( viewId );
+		
+				// does it exist for this viewId?
+				final ViewInterestPointLists lists = interestpointLists.get( viewId );
+	
+				if ( lists.getHashMap().keySet().contains( label ) && lists.getHashMap().get( label ) != null )
+					keep.add( viewId );
+				else
+					remove.add( viewId );
+			}
 		}
+		*/
 
 		viewIds.clear();
 		viewIds.addAll( keep );
+
+		labelMap.clear();
+		labelMap.putAll( labelMapKeep );
 
 		return remove;
 	}
