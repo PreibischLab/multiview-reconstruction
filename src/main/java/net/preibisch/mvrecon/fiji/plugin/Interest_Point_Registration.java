@@ -748,13 +748,18 @@ public class Interest_Point_Registration implements PlugIn
 		gd.addChoice( "Interest_point_inclusion", BasicRegistrationParameters.interestpointOverlapChoices, BasicRegistrationParameters.interestpointOverlapChoices[ defaultInterestpointOverlapType ] );
 
 		// check which channels and labels are available and build the choices
-		final String[] labels = InterestPointTools.getAllInterestPointLabels( data, viewIds );
+		final String[] labelsRaw = InterestPointTools.getAllInterestPointLabels( data, viewIds );
 
-		if ( labels.length == 0 )
+		if ( labelsRaw.length == 0 )
 		{
 			IOFunctions.printErr( "No interest points available, stopping. Please run Interest Point Detection first" );
 			return null;
 		}
+
+		final String[] labels = new String[ labelsRaw.length + 1 ];
+		for ( int i = 0; i < labelsRaw.length; ++i )
+			labels[ i ] = labelsRaw[ i ];
+		labels[ labelsRaw.length ] = "Select multiple interestpoints [extra dialog]";
 
 		// choose the first label that is complete if possible
 		if ( defaultLabel < 0 || defaultLabel >= labels.length )
@@ -871,7 +876,47 @@ public class Interest_Point_Registration implements PlugIn
 		}
 
 		// assemble which label has been selected
-		final String label = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
+		final int labelChoice = defaultLabel = gd.getNextChoiceIndex();
+		final HashMap<String, Double > labelAndWeight = new HashMap<>();
+
+		if ( labelChoice < labels.length - 1 )
+		{
+			labelAndWeight.put( InterestPointTools.getSelectedLabel( labels, labelChoice ), 1.0 );
+		}
+		else
+		{
+			final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
+
+			for ( int i = 0; i < labels.length; ++i )
+				gdLabel1.addCheckbox( labels[ i ], false );
+
+			gdLabel1.showDialog();
+			if ( gdLabel1.wasCanceled() )
+				return null;
+
+			final ArrayList< String > labelChoices = new ArrayList<>();
+			for ( int i = 0; i < labels.length; ++i )
+				if ( gdLabel1.getNextBoolean() )
+					labelChoices.add( InterestPointTools.getSelectedLabel( labels, i ) );
+
+			if ( labelAndWeight.size() == 0 )
+			{
+				IOFunctions.println( "No interestpoints selected, stopping.");
+				return null;
+			}
+
+			final GenericDialog gdLabel2 = new GenericDialog( "Select weights" );
+
+			labelChoices.forEach( label -> gdLabel2.addNumericField( label, 1.0) );
+
+			gdLabel2.showDialog();
+			if ( gdLabel2.wasCanceled() )
+				return null;
+
+			labelChoices.forEach( label -> labelAndWeight.put( label, gdLabel2.getNextNumber() ) );
+
+			labelChoices.forEach( label -> IOFunctions.println( label + ", weight=" + labelAndWeight.get( label ) ) );
+		}
 
 		boolean groupTiles = false;
 		if ( tiles.size() > 1 )
@@ -901,7 +946,7 @@ public class Interest_Point_Registration implements PlugIn
 		brp.groupChannels = groupChannels;
 
 		for ( final ViewId viewId : viewIds )
-			brp.labelMap.put( viewId, label );
+			brp.labelMap.put( viewId, labelAndWeight );
 
 		return brp;
 	}
