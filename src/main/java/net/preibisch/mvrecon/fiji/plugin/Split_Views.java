@@ -328,7 +328,7 @@ public class Split_Views implements PlugIn
 
 				for ( int d = 0; d < minStepSize.length; ++d )
 				{
-					if ( Math.abs( lowestResolution[ d ] % 1 ) > 0.001 )
+					if ( Math.abs( lowestResolution[ d ] % 1 ) > 0.001 && ( 1.0 - Math.abs( lowestResolution[ d ] % 1 ) ) > 0.001 )
 						if ( !roundMipmapResolutions )
 							throw new RuntimeException( "Downsampling has a fraction > 0.001, cannot split dataset since it does not seem to be a rounding error." );
 
