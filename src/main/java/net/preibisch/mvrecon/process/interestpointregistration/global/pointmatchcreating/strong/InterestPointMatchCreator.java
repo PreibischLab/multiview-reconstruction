@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import mpicbg.models.Model;
 import mpicbg.models.PointMatch;
@@ -42,10 +43,14 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class InterestPointMatchCreator implements PointMatchCreator
 {
 	final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs;
+	final Map< ViewId, HashMap< String, Double > > labelMap;
 
-	public InterestPointMatchCreator( final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs )
+	public InterestPointMatchCreator(
+			final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs,
+			final Map< ViewId, HashMap< String, Double > > labelMap )
 	{
 		this.pairs = pairs;
+		this.labelMap = labelMap;
 	}
 
 	@Override
@@ -78,7 +83,7 @@ public class InterestPointMatchCreator implements PointMatchCreator
 			final ArrayList< Group< ViewId > > groups,
 			final Collection< ViewId > fixedViews )
 	{
-		assignWeights( pairs, groups, tileMap );
+		assignWeights( pairs, groups, tileMap, labelMap );
 	}
 
 	public static void addPointMatches( final List< ? extends PointMatchGeneric< ? > > correspondences, final Tile< ? > tileA, final Tile< ? > tileB )
@@ -98,7 +103,8 @@ public class InterestPointMatchCreator implements PointMatchCreator
 	public static < M extends Model< M > >  void assignWeights(
 			final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs,
 			final ArrayList< Group< ViewId > > groups,
-			final HashMap< ViewId, Tile< M > > tileMap )
+			final HashMap< ViewId, Tile< M > > tileMap,
+			final Map< ViewId, HashMap< String, Double > > labelMap )
 	{
 		final HashMap< Group< ViewId >, Integer > groupCount = new HashMap<>();
 		final HashMap< ViewId, Integer > viewCount = new HashMap<>();
@@ -188,15 +194,26 @@ public class InterestPointMatchCreator implements PointMatchCreator
 		// assign the max of each value to the pointmatches between two views
 		for ( final Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > pair : pairs )
 		{
+			// weights from grouping
 			final double ratioA = ratio.get( pair.getA().getA() );
 			final double ratioB = ratio.get( pair.getA().getB() );
 
 			final double weight = Math.max( ratioA, ratioB );
 
-			for ( final PointMatchGeneric< ? > pm : pair.getB().getInliers() )
-				pm.setWeight( 0, weight );
+			// the weights assigned by the user
+			final HashMap<String, Double> a = labelMap.get( pair.getA().getA() );
+			final HashMap<String, Double> b = labelMap.get( pair.getA().getB() );
 
-			//System.out.println( Group.pvid( pair.getA().getA() ) + "<->" + Group.pvid( pair.getA().getB() ) + ": " + weight );
+			final double wA = a.get( pair.getB().getLabelA() );
+			final double wB = b.get( pair.getB().getLabelA() );
+			final double wF = (wA + wB ) / 2;
+
+			for ( final PointMatchGeneric< ? > pm : pair.getB().getInliers() )
+			{
+				pm.setWeight( 0, weight * wF );
+			}
+
+			System.out.println( Group.pvid( pair.getA().getA() ) + "<->" + Group.pvid( pair.getA().getB() ) + ": " + weight );
 		}
 	}
 }

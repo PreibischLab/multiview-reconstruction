@@ -608,62 +608,66 @@ public class TransformationTools
 	}
 
 	public static void filterForOverlappingInterestPoints(
-			final Map< ViewId, List< InterestPoint > > interestpoints,
+			final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints,
 			final Collection< ? extends Group< ViewId > > groups,
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewDescription > viewDescriptions )
 	{
-		for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
+		for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
 		{
 			final ViewId viewId = element.getKey();
-			final List< InterestPoint > points = new ArrayList<>( element.getValue() );
-			final List< InterestPoint > overlappingPoints = new ArrayList<>();
 
-			// for each pair (if it's not part of a group), test
-			// if there are any points that currently overlap with another view
-A:			for ( final ViewId otherViewId : interestpoints.keySet() )
+			for ( final Entry< String, List< InterestPoint > > subElement : element.getValue().entrySet() )
 			{
-				// if it's the same view continue
-				if ( otherViewId.equals( viewId ) )
-					continue;
+				final List< InterestPoint > points = new ArrayList<>( subElement.getValue() );
+				final List< InterestPoint > overlappingPoints = new ArrayList<>();
 
-				// if they are part of the same group, continue
-				for ( final Group< ViewId > group : groups )
-					if ( group.contains( viewId ) && group.contains( otherViewId ) )
-						continue A;
-
-				// use the inverse affine transform of the other view
-				final AffineTransform3D tinv = TransformationTools.getTransform( otherViewId, registrations ).inverse();
-
-				// to map all interestpoints into the bounding box
-				final ViewDescription otherVD = viewDescriptions.get( otherViewId );
-				final Dimensions dim = otherVD.getViewSetup().getSize();
-				final Interval interval = new FinalInterval( dim );
-
-				final int n = tinv.numDimensions();
-				final RealPoint p = new RealPoint( n );
-
-				// and check if they do intersect
-				for ( int i = points.size() - 1; i >= 0; --i )
+				// for each pair (if it's not part of a group), test
+				// if there are any points that currently overlap with another view
+	A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 				{
-					final InterestPoint ip = points.get( i );
-					ip.localize( p );
-					tinv.apply(p, p);
-					if ( Intervals.contains( interval , p ) )
+					// if it's the same view continue
+					if ( otherViewId.equals( viewId ) )
+						continue;
+
+					// if they are part of the same group, continue
+					for ( final Group< ViewId > group : groups )
+						if ( group.contains( viewId ) && group.contains( otherViewId ) )
+							continue A;
+
+					// use the inverse affine transform of the other view
+					final AffineTransform3D tinv = TransformationTools.getTransform( otherViewId, registrations ).inverse();
+
+					// to map all interestpoints into the bounding box
+					final ViewDescription otherVD = viewDescriptions.get( otherViewId );
+					final Dimensions dim = otherVD.getViewSetup().getSize();
+					final Interval interval = new FinalInterval( dim );
+
+					final int n = tinv.numDimensions();
+					final RealPoint p = new RealPoint( n );
+
+					// and check if they do intersect
+					for ( int i = points.size() - 1; i >= 0; --i )
 					{
-						overlappingPoints.add( ip );
-						points.remove( i );
+						final InterestPoint ip = points.get( i );
+						ip.localize( p );
+						tinv.apply(p, p);
+						if ( Intervals.contains( interval , p ) )
+						{
+							overlappingPoints.add( ip );
+							points.remove( i );
+						}
 					}
 				}
-			}
 
-			// replace the list
-			element.setValue( overlappingPoints );
+				// replace the list
+				subElement.setValue( overlappingPoints );
+			}
 		}
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> Map< V, List< InterestPoint > > getAllTransformedInterestPoints(
+	public static <V> Map< V, HashMap< String, List< InterestPoint > > > getAllTransformedInterestPoints(
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -673,15 +677,14 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> Map< V, List< InterestPoint > > getAllInterestPoints(
+	public static <V> Map< V, HashMap< String, List< InterestPoint > > > getAllInterestPoints(
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
 			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
-		final HashMap< V, List< InterestPoint > > transformedInterestpoints =
-				new HashMap< V, List< InterestPoint > >();
+		final HashMap< V, HashMap< String, List< InterestPoint > > > transformedInterestpoints = new HashMap<>();
 
 		for ( final V viewId : viewIds )
 			transformedInterestpoints.put( viewId, getInterestPoints( viewId, registrations, interestpoints, labelMap, transform ) );
@@ -690,7 +693,7 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> List< InterestPoint > getTransformedInterestPoints(
+	public static <V> HashMap< String, List< InterestPoint > > getTransformedInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -700,24 +703,20 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 	}
 
 	/* call this method to load interestpoints and apply current transformation if necessary */
-	public static <V> List< InterestPoint > getInterestPoints(
+	public static <V> HashMap< String, List< InterestPoint > > getInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
 			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
-		final List< InterestPoint > list = new ArrayList<>();
+		final HashMap< String, List< InterestPoint > > lists = new HashMap<>();
 
 		labelMap.get( viewId ).forEach( ( label, weight ) -> {
 
 			final List< InterestPoint > listLocal = interestpoints.get( viewId ).getInterestPointList( label ).getInterestPointsCopy();
 
-			// set weights
-			for ( final InterestPoint p : listLocal )
-				p.setWeight( weight );
-
-			list.addAll( listLocal );
+			lists.put( label, listLocal );
 
 			if ( listLocal.size() == 0 )
 			{
@@ -731,11 +730,11 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 		if ( transform )
 		{
 			final AffineTransform3D t = getTransform( viewId, registrations );
-			return applyTransformation( list, t );
+			return applyTransformation( lists, t );
 		}
 		else
 		{
-			return list;
+			return lists;
 		}
 	}
 
@@ -799,9 +798,18 @@ A:			for ( final ViewId otherViewId : interestpoints.keySet() )
 		return r.getModel();
 	}
 
+	public static HashMap< String, List< InterestPoint > > applyTransformation( final HashMap< String, List< InterestPoint > > lists, final AffineTransform3D m )
+	{
+		final HashMap< String, List< InterestPoint > > transformedLists = new HashMap<>();
+
+		lists.forEach( (label,list) -> transformedLists.put(label, applyTransformation( list, m ) ) );
+
+		return transformedLists;
+	}
+
 	public static List< InterestPoint > applyTransformation( final List< InterestPoint > list, final AffineTransform3D m )
 	{
-		final ArrayList< InterestPoint > transformedList = new ArrayList< InterestPoint >();
+		final ArrayList< InterestPoint > transformedList = new ArrayList<>();
 
 		for ( final InterestPoint p : list )
 		{

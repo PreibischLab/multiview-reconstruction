@@ -35,6 +35,7 @@ public class PairwiseResult< I extends InterestPoint >
 	private double error = Double.NaN;
 	private long time = 0;
 	private String result = "", desc = "";
+	private String labelA, labelB;
 
 	boolean printout = false, storeCorrespondences = true;
 
@@ -43,6 +44,12 @@ public class PairwiseResult< I extends InterestPoint >
 		this.storeCorrespondences = storeCorrespondences;
 		this.printout = true;
 	}
+
+	public void setLabelA( final String labelA ) { this.labelA = labelA; }
+	public void setLabelB( final String labelB ) { this.labelB = labelB; }
+
+	public String getLabelA() { return labelA; }
+	public String getLabelB() { return labelB; }
 
 	public boolean storeCorrespondences() { return storeCorrespondences; }
 	public void setPrintOut( final boolean printOut ) { this.printout = printOut; }

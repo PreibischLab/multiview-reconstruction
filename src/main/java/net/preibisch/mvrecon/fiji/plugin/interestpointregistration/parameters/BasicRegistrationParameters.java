@@ -59,6 +59,8 @@ public class BasicRegistrationParameters
 	public HashMap< ViewId, HashMap< String, Double > > labelMap;
 	public boolean groupTiles, groupIllums, groupChannels;
 
+	public boolean matchAcrossLabels;
+
 	public OverlapDetection< ViewId > getOverlapDetection( final SpimData spimData )
 	{
 		if ( overlapType == OverlapType.ALL_AGAINST_ALL )
