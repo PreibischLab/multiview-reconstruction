@@ -961,7 +961,7 @@ public class Interest_Point_Registration implements PlugIn
 			if ( gdLabel2.wasCanceled() )
 				return null;
 
-			matchAcrossLabels = defaultMatchAcrossLabels = gd.getNextBoolean();
+			matchAcrossLabels = defaultMatchAcrossLabels = gdLabel2.getNextBoolean();
 			labelChoices.forEach( label -> labelAndWeight.put( label, gdLabel2.getNextNumber() ) );
 
 			labelChoices.forEach( label -> IOFunctions.println( label + ", weight=" + labelAndWeight.get( label ) ) );
