@@ -934,7 +934,7 @@ public class Interest_Point_Registration implements PlugIn
 		{
 			final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
 
-			for ( int i = 0; i < labels.length; ++i )
+			for ( int i = 0; i < labels.length - 1; ++i )
 				gdLabel1.addCheckbox( labels[ i ], false );
 
 			gdLabel1.showDialog();
@@ -942,11 +942,11 @@ public class Interest_Point_Registration implements PlugIn
 				return null;
 
 			final ArrayList< String > labelChoices = new ArrayList<>();
-			for ( int i = 0; i < labels.length; ++i )
+			for ( int i = 0; i < labels.length - 1; ++i )
 				if ( gdLabel1.getNextBoolean() )
 					labelChoices.add( InterestPointTools.getSelectedLabel( labels, i ) );
 
-			if ( labelAndWeight.size() == 0 )
+			if ( labelChoices.size() == 0 )
 			{
 				IOFunctions.println( "No interestpoints selected, stopping.");
 				return null;
