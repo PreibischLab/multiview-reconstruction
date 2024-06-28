@@ -35,6 +35,7 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.PointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
@@ -74,7 +75,12 @@ public class InterestPointMatchCreator implements PointMatchCreator
 			final Collection< ViewId > fixedViews )
 	{
 		for ( Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > pair : pairs )
+		{
 			addPointMatches( pair.getB().getInliers(), tileMap.get( pair.getA().getA() ), tileMap.get( pair.getA().getB() ) );
+
+			if ( pair.getB().getInliers().size() > 0 )
+				IOFunctions.println( "Connecting " + Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") with " + Group.pvid( pair.getA().getB() ) + " (" + pair.getB().getLabelB()+ ") using " + pair.getB().getInliers().size() + " matches. " );
+		}
 	}
 
 	@Override
