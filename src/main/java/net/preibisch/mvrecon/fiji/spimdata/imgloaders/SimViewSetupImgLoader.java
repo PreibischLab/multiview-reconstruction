@@ -27,7 +27,9 @@ import java.util.Date;
 
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.VirtualStack;
 import ij.io.FileInfo;
+import ij.plugin.FileInfoVirtualStack;
 import ij.plugin.Raw;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -58,6 +60,8 @@ import util.ImgLib2Tools;
 
 public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType >
 {
+	public static boolean virtual = true;
+
 	final int setupId;
 	final AbstractSequenceDescription<?, ?, ?> sequenceDescription;
 	final File expDir;
@@ -134,14 +138,23 @@ public class SimViewSetupImgLoader implements SetupImgLoader< UnsignedShortType 
 							t.getId(), c.getId(), cam, angle, 0,
 							patternParser.numDigitsTimepoints, patternParser.numDigitsChannels, patternParser.numDigitsCams, patternParser.numDigitsAngles, 0)[0] );
 
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading file " + rawFile.getAbsolutePath() );
-
 			fi.nImages = (int)vs.getSize().dimension( 2 );
 
 			System.out.println( fi );
 
-			//final VirtualStack virtual = new FileInfoVirtualStack(fi);
-			imp = Raw.open( rawFile.getAbsolutePath(), fi );
+			if ( virtual )
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading file " + rawFile.getAbsolutePath() + " (virtually)");
+
+				final VirtualStack stack = new FileInfoVirtualStack( fi );
+				imp = new ImagePlus(rawFile.getAbsolutePath(), stack);
+			}
+			else
+			{
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading file " + rawFile.getAbsolutePath() );
+
+				imp = Raw.open( rawFile.getAbsolutePath(), fi );
+			}
 
 			if ( imp == null )
 				throw new RuntimeException( "Could not load viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + " file=" + rawFile.getAbsolutePath() );
