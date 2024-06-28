@@ -955,7 +955,10 @@ public class Interest_Point_Registration implements PlugIn
 			final GenericDialog gdLabel2 = new GenericDialog( "Select weights and other options" );
 
 			gdLabel2.addCheckbox( "Match_different_labels" , defaultMatchAcrossLabels );
-			labelChoices.forEach( label -> gdLabel2.addNumericField( label, 1.0) );
+			gdLabel2.addMessage( "(if 'not selected' only labels with the same name will be matched with each other.)", GUIHelper.smallStatusFont);
+			gdLabel2.addMessage( "" );
+			gdLabel2.addMessage( "Weights for interest point labels:" );
+			labelChoices.forEach( label -> gdLabel2.addNumericField( label, 1.0, 2 ) );
 
 			gdLabel2.showDialog();
 			if ( gdLabel2.wasCanceled() )
