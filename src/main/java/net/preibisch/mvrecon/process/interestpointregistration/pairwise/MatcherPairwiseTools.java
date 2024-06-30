@@ -333,8 +333,8 @@ public class MatcherPairwiseTools
 			// invokeAll() returns when all tasks are complete
 			List< Future< PairwiseResult< I > > > futures = taskExecutor.invokeAll( tasks );
 
-			// BUG BUG BUG, we are not taking all results!!
-			for ( int i = 0; i < pairs.size(); ++i )
+			// there may be more futures than pairs if more than one label is used
+			for ( int i = 0; i < futures.size(); ++i )
 			{
 				final PairwiseResult< I > pwr = futures.get( i ).get();
 				final Pair< V, V > pair = pairs.get( i );
