@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -277,7 +278,7 @@ public class MatcherPairwiseTools
 		else
 			taskExecutor = exec;
 
-		final ArrayList< Callable< PairwiseResult< I > > > tasks = new ArrayList<>(); // your tasks
+		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = new ArrayList<>(); // your tasks
 
 		// each pair of Views that will be compared
 		for ( final Pair< V, V > pair : pairs )
@@ -311,16 +312,16 @@ public class MatcherPairwiseTools
 						listB = mapB.get( labelB );
 					}
 
-					tasks.add( new Callable< PairwiseResult< I > >()
+					tasks.add( new Callable< Pair< Pair< V, V >, PairwiseResult< I > > >()
 					{
 						@Override
-						public PairwiseResult< I > call() throws Exception
+						public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
 						{
 							final PairwiseResult< I > pwr = matcher.match( listA, listB );
 							pwr.setLabelA(labelA);
 							pwr.setLabelB(labelB);
 							assignLoggingDescriptions( pair, pwr );
-							return pwr;
+							return new ValuePair<>( pair, pwr );
 						}
 					});
 				}
@@ -331,15 +332,18 @@ public class MatcherPairwiseTools
 		try
 		{
 			// invokeAll() returns when all tasks are complete
-			List< Future< PairwiseResult< I > > > futures = taskExecutor.invokeAll( tasks );
-
-			// there may be more futures than pairs if more than one label is used
-			for ( int i = 0; i < futures.size(); ++i )
+			taskExecutor.invokeAll( tasks ).forEach( future ->
 			{
-				final PairwiseResult< I > pwr = futures.get( i ).get();
-				final Pair< V, V > pair = pairs.get( i );
-				r.add( new ValuePair< Pair< V, V >, PairwiseResult< I > >( pair, pwr ) );
-			}
+				try
+				{
+					r.add( future.get() );
+				}
+				catch (InterruptedException | ExecutionException e)
+				{
+					e.printStackTrace();
+					throw new RuntimeException( e );
+				}
+			});
 		}
 		catch ( final Exception e )
 		{
