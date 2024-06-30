@@ -125,8 +125,7 @@ public class InterestPointMatchCreator implements PointMatchCreator
 			final ArrayList< Group< ViewId > > groups,
 			final Collection< ViewId > fixedViews )
 	{
-		// TODO: put this back on, but it doesn't work properly anyways
-		//assignWeights( pairs, groups, tileMap );
+		assignWeights( pairs, groups, tileMap );
 	}
 
 	/*
@@ -261,6 +260,10 @@ public class InterestPointMatchCreator implements PointMatchCreator
 			final double ratioB = ratio.get( pair.getA().getB() );
 
 			final double weight = Math.max( ratioA, ratioB );
+
+			// nothing to do if weight is 1
+			if ( weight == 1.0 )
+				continue;
 
 			final RealSum r = new RealSum();
 
