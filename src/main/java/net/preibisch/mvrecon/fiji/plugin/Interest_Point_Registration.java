@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -134,6 +135,8 @@ public class Interest_Point_Registration implements PlugIn
 	public static boolean defaultGroupTiles = true;
 	public static boolean defaultGroupIllums = true;
 	public static boolean defaultGroupChannels = true;
+	public static boolean[] defaultLabelChoice = null;
+	public static double[] defaultLabelWeights = null;
 
 	// advanced dialog
 	public static int defaultRange = 5;
@@ -934,8 +937,11 @@ public class Interest_Point_Registration implements PlugIn
 		{
 			final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
 
+			if ( defaultLabelChoice == null || defaultLabelChoice.length != labels.length - 1 )
+				defaultLabelChoice = new boolean[ labels.length - 1 ];
+
 			for ( int i = 0; i < labels.length - 1; ++i )
-				gdLabel1.addCheckbox( labels[ i ], false );
+				gdLabel1.addCheckbox( labels[ i ], defaultLabelChoice[ i ] );
 
 			gdLabel1.showDialog();
 			if ( gdLabel1.wasCanceled() )
@@ -943,7 +949,7 @@ public class Interest_Point_Registration implements PlugIn
 
 			final ArrayList< String > labelChoices = new ArrayList<>();
 			for ( int i = 0; i < labels.length - 1; ++i )
-				if ( gdLabel1.getNextBoolean() )
+				if ( defaultLabelChoice[ i ] = gdLabel1.getNextBoolean() )
 					labelChoices.add( InterestPointTools.getSelectedLabel( labels, i ) );
 
 			if ( labelChoices.size() == 0 )
@@ -954,20 +960,32 @@ public class Interest_Point_Registration implements PlugIn
 
 			final GenericDialog gdLabel2 = new GenericDialog( "Select weights and other options" );
 
+			if ( defaultLabelWeights == null || defaultLabelWeights.length != labelChoices.size() )
+			{
+				defaultLabelWeights = new double[ labelChoices.size() ];
+				Arrays.setAll( defaultLabelWeights, d -> 1.0 );
+			}
+			
 			gdLabel2.addCheckbox( "Match_different_labels" , defaultMatchAcrossLabels );
 			gdLabel2.addMessage( "(if 'not selected' only labels with the same name will be matched with each other.)", GUIHelper.smallStatusFont);
 			gdLabel2.addMessage( "" );
-			gdLabel2.addMessage( "Weights for interest point labels:" );
-			labelChoices.forEach( label -> gdLabel2.addNumericField( label, 1.0, 2 ) );
+			gdLabel2.addMessage( "Weights for interest point labels:", GUIHelper.largefont );
+			gdLabel2.addMessage( "Note: to give a very low weight to a label we suggest w = 1.0E-6 (0.000001)", GUIHelper.smallStatusFont);
+
+			for ( int i = 0; i < labelChoices.size(); ++i )
+				gdLabel2.addNumericField( labelChoices.get( i ) + " w=", defaultLabelWeights[ i ], 2 );
 
 			gdLabel2.showDialog();
 			if ( gdLabel2.wasCanceled() )
 				return null;
 
 			matchAcrossLabels = defaultMatchAcrossLabels = gdLabel2.getNextBoolean();
-			labelChoices.forEach( label -> labelAndWeight.put( label, gdLabel2.getNextNumber() ) );
 
-			labelChoices.forEach( label -> IOFunctions.println( label + ", weight=" + labelAndWeight.get( label ) ) );
+			for ( int i = 0; i < labelChoices.size(); ++i )
+			{
+				labelAndWeight.put( labelChoices.get( i ), defaultLabelWeights[ i ] = gdLabel2.getNextNumber() );
+				IOFunctions.println( labelChoices.get( i ) + ", weight=" + labelAndWeight.get( labelChoices.get( i ) ) );
+			}
 		}
 
 		boolean groupTiles = false;
