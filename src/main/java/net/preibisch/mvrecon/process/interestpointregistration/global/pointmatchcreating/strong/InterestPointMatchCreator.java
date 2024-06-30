@@ -99,11 +99,15 @@ public class InterestPointMatchCreator implements PointMatchCreator
 				}
 
 				final ArrayList< PointMatch > pm = new ArrayList<>( correspondences );
+				final Collection< PointMatch > flippedMatches = PointMatch.flip( pm );
 
 				tileA.addMatches( pm );
-				tileB.addMatches( PointMatch.flip( pm ) ); // Careful: weights are cloned, points not
+				tileB.addMatches( flippedMatches ); // Careful: weights are cloned, points not
 				tileA.addConnectedTile( tileB );
 				tileB.addConnectedTile( tileA );
+
+				// therefore we need to remember them for assignWeights()
+				pair.getB().setFlippedMatches( flippedMatches );
 
 				IOFunctions.println(
 						"Connecting " + Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") <-> " +
@@ -257,7 +261,7 @@ public class InterestPointMatchCreator implements PointMatchCreator
 
 			final RealSum r = new RealSum();
 
-			// TODO: this does not apply to the flipped pointmatches!
+			// this does not apply to the flipped pointmatches
 			for ( final PointMatchGeneric< ? > pm : pair.getB().getInliers() )
 			{
 				final double w = pm.getWeight();
@@ -265,6 +269,13 @@ public class InterestPointMatchCreator implements PointMatchCreator
 				pm.setWeight( 0, v );
 
 				r.add( v );
+			}
+
+			// flipped pointmatches
+			for ( final PointMatch pm : pair.getB().getFlippedMatches() )
+			{
+				final double w = pm.getWeight();
+				pm.setWeight( 0, weight * ( w > 0 ? w : 1 ) );
 			}
 
 			System.out.println( Group.pvid( pair.getA().getA() ) + "<->" + Group.pvid( pair.getA().getB() ) + ": avg Weight=" + r.getSum() / pair.getB().getInliers().size() );
