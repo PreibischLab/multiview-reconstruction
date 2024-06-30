@@ -333,6 +333,7 @@ public class MatcherPairwiseTools
 			// invokeAll() returns when all tasks are complete
 			List< Future< PairwiseResult< I > > > futures = taskExecutor.invokeAll( tasks );
 
+			// BUG BUG BUG, we are not taking all results!!
 			for ( int i = 0; i < pairs.size(); ++i )
 			{
 				final PairwiseResult< I > pwr = futures.get( i ).get();
