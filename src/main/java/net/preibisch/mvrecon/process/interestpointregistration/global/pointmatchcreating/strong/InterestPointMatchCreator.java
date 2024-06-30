@@ -84,6 +84,8 @@ public class InterestPointMatchCreator implements PointMatchCreator
 			if ( correspondences.size() > 0 )
 			{
 				// assign user-weights
+				final RealSum r = new RealSum();
+
 				for ( final PointMatchGeneric< ? > pmg : correspondences )
 				{
 					// TODO: it does not seem to assign the second label (?)
@@ -96,6 +98,7 @@ public class InterestPointMatchCreator implements PointMatchCreator
 					final double wF = (wA + wB ) / 2;
 
 					pmg.setWeight( 0, wF );
+					r.add( wF );
 				}
 
 				final ArrayList< PointMatch > pm = new ArrayList<>( correspondences );
@@ -111,7 +114,7 @@ public class InterestPointMatchCreator implements PointMatchCreator
 
 				IOFunctions.println(
 						"Connecting " + Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") <-> " +
-						Group.pvid( pair.getA().getB() ) + " (" + pair.getB().getLabelB()+ "): " + pair.getB().getInliers().size() + " matches. " );
+						Group.pvid( pair.getA().getB() ) + " (" + pair.getB().getLabelB()+ "): " + pair.getB().getInliers().size() + " matches, |w|=" + (r.getSum()/correspondences.size()) );
 			}
 		}
 	}
