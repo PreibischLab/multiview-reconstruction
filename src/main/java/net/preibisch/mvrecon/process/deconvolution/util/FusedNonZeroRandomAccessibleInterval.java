@@ -40,7 +40,7 @@ public class FusedNonZeroRandomAccessibleInterval extends FusedRandomAccessibleI
 			final List< ? extends RandomAccessible< FloatType > > images,
 			final List< ? extends RandomAccessible< FloatType > > weights )
 	{
-		super( interval, images, weights );
+		super( interval, Fusion.AVG, images, weights );
 
 		this.accesses = new Vector<>();
 	}

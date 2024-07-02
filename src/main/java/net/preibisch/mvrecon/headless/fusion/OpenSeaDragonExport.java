@@ -59,11 +59,13 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.OpenSeaDragon.OpenSeaDragonImgLib2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 
 public class OpenSeaDragonExport
 {
@@ -132,9 +134,9 @@ public class OpenSeaDragonExport
 		//
 		// display virtually fused
 		//
-		final RandomAccessibleInterval< FloatType > virtualRed = FusionTools.fuseVirtual( spimData, viewIdsRed, bb );
-		final RandomAccessibleInterval< FloatType > virtualGreen = FusionTools.fuseVirtual( spimData, viewIdsGreen, bb );
-		final RandomAccessibleInterval< FloatType > virtualBlue = FusionTools.fuseVirtual( spimData, viewIdsBlue, bb );
+		final RandomAccessibleInterval< FloatType > virtualRed = FusionTools.fuseVirtual( spimData, viewIdsRed, FusionType.AVG_BLEND, bb );
+		final RandomAccessibleInterval< FloatType > virtualGreen = FusionTools.fuseVirtual( spimData, viewIdsGreen, FusionType.AVG_BLEND, bb );
+		final RandomAccessibleInterval< FloatType > virtualBlue = FusionTools.fuseVirtual( spimData, viewIdsBlue, FusionType.AVG_BLEND, bb );
 
 		final RandomAccessibleInterval< UnsignedByteType > r8bit = Converters.convertRAI( virtualRed, (i,o) -> o.set( Math.min( 255, Math.max( 0, (int)i.get() ) ) ), new UnsignedByteType() );
 		final RandomAccessibleInterval< UnsignedByteType > g8bit = Converters.convertRAI( virtualGreen, (i,o) -> o.set( Math.min( 255, Math.max( 0, (int)i.get() ) ) ), new UnsignedByteType() );

@@ -53,6 +53,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
@@ -693,8 +694,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 				registrationsAdjusted,
 				viewDescriptions,
 				group.getViews(),
-				DisplayFusedImagesPopup.defaultUseBlending,
-				false,
+				FusionType.FIRST,
 				DisplayFusedImagesPopup.defaultInterpolation,
 				bbDS,
 				null );

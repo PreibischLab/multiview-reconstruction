@@ -34,6 +34,7 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.boundingbox.MinFilterThresholdBoundingBoxGUI;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -76,6 +77,6 @@ public class TestRealDataBoundingBox
 
 		service.shutdown();
 
-		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, true, false, 1, bb, null ), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
+		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, FusionType.AVG_BLEND, 1, bb, null ), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
 	}
 }

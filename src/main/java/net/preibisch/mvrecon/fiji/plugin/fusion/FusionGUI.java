@@ -80,6 +80,10 @@ public class FusionGUI implements FusionExportInterface
 	public static String[] interpolationTypes = new String[]{ "Nearest Neighbor", "Linear Interpolation" };
 	public static int defaultInterpolation = 1;
 
+	public enum FusionType { AVG, AVG_BLEND, AVG_CONTENT, AVG_BLEND_CONTENT, MAX, FIRST }
+	public static String[] fusionTypes = new String[]{ "Avg", "Avg, Blending", "Avg, Content Based", "Avg, Blending & Content Based", "Max intensity", "First Tile Wins (lowest ViewSetupId)" };
+	public static int defaultFusionType = 1;
+
 	public static String[] pixelTypes1 = new String[]{ "32-bit floating point", "16-bit unsigned integer", "8-bit unsigned integer" };
 	public static int defaultPixelType = 0;
 
@@ -95,8 +99,6 @@ public class FusionGUI implements FusionExportInterface
 
 	public static int defaultSplittingType = 0;
 
-	public static boolean defaultUseBlending = true;
-	public static boolean defaultUseContentBased = false;
 	public static boolean defaultAdjustIntensities = false;
 	public static boolean defaultPreserveAnisotropy = false;
 
@@ -110,11 +112,9 @@ public class FusionGUI implements FusionExportInterface
 	protected int defineMinMax = defaultDefineMinMax;
 	protected double min = defaultMin;
 	protected double max = defaultMax;
-	//protected int cacheType = defaultCache;
 	protected int splittingType = defaultSplittingType;
 	protected double downsampling = defaultDownsampling;
-	protected boolean useBlending = defaultUseBlending;
-	protected boolean useContentBased = defaultUseContentBased;
+	protected int fusionType = defaultFusionType;
 	protected boolean adjustIntensities = defaultAdjustIntensities;
 	protected boolean preserveAnisotropy = defaultPreserveAnisotropy;
 	protected double avgAnisoF;
@@ -206,9 +206,7 @@ public class FusionGUI implements FusionExportInterface
 	@Override
 	public double getDownsampling(){ return downsampling; }
 
-	public boolean useBlending() { return useBlending; }
-
-	public boolean useContentBased() { return useContentBased; }
+	public FusionType getFusionType() { return FusionType.values()[ fusionType ]; }
 
 	public boolean adjustIntensities() { return adjustIntensities; }
 
@@ -292,7 +290,7 @@ public class FusionGUI implements FusionExportInterface
 		final boolean enableNonRigid = NonRigidParametersGUI.enableNonRigid;
 		final Choice boundingBoxChoice, pixelTypeChoice, /*cachingChoice, */nonrigidChoice, splitChoice;
 		final TextField downsampleField;
-		final Checkbox contentbasedCheckbox, anisoCheckbox;
+		final Checkbox anisoCheckbox;
 
 		final String[] choices = FusionGUI.getBoundingBoxChoices( allBoxes );
 		final String[] choicesForMacro = FusionGUI.getBoundingBoxChoices( allBoxes, false );
@@ -317,6 +315,8 @@ public class FusionGUI implements FusionExportInterface
 
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 
+		gd.addChoice( "Fusion_type", fusionTypes, fusionTypes[ defaultFusionType ] );
+
 		gd.addChoice( "Pixel_type", pixelTypes1, pixelTypes1[ defaultPixelType ] );
 		pixelTypeChoice = PluginHelper.isHeadless() ? null : (Choice)gd.getChoices().lastElement();
 		//gd.addCheckbox( "Manually_define_min_max intensity for fusion (only relevant for 16-bit)", defaultDefineMinMax );
@@ -338,9 +338,9 @@ public class FusionGUI implements FusionExportInterface
 			nonrigidChoice = null;
 		}
 
-		gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
-		gd.addCheckbox( "Use content based fusion (warning, slow)", defaultUseContentBased );
-		contentbasedCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
+		//gd.addCheckbox( "Blend images smoothly", defaultUseBlending );
+		//gd.addCheckbox( "Use content based fusion (warning, slow)", defaultUseContentBased );
+		//contentbasedCheckbox = PluginHelper.isHeadless() ? null : (Checkbox)gd.getCheckboxes().lastElement();
 
 		if ( hasIntensityAdjustments )
 			gd.addCheckbox( "Adjust_image_intensities (only use with 32-bit output)", defaultAdjustIntensities );
@@ -378,7 +378,7 @@ public class FusionGUI implements FusionExportInterface
 					pixelTypeChoice,
 					//cachingChoice,
 					nonrigidChoice,
-					contentbasedCheckbox,
+					//contentbasedCheckbox,
 					anisoCheckbox,
 					splitChoice,
 					label1,
@@ -414,6 +414,7 @@ public class FusionGUI implements FusionExportInterface
 			downsampling = Double.NaN;
 
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
+		fusionType = defaultFusionType = gd.getNextChoiceIndex();
 		pixelType = defaultPixelType = gd.getNextChoiceIndex();
 		//defineMinMax = defaultDefineMinMax = gd.getNextBoolean();
 		//cacheType = defaultCache = gd.getNextChoiceIndex();
@@ -424,8 +425,6 @@ public class FusionGUI implements FusionExportInterface
 				return false;
 		}
 
-		useBlending = defaultUseBlending = gd.getNextBoolean();
-		useContentBased = defaultUseContentBased = gd.getNextBoolean();
 		if ( hasIntensityAdjustments )
 			adjustIntensities = defaultAdjustIntensities = gd.getNextBoolean();
 		else
@@ -465,6 +464,7 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.println( "BoundingBox: " + getBoundingBox() );
 		IOFunctions.println( "DownsampledBoundingBox: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "PixelType: " + pixelTypes1[ getPixelType() ] );
+		IOFunctions.println( "FusionType: " + fusionTypes[ getFusionType().ordinal() ] );
 		IOFunctions.println( "Manually defined min/max: " + manuallyDefinedMinMax() );
 		if ( manuallyDefinedMinMax() ) {
 			IOFunctions.println( "Min: " + minIntensity() );
@@ -472,9 +472,9 @@ public class FusionGUI implements FusionExportInterface
 		}
 		IOFunctions.println( "Interpolation: " + interpolationTypes[ getInterpolation() ] );
 		//IOFunctions.println( "CacheType: " + FusionTools.imgDataTypeChoice[ getCacheType() ] );
-		IOFunctions.println( "Blending: " + useBlending );
+		//IOFunctions.println( "Blending: " + useBlending );
 		IOFunctions.println( "Adjust intensities: " + adjustIntensities );
-		IOFunctions.println( "Content-based: " + useContentBased );
+		//IOFunctions.println( "Content-based: " + useContentBased );
 		IOFunctions.println( "AnisotropyFactor: " + avgAnisoF );
 		IOFunctions.println( "Split by: " + splittingTypes[ getSplittingType() ] );
 		IOFunctions.println( "Image Export: " + imgExportDescriptions[ imgExport ] );

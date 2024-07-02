@@ -42,6 +42,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
@@ -110,7 +111,7 @@ public class FRCTools
 			weights.add( TransformWeight.transformBlending( d.getA(), border, blending, model, bb ) );
 		}
 
-		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), images, weights );
+		return new FusedRandomAccessibleInterval( new FinalInterval( dim ), Fusion.AVG, images, weights );
 	}
 
 

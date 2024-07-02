@@ -44,6 +44,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -149,14 +150,14 @@ public class TestIntensityAdjustment
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						viewIds, false, false, 1, bb, intensityMapping );
+						viewIds, FusionType.AVG, 1, bb, intensityMapping );
 
 		final RandomAccessibleInterval< FloatType > virtual =
 				FusionTools.fuseVirtual(
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						viewIds, false, false, 1, bb, null );
+						viewIds, FusionType.AVG, 1, bb, null );
 
 		//
 		// actually fuse into an image multithreaded

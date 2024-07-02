@@ -50,12 +50,14 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
@@ -83,7 +85,7 @@ public class MultiResolutionTools
 			final int maxDS,
 			final int dsInc )
 	{
-		return createMultiResolutionNonRigid( spimData, viewsToFuse, viewsToUse, labels, true, false, false, controlPointDistance, 1.0, 1, boundingBox, null, service, minDS, maxDS, dsInc );
+		return createMultiResolutionNonRigid( spimData, viewsToFuse, viewsToUse, labels, FusionType.AVG_BLEND, false, controlPointDistance, 1.0, 1, boundingBox, null, service, minDS, maxDS, dsInc );
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionNonRigid(
@@ -91,8 +93,7 @@ public class MultiResolutionTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long controlPointDistance,
 			final double alpha,
@@ -124,7 +125,7 @@ public class MultiResolutionTools
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-		return createMultiResolutionNonRigid( imgLoader, viewRegistrations, spimData.getViewInterestPoints().getViewInterestPoints(), viewDescriptions, viewsToFuse, viewsToUse, labels, useBlending, useContentBased, displayDistances, controlPointDistance, alpha, interpolation, boundingBox, intensityAdjustments, service, minDS, maxDS, dsInc );
+		return createMultiResolutionNonRigid( imgLoader, viewRegistrations, spimData.getViewInterestPoints().getViewInterestPoints(), viewDescriptions, viewsToFuse, viewsToUse, labels, fusionType, displayDistances, controlPointDistance, alpha, interpolation, boundingBox, intensityAdjustments, service, minDS, maxDS, dsInc );
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionNonRigid(
@@ -135,8 +136,7 @@ public class MultiResolutionTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long controlPointDistance,
 			final double alpha,
@@ -194,14 +194,22 @@ public class MultiResolutionTools
 							downsampledRegistrations,
 							nonrigidGrids,
 							bbDS,
-							useBlending,
-							useContentBased,
+							fusionType,
 							displayDistances,
 							interpolation,
 							intensityAdjustments,
 							NonRigidTools.defaultOverlapExpansion( uniquePointsData.getB() ) );
 
-			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform ) );
+			final Fusion fusion;
+
+			if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
+				fusion = Fusion.AVG;
+			else if ( fusionType == FusionType.MAX )
+				fusion = Fusion.MAX;
+			else
+				fusion = Fusion.FIRST_WINS;
+
+			multiRes.add( new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), fusion, virtual.getA(), virtual.getB() ), bbTransform ) );
 		}
 
 		return multiRes;
@@ -228,7 +236,7 @@ public class MultiResolutionTools
 				spimData.getSequenceDescription().getImgLoader(),
 				registrations,
 				spimData.getSequenceDescription().getViewDescriptions(),
-				viewIds, true, false, 1, boundingBox, null, minDS, maxDS, dsInc );
+				viewIds, FusionType.AVG_BLEND, 1, boundingBox, null, minDS, maxDS, dsInc );
 	}
 
 	public static ArrayList< Pair< RandomAccessibleInterval< FloatType >, AffineTransform3D > > createMultiResolutionAffine(
@@ -236,8 +244,7 @@ public class MultiResolutionTools
 			final Map< ViewId, AffineTransform3D > registrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final Collection< ? extends ViewId > views,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final int interpolation,
 			final Interval boundingBox,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
@@ -268,8 +275,7 @@ public class MultiResolutionTools
 									registrationsAdjusted,
 									viewDescriptions,
 									views,
-									useBlending,
-									useContentBased,
+									fusionType,
 									interpolation,
 									pair.getA(), // bounding box
 									intensityAdjustments ),

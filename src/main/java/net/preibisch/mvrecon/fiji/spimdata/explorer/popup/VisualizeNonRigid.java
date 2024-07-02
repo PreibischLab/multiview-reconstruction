@@ -51,6 +51,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.plugin.fusion.NonRigidParametersGUI;
 import net.preibisch.mvrecon.fiji.plugin.interactive.MultiResolutionSource;
 import net.preibisch.mvrecon.fiji.plugin.interactive.MultiResolutionTools;
@@ -171,8 +172,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 								NonRigidTools.assembleViewsToUse( spimData, viewIds, params.nonRigidAcrossTime() );
 
 						final int interpolation = 1;
-						final boolean useBlending = true;
-						final boolean useContentBased = false;
+						final FusionType fusionType = FusionType.AVG_BLEND;
 
 						final ExecutorService service = DeconViews.createExecutorService();
 
@@ -182,8 +182,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 										viewsToFuse,
 										viewsToUse,
 										params.getLabels(),
-										useBlending,
-										useContentBased,
+										fusionType,
 										params.showDistanceMap(),
 										params.getControlPointDistance(),
 										params.getAlpha(),
@@ -235,7 +234,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 									spimData.getSequenceDescription().getImgLoader(),
 									registrations,
 									spimData.getSequenceDescription().getViewDescriptions(),
-									viewIds, true, false, 1, boundingBox, null, minDS, maxDS, dsInc );
+									viewIds, FusionType.AVG_BLEND, 1, boundingBox, null, minDS, maxDS, dsInc );
 
 						BdvOptions options = Bdv.options().numSourceGroups( 2 ).frameTitle( "Affine (magenta) vs. Previous Affine (green)" );
 						BdvStackSource< ? > affine = BdvFunctions.show( new MultiResolutionSource( MultiResolutionTools.createVolatileRAIs( multiResAffine ), "affine" ), options );
@@ -266,8 +265,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 							viewsToFuse.add( viewId );
 	
 							final int interpolation = 1;
-							final boolean useBlending = true;
-							final boolean useContentBased = false;
+							final FusionType fusionType = FusionType.AVG_BLEND;
 	
 							final ExecutorService service = DeconViews.createExecutorService();
 	
@@ -277,8 +275,7 @@ public class VisualizeNonRigid extends JMenuItem implements ExplorerWindowSetabl
 											viewsToFuse,
 											viewsToUse,
 											params.getLabels(),
-											useBlending,
-											useContentBased,
+											fusionType,
 											params.showDistanceMap(),
 											params.getControlPointDistance(),
 											params.getAlpha(),

@@ -86,6 +86,7 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopup;
@@ -95,6 +96,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
@@ -162,16 +164,19 @@ public class FusionTools
 	 *
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param fusionType - how to combine pixels
 	 *
 	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
 	 */
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final AbstractSpimData< ? extends AbstractSequenceDescription< ?, ?, ? extends ImgLoader > > spimData,
-			final Collection< ? extends ViewId > viewIds )
+			final Collection< ? extends ViewId > viewIds,
+			final FusionType fusionType )
 	{
 		return fuseVirtual(
 				spimData,
 				viewIds,
+				fusionType,
 				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
 				null );
 	}
@@ -182,17 +187,19 @@ public class FusionTools
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
-	 *
+	 * @param fusionType - how to combine pixels
 	 * @return a virtually fused zeroMin RandomAccessibleInterval
 	 */
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewIds,
+			final FusionType fusionType,
 			final boolean adjustIntensities )
 	{
 		return fuseVirtual(
 				spimData,
 				viewIds,
+				fusionType,
 				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
 				adjustIntensities ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
 	}
@@ -204,6 +211,7 @@ public class FusionTools
 	 * @param registrations - all (updated) registrations
 	 * @param viewDescriptions - all viewdescriptions
 	 * @param views - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param fusionType - how to combine pixels
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 *
 	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
@@ -213,9 +221,10 @@ public class FusionTools
 			final Map< ViewId, ? extends AffineTransform3D > registrations, // now contain the downsampling already
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final Collection< ? extends ViewId > views,
+			final FusionType fusionType,
 			final Interval bb )
 	{
-		return fuseVirtual( imgloader, registrations, viewDescriptions, views, true, false, 1, bb, null );
+		return fuseVirtual( imgloader, registrations, viewDescriptions, views, fusionType, 1, bb, null );
 	}
 
 	/**
@@ -223,6 +232,7 @@ public class FusionTools
 	 *
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param fusionType - how to combine pixels
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 *
 	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
@@ -230,9 +240,10 @@ public class FusionTools
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > viewIds,
+			final FusionType fusionType,
 			final Interval bb )
 	{
-		return fuseVirtual( spimData, viewIds, bb, null );
+		return fuseVirtual( spimData, viewIds, fusionType, bb, null );
 	}
 
 	/**
@@ -240,6 +251,7 @@ public class FusionTools
 	 *
 	 * @param spimData - an AbstractSpimData object
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
+	 * @param fusionType - how to combine pixels
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
 	 * @param intensityAdjustments - the intensityadjustsments or null
 	 *
@@ -248,17 +260,17 @@ public class FusionTools
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > viewIds,
+			final FusionType fusionType,
 			final Interval bb,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		return fuseVirtual( spimData, viewIds, true, false, 1, bb, intensityAdjustments );
+		return fuseVirtual( spimData, viewIds, fusionType, 1, bb, intensityAdjustments );
 	}
 
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > views,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final int interpolation,
 			final Interval boundingBox,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
@@ -276,7 +288,7 @@ public class FusionTools
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, useBlending, useContentBased, interpolation, boundingBox, intensityAdjustments );
+		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, fusionType, interpolation, boundingBox, intensityAdjustments );
 	}
 
 	/**
@@ -377,8 +389,7 @@ public class FusionTools
 			final Map< ViewId, ? extends AffineTransform3D > registrations, // now contain the downsampling already
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final Collection< ? extends ViewId > views,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType, // see FusionGUI.fusionTypes[]{"Avg", "Avg, Blending", "Avg, Content Based", "Avg, Blending & Content Based", "Max", "First Tile Wins"}
 			final int interpolation,
 			final Interval boundingBox, // is already downsampled
 			//final double downsampling,
@@ -481,12 +492,12 @@ public class FusionTools
 			images.add( TransformView.transformView( inputImg, model, bb, 0, interpolation ) );
 
 			// add all (or no) weighting schemes
-			if ( useBlending || useContentBased )
+			if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 			{
 				RandomAccessibleInterval< FloatType > transformedBlending = null, transformedContentBased = null;
 
 				// instantiate blending if necessary
-				if ( useBlending )
+				if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
 					final float[] blending = Util.getArrayFromValue( defaultBlendingRange, 3 );
 					final float[] border = Util.getArrayFromValue( defaultBlendingBorder, 3 );
@@ -505,7 +516,7 @@ public class FusionTools
 				}
 	
 				// instantiate content based if necessary
-				if ( useContentBased )
+				if ( fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 				{
 					final double[] sigma1 = Util.getArrayFromValue( defaultContentBasedSigma1, 3 );
 					final double[] sigma2 = Util.getArrayFromValue( defaultContentBasedSigma2, 3 );
@@ -523,7 +534,7 @@ public class FusionTools
 					transformedContentBased = TransformWeight.transformContentBased( inputImg, sigma1, sigma2, LazyFusionTools.defaultBlockSize3d, ContentBasedRealRandomAccessible.defaultScale, model, bb );
 				}
 
-				if ( useContentBased && useBlending )
+				if ( fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
 					weights.add( new CombineWeightsRandomAccessibleInterval(
 									new FinalInterval( transformedBlending ),
@@ -531,11 +542,11 @@ public class FusionTools
 									transformedContentBased,
 									CombineType.MUL ) );
 				}
-				else if ( useBlending )
+				else if ( fusionType == FusionType.AVG_BLEND )
 				{
 					weights.add( transformedBlending );
 				}
-				else if ( useContentBased )
+				else if ( fusionType == FusionType.AVG_CONTENT )
 				{
 					weights.add( transformedContentBased );
 				}
@@ -549,7 +560,16 @@ public class FusionTools
 			}
 		}
 
-		return new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights );
+		final Fusion fusion;
+
+		if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
+			fusion = Fusion.AVG;
+		else if ( fusionType == FusionType.MAX )
+			fusion = Fusion.MAX;
+		else
+			fusion = Fusion.FIRST_WINS;
+
+		return new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), fusion, images, weights );
 		//return new ValuePair<>( new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights ), bbTransform );
 	}
 

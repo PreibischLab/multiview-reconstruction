@@ -50,6 +50,7 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -121,7 +122,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 								spimData.getSequenceDescription().getImgLoader(),
 								registrations,
 								spimData.getSequenceDescription().getViewDescriptions(),
-								views, true, false, 1, maxBBDS, null ),
+								views, FusionType.AVG_BLEND, 1, maxBBDS, null ),
 						new ArrayImgFactory<>( new FloatType() ),
 						new FloatType(),
 						service );

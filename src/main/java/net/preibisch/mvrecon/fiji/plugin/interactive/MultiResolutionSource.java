@@ -49,6 +49,7 @@ import net.imglib2.type.volatiles.VolatileFloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -181,8 +182,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 		final long cpd = 10;
 		final double alpha = 1.0;
 
-		final boolean useBlending = true;
-		final boolean useContentBased = false;
+		final FusionType fusionType = FusionType.AVG_BLEND;
 		final boolean displayDistances = false;
 
 		final ExecutorService service = DeconViews.createExecutorService();
@@ -193,8 +193,7 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 						viewsToFuse,
 						viewsToUse,
 						labels,
-						useBlending,
-						useContentBased,
+						fusionType,
 						displayDistances,
 						cpd,
 						alpha,

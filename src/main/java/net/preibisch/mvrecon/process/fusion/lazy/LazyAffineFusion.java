@@ -49,6 +49,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
@@ -72,8 +73,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	final Map< ViewId, ? extends AffineTransform3D > viewRegistrations;
 	final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions;
 
-	final boolean useBlending;
-	final boolean useContentBased;
+	final FusionType fusionType;
 	final int interpolation;
 	final Map< ViewId, AffineModel1D > intensityAdjustments;
 
@@ -86,8 +86,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	 * @param viewIds - which viewids to fuse
 	 * @param viewRegistrations - the registrations (must include anisotropy and downsampling if desired)
 	 * @param viewDescriptions - the viewdescriptions
-	 * @param useBlending - blend images when overlapping?
-	 * @param useContentBased - use content-based fusion?
+	 * @param fusionType - how to combine pixels
 	 * @param interpolation - 1==linear, 0==nearest neighbor
 	 * @param intensityAdjustments - intensity adjustments, can be null
 	 * @param globalMin - the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage (but the actual interval to process in many blocks sits somewhere else)
@@ -99,8 +98,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Collection< ? extends ViewId > viewIds,
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final int interpolation,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final long[] globalMin,
@@ -115,8 +113,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		this.viewIds = viewIds;
 		this.viewRegistrations = viewRegistrations;
 		this.viewDescriptions = viewDescriptions;
-		this.useBlending = useBlending;
-		this.useContentBased = useContentBased;
+		this.fusionType = fusionType;
 		this.interpolation = interpolation;
 		this.intensityAdjustments = intensityAdjustments;
 	}
@@ -136,8 +133,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewRegistrations,
 						viewDescriptions,
 						viewIds,
-						useBlending, // use blending
-						useContentBased, // use content-based
+						fusionType,
 						interpolation, // linear interpolation
 						targetBlock,
 						intensityAdjustments ); // intensity adjustments
@@ -174,8 +170,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Collection< ? extends ViewId > viewIds,
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final int interpolation,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final Interval fusionInterval,
@@ -189,8 +184,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewIds,
 						viewRegistrations,
 						viewDescriptions,
-						useBlending,
-						useContentBased,
+						fusionType,
 						interpolation,
 						intensityAdjustments,
 						fusionInterval.minAsLongArray(),
@@ -235,8 +229,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 				viewIds,
 				registrations,
 				data.getSequenceDescription().getViewDescriptions(),
-				true, // blending
-				false, // content based
+				FusionType.AVG_BLEND,
 				1, // linear interpolatio
 				null, // intensity adjustment
 				bb,

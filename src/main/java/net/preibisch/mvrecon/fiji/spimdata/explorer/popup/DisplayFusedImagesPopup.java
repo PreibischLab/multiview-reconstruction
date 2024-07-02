@@ -46,6 +46,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger;
 import net.preibisch.mvrecon.fiji.plugin.util.MouseOverPopUpStateChanger.StateChanger;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -67,7 +68,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 	public static int maxCacheSize = 100000;
 
 	public static int defaultInterpolation = 1;
-	public static boolean defaultUseBlending = true;
+	public static FusionType defaultFusionType = FusionType.AVG_BLEND;
 
 	private static final long serialVersionUID = -4895470813542722644L;
 
@@ -219,8 +220,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 							views,
 							registrations,
 							spimData.getSequenceDescription().getViewDescriptions(),
-							defaultUseBlending, // blending
-							false, // content based
+							defaultFusionType, // blending
 							defaultInterpolation, // linear interpolatio
 							null,
 							bbDS,

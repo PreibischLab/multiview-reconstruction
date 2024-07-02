@@ -43,6 +43,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -102,7 +103,7 @@ public class TestNonRigid
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						fused, boundingBox );
+						fused, FusionType.AVG_BLEND, boundingBox );
 
 		DisplayImage.getImagePlusInstance( virtual, false, "Fused Affine", 0, 255 ).show();
 
@@ -158,8 +159,6 @@ public class TestNonRigid
 		final double alpha = 1.0;
 		final boolean virtualGrid = false;
 
-		final boolean useBlending = true;
-		final boolean useContentBased = false;
 		final boolean displayDistances = false;
 
 		final ExecutorService service = DeconViews.createExecutorService();
@@ -188,8 +187,7 @@ public class TestNonRigid
 						viewsToFuse,
 						viewsToUse,
 						labels,
-						useBlending,
-						useContentBased,
+						FusionType.AVG_BLEND,
 						displayDistances,
 						controlPointDistance,
 						alpha,

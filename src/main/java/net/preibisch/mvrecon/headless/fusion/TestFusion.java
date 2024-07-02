@@ -36,6 +36,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.export.DisplayImage;
@@ -96,6 +97,7 @@ public class TestFusion
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
 						viewIds,
+						FusionType.AVG_BLEND,
 						bb );
 
 		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();

@@ -53,6 +53,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -63,6 +64,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
@@ -79,8 +81,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	final Collection< ? extends ViewId > viewsToFuse;
 	final HashMap< ViewId, AffineTransform3D > registrations;
 	final HashMap< ViewId, ModelGrid > nonrigidGrids;
-	final boolean useBlending;
-	final boolean useContentBased;
+	final FusionType fusionType;
 	final boolean displayDistances;
 	final int interpolation;
 	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
@@ -100,8 +101,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final List< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
@@ -117,8 +117,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		this.imgloader = imgloader;
 		this.viewDescriptions = viewDescriptions;
 		this.viewsToFuse = viewsToFuse;
-		this.useBlending = useBlending;
-		this.useContentBased = useContentBased;
+		this.fusionType = fusionType;
 		this.displayDistances = displayDistances;
 		this.interpolation = interpolation;
 		this.intensityAdjustments = intensityAdjustments;
@@ -170,16 +169,25 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						registrations,
 						nonrigidGrids,
 						targetBlock,
-						useBlending,
-						useContentBased,
+						fusionType,
 						displayDistances,
 						interpolation,
 						intensityAdjustments,
 						NonRigidTools.defaultOverlapExpansion( maxDist ) );
 
+		final Fusion fusion;
+
+		if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
+			fusion = Fusion.AVG;
+		else if ( fusionType == FusionType.MAX )
+			fusion = Fusion.MAX;
+		else
+			fusion = Fusion.FIRST_WINS;
+
 		final RandomAccessibleInterval<FloatType> fused =
 				new FusedRandomAccessibleInterval(
 						FusionTools.getFusedZeroMinInterval( targetBlock ),
+						fusion,
 						virtual.getA(),
 						virtual.getB() );
 
@@ -195,8 +203,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final List< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
@@ -218,8 +225,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						viewsToFuse,
 						viewsToUse,
 						labels,
-						useBlending,
-						useContentBased,
+						fusionType,
 						displayDistances,
 						controlPointDistance,
 						alpha,
@@ -259,8 +265,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
 		final boolean virtualGrid = false;
-		final boolean useBlending = true;
-		final boolean useContentBased = false;
+		final FusionType fusionType = FusionType.AVG_BLEND;
 		final boolean displayDistances = false;
 		final ExecutorService service = DeconViews.createExecutorService();
 
@@ -288,8 +293,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 				viewsToFuse,
 				viewsToUse,
 				labels,
-				useBlending,
-				useContentBased,
+				fusionType,
 				displayDistances,
 				controlPointDistance,
 				alpha,

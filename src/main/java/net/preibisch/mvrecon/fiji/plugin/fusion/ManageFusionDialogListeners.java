@@ -42,7 +42,7 @@ public class ManageFusionDialogListeners
 	final GenericDialog gd;
 	final TextField downsampleField;
 	final Choice boundingBoxChoice, pixelTypeChoice, /*cachingChoice, */nonRigidChoice, splitChoice;
-	final Checkbox contentbasedCheckbox, anisoCheckbox;
+	final Checkbox anisoCheckbox;
 	final Label label1;
 	final Label label2;
 	final FusionGUI fusion;
@@ -56,7 +56,7 @@ public class ManageFusionDialogListeners
 			final Choice pixelTypeChoice,
 			//final Choice cachingChoice,
 			final Choice nonRigidChoice,
-			final Checkbox contentbasedCheckbox,
+			//final Checkbox contentbasedCheckbox,
 			final Checkbox anisoCheckbox,
 			final Choice splitChoice,
 			final Label label1,
@@ -69,7 +69,7 @@ public class ManageFusionDialogListeners
 		this.pixelTypeChoice = pixelTypeChoice;
 		//this.cachingChoice = cachingChoice;
 		this.nonRigidChoice = nonRigidChoice;
-		this.contentbasedCheckbox = contentbasedCheckbox;
+		//this.contentbasedCheckbox = contentbasedCheckbox;
 		this.anisoCheckbox = anisoCheckbox;
 		this.splitChoice = splitChoice;
 		this.label1 = label1;
@@ -95,8 +95,8 @@ public class ManageFusionDialogListeners
 		this.splitChoice.addItemListener( new ItemListener() { @Override
 			public void itemStateChanged(ItemEvent e) { update(); } });
 
-		this.contentbasedCheckbox.addItemListener( new ItemListener() { @Override
-			public void itemStateChanged(ItemEvent e) { update(); } });
+		//this.contentbasedCheckbox.addItemListener( new ItemListener() { @Override
+		//	public void itemStateChanged(ItemEvent e) { update(); } });
 
 		if ( this.anisoCheckbox != null )
 		{
@@ -112,7 +112,7 @@ public class ManageFusionDialogListeners
 		fusion.downsampling = Integer.parseInt( downsampleField.getText() );
 		fusion.pixelType = pixelTypeChoice.getSelectedIndex();
 		//fusion.cacheType = cachingChoice.getSelectedIndex();
-		fusion.useContentBased = contentbasedCheckbox.getState();
+		//fusion.useContentBased = contentbasedCheckbox.getState();
 		fusion.splittingType = splitChoice.getSelectedIndex();
 		if ( anisoCheckbox != null )
 		{
@@ -186,6 +186,7 @@ public class ManageFusionDialogListeners
 
 		long processingMB = 0;
 
+		/*
 		if ( fusion.useContentBased )
 		{
 			if ( fusion.isMultiResolution() )
@@ -193,6 +194,7 @@ public class ManageFusionDialogListeners
 			else
 				processingMB = ( maxNumPixelsInput / Math.round( inputDownSampling * 1024*1024 ) ) * 4;
 		}
+		*/
 
 		/*if ( fusion.cacheType == 0 ) // Virtual
 			fusedSizeMB /= Math.max( 1, Math.round( Math.pow( fusedSizeMB, 0.3 ) ) );

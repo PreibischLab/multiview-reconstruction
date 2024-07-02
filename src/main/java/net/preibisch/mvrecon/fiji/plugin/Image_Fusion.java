@@ -209,8 +209,7 @@ public class Image_Fusion implements PlugIn
 						group.getViews(),
 						viewsToUse,
 						fusion.getNonRigidParameters().getLabels(),
-						fusion.useBlending(),
-						fusion.useContentBased(),
+						fusion.getFusionType(),
 						fusion.getNonRigidParameters().showDistanceMap(),
 						Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
 						fusion.getNonRigidParameters().getAlpha(),
@@ -252,8 +251,7 @@ public class Image_Fusion implements PlugIn
 						group.getViews(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						fusion.useBlending(), // blending
-						fusion.useContentBased(), // content based
+						fusion.getFusionType(),
 						fusion.getInterpolation(), // linear interpolatio
 						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 						fusion.getBoundingBox(),

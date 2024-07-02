@@ -58,6 +58,7 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -72,6 +73,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInt
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
@@ -88,8 +90,7 @@ public class NonRigidTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
@@ -127,8 +128,7 @@ public class NonRigidTools
 				viewsToFuse,
 				viewsToUse,
 				labels,
-				useBlending,
-				useContentBased,
+				fusionType,
 				displayDistances,
 				controlPointDistance,
 				alpha,
@@ -147,8 +147,7 @@ public class NonRigidTools
 			final Collection< ? extends ViewId > viewsToFuse,
 			final Collection< ? extends ViewId > viewsToUse,
 			final ArrayList< String > labels,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final long[] controlPointDistance,
 			final double alpha,
@@ -198,14 +197,22 @@ public class NonRigidTools
 						registrations,
 						nonrigidGrids,
 						boundingBox,
-						useBlending,
-						useContentBased,
+						fusionType,
 						displayDistances,
 						interpolation,
 						intensityAdjustments,
 						defaultOverlapExpansion( uniquePointsData.getB() ) );
 
-		return new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( boundingBox ), virtual.getA(), virtual.getB() );
+		final Fusion fusion;
+
+		if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
+			fusion = Fusion.AVG;
+		else if ( fusionType == FusionType.MAX )
+			fusion = Fusion.MAX;
+		else
+			fusion = Fusion.FIRST_WINS;
+
+		return new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( boundingBox ), fusion, virtual.getA(), virtual.getB() );
 		//return new ValuePair<>( new FusedRandomAccessibleInterval( FusionTools.getFusedZeroMinInterval( bbDS ), virtual.getA(), virtual.getB() ), bbTransform );
 	}
 
@@ -303,8 +310,7 @@ public class NonRigidTools
 			final Map< ViewId, AffineTransform3D > downsampledRegistrations,
 			final HashMap< ViewId, ModelGrid > nonrigidGrids,
 			final Interval bbDS,
-			final boolean useBlending,
-			final boolean useContentBased,
+			final FusionType fusionType,
 			final boolean displayDistances,
 			final int interpolation,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
@@ -398,12 +404,12 @@ public class NonRigidTools
 			//
 			// weights
 			//
-			if ( useBlending || useContentBased )
+			if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 			{
 				RandomAccessibleInterval< FloatType > transformedBlending = null, transformedContentBased = null;
 
 				// instantiate blending if necessary
-				if ( useBlending )
+				if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
 					final float[] blending = Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
 					final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
@@ -423,7 +429,7 @@ public class NonRigidTools
 				}
 
 				// instantiate content based if necessary
-				if ( useContentBased )
+				if ( fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 				{
 					final double[] sigma1 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma1, 3 );
 					final double[] sigma2 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma2, 3 );
@@ -449,7 +455,7 @@ public class NonRigidTools
 									bbDS );
 				}
 
-				if ( useContentBased && useBlending )
+				if ( fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
 					weights.add( new CombineWeightsRandomAccessibleInterval(
 									new FinalInterval( transformedBlending ),
@@ -457,11 +463,11 @@ public class NonRigidTools
 									transformedContentBased,
 									CombineType.MUL ) );
 				}
-				else if ( useBlending )
+				else if ( fusionType == FusionType.AVG_BLEND )
 				{
 					weights.add( transformedBlending );
 				}
-				else if ( useContentBased )
+				else if ( fusionType == FusionType.AVG_CONTENT )
 				{
 					weights.add( transformedContentBased );
 				}
