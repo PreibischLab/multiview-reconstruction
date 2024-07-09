@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 
 import java.util.ArrayList;
 
+import mpicbg.models.Point;
 import net.imglib2.KDTree;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
@@ -44,7 +45,9 @@ public class RGLDMMatcher< I extends InterestPoint >
 			final int numNeighbors,
 			final int redundancy,
 			final double ratioOfDistance,
-			final double differenceThreshold ) 
+			final double differenceThreshold,
+			final boolean limitSearchRadius,
+			final double searchRadius )
 	{
 		/* create KDTrees */	
 		final KDTree< I > treeA = new KDTree< I >( nodeListA, nodeListA );
@@ -59,14 +62,16 @@ public class RGLDMMatcher< I extends InterestPoint >
 		final ArrayList< SimplePointDescriptor< I > > descriptorsA = createSimplePointDescriptors( treeA, nodeListA, numRequiredNeighbors, matcher, similarityMeasure );
 		final ArrayList< SimplePointDescriptor< I > > descriptorsB = createSimplePointDescriptors( treeB, nodeListB, numRequiredNeighbors, matcher, similarityMeasure );
 
-		return findCorrespondingDescriptors( descriptorsA, descriptorsB, ratioOfDistance, differenceThreshold );
+		return findCorrespondingDescriptors( descriptorsA, descriptorsB, ratioOfDistance, differenceThreshold, limitSearchRadius, searchRadius );
 	}
 	
 	protected static final < I extends InterestPoint, D extends AbstractPointDescriptor< I , D > > ArrayList< PointMatchGeneric< I > > findCorrespondingDescriptors(
 			final ArrayList< D > descriptorsA,
 			final ArrayList< D > descriptorsB,
 			final double nTimesBetter,
-			final double differenceThreshold )
+			final double differenceThreshold,
+			final boolean limitSearchRadius,
+			final double searchRadius )
 	{
 		final ArrayList< PointMatchGeneric< I > > correspondenceCandidates = new ArrayList<>();
 		
@@ -80,6 +85,9 @@ public class RGLDMMatcher< I extends InterestPoint >
 
 			for ( final D descriptorB : descriptorsB )
 			{
+				if ( limitSearchRadius && Point.distance( descriptorA.getBasisPoint(), descriptorB.getBasisPoint() ) > searchRadius )
+						continue;
+
 				final double difference = descriptorA.descriptorDistance( descriptorB );
 
 				if ( difference < secondBestDifference )

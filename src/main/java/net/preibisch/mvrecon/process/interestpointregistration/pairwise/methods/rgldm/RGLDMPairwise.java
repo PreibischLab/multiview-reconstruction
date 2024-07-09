@@ -76,7 +76,9 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 				dp.getNumNeighbors(),
 				dp.getRedundancy(),
 				dp.getRatioOfDistance(),
-				dp.getDifferenceThreshold() );
+				dp.getDifferenceThreshold(),
+				dp.limitSearchRadius(),
+				dp.searchRadius() );
 
 		result.setCandidates( candidates );
 
