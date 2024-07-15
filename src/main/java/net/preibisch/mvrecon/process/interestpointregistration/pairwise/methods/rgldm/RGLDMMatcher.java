@@ -74,7 +74,8 @@ public class RGLDMMatcher< I extends InterestPoint >
 			final double searchRadius )
 	{
 		final ArrayList< PointMatchGeneric< I > > correspondenceCandidates = new ArrayList<>();
-		
+
+		// TODO: smaller list on the outside
 		for ( final D descriptorA : descriptorsA )
 		{
 			double bestDifference = Double.MAX_VALUE;
@@ -106,10 +107,10 @@ public class RGLDMMatcher< I extends InterestPoint >
 						bestDifference = tmpDiff;
 						bestMatch = tmpMatch;
 					}
-				}				
+				}
 			}
-			
-			if ( bestDifference < differenceThreshold && bestDifference * nTimesBetter < secondBestDifference )
+
+			if ( bestDifference < differenceThreshold && bestDifference * nTimesBetter < secondBestDifference && secondBestDifference != Double.MAX_VALUE ) // there must be a second one (make sure 2nd best is set)
 			{	
 				// add correspondence for the two basis points of the descriptor
 				I detectionA = descriptorA.getBasisPoint();
