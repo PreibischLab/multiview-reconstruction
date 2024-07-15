@@ -25,8 +25,10 @@ package net.preibisch.mvrecon.process.interestpointregistration.global.linkremov
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import net.imglib2.util.Pair;
+import net.imglib2.util.RealSum;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
@@ -39,6 +41,12 @@ import mpicbg.spim.data.sequence.ViewId;
 
 public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 {
+	private class ErrorMetric
+	{
+		final RealSum sum = new RealSum();
+		int count = 0;
+	}
+
 	@Override
 	public Pair< Group< ViewId >, Group< ViewId > > removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
 	{
@@ -55,6 +63,8 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 			// we mustn't disconnect a tile entirely
 			if ( connected <= 1 )
 				continue;
+
+			final HashMap< Tile< ? >, ErrorMetric > metrics = new HashMap<>();
 
 			for ( final PointMatch pm : t.getMatches() )
 			{
@@ -79,8 +89,13 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 
 				final double invScore = ( 1.01 - quality ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
+				metrics.putIfAbsent( connectedTile, new ErrorMetric() );
+				final ErrorMetric em = metrics.get( connectedTile );
+				em.sum.add( invScore );
+				++em.count;
 				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
+				/*
 				if ( invScore > worstInvScore )
 				{
 					worstInvScore = invScore;
@@ -88,7 +103,27 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 					worstTile1 = t;
 					worstTile2 = connectedTile;
 
-					//System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
+					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
+				}*/
+			}
+
+			for ( final Entry< Tile< ? >, ErrorMetric > entry : metrics.entrySet() )
+			{
+				if ( entry.getValue().count > 0 )
+				{
+					final double error = entry.getValue().sum.getSum() / (double)entry.getValue().count;
+
+					System.out.println( findGroup( t, map ) + " <> " + findGroup( entry.getKey(), map ) + "=" + error + " (count=" + entry.getValue().count + ")" );
+	
+					if ( error > worstInvScore )
+					{
+						worstInvScore = error;
+
+						worstTile1 = t;
+						worstTile2 = entry.getKey();
+
+						System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
+					}
 				}
 			}
 		}
