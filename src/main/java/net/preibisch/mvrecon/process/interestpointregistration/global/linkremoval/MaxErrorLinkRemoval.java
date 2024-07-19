@@ -44,16 +44,31 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 	private class ErrorMetric
 	{
 		final RealSum sum = new RealSum();
-		int count = 0;
+		final RealSum weights = new RealSum();
 	}
 
 	@Override
 	public Pair< Group< ViewId >, Group< ViewId > > removeLink( final TileConfiguration tc, final HashMap< ViewId, ? extends Tile< ? > > map )
 	{
+		double maxError = 0.0;
+		Tile< ? > t1 = null;
+
+		for ( final Tile< ? > t : tc.getTiles() )
+		{
+			t.updateCost();
+			final double d = t.getDistance();
+			if ( d > maxError ) {
+				maxError = d;
+				t1 = t;
+			}
+		}
+
+		IOFunctions.println( "max error = " + maxError + " in group " + MaxErrorLinkRemoval.findGroup( t1, map ) );
+
 		double worstInvScore = -Double.MAX_VALUE;
 		Tile<?> worstTile1 = null;
 		Tile<?> worstTile2 = null;
-		
+
 		for ( final Tile<?> t : tc.getTiles())
 		{
 			//System.out.println( "Inspecting group: " + findGroup( t, map ) );
@@ -87,33 +102,21 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 				quality = Math.min( 1.0, quality );
 				quality = Math.max( 0.01, quality );
 
-				final double invScore = ( 1.01 - quality ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
+				final double invScore = ( 1.01 - quality ) * pm.getDistance();// * Math.log10( connected );
 
 				metrics.putIfAbsent( connectedTile, new ErrorMetric() );
 				final ErrorMetric em = metrics.get( connectedTile );
-				em.sum.add( invScore );
-				++em.count;
-				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
-
-				/*
-				if ( invScore > worstInvScore )
-				{
-					worstInvScore = invScore;
-
-					worstTile1 = t;
-					worstTile2 = connectedTile;
-
-					System.out.println( "NEW WORST: " + worstInvScore + " between " + findGroup( worstTile1, map ) + " and " + findGroup( worstTile2, map ) );
-				}*/
+				em.sum.add( invScore * pm.getWeight() );
+				em.weights.add( pm.getWeight() );
 			}
 
 			for ( final Entry< Tile< ? >, ErrorMetric > entry : metrics.entrySet() )
 			{
-				if ( entry.getValue().count > 0 )
+				if ( entry.getValue().weights.getSum() > 0 )
 				{
-					final double error = entry.getValue().sum.getSum() / (double)entry.getValue().count;
+					final double error = entry.getValue().sum.getSum() / entry.getValue().weights.getSum();
 
-					System.out.println( findGroup( t, map ) + " <> " + findGroup( entry.getKey(), map ) + "=" + error + " (count=" + entry.getValue().count + ")" );
+					//System.out.println( findGroup( t, map ) + " <> " + findGroup( entry.getKey(), map ) + "=" + error + " (weight=" + entry.getValue().weights.getSum() + ")" );
 	
 					if ( error > worstInvScore )
 					{
@@ -140,7 +143,7 @@ public class MaxErrorLinkRemoval implements LinkRemovalStrategy
 		final Group<ViewId> groupA = findGroup( worstTile1, map );
 		final Group<ViewId> groupB = findGroup( worstTile2, map );
 
-		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + groupA + " to " + groupB );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + groupA + " to " + groupB + " (error="+ worstInvScore + ")");
 
 		return new ValuePair< Group<ViewId>, Group<ViewId> >( groupA, groupB );
 	}
