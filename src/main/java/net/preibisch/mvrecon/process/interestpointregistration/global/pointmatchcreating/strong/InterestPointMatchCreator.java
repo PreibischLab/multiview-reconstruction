@@ -284,10 +284,19 @@ public class InterestPointMatchCreator implements PointMatchCreator
 				pm.setWeight( 0, weight * ( w > 0 ? w : 1 ) );
 			}
 
-			System.out.println(
-					Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") <->" + 
+			if ( pair.getB().getInliers().size() > 0 )
+			{
+				System.out.println(
+					Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") <-> " + 
 					Group.pvid( pair.getA().getB() ) + " (" + pair.getB().getLabelB() + "): avg Weight=" +
 					r.getSum() / pair.getB().getInliers().size() + " (updated with w=" + weight+ ")" );
+			}
+			else
+			{
+				System.out.println(
+						Group.pvid( pair.getA().getA() ) + " (" + pair.getB().getLabelA() + ") <-> " + 
+						Group.pvid( pair.getA().getB() ) + " (" + pair.getB().getLabelB() + "): No matches, no weights updated." );
+			}
 		}
 	}
 }
