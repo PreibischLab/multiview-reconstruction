@@ -146,6 +146,8 @@ public class MatcherPairwiseTools
 					pwr = new PairwiseResult<>( p.getB().storeCorrespondences() );
 					pwr.setInliers( new ArrayList<>(), p.getB().getError() );
 					pwr.setCandidates( new ArrayList<>() );
+					pwr.setLabelA( p.getB().getLabelA() );
+					pwr.setLabelB( p.getB().getLabelB() );
 					transformedMap.put( pair, pwr );
 				}
 
@@ -173,6 +175,8 @@ public class MatcherPairwiseTools
 					pwr = new PairwiseResult<>( p.getB().storeCorrespondences() );
 					pwr.setInliers( new ArrayList<>(), p.getB().getError() );
 					pwr.setCandidates( new ArrayList<>() );
+					pwr.setLabelA( p.getB().getLabelA() );
+					pwr.setLabelB( p.getB().getLabelB() );
 					transformedMap.put( pair, pwr );
 				}
 
