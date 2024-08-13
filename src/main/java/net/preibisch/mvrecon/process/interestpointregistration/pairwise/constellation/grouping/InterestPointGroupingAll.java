@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,19 +38,35 @@ import mpicbg.spim.data.sequence.ViewId;
  */
 public class InterestPointGroupingAll< V extends ViewId > extends InterestPointGrouping< V >
 {
-	public InterestPointGroupingAll( final Map< V, List< InterestPoint > > interestpoints )
+	public InterestPointGroupingAll( final Map< V, HashMap< String, List< InterestPoint > > > interestpoints )
 	{
 		super( interestpoints );
 	}
 
 	@Override
-	protected List< GroupedInterestPoint< V > > merge( final Map< V, List< InterestPoint > > toMerge )
+	protected HashMap< String, List< GroupedInterestPoint< V > > > merge( final Map< V, HashMap< String, List< InterestPoint > > > toMerge )
 	{
 		return mergeAll( toMerge );
 	}
 
-	public static < V extends ViewId > ArrayList< GroupedInterestPoint< V > > mergeAll( final Map< V, List< InterestPoint > > toMerge )
+	public static < V extends ViewId > HashMap< String, List< GroupedInterestPoint< V > > > mergeAll( final Map< V, HashMap< String, List< InterestPoint > > > toMerge )
 	{
+		final HashMap< String, List< GroupedInterestPoint< V > > > groupedLists = new HashMap<>();
+
+		for ( final V view : toMerge.keySet() )
+		{
+			toMerge.get( view ).forEach( (label, pointList) ->
+			{
+				final List<GroupedInterestPoint<V>> groupedList = groupedLists.computeIfAbsent( label, k -> new ArrayList<>() );
+
+				for ( final InterestPoint p : pointList )
+					groupedList.add( new GroupedInterestPoint< V >( view, p.getId(), p.getL() ) );
+			});
+		}
+
+		return groupedLists;
+
+		/*
 		final ArrayList< GroupedInterestPoint< V > > grouped = new ArrayList<>();
 
 		for ( final V view : toMerge.keySet() )
@@ -62,6 +79,6 @@ public class InterestPointGroupingAll< V extends ViewId > extends InterestPointG
 			}
 		}
 
-		return grouped;
+		return grouped;*/
 	}
 }

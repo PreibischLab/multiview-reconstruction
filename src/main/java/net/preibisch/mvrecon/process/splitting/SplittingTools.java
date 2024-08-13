@@ -112,7 +112,8 @@ public class SplittingTools
 			final int minPoints,
 			final int maxPoints,
 			final double error,
-			final double excludeRadius ) {
+			final double excludeRadius )
+	{
 		final TimePoints timepoints = spimData.getSequenceDescription().getTimePoints();
 
 		final List< ViewSetup > oldSetups = new ArrayList<>();
@@ -142,6 +143,9 @@ public class SplittingTools
 		if ( assingIlluminationsFromTileIds )
 			if ( spimData.getSequenceDescription().getAllIlluminationsOrdered().size() > 1 )
 				throw new IllegalArgumentException( "Cannot SplittingTools.assingIlluminationsFromTileIds because more than one Illumination exists." );
+
+		// only relevant if addIPs is selected
+		final String fakeLabel = "splitPoints_" + System.currentTimeMillis();
 
 		final Random rnd = new Random( 23424459 );
 
@@ -223,11 +227,11 @@ public class SplittingTools
 						{
 							int id = 0;
 
-							final ArrayList< InterestPoint > newIp = new ArrayList<>();
-							final InterestPoints oldIpl = oldVipl.getInterestPointList( label );
-							final List< InterestPoint > oldIp = oldIpl.getInterestPointsCopy();
+							final ArrayList< InterestPoint > newIp1 = new ArrayList<>();
+							final InterestPoints oldIpl1 = oldVipl.getInterestPointList( label );
+							final List< InterestPoint > oldIp1 = oldIpl1.getInterestPointsCopy();
 
-							for ( final InterestPoint ip : oldIp )
+							for ( final InterestPoint ip : oldIp1 )
 							{
 								if ( contains( ip.getL(), interval ) )
 								{
@@ -235,141 +239,144 @@ public class SplittingTools
 									for ( int d = 0; d < interval.numDimensions(); ++d )
 										l[ d ] -= interval.min( d );// + (rnd.nextDouble() - 0.5);
 	
-									newIp.add( new InterestPoint( id++, l ) );
+									newIp1.add( new InterestPoint( id++, l ) );
 								}
 							}
 
-							// adding random corresponding interest points
-							if ( addIPs )
+							final InterestPoints newIpl1 = InterestPoints.newInstance( oldIpl1.getBaseDir(), newViewId, label + "_split" );
+							newIpl1.setInterestPoints( newIp1 );
+							newIpl1.setParameters( oldIpl1.getParameters() );
+							newIpl1.setCorrespondingInterestPoints( new ArrayList<>() );
+							newVipl.addInterestPointList( label + "_split", newIpl1 ); // still add
+						}
+
+						// adding random corresponding interest points in overlapping areas of introduced split views
+						if ( addIPs )
+						{
+							final ArrayList< InterestPoint > newIp = new ArrayList<>();
+							int id = 0;
+
+							// for each overlapping tile that has not been processed yet
+							for ( int j = 0; j < i; ++j )
 							{
-								// for each overlapping tile that has not been processed yet
-								for ( int j = 0; j < i; ++j )
+								final Interval otherInterval = intervals.get( j );
+								final Interval intersection = Intervals.intersect( interval, otherInterval );
+
+								//System.out.println( "vs. interval " + j + ": " + Util.printInterval( otherInterval ));
+								//System.out.println( "error: " + error );
+
+								// find the overlap
+								if ( !Intervals.isEmpty( intersection ) )
 								{
-									final Interval otherInterval = intervals.get( j );
-									final Interval intersection = Intervals.intersect( interval, otherInterval );
+									final ViewSetup otherSetup = interval2ViewSetup.get( otherInterval );
+									final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
+									final ViewInterestPointLists otherIPLists = newInterestpoints.get( otherViewId );
 
-									//System.out.println( "vs. interval " + j + ": " + Util.printInterval( otherInterval ));
-									//System.out.println( "error: " + error );
+									//System.out.println( "Intersection between " + Util.printInterval( interval ) + " & " + Util.printInterval( otherInterval ) + ":");
+									//System.out.println( Util.printInterval( intersection ) );
 
-									// find the overlap
-									if ( !Intervals.isEmpty( intersection ) )
+									// add points as function of the area
+									final int n = intersection.numDimensions();
+									long numPixels = 1;
+									for ( int d = 0; d < n; ++d )
+										numPixels *= intersection.dimension( d );
+
+									final int numPoints = Math.min( maxPoints, Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) ) );
+									System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
+
+									final List< InterestPoint > otherPoints = otherIPLists.getInterestPointList( fakeLabel ).getInterestPointsCopy();
+									int otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
+
+									// find the area that does not contain interest points yet
+									final KDTree< InterestPoint > tree2;
+									final RadiusNeighborSearch< InterestPoint > search2;
+
+									if ( excludeRadius > 0 )
 									{
-										final ViewSetup otherSetup = interval2ViewSetup.get( otherInterval );
-										final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
-										final ViewInterestPointLists otherIPLists = newInterestpoints.get( otherViewId );
-
-										//System.out.println( "Intersection between " + Util.printInterval( interval ) + " & " + Util.printInterval( otherInterval ) + ":");
-										//System.out.println( Util.printInterval( intersection ) );
-
-										// add points as function of the area
-										final int n = intersection.numDimensions();
-										long numPixels = 1;
-										for ( int d = 0; d < n; ++d )
-											numPixels *= intersection.dimension( d );
-
-										final int numPoints = Math.min( maxPoints, Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) ) );
-										System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
-
-										final List< InterestPoint > otherPoints = otherIPLists.getInterestPointList( label + "_split" ).getInterestPointsCopy();
-										int otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
-
-										// find the area for both that do not contain interest points yet
-										final KDTree< InterestPoint > tree1, tree2;
-										final RadiusNeighborSearch< InterestPoint > search1, search2;
-
-										if ( excludeRadius > 0 )
+										// build a tree that contains new added interest points
+										final List< InterestPoint > otherIPglobal = new ArrayList<>();
+										for ( final InterestPoint ip : otherPoints )
 										{
-											// build a tree that contains old interest points
-											if ( oldIp.size() > 0 )
-											{
-												tree1 = new KDTree<>( oldIp, oldIp );
-												search1 = new RadiusNeighborSearchOnKDTree<>( tree1 );
-											}
-											else
-											{
-												tree1 = null;
-												search1 = null;
-											}
+											final double[] l = ip.getL().clone();
+											for ( int d = 0; d < n; ++d )
+												l[ d ] += otherInterval.min( d );
 
-											// build a tree that contains new interest points
-											final List< InterestPoint > otherIPglobal = new ArrayList<>();
-											for ( final InterestPoint ip : otherPoints )
-											{
-												final double[] l = ip.getL().clone();
-												for ( int d = 0; d < n; ++d )
-													l[ d ] += otherInterval.min( d );
+											otherIPglobal.add( new InterestPoint( ip.getId(), l ) );
+										}
 
-												otherIPglobal.add( new InterestPoint( ip.getId(), l ) );
-											}
-
-											if ( otherIPglobal.size() > 0 )
-											{
-												tree2 = new KDTree<>( otherIPglobal, otherIPglobal );
-												search2 = new RadiusNeighborSearchOnKDTree<>( tree2 );
-											}
-											else
-											{
-												tree2 = null;
-												search2 = null;
-											}
+										if ( otherIPglobal.size() > 0 )
+										{
+											tree2 = new KDTree<>( otherIPglobal, otherIPglobal );
+											search2 = new RadiusNeighborSearchOnKDTree<>( tree2 );
 										}
 										else
 										{
-											tree1 = tree2  = null;
-											search1 = search2 = null;
+											tree2 = null;
+											search2 = null;
 										}
-
-										final double[] tmp = new double[ n ];
-
-										for ( int k = 0; k < numPoints; ++k )
-										{
-											final double[] p = new double[ n ];
-											final double[] op = new double[ n ];
-
-											for ( int d = 0; d < n; ++d )
-											{
-												final double l = rnd.nextDouble() * intersection.dimension( d ) + intersection.min( d );
-												p[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - interval.min( d );
-												op[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - otherInterval.min( d );
-												tmp[ d ] = l;
-											}
-											//System.out.println( Arrays.toString( tmp ) + ", " + Arrays.toString( op ));
-
-											int numNeighbors = 0;
-
-											if ( excludeRadius > 0 )
-											{
-												final InterestPoint tmpIP = new InterestPoint( 0, tmp );
-												if ( search1 != null )
-												{
-													search1.search( tmpIP, excludeRadius, false );
-													numNeighbors += search1.numNeighbors();
-												}
-												if ( search2 != null )
-												{
-													search2.search( tmpIP, excludeRadius, false);
-													numNeighbors += search2.numNeighbors();
-												}
-											}
-
-											if ( numNeighbors == 0 )
-											{
-												newIp.add( new InterestPoint( id++, p ) );
-												otherPoints.add( new InterestPoint( otherId++, op ) );
-											}
-										}
-
-										otherIPLists.getInterestPointList( label + "_split" ).setInterestPoints( otherPoints );
 									}
+									else
+									{
+										tree2  = null;
+										search2 = null;
+									}
+
+									final double[] tmp = new double[ n ];
+
+									for ( int k = 0; k < numPoints; ++k )
+									{
+										final double[] p = new double[ n ];
+										final double[] op = new double[ n ];
+
+										for ( int d = 0; d < n; ++d )
+										{
+											final double l = rnd.nextDouble() * intersection.dimension( d ) + intersection.min( d );
+											p[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - interval.min( d );
+											op[ d ] = (l + (rnd.nextDouble()-0.5)*error ) - otherInterval.min( d );
+											tmp[ d ] = l;
+										}
+										//System.out.println( Arrays.toString( tmp ) + ", " + Arrays.toString( op ));
+
+										int numNeighbors = 0;
+
+										if ( excludeRadius > 0 )
+										{
+											final InterestPoint tmpIP = new InterestPoint( 0, tmp );
+											if ( search2 != null )
+											{
+												search2.search( tmpIP, excludeRadius, false);
+												numNeighbors += search2.numNeighbors();
+											}
+										}
+
+										// if it's not too close to other points add the same point to both overlapping split tiles
+										if ( numNeighbors == 0 )
+										{
+											newIp.add( new InterestPoint( id++, p ) );
+											otherPoints.add( new InterestPoint( otherId++, op ) );
+										}
+									}
+
+									otherIPLists.getInterestPointList( fakeLabel ).setInterestPoints( otherPoints );
 								}
 							}
 
-							final InterestPoints newIpl = InterestPoints.newInstance( oldIpl.getBaseDir(), newViewId, label + "_split" );
+							final InterestPoints newIpl = InterestPoints.newInstance( spimData.getBasePath(), newViewId, fakeLabel );
 							newIpl.setInterestPoints( newIp );
-							newIpl.setParameters( oldIpl.getParameters() );
+							newIpl.setParameters(
+									"Fake points for image splitting: overlapPx=" + Arrays.toString( overlapPx ) +
+									", targetSize=" + Arrays.toString( targetSize ) +
+									", minStepSize=" + Arrays.toString( minStepSize ) +
+									", optimize=" + optimize +
+									", pointDensity=" + pointDensity +
+									", minPoints=" + minPoints +
+									", maxPoints=" + maxPoints +
+									", error=" + error +
+									", excludeRadius=" + excludeRadius );
 							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
-							newVipl.addInterestPointList( label + "_split", newIpl ); // still add
+							newVipl.addInterestPointList( fakeLabel, newIpl ); // still add
 						}
+
 					}
 					newInterestpoints.put( newViewId, newVipl );
 				}

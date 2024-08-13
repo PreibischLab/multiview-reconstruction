@@ -113,7 +113,7 @@ public class Split_Views implements PlugIn
 		}
 		else
 		{
-			SpimData2.saveXML( data, saveAs, "" );
+			SpimData2.saveXML( newSD, saveAs, "" );
 		}
 
 		return true;

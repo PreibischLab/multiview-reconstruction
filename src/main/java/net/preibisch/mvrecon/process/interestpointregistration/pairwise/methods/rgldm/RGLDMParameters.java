@@ -31,7 +31,12 @@ public class RGLDMParameters
 
 	public static int numNeighbors = 3;
 	public static int redundancy = 1;
-	
+
+	public static boolean defaultLimitSearchRadius = false;
+	public static double defaultSearchRadius = 100;
+
+	protected final boolean limitSearchRadius;
+	protected final double searchRadius;
 	protected final float dt, rod;
 	protected final int nn, re;
 
@@ -44,18 +49,24 @@ public class RGLDMParameters
 		this.rod = ratioOfDistance;
 		this.nn = numNeighbors;
 		this.re = redundancy;
+		this.limitSearchRadius = defaultLimitSearchRadius;
+		this.searchRadius = defaultSearchRadius;
 		this.model = model;
 	}
 	
-	public RGLDMParameters( final Model< ? > model, final float differenceThreshold, final float ratioOfDistance, final int numNeighbors, final int redundancy )
+	public RGLDMParameters( final Model< ? > model, final float differenceThreshold, final float ratioOfDistance, final boolean limitSearchRadius, final double searchRadius, final int numNeighbors, final int redundancy )
 	{
 		this.model = model;
 		this.dt = differenceThreshold;
 		this.rod = ratioOfDistance;
 		this.nn = numNeighbors;
 		this.re = redundancy;
+		this.limitSearchRadius = limitSearchRadius;
+		this.searchRadius = searchRadius;
 	}
-	
+
+	public boolean limitSearchRadius() { return limitSearchRadius; }
+	public double searchRadius() { return searchRadius; }
 	public float getDifferenceThreshold() { return dt; }
 	public float getRatioOfDistance() { return rod; }
 	public int getNumNeighbors() { return nn; }

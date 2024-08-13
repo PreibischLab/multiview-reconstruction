@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
@@ -129,9 +131,12 @@ public class Interest_Point_Registration implements PlugIn
 	public static int defaultOverlapType = 1;
 	public static int defaultInterestpointOverlapType = 0;
 	public static int defaultLabel = -1;
+	public static boolean defaultMatchAcrossLabels = false;
 	public static boolean defaultGroupTiles = true;
 	public static boolean defaultGroupIllums = true;
 	public static boolean defaultGroupChannels = true;
+	public static boolean[] defaultLabelChoice = null;
+	public static double[] defaultLabelWeights = null;
 
 	// advanced dialog
 	public static int defaultRange = 5;
@@ -220,7 +225,7 @@ public class Interest_Point_Registration implements PlugIn
 		if ( brp == null )
 			return false;
 
-		removed = filterRemainingViewIds( viewIds, brp.labelMap, data.getViewInterestPoints().getViewInterestPoints() );
+		removed = filterRemainingViewIdsAndLabels( viewIds, brp.labelMap, data.getViewInterestPoints().getViewInterestPoints() );
 		for ( int i = 0; i < removed.size(); ++i )
 			IOFunctions.println( "Removed view " + Group.pvid( removed.get( i ) ) + " as the label '" + brp.labelMap.get( removed.get( i ) ) + "' was not present." );
 
@@ -264,6 +269,7 @@ public class Interest_Point_Registration implements PlugIn
 				data.getViewInterestPoints().getViewInterestPoints(),
 				brp.labelMap,
 				arp.globalOptParams,
+				brp.matchAcrossLabels,
 				arp.showStatistics ) )
 			return false;
 
@@ -295,15 +301,16 @@ public class Interest_Point_Registration implements PlugIn
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewDescription > viewDescriptions,
 			final Map< ViewId, ViewInterestPointLists > interestpointLists,
-			final Map< ViewId, String > labelMap,
+			final Map< ViewId, HashMap< String, Double > > labelMap,
 			final GlobalOptimizationParameters globalOptParameters,
+			final boolean matchAcrossLabels,
 			final boolean collectStatistics )
 	{
 		final List< ViewId > viewIds = setup.getViews();
 		final ArrayList< Subset< ViewId > > subsets = setup.getSubsets();
 
 		// load & transform all interest points
-		final Map< ViewId, List< InterestPoint > > interestpoints =
+		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
 					viewIds,
 					registrations,
@@ -322,8 +329,9 @@ public class Interest_Point_Registration implements PlugIn
 			TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, registrations, viewDescriptions );
 
 			IOFunctions.println( "Remaining interest points for alignment: " );
-			for ( final Entry< ViewId, List< InterestPoint > > element: interestpoints.entrySet() )
-				IOFunctions.println( element.getKey() + ": " + element.getValue().size() );
+			for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
+				for ( final Entry< String, List< InterestPoint > > subElement : element.getValue().entrySet() )
+					IOFunctions.println( Group.pvid( element.getKey() ) + ", '" + subElement.getKey() + "' : " + subElement.getValue().size() );
 		}
 
 		// statistics?
@@ -351,7 +359,7 @@ public class Interest_Point_Registration implements PlugIn
 
 				// compute all pairwise matchings
 				final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > > result =
-						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance() );
+						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance(), matchAcrossLabels );
 
 				// clear correspondences
 				MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
@@ -362,17 +370,20 @@ public class Interest_Point_Registration implements PlugIn
 					final ViewId vA = p.getA().getA();
 					final ViewId vB = p.getA().getB();
 
-					final InterestPoints listA = interestpointLists.get( vA ).getInterestPointList( labelMap.get( vA ) );
-					final InterestPoints listB = interestpointLists.get( vB ).getInterestPointList( labelMap.get( vB ) );
+					final String labelA = p.getB().getLabelA();
+					final String labelB = p.getB().getLabelB();
 
-					MatcherPairwiseTools.addCorrespondences( p.getB().getInliers(), vA, vB, labelMap.get( vA ), labelMap.get( vB ), listA, listB );
+					final InterestPoints listA = interestpointLists.get( vA ).getInterestPointList( labelA );
+					final InterestPoints listB = interestpointLists.get( vB ).getInterestPointList( labelB );
+
+					MatcherPairwiseTools.addCorrespondences( p.getB().getInliers(), vA, vB, labelA, labelB, listA, listB );
 
 					if ( collectStatistics )
 						statistics.add( p );
 				}
 
 				// run global optimization
-				final PointMatchCreator pmc = new InterestPointMatchCreator( result );
+				final PointMatchCreator pmc = new InterestPointMatchCreator( result, labelMap ); // TODO: Add weights!!!
 				final M model = pairwiseMatching.getMatchingModel().getModel();
 
 				if ( globalOptParameters.method == GlobalOptType.ONE_ROUND_SIMPLE )
@@ -417,8 +428,8 @@ public class Interest_Point_Registration implements PlugIn
 			{
 				// test grouped registration
 				final List< Pair< Group< ViewId >, Group< ViewId > > > groupedPairs = subset.getGroupedPairs();
-				final Map< Group< ViewId >, List< GroupedInterestPoint< ViewId > > > groupedInterestpoints = new HashMap<>();
-
+				final Map< Group< ViewId >, HashMap< String, List< GroupedInterestPoint< ViewId > > > > groupedInterestpoints = new HashMap<>();
+				
 				final double maxError = interestPointMergeDistance;
 				final InterestPointGroupingMinDistance< ViewId > ipGrouping;
 
@@ -451,14 +462,15 @@ public class Interest_Point_Registration implements PlugIn
 				}
 
 				final List< Pair< Pair< Group< ViewId >, Group< ViewId > >, PairwiseResult< GroupedInterestPoint< ViewId > > > > resultGroup =
-						MatcherPairwiseTools.computePairs( groupedPairs, groupedInterestpoints, pairwiseMatching.pairwiseGroupedMatchingInstance() );
+						MatcherPairwiseTools.computePairs( groupedPairs, groupedInterestpoints, pairwiseMatching.pairwiseGroupedMatchingInstance(), matchAcrossLabels );
 
 				// clear correspondences and get a map linking ViewIds to the correspondence lists
-				final Map< ViewId, List< CorrespondingInterestPoints > > cMap = MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
+				final Map< ViewId, HashMap< String, List< CorrespondingInterestPoints > > > cMap =
+						MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
 
 				// add the corresponding detections and transform HashMap< Pair< Group < V >, Group< V > >, PairwiseResult > to HashMap< Pair< V, V >, PairwiseResult >
 				final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< GroupedInterestPoint< ViewId > > > > resultTransformed =
-						MatcherPairwiseTools.addCorrespondencesFromGroups( resultGroup, interestpointLists, labelMap, cMap );
+						MatcherPairwiseTools.addCorrespondencesFromGroups( resultGroup, interestpointLists, cMap );
 
 				if ( collectStatistics )
 					for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< GroupedInterestPoint< ViewId > > > p : resultTransformed )
@@ -468,7 +480,7 @@ public class Interest_Point_Registration implements PlugIn
 					}
 
 				// run global optimization
-				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed );
+				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed, labelMap );
 				final M model = pairwiseMatching.getMatchingModel().getModel();
 
 				//models = (HashMap< ViewId, Tile< ? extends AbstractModel< ? > > >)(Object)GlobalOpt.compute( pairwiseMatching.getMatchingModel().getModel(), pmc, cs, fixedViews, groups );
@@ -566,26 +578,62 @@ public class Interest_Point_Registration implements PlugIn
 		return true;
 	}
 
-	public ArrayList< ViewId > filterRemainingViewIds( final List< ViewId > viewIds, final Map< ViewId, String > labelMap, final Map< ViewId, ViewInterestPointLists > interestpointLists )
+	// filtering viewIds and labelMap
+	public List< ViewId > filterRemainingViewIdsAndLabels( final List< ViewId > viewIds, final Map< ViewId, HashMap< String, Double > > labelMap, final Map< ViewId, ViewInterestPointLists > interestpointLists )
 	{
-		final ArrayList< ViewId > keep = new ArrayList<>();
-		final ArrayList< ViewId > remove = new ArrayList<>();
+		final HashSet< ViewId > keep = new HashSet<>();
+		final Map< ViewId, HashMap< String, Double > > labelMapKeep = new HashMap<>();
 
-		for ( final ViewId viewId : viewIds )
+		labelMap.forEach( (viewId, labelAndWeight) -> labelAndWeight.forEach( (label, weight) ->
 		{
-			final String label = labelMap.get( viewId );
-	
 			// does it exist for this viewId?
 			final ViewInterestPointLists lists = interestpointLists.get( viewId );
 
 			if ( lists.getHashMap().keySet().contains( label ) && lists.getHashMap().get( label ) != null )
+			{
 				keep.add( viewId );
-			else
+
+				if ( !labelMapKeep.containsKey( viewId ) )
+					labelMapKeep.put( viewId, new HashMap<>() );
+
+				labelMapKeep.get( viewId ).put( label, weight );
+			}
+		} ) );
+
+		final List< ViewId > remove =
+				viewIds.stream().filter( viewId -> !keep.contains( viewId ) ).collect( Collectors.toList() );
+
+		/*
+		final List< ViewId > remove = new ArrayList<>();
+		viewIds.forEach( viewId -> {
+			if ( !keep.contains( viewId ) )
 				remove.add( viewId );
+		} );
+		*/
+
+		/*
+		for ( final ViewId viewId : viewIds )
+		{
+			for ( final Entry< String, Double > labelAndWeight : labelMap.get( viewId ).entrySet() )
+			{
+				final String label = labelMap.get( viewId );
+		
+				// does it exist for this viewId?
+				final ViewInterestPointLists lists = interestpointLists.get( viewId );
+	
+				if ( lists.getHashMap().keySet().contains( label ) && lists.getHashMap().get( label ) != null )
+					keep.add( viewId );
+				else
+					remove.add( viewId );
+			}
 		}
+		*/
 
 		viewIds.clear();
 		viewIds.addAll( keep );
+
+		labelMap.clear();
+		labelMap.putAll( labelMapKeep );
 
 		return remove;
 	}
@@ -748,13 +796,18 @@ public class Interest_Point_Registration implements PlugIn
 		gd.addChoice( "Interest_point_inclusion", BasicRegistrationParameters.interestpointOverlapChoices, BasicRegistrationParameters.interestpointOverlapChoices[ defaultInterestpointOverlapType ] );
 
 		// check which channels and labels are available and build the choices
-		final String[] labels = InterestPointTools.getAllInterestPointLabels( data, viewIds );
+		final String[] labelsRaw = InterestPointTools.getAllInterestPointLabels( data, viewIds );
 
-		if ( labels.length == 0 )
+		if ( labelsRaw.length == 0 )
 		{
 			IOFunctions.printErr( "No interest points available, stopping. Please run Interest Point Detection first" );
 			return null;
 		}
+
+		final String[] labels = new String[ labelsRaw.length + 1 ];
+		for ( int i = 0; i < labelsRaw.length; ++i )
+			labels[ i ] = labelsRaw[ i ];
+		labels[ labelsRaw.length ] = "Select multiple interestpoints [extra dialog]";
 
 		// choose the first label that is complete if possible
 		if ( defaultLabel < 0 || defaultLabel >= labels.length )
@@ -871,7 +924,69 @@ public class Interest_Point_Registration implements PlugIn
 		}
 
 		// assemble which label has been selected
-		final String label = InterestPointTools.getSelectedLabel( labels, defaultLabel = gd.getNextChoiceIndex() );
+		final int labelChoice = defaultLabel = gd.getNextChoiceIndex();
+		final HashMap<String, Double > labelAndWeight = new HashMap<>();
+
+		boolean matchAcrossLabels = false;
+
+		if ( labelChoice < labels.length - 1 )
+		{
+			labelAndWeight.put( InterestPointTools.getSelectedLabel( labels, labelChoice ), 1.0 );
+		}
+		else
+		{
+			final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
+
+			if ( defaultLabelChoice == null || defaultLabelChoice.length != labels.length - 1 )
+				defaultLabelChoice = new boolean[ labels.length - 1 ];
+
+			for ( int i = 0; i < labels.length - 1; ++i )
+				gdLabel1.addCheckbox( labels[ i ], defaultLabelChoice[ i ] );
+
+			gdLabel1.showDialog();
+			if ( gdLabel1.wasCanceled() )
+				return null;
+
+			final ArrayList< String > labelChoices = new ArrayList<>();
+			for ( int i = 0; i < labels.length - 1; ++i )
+				if ( defaultLabelChoice[ i ] = gdLabel1.getNextBoolean() )
+					labelChoices.add( InterestPointTools.getSelectedLabel( labels, i ) );
+
+			if ( labelChoices.size() == 0 )
+			{
+				IOFunctions.println( "No interestpoints selected, stopping.");
+				return null;
+			}
+
+			final GenericDialog gdLabel2 = new GenericDialog( "Select weights and other options" );
+
+			if ( defaultLabelWeights == null || defaultLabelWeights.length != labelChoices.size() )
+			{
+				defaultLabelWeights = new double[ labelChoices.size() ];
+				Arrays.setAll( defaultLabelWeights, d -> 1.0 );
+			}
+			
+			gdLabel2.addCheckbox( "Match_different_labels" , defaultMatchAcrossLabels );
+			gdLabel2.addMessage( "(if 'not selected' only labels with the same name will be matched with each other.)", GUIHelper.smallStatusFont);
+			gdLabel2.addMessage( "" );
+			gdLabel2.addMessage( "Weights for interest point labels:", GUIHelper.largefont );
+			gdLabel2.addMessage( "Note: to give a very low weight to a label we suggest w = 1.0E-6 (0.000001)", GUIHelper.smallStatusFont);
+
+			for ( int i = 0; i < labelChoices.size(); ++i )
+				gdLabel2.addNumericField( labelChoices.get( i ) + " w=", defaultLabelWeights[ i ], 2 );
+
+			gdLabel2.showDialog();
+			if ( gdLabel2.wasCanceled() )
+				return null;
+
+			matchAcrossLabels = defaultMatchAcrossLabels = gdLabel2.getNextBoolean();
+
+			for ( int i = 0; i < labelChoices.size(); ++i )
+			{
+				labelAndWeight.put( labelChoices.get( i ), defaultLabelWeights[ i ] = gdLabel2.getNextNumber() );
+				IOFunctions.println( labelChoices.get( i ) + ", weight=" + labelAndWeight.get( labelChoices.get( i ) ) );
+			}
+		}
 
 		boolean groupTiles = false;
 		if ( tiles.size() > 1 )
@@ -899,9 +1014,10 @@ public class Interest_Point_Registration implements PlugIn
 		brp.groupTiles = groupTiles;
 		brp.groupIllums = groupIllums;
 		brp.groupChannels = groupChannels;
+		brp.matchAcrossLabels = matchAcrossLabels;
 
 		for ( final ViewId viewId : viewIds )
-			brp.labelMap.put( viewId, label );
+			brp.labelMap.put( viewId, labelAndWeight );
 
 		return brp;
 	}

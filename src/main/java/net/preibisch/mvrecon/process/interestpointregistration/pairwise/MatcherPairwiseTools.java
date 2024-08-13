@@ -26,9 +26,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -56,29 +58,41 @@ public class MatcherPairwiseTools
 		return all;
 	}
 
-	public static < V extends ViewId > Map< V, List< CorrespondingInterestPoints > > clearCorrespondences(
+	public static < V extends ViewId > Map< V, HashMap< String, List< CorrespondingInterestPoints > > > clearCorrespondences(
 			final Collection< V > viewIds,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap )
+			final Map< V, HashMap< String, Double > > labelMap )
 	{
-		final Map< V, InterestPoints > map = new HashMap<>();
+		final Map< V, HashMap< String, InterestPoints > > map = new HashMap<>();
 
 		for ( final V view : viewIds )
-			map.put( view, interestpoints.get( view ).getInterestPointList( labelMap.get( view ) ) );
+		{
+			final HashMap< String, InterestPoints > mapPerLabel = new HashMap<>();
+			labelMap.get( view ).forEach( (label,weight ) -> mapPerLabel.put( label, interestpoints.get( view ).getInterestPointList( label ) ) );
+			map.put( view, mapPerLabel );
+			//map.put( view, interestpoints.get( view ).getInterestPointList( labelMap.get( view ) ) );
+		}
 
 		return clearCorrespondences( map );
 	}
 
-	public static < V extends ViewId > Map< V, List< CorrespondingInterestPoints > > clearCorrespondences( final Map< V, ? extends InterestPoints > map )
+	public static < V extends ViewId > Map< V, HashMap< String, List< CorrespondingInterestPoints > > > clearCorrespondences(
+			final Map< V, ? extends Map< String, ? extends InterestPoints > > map )
 	{
-		final Map< V, List< CorrespondingInterestPoints > > cMap = new HashMap<>();
+		final Map< V, HashMap< String, List< CorrespondingInterestPoints > > > cMap = new HashMap<>();
 
 		for ( final V viewId : map.keySet() )
 		{
-			final InterestPoints list = map.get( viewId );
-			final ArrayList< CorrespondingInterestPoints > cList = new ArrayList<>();
-			list.setCorrespondingInterestPoints( cList );
-			cMap.put( viewId, cList );
+			final HashMap< String, List< CorrespondingInterestPoints > > mapPerLabel = new HashMap<>();
+
+			map.get( viewId ).forEach( (label, list ) -> {
+				
+				final ArrayList< CorrespondingInterestPoints > cList = new ArrayList<>();
+				list.setCorrespondingInterestPoints( cList );
+				mapPerLabel.put(label, cList);
+			} );
+
+			cMap.put( viewId, mapPerLabel );
 		}
 
 		return cMap;
@@ -89,8 +103,8 @@ public class MatcherPairwiseTools
 			addCorrespondencesFromGroups(
 			final Collection< ? extends Pair< ?, P > > resultGroup,
 			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, String > labelMap,
-			final Map< V, ? extends List< CorrespondingInterestPoints > > cMap
+			final Map< V, HashMap< String, List< CorrespondingInterestPoints > > > cMap
+			//final Map< V, ? extends List< CorrespondingInterestPoints > > cMap
 			)
 	{
 		// we transform HashMap< Pair< Group < V >, Group< V > >, PairwiseResult > to HashMap< Pair< V, V >, PairwiseResult >
@@ -110,14 +124,14 @@ public class MatcherPairwiseTools
 
 				if ( p.getB().storeCorrespondences() )
 				{
-					final String labelA = labelMap.get( viewIdA );
-					final String labelB = labelMap.get( viewIdB );
+					final String labelA = p.getB().getLabelA();//labelMap.get( viewIdA );
+					final String labelB = p.getB().getLabelB();//labelMap.get( viewIdB );
 	
 					final CorrespondingInterestPoints correspondingToA = new CorrespondingInterestPoints( gpA.getId(), viewIdB, labelB, gpB.getId() );
 					final CorrespondingInterestPoints correspondingToB = new CorrespondingInterestPoints( gpB.getId(), viewIdA, labelA, gpA.getId() );
 	
-					cMap.get( viewIdA ).add( correspondingToA );
-					cMap.get( viewIdB ).add( correspondingToB );
+					cMap.get( viewIdA ).get( labelA ).add( correspondingToA );
+					cMap.get( viewIdB ).get( labelB ).add( correspondingToB );
 				}
 
 				// update transformedMap
@@ -132,6 +146,8 @@ public class MatcherPairwiseTools
 					pwr = new PairwiseResult<>( p.getB().storeCorrespondences() );
 					pwr.setInliers( new ArrayList<>(), p.getB().getError() );
 					pwr.setCandidates( new ArrayList<>() );
+					pwr.setLabelA( p.getB().getLabelA() );
+					pwr.setLabelB( p.getB().getLabelB() );
 					transformedMap.put( pair, pwr );
 				}
 
@@ -159,6 +175,8 @@ public class MatcherPairwiseTools
 					pwr = new PairwiseResult<>( p.getB().storeCorrespondences() );
 					pwr.setInliers( new ArrayList<>(), p.getB().getError() );
 					pwr.setCandidates( new ArrayList<>() );
+					pwr.setLabelA( p.getB().getLabelA() );
+					pwr.setLabelB( p.getB().getLabelB() );
 					transformedMap.put( pair, pwr );
 				}
 
@@ -167,9 +185,18 @@ public class MatcherPairwiseTools
 
 		}
 
+		cMap.forEach( (viewId, label2corr) -> {
+			label2corr.forEach( (label, corr ) -> {
+				interestpoints.get( viewId ).getInterestPointList( label ).setCorrespondingInterestPoints( corr );
+			} );
+		});
+		/*
 		for ( final V viewId : cMap.keySet() )
+		{
+			// TODO: for each label
 			interestpoints.get( viewId ).getInterestPointList( labelMap.get( viewId ) ).setCorrespondingInterestPoints( cMap.get( viewId ) );
-
+		}
+		*/
 		final ArrayList< Pair< Pair< V, V >, PairwiseResult< GroupedInterestPoint< V > > > > transformedList = new ArrayList<>();
 
 		for ( final Pair< V, V > pair : transformedMap.keySet() )
@@ -216,34 +243,36 @@ public class MatcherPairwiseTools
 		{
 			final String description =
 					"[TP=" + ((ViewId)p.getA()).getTimePointId() +
-					" ViewId=" + ((ViewId)p.getA()).getViewSetupId() +
+					" ViewId=" + ((ViewId)p.getA()).getViewSetupId() + " Label=" + pwr.getLabelA() +
 					" >>> TP=" + ((ViewId)p.getB()).getTimePointId() +
-					" ViewId=" + ((ViewId)p.getB()).getViewSetupId() + "]";
+					" ViewId=" + ((ViewId)p.getB()).getViewSetupId() + " Label=" + pwr.getLabelB() + "]";
 
 			pwr.setDescription( description );
 		}
 		else if ( Group.class.isInstance( p.getA() ) && Group.class.isInstance( p.getB() ) )
 		{
-			pwr.setDescription( "[Group {" + p.getA() + "} >>> Group {" + p.getB() + "}]" );
+			pwr.setDescription( "[Group {" + p.getA() + "} Label= "+ pwr.getLabelA() + " >>> Group {" + p.getB() + "} Label=" + pwr.getLabelA() + "]" );
 		}
 		else
 		{
-			pwr.setDescription( "[" + p.getA() + " >>> " + p.getB() + "]" );
+			pwr.setDescription( "[" + p.getA() + " Label= " + pwr.getLabelA() + " >>> " + p.getB() + " Label= " + pwr.getLabelB() + "]" );
 		}
 	}
 
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
-			final Map< V, List< I > > interestpoints,
-			final MatcherPairwise< I > matcher )
+			final Map< V, HashMap< String, List< I > > > interestpoints,
+			final MatcherPairwise< I > matcher,
+			final boolean matchAcrossLabels )
 	{
-		return computePairs( pairs, interestpoints, matcher, null );
+		return computePairs( pairs, interestpoints, matcher, matchAcrossLabels, null );
 	}
 
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
-			final Map< V, ? extends List< I > > interestpoints,
+			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
 			final MatcherPairwise< I > matcher,
+			final boolean matchAcrossLabels,
 			final ExecutorService exec )
 	{
 		final ExecutorService taskExecutor;
@@ -253,39 +282,53 @@ public class MatcherPairwiseTools
 		else
 			taskExecutor = exec;
 
-		final ArrayList< Callable< PairwiseResult< I > > > tasks = new ArrayList<>(); // your tasks
+		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = new ArrayList<>(); // your tasks
 
+		// each pair of Views that will be compared
 		for ( final Pair< V, V > pair : pairs )
 		{
-			final List< I > listA, listB;
+			// each view might have more than one labels associated with it
+			final Map<String, ? extends List<I>> mapA = interestpoints.get( pair.getA() );
+			final Map<String, ? extends List<I>> mapB = interestpoints.get( pair.getB() );
 
-			if ( matcher.requiresInterestPointDuplication() )
-			{
-				listA = new ArrayList<>();
-				listB = new ArrayList<>();
-
-				for ( final I ip : interestpoints.get( pair.getA() ) )
-					listA.add( (I)ip.clone() );
-
-				for ( final I ip : interestpoints.get( pair.getB() ) )
-					listB.add( (I)ip.clone() );
-			}
-			else
-			{
-				listA = interestpoints.get( pair.getA() );
-				listB = interestpoints.get( pair.getB() );
-			}
-
-			tasks.add( new Callable< PairwiseResult< I > >()
-			{
-				@Override
-				public PairwiseResult< I > call() throws Exception
+			for ( final String labelA : mapA.keySet() )
+				for ( final String labelB : mapB.keySet() )
 				{
-					final PairwiseResult< I > pwr = matcher.match( listA, listB );
-					assignLoggingDescriptions( pair, pwr );
-					return pwr;
+					if ( !matchAcrossLabels && !labelA.equals( labelB ) )
+						continue;
+
+					final List< I > listA, listB;
+
+					if ( matcher.requiresInterestPointDuplication() )
+					{
+						listA = new ArrayList<>();
+						listB = new ArrayList<>();
+
+						for ( final I ip : mapA.get( labelA ) )
+							listA.add( (I)ip.clone() );
+
+						for ( final I ip : mapB.get( labelB ) )
+							listB.add( (I)ip.clone() );
+					}
+					else
+					{
+						listA = mapA.get( labelA );
+						listB = mapB.get( labelB );
+					}
+
+					tasks.add( new Callable< Pair< Pair< V, V >, PairwiseResult< I > > >()
+					{
+						@Override
+						public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
+						{
+							final PairwiseResult< I > pwr = matcher.match( listA, listB );
+							pwr.setLabelA(labelA);
+							pwr.setLabelB(labelB);
+							assignLoggingDescriptions( pair, pwr );
+							return new ValuePair<>( pair, pwr );
+						}
+					});
 				}
-			});
 		}
 
 		final List< Pair< Pair< V, V >, PairwiseResult< I > > > r = new ArrayList<>();
@@ -293,14 +336,18 @@ public class MatcherPairwiseTools
 		try
 		{
 			// invokeAll() returns when all tasks are complete
-			List< Future< PairwiseResult< I > > > futures = taskExecutor.invokeAll( tasks );
-
-			for ( int i = 0; i < pairs.size(); ++i )
+			taskExecutor.invokeAll( tasks ).forEach( future ->
 			{
-				final PairwiseResult< I > pwr = futures.get( i ).get();
-				final Pair< V, V > pair = pairs.get( i );
-				r.add( new ValuePair< Pair< V, V >, PairwiseResult< I > >( pair, pwr ) );
-			}
+				try
+				{
+					r.add( future.get() );
+				}
+				catch (InterruptedException | ExecutionException e)
+				{
+					e.printStackTrace();
+					throw new RuntimeException( e );
+				}
+			});
 		}
 		catch ( final Exception e )
 		{
@@ -310,7 +357,6 @@ public class MatcherPairwiseTools
 		if ( exec == null )
 			taskExecutor.shutdown();
 
-		// TODO:
 		return r;
 	}
 }

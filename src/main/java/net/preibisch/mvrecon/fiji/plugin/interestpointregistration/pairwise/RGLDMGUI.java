@@ -48,6 +48,7 @@ public class RGLDMGUI extends PairwiseGUI
 	public static boolean defaultRegularize = true;
 	public static int defaultRANSACIterationChoice = 1;
 	public static float min_inlier_factor = 3f;
+
 	protected TransformationModelGUI model = null;
 
 	protected RGLDMParameters parameters;
@@ -83,6 +84,8 @@ public class RGLDMGUI extends PairwiseGUI
 		gd.addSlider( "Number_of_neighbors for the descriptors", 1, 10, RGLDMParameters.numNeighbors );
 		gd.addSlider( "Redundancy for descriptor matching", 0, 10, RGLDMParameters.redundancy );
 		gd.addSlider( "Significance required for a descriptor match", 1.0, 10.0, RGLDMParameters.ratioOfDistance );
+		gd.addCheckbox( "Limit_search_radius", RGLDMParameters.defaultLimitSearchRadius );
+		gd.addSlider( "Search_radius", 10.0, 1000.0, RGLDMParameters.defaultSearchRadius );
 
 		gd.addMessage( "" );
 		gd.addMessage( "Parameters for robust model-based outlier removal (RANSAC)", new Font( Font.SANS_SERIF, Font.BOLD, 12 ) );
@@ -114,6 +117,8 @@ public class RGLDMGUI extends PairwiseGUI
 		final int numNeighbors = RGLDMParameters.numNeighbors = (int)Math.round( gd.getNextNumber() );
 		final int redundancy = RGLDMParameters.redundancy = (int)Math.round( gd.getNextNumber() );
 		final float ratioOfDistance = RGLDMParameters.ratioOfDistance = (float)gd.getNextNumber();
+		final boolean limitSearchRadius = RGLDMParameters.defaultLimitSearchRadius = gd.getNextBoolean();
+		final double searchRadius = RGLDMParameters.defaultSearchRadius = gd.getNextNumber();
 		final float maxEpsilon = RANSACParameters.max_epsilon = (float)gd.getNextNumber();
 		final float inlierFactor = min_inlier_factor = (float)gd.getNextNumber();
 		final int ransacIterations = RANSACParameters.ransacChoicesIterations[ defaultRANSACIterationChoice = gd.getNextChoiceIndex() ];
@@ -126,7 +131,14 @@ public class RGLDMGUI extends PairwiseGUI
 		else
 			minInlierRatio = RANSACParameters.min_inlier_ratio / 100;
 
-		this.parameters = new RGLDMParameters( model.getModel(), RGLDMParameters.differenceThreshold, ratioOfDistance, numNeighbors, redundancy );
+		this.parameters = new RGLDMParameters(
+				model.getModel(),
+				RGLDMParameters.differenceThreshold,
+				ratioOfDistance,
+				limitSearchRadius,
+				searchRadius,
+				numNeighbors,
+				redundancy );
 		this.ransacParams = new RANSACParameters( maxEpsilon, minInlierRatio, inlierFactor, ransacIterations );
 
 		IOFunctions.println( "Selected Paramters:" );

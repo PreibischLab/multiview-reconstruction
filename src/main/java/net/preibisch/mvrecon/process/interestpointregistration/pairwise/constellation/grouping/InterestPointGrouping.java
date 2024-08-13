@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,29 +36,52 @@ import mpicbg.spim.data.sequence.ViewId;
  * 
  * @author spreibi
  */
-public abstract class InterestPointGrouping< V extends ViewId > implements Grouping< V, List< GroupedInterestPoint< V > > >
+public abstract class InterestPointGrouping< V extends ViewId > implements Grouping< V, HashMap< String, List< GroupedInterestPoint< V > > > >
 {
 	// all interestpoints
-	final Map< V, List< InterestPoint > > interestpoints;
-	int before, after;
+	final Map< V, HashMap< String, List< InterestPoint > > > interestpoints;
 
-	public InterestPointGrouping( final Map< V, List< InterestPoint > > interestpoints )
+	final HashMap< String, Long > before = new HashMap<>();
+	final HashMap< String, Long > after = new HashMap<>();
+
+	public InterestPointGrouping( final Map< V, HashMap< String, List< InterestPoint > > > interestpoints )
 	{
 		this.interestpoints = interestpoints;
 	}
 
-	public int countBefore() { return before; }
-	public int countAfter() { return after; }
+	public HashMap< String, Long >  countBefore() { return before; }
+	public HashMap< String, Long >  countAfter() { return after; }
 
 	@Override
-	public List< GroupedInterestPoint< V > > group( final Group< V > group )
+	public HashMap< String, List< GroupedInterestPoint< V > > > group( final Group< V > group )
 	{
-		final Map< V, List< InterestPoint > > toMerge = new HashMap<>();
+		final Map< V, HashMap< String, List< InterestPoint > > > toMerge = new HashMap<>();
 
-		this.before = 0;
+		this.before.clear();
+		this.after.clear();
 
+		// init
 		for ( final V view : group )
 		{
+			toMerge.putIfAbsent( view, new HashMap<>() );
+			interestpoints.get( view ).forEach( (label,points) ->
+				this.before.putIfAbsent(label, 0l) );
+		}
+
+		// prep merge
+		for ( final V view : group )
+		{
+			interestpoints.get( view ).forEach( (label,points) -> {
+
+				if ( points == null )
+					throw new RuntimeException( "no interestpoints available" );
+
+				before.put( label, before.get( label ) + points.size() );
+		
+				toMerge.get( view ).put( label, points );
+			});
+
+			/*
 			final List< InterestPoint > points = interestpoints.get( view );
 
 			if ( points == null )
@@ -65,15 +89,19 @@ public abstract class InterestPointGrouping< V extends ViewId > implements Group
 
 			before += points.size();
 	
-			toMerge.put( view, points );
+			toMerge.put( view, points ); */
 		}
 
-		final List< GroupedInterestPoint< V > > merged = merge( toMerge );
+		// merge
+		final HashMap< String, List< GroupedInterestPoint< V > > > merged = merge( toMerge );
 
-		this.after = merged.size();
+		// statistics
+		for ( final V view : group )
+			interestpoints.get( view ).forEach( (label,points) ->
+				this.after.put( label, (long)merged.get( label ).size() ) );
 
 		return merged;
 	}
 
-	protected abstract List< GroupedInterestPoint< V > > merge( Map< V, List< InterestPoint > > toMerge );
+	protected abstract HashMap< String, List< GroupedInterestPoint< V > > > merge( Map< V, HashMap< String, List< InterestPoint > > > toMerge );
 }

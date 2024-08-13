@@ -58,65 +58,6 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.
 
 public class DetectChromaticAbberation
 {
-	public static void main( String[] args ) throws SpimDataException, NotEnoughDataPointsException
-	{
-		new ImageJ();
-
-		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Data/SPIM/CLARITY/dataset_fullbrainsection.xml" );
-
-		// select views to process
-		final List< ViewId > viewIds = new ArrayList< ViewId >();
-		viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );
-		SpimData2.filterMissingViews( spimData, viewIds );
-
-		final ArrayList< Pair< Channel, Channel > > channelPairs = identifyChannelPairs( spimData, viewIds );
-
-		final Map< ViewId, String > labelMap = new HashMap<>();
-		for ( final ViewId viewId : viewIds )
-			labelMap.put( viewId, "objects" );
-
-		final Map< ViewId, List< InterestPoint > > interestpoints = new HashMap<>();
-
-		for ( final ViewId viewId : viewIds )
-			interestpoints.put( viewId,
-				TransformationTools.getInterestPoints(
-					viewId,
-					spimData.getViewRegistrations().getViewRegistrations(),
-					spimData.getViewInterestPoints().getViewInterestPoints(),
-					labelMap,
-					false ) );
-
-		final RANSACParameters rp = new RANSACParameters().setMinInlierFactor( 20 );
-		final RGLDMParameters dp = new RGLDMParameters( new TranslationModel3D(), 50, 2, 3, 1 );
-		//final IterativeClosestPointParameters ip = new IterativeClosestPointParameters( new TranslationModel3D(), 5.0, 100, false, 0, 0, IterativeClosestPointParameters.defaultMinNumPoints );
-
-		for ( final Pair< Channel, Channel > channelPair: channelPairs )
-		{
-			System.out.println( "Testing channel " + channelPair.getA().getName() + " vs " + channelPair.getB().getName()  );
-
-			final ArrayList< Pair< ViewId, ViewId > > viewPairs = identifyViewIdPairs( spimData, viewIds, channelPair );
-
-			for ( final Pair< ViewId, ViewId > viewPair : viewPairs )
-				System.out.println( "comparing view " + Group.pvid( viewPair.getA() ) + " <=> " + Group.pvid( viewPair.getB() )  );
-
-			final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > > result =
-					//MatcherPairwiseTools.computePairs( viewPairs, interestpoints, new IterativeClosestPointPairwise< InterestPoint >( ip ) );
-					MatcherPairwiseTools.computePairs( viewPairs, interestpoints, new RGLDMPairwise< InterestPoint >( rp, dp ) );
-
-			for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > p : result )
-			{
-				if ( p.getB().getInliers().size() > 0 )
-				{
-					//System.out.println( p.getB().getFullDesc() );
-
-					final TranslationModel3D model = new TranslationModel3D();
-					model.fit( p.getB().getInliers() );
-					System.out.println( Util.printCoordinates( model.getTranslation() ) );
-				}
-			}
-		}
-	}
-
 	public static < V extends ViewId > ArrayList< Pair< V, V > > identifyViewIdPairs(
 			final SpimData2 spimData,
 			final List< V > viewIds,

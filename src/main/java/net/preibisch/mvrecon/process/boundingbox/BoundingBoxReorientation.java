@@ -444,11 +444,16 @@ public class BoundingBoxReorientation implements BoundingBoxEstimation
 	{
 		final Map< ViewId, ViewRegistration > registrations = new HashMap<>();
 		final Map< ViewId, ViewInterestPointLists > interestpoints = new HashMap<>();
-		final Map< ViewId, String > labelMap = new HashMap<>();
+		final Map< ViewId, String > labelMap1 = new HashMap<>();
+		final Map< ViewId, HashMap< String, Double > > labelMap2 = new HashMap<>();
 
 		for ( final ViewId viewId : viewIds )
 		{
-			labelMap.put( viewId, label );
+			final HashMap< String, Double > map = new HashMap<>();
+			map.put(label, 1.0 );
+			labelMap2.put( viewId, map );
+
+			labelMap1.put( viewId, label );
 			registrations.put( viewId, data.getViewRegistrations().getViewRegistration( viewId ) );
 			interestpoints.put( viewId, data.getViewInterestPoints().getViewInterestPointLists( viewId ) );
 		}
@@ -463,7 +468,7 @@ public class BoundingBoxReorientation implements BoundingBoxEstimation
 					viewId,
 					registrations,
 					interestpoints,
-					labelMap,
+					labelMap1,
 					transform ) );
 			}
 			else
@@ -472,8 +477,8 @@ public class BoundingBoxReorientation implements BoundingBoxEstimation
 					viewId,
 					registrations,
 					interestpoints,
-					labelMap,
-					transform ) );
+					labelMap2,
+					transform ).get( label ) );
 			}
 		}
 

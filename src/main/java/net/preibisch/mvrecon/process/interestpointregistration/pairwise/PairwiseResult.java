@@ -22,9 +22,12 @@
  */
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import mpicbg.models.PointMatch;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -35,6 +38,11 @@ public class PairwiseResult< I extends InterestPoint >
 	private double error = Double.NaN;
 	private long time = 0;
 	private String result = "", desc = "";
+	private String labelA, labelB;
+
+	// only used temporarily in InterestPointMatchCreator to remember the flipped pointmatches
+	// between assignPointMatches() and assignWeights()
+	private Collection< PointMatch > flippedMatches = new ArrayList<>();
 
 	boolean printout = false, storeCorrespondences = true;
 
@@ -43,6 +51,12 @@ public class PairwiseResult< I extends InterestPoint >
 		this.storeCorrespondences = storeCorrespondences;
 		this.printout = true;
 	}
+
+	public void setLabelA( final String labelA ) { this.labelA = labelA; }
+	public void setLabelB( final String labelB ) { this.labelB = labelB; }
+
+	public String getLabelA() { return labelA; }
+	public String getLabelB() { return labelB; }
 
 	public boolean storeCorrespondences() { return storeCorrespondences; }
 	public void setPrintOut( final boolean printOut ) { this.printout = printOut; }
@@ -68,6 +82,9 @@ public class PairwiseResult< I extends InterestPoint >
 		this.inliers = inliers;
 		this.error = error;
 	}
+
+	public void setFlippedMatches( final Collection< PointMatch > flippedMatches ) { this.flippedMatches = flippedMatches; };
+	public Collection< PointMatch > getFlippedMatches() { return flippedMatches; };
 
 	public String getFullDesc() { return "(" + new Date( time ) + "): " + desc + ": " + result; }
 }

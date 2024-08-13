@@ -56,8 +56,10 @@ public class BasicRegistrationParameters
 	public RegistrationType registrationType;
 	public OverlapType overlapType;
 	public InterestPointOverlapType interestPointOverlapType;
-	public HashMap< ViewId, String > labelMap;
+	public HashMap< ViewId, HashMap< String, Double > > labelMap;
 	public boolean groupTiles, groupIllums, groupChannels;
+
+	public boolean matchAcrossLabels;
 
 	public OverlapDetection< ViewId > getOverlapDetection( final SpimData spimData )
 	{
