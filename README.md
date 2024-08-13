@@ -11,9 +11,9 @@ for the registration and fusion of multi-angle SPIM acquisitions.
 
 # Installation
 
-The easiest is to get the SPIM Reconstruction as part of [Fiji](http://fiji.sc/).
+The easiest is to use the multi-view reconstruction is as part of [Fiji](http://fiji.sc/), it is part of [BigStitcher](https://www.google.com/search?rls=en&q=BigStitcher&ie=UTF-8&oe=UTF-8).
 
-See also the [SPIM Registration page on the ImageJ
+You can also check the **outdated** [Multiview-Reconstruction page on the ImageJ
 wiki](http://imagej.net/Multiview-Reconstruction).
 
 For questions, bug reports, remarks and comments just use github here or send
@@ -23,10 +23,14 @@ If you want to **build the code** you can use Maven calling `mvn clean package` 
 
 # Citation
 
-Please note that the SPIM reconstruction plugin available through Fiji, is
+Please note that the Multiview-Reconstruction/BigStitcher plugin available through Fiji, is
 based on publications. If you use it successfully for your research please be
 so kind to cite our work:
 
+* D. Hörl, F.R. Rusak, F. Preusser, P. Tillberg, N. Randel, R.K. Chhetri, A. Cardona, P.J. Keller, H. Harz, H. Leonhardt, M. Treier & S. Preibisch, "BigStitcher: reconstructing high-resolution image datasets of cleared and expanded samples",
+  Nature Methods, 16: 870–874.
+  [Webpage](https://www.nature.com/articles/s41592-019-0501-0)
+  
 * S. Preibisch, S. Saalfeld, J. Schindelin and P. Tomancak (2010) "Software for
   bead-based registration of selective plane illumination microscopy data",
   Nature Methods, 7(6):418-419.
