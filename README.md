@@ -17,7 +17,9 @@ See also the [SPIM Registration page on the ImageJ
 wiki](http://imagej.net/Multiview-Reconstruction).
 
 For questions, bug reports, remarks and comments just use github here or send
-me an email: stephan.preibisch@einstein.yu.edu
+me an email: preibischs@janelia.hhmi.org
+
+If you want to **build the code** you can use Maven calling `mvn clean package` on the command line after checking the project out. Important: you will need to install Java with JavaFX, for example available here in the [Azul JDK](https://www.azul.com/downloads/?version=java-8-lts&package=jdk-fx#zulu).
 
 # Citation
 
