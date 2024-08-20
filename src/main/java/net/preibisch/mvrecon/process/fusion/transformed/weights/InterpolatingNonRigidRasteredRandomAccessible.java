@@ -70,4 +70,10 @@ public class InterpolatingNonRigidRasteredRandomAccessible< T > implements Rando
 
 	@Override
 	public RandomAccess< T > randomAccess( final Interval interval ) { return randomAccess(); }
+
+	@Override
+	public T getType()
+	{
+		return realRandomAccessible.getType();
+	}
 }

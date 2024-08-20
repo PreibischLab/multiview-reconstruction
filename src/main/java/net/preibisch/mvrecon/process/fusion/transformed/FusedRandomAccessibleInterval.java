@@ -114,6 +114,12 @@ public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< 
 	}
 
 	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
+
+	@Override
 	public long min( final int d ) { return interval.min( d ); }
 
 	@Override

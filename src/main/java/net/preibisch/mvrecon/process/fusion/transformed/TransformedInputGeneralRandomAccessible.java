@@ -68,6 +68,12 @@ public class TransformedInputGeneralRandomAccessible< T extends RealType< T > > 
 	}
 
 	@Override
+	public FloatType getType()
+	{
+		return new FloatType();
+	}
+
+	@Override
 	public int numDimensions()
 	{
 		return img.numDimensions();

@@ -105,8 +105,13 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<bigdataviewer-core.version>10.4.12</bigdataviewer-core.version>
-		<bigdataviewer-vistools.version>1.0.0-beta-33</bigdataviewer-vistools.version>
+		<imglib2.version>7.1.0</imglib2.version>
+		<imglib2-realtransform.version>4.0.3</imglib2-realtransform.version>
+		<imglib2-cache.version>1.0.0-beta-18</imglib2-cache.version>
+		<imglib2-algorithm.version>0.15.3</imglib2-algorithm.version>
+		<imglib2-roi.version>0.15.0</imglib2-roi.version>
+		<bigdataviewer-core.version>10.6.0</bigdataviewer-core.version>
+		<bigdataviewer-vistools.version>1.0.0-beta-36</bigdataviewer-vistools.version>
 	</properties>
 
 	<repositories>
@@ -141,13 +146,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-		</dependency>
-
-		<!-- vistools temporary -->
-		<dependency>
-			<!-- NB: dependency:analyze erroneously flags this, but it's required -->
-			<groupId>sc.fiji</groupId>
-			<artifactId>bigdataviewer-vistools</artifactId>
 		</dependency>
 
 		<!-- ImgLib2 dependencies -->
@@ -269,7 +267,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>picocli</artifactId>
 		</dependency>
 	</dependencies>
-	
+
 	<profiles>
 	<profile>
 			<id>fatjar</id>

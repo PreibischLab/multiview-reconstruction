@@ -65,4 +65,10 @@ public class TransformedRasteredRandomAccessible< T > implements RandomAccessibl
 
 	@Override
 	public RandomAccess< T > randomAccess( final Interval interval ) { return randomAccess(); }
+
+	@Override
+	public T getType()
+	{
+		return realRandomAccessible.getType();
+	}
 }
