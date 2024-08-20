@@ -291,11 +291,23 @@ public class MatcherPairwiseTools
 			final Map<String, ? extends List<I>> mapA = interestpoints.get( pair.getA() );
 			final Map<String, ? extends List<I>> mapB = interestpoints.get( pair.getB() );
 
+			final HashMap<String, String > compared = new HashMap<>();
+
 			for ( final String labelA : mapA.keySet() )
 				for ( final String labelB : mapB.keySet() )
 				{
 					if ( !matchAcrossLabels && !labelA.equals( labelB ) )
 						continue;
+
+					if ( compared.containsKey( labelA ) && compared.get( labelA ).equals( labelB ) )
+						continue;
+
+					// remember what we already compared
+					compared.put( labelA, labelB );
+
+					// for matchAcross also the inverse (A>B means we also did B>A)
+					if ( matchAcrossLabels && !labelA.equals( labelB ) )
+						compared.put( labelB, labelA );
 
 					final List< I > listA, listB;
 
