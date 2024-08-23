@@ -40,7 +40,7 @@ public class SpimDataExample
 
 		//final SpimData< TimePoint, ViewSetupBeads > spimData = io.load( xmlFilename );
 
-		final XmlIoSpimData2 io = new XmlIoSpimData2( "" );
+		final XmlIoSpimData2 io = new XmlIoSpimData2();
 
 		final SpimData2 spimData = io.load( xmlFilename );
 

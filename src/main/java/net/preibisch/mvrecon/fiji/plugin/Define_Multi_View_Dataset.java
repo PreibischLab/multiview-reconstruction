@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 import java.awt.AWTEvent;
 import java.awt.Choice;
 import java.awt.event.ItemEvent;
+import java.net.URI;
 import java.util.ArrayList;
 
 import fiji.util.gui.GenericDialogPlus;
@@ -148,12 +149,12 @@ public class Define_Multi_View_Dataset implements PlugIn
 		}
 		else
 		{
-			final String xml = SpimData2.saveXML( spimData, xmlFileName, "" );
+			final URI xml = SpimData2.saveXML( spimData, xmlFileName );
 
 			if ( xml != null )
 			{
-				GenericLoadParseQueryXML.defaultXMLfilename = xml;
-				return new ValuePair< SpimData2, String >( spimData, xml );
+				GenericLoadParseQueryXML.defaultXMLURI = xml.toString(); // TODO: if file, remove file:/
+				return new ValuePair< SpimData2, String >( spimData, xmlFileName );
 			}
 			else
 			{

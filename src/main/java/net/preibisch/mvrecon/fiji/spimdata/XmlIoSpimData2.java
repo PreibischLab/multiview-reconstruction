@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -40,7 +41,7 @@ import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunct
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlIoPointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.XmlIoStitchingResults;
-
+import util.URITools;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.registration.XmlIoViewRegistrations;
@@ -58,11 +59,11 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 	final XmlIoStitchingResults xmlStitchingResults;
 	final XmlIoIntensityAdjustments xmlIntensityAdjustments;
 
-	String clusterExt, lastFileName;
+	URI lastURI;
 	public static int numBackups = 5;
 	public static boolean initN5Writing = true;
 
-	public XmlIoSpimData2( final String clusterExt )
+	public XmlIoSpimData2()
 	{
 		super( SpimData2.class, new XmlIoSequenceDescription(), new XmlIoViewRegistrations() );
 
@@ -81,8 +82,6 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		this.xmlIntensityAdjustments = new XmlIoIntensityAdjustments();
 		this.handledTags.add( xmlIntensityAdjustments.getTag() );
 
-		this.clusterExt = clusterExt;
-
 		if ( initN5Writing )
 		{
 			try
@@ -95,27 +94,49 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 	}
 
-	public void setClusterExt( final String clusterExt ) { this.clusterExt = clusterExt; }
+	public SpimData2 load( final String xmlFilename ) throws SpimDataException
+	{
+		throw new RuntimeException( "This method is outdated and does not work anymore, use load( URI xmlURI )." );
+	}
 
 	@Override
-	public void save( final SpimData2 spimData, String xmlFilename ) throws SpimDataException
+	public void save( final SpimData2 spimData, String xmlURI ) throws SpimDataException
 	{
-		if ( clusterExt != null && clusterExt.length() > 0 )
+		throw new RuntimeException( "This method is outdated and does not work anymore, use save( final SpimData2 spimData, URI xmlURI )." );
+	}
+
+	public SpimData2 load( final URI xmlURI ) throws SpimDataException
+	{
+		IOFunctions.println( "Loading: " + xmlURI.toString() );
+
+		if ( URITools.isFile( xmlURI ) )
 		{
-			if ( xmlFilename.toLowerCase().endsWith( ".xml" ) )
-			{
-				xmlFilename =
-						xmlFilename.substring( 0, xmlFilename.length() - 4 ) + "." + this.clusterExt +
-						xmlFilename.substring( xmlFilename.length() - 4, xmlFilename.length() );
-			}
-			else
-			{
-				xmlFilename += this.clusterExt + ".xml";
-			}
+			return super.load( xmlURI.toString() );
 		}
+		else if ( URITools.isS3( xmlURI ) )
+		{
+			throw new RuntimeException( "Not implemented yet." );
+		}
+		else if ( URITools.isGC( xmlURI ) )
+		{
+			throw new RuntimeException( "Not implemented yet." );
+		}
+		else
+		{
+			throw new RuntimeException( "Unsupported URI: " + xmlURI );
+		}
+	}
 
-		this.lastFileName = xmlFilename;
+	//@Override
+	public void save( final SpimData2 spimData, URI xmlURI ) throws SpimDataException
+	{
+		this.lastURI = xmlURI;
 
+		// TODO: copy on cloud is different!
+		// TODO: saving on the cloud is different
+		throw new RuntimeException( "Not implemented yet." );
+
+		/*
 		// fist make a copy of the XML and save it to not loose it
 		if ( new File( xmlFilename ).exists() )
 		{
@@ -142,11 +163,11 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 
 		super.save( spimData, xmlFilename );
-
+		*/
 		// save also as zarr metadata object
 	}
 
-	public String lastFileName() { return lastFileName; }
+	public URI lastURI() { return lastURI; }
 
 	protected static void copyFile( final File inputFile, final File outputFile ) throws IOException
 	{
@@ -174,7 +195,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 	}
 
 	@Override
-	public SpimData2 fromXml( final Element root, final File xmlFile ) throws SpimDataException
+	public SpimData2 fromXml( final Element root, final URI xmlFile ) throws SpimDataException
 	{
 		final SpimData2 spimData = super.fromXml( root, xmlFile );
 		final SequenceDescription seq = spimData.getSequenceDescription();
@@ -188,7 +209,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 		else
 		{
-			viewsInterestPoints = xmlViewsInterestPoints.fromXml( elem, spimData.getBasePath(), seq.getViewDescriptions() );
+			viewsInterestPoints = xmlViewsInterestPoints.fromXml( elem, spimData.getBasePathURI(), seq.getViewDescriptions() );
 		}
 		spimData.setViewsInterestPoints( viewsInterestPoints );
 

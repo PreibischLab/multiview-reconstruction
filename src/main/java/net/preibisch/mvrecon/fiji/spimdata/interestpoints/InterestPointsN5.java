@@ -23,7 +23,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
 import java.io.File;
-import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,7 +57,7 @@ public class InterestPointsN5 extends InterestPoints
 	ArrayList< InterestPoint > interestPoints;
 	ArrayList< CorrespondingInterestPoints > correspondingInterestPoints;
 
-	protected InterestPointsN5( final File baseDir, final String n5path )
+	protected InterestPointsN5( final URI baseDir, final String n5path )
 	{
 		super(baseDir);
 		this.n5path = n5path;
@@ -146,6 +146,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
+			// TODO: cloud support
 			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
@@ -237,6 +238,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
+			// TODO: cloud support
 			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 
 			if (n5Writer.exists(dataset))
@@ -344,6 +346,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
+			// TODO: cloud support
 			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = ipDataset();
 
@@ -443,7 +446,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-
+			// TODO: cloud support
 			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
 			final String dataset = corrDataset();
 
@@ -561,6 +564,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
+			// TODO: cloud support
 			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
 	
 			if (n5Writer.exists(ipDataset()))
@@ -584,6 +588,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
+			// TODO: cloud support
 			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
 	
 			if (n5Writer.exists(corrDataset()))

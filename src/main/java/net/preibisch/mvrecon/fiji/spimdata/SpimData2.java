@@ -23,6 +23,8 @@
 package net.preibisch.mvrecon.fiji.spimdata;
 
 import java.io.File;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,6 +57,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 /**
  * Extends the {@link SpimData} class; has additonally detections
@@ -509,12 +512,14 @@ public class SpimData2 extends SpimData
 		return timepoints;
 	}
 
-	public static String saveXML( final SpimData2 data, final String xmlFileName, final String clusterExtension  )
+	public static URI saveXML( final SpimData2 data, final String xmlFileName )
 	{
 		// save the xml
-		final XmlIoSpimData2 io = new XmlIoSpimData2( clusterExtension );
-		
-		final String xml = new File( data.getBasePath(), new File( xmlFileName ).getName() ).getAbsolutePath();
+		final XmlIoSpimData2 io = new XmlIoSpimData2();
+
+		final URI xml = URITools.xmlFilenameToFullPath(data, xmlFileName);
+		//final String xml = new File( data.getBasePath(), new File( xmlFileName ).getName() ).getAbsolutePath();
+
 		try
 		{
 			for ( final ViewId viewId : data.getViewInterestPoints().getViewInterestPoints().keySet() )
@@ -531,16 +536,17 @@ public class SpimData2 extends SpimData
 			}
 
 			io.save( data, xml );
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + io.lastFileName() + "'." );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + io.lastURI() + "'." );
 			return xml;
 		}
 		catch ( Exception e )
 		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + io.lastFileName() + "': " + e );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + io.lastURI() + "': " + e );
 			e.printStackTrace();
 			return null;
 		}
 	}
+
 
 	public static SpimData2 convert( final SpimData data1 )
 	{
@@ -610,4 +616,16 @@ public class SpimData2 extends SpimData
 		return groupsOut;
 	}
 
+	public static void main( String[] args )
+	{
+		File f = new File( "/nrs/" );
+		URI u = f.toURI();
+		//u = URI.create( "s3://myBucket/" ) ;
+
+		URI u2 = URI.create( u.toString() + ( u.toString().endsWith( "/" ) ? "" : "/") + "test.xml" );
+		
+		System.out.println( u );
+		System.out.println( u2 );
+		System.out.println( Paths.get(u2.getPath()).getFileName().toString());
+	}
 }

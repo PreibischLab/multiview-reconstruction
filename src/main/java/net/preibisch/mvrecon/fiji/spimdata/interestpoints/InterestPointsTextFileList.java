@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +53,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	 * @param file - relative path to the file to load/save the list from, an extension is added automatically (.ip.txt &amp;&amp; .corr.txt)
 	 * for interestpoints and correspondences
 	 */
-	protected InterestPointsTextFileList( final File baseDir, final File file )
+	protected InterestPointsTextFileList( final URI baseDir, final File file )
 	{
 		super( baseDir );
 

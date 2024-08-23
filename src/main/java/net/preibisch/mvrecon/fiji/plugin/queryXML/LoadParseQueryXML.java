@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin.queryXML;
 
 import ij.ImageJ;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +33,7 @@ import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.plugin.Define_Multi_View_Dataset;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-
+import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
@@ -45,7 +46,7 @@ import mpicbg.spim.data.sequence.ViewSetup;
 
 public class LoadParseQueryXML extends GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 >
 {
-	public LoadParseQueryXML() { super( new XmlIoSpimData2( "" ) ); }
+	public LoadParseQueryXML() { super( new XmlIoSpimData2() ); }
 
 	public boolean queryXML(
 			final String additionalTitle,
@@ -125,15 +126,12 @@ public class LoadParseQueryXML extends GenericLoadParseQueryXML< SpimData2, Sequ
 				return false;
 
 			data = dataset.getA();
-			xmlfilename = dataset.getB();
-			io = new XmlIoSpimData2( "" );
+			xmlFileName = dataset.getB();
+			//xmlURI = SpimData2.xmlFilenameToFullPath( dataset.getA(), dataset.getB() );
+			io = new XmlIoSpimData2();
 
 			return true;
 		}
-
-		// make sure the internal IO is updated to reflect the cluster saving
-		if ( success )
-			this.getIO().setClusterExt( this.getClusterExtension() );
 
 		return success;
 	}
@@ -162,8 +160,11 @@ public class LoadParseQueryXML extends GenericLoadParseQueryXML< SpimData2, Sequ
 	@SuppressWarnings("unchecked")
 	public List< Tile > getTilesToProcess() { return (List< Tile >)(Object)attributeInstancesToProcess.get( "tile" ); }
 
-	//@Override
-	//public XmlIoSpimData2 getIO() { return (XmlIoSpimData2)io; }
+	@Override
+	protected SpimData2 parseXML(URI xmlPath) throws SpimDataException
+	{
+		return io.load( xmlPath );
+	}
 
 	public static void main( String args[] )
 	{

@@ -30,6 +30,7 @@ import static net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlKeysInterest
 import static net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlKeysInterestPoints.VIEWINTERESTPOINTS_TIMEPOINT_ATTRIBUTE_NAME;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
@@ -76,7 +77,7 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 		return elem;
 	}
 
-	public ViewInterestPoints fromXml( final Element allInterestPointLists, final File basePath, final Map< ViewId, ViewDescription > viewDescriptions ) throws SpimDataException
+	public ViewInterestPoints fromXml( final Element allInterestPointLists, final URI basePath, final Map< ViewId, ViewDescription > viewDescriptions ) throws SpimDataException
 	{
 		final ViewInterestPoints viewsInterestPoints = super.fromXml( allInterestPointLists );
 		//viewsInterestPoints.createViewInterestPoints( viewDescriptions );

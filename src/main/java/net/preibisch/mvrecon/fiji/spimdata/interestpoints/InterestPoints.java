@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
 import java.io.File;
+import java.net.URI;
 import java.util.List;
 
 import mpicbg.spim.data.sequence.ViewId;
@@ -37,19 +38,19 @@ public abstract class InterestPoints
 {
 	public static boolean saveAsN5 = true;
 
-	File baseDir;
+	URI baseDir;
 	String parameters;
 
 	boolean modifiedInterestPoints, modifiedCorrespondingInterestPoints;
 
-	protected InterestPoints(final File baseDir)
+	protected InterestPoints(final URI baseDir)
 	{
 		this.baseDir = baseDir;
 		this.modifiedInterestPoints = false;
 		this.modifiedCorrespondingInterestPoints = false;
 	}
 
-	public static InterestPoints instantiatefromXML( final File baseDir, final String fromXMLInfo )
+	public static InterestPoints instantiatefromXML( final URI baseDir, final String fromXMLInfo )
 	{
 		if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints/") )
 			return new InterestPointsTextFileList( baseDir, new File( fromXMLInfo ) );

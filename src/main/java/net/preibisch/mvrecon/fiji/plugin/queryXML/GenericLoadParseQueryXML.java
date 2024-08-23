@@ -25,10 +25,10 @@ package net.preibisch.mvrecon.fiji.plugin.queryXML;
 import java.awt.Button;
 import java.awt.Color;
 import java.awt.Label;
-import java.awt.TextField;
 import java.awt.event.ActionListener;
-import java.awt.event.TextEvent;
-import java.awt.event.TextListener;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,13 +37,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
-import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
-import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
-import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
-import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
 
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
@@ -63,13 +56,19 @@ import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
+import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import util.URITools;
 
 /**
  * Interface for interactive parsing of spimdata XMLs
  * 
  * @author Stephan Preibisch (stephan.preibisch@gmx.de)
  */
-public class GenericLoadParseQueryXML<
+public abstract class GenericLoadParseQueryXML<
 		AS extends AbstractSpimData< S >,
 		S extends AbstractSequenceDescription< V, D, L >,
 		V extends BasicViewSetup,
@@ -77,8 +76,7 @@ public class GenericLoadParseQueryXML<
 		L extends BasicImgLoader,
 		X extends XmlIoAbstractSpimData< S, AS > >
 {
-	public static String defaultXMLfilename = "";
-	public static boolean debugRandomClusterHash = false;
+	public static String defaultXMLURI = ""; // the full URI path, but as String (so it'll contain e.g. file:/... )
 
 	protected static String goodMsg1 = "The selected XML file was parsed successfully";
 	protected static String warningMsg1 = "The selected file does not appear to be an xml. Press OK to try to parse anyways.";
@@ -87,13 +85,6 @@ public class GenericLoadParseQueryXML<
 	protected static String neutralMsg1b = "Please select an existing XML.";
 	protected static String noMsg2 = " ";
 	protected static String[] attributeChoiceList = new String[]{ "All *s", "Single * (Select from List)", "Multiple *s (Select from List)", "Range of *s (Specify by Name)" };
-
-	public static final String[] clusterOptions1 = new String[]{
-		"Do not process on cluster",
-		"Save every XML with unique id generated from processed subset",
-		"Save every XML with user-provided unique id" };
-
-	public static int defaultClusterOption1 = 1;
 
 	// remember as default
 	public static HashMap< String, Integer > defaultAttributeChoice = new HashMap< String, Integer >();
@@ -116,7 +107,8 @@ public class GenericLoadParseQueryXML<
 	
 	// result variables
 	protected AS data;
-	protected String xmlfilename;
+	//protected URI xmlURI; // the full path
+	protected String xmlFileName; // the file name only
 	protected ArrayList< TimePoint > timepointsToProcess;
 	
 	// which attributes are there
@@ -127,9 +119,6 @@ public class GenericLoadParseQueryXML<
 
 	// all instances of all entities per attribute
 	protected HashMap< String, List< Entity > > attributeInstancesToProcess;
-
-	// extension for the XML when saving
-	protected String clusterExt = null;
 
 	// add a button on demand
 	protected ArrayList< String > buttonText = null;
@@ -162,8 +151,10 @@ public class GenericLoadParseQueryXML<
 	/**
 	 * @return The location of the xml file
 	 */
-	public String getXMLFileName() { return xmlfilename; }
-	
+	public URI getXMLURI() { return URITools.xmlFilenameToFullPath( getData(), xmlFileName ); }
+
+	public String getXMLFileName() { return xmlFileName; }
+
 	/**
 	 * @return All timepoints that should be processed
 	 */
@@ -236,29 +227,32 @@ public class GenericLoadParseQueryXML<
 		// should not be null, just empty
 		if ( specifyAttributes == null )
 			specifyAttributes = new ArrayList< String >();
-		
+
 		// they are ordered by alphabet (or user defined) so that the details and then queried in the same order
 		if ( comparator == null )
 			Collections.sort( specifyAttributes );
 		else
 			Collections.sort( specifyAttributes, comparator );
-		
+
 		// timepoint is always last
 		if ( specifyAttributes.contains( XmlKeys.TIMEPOINTS_TIMEPOINT_TAG ) )
 		{
 			specifyAttributes.remove( XmlKeys.TIMEPOINTS_TIMEPOINT_TAG );
 			specifyAttributes.add( XmlKeys.TIMEPOINTS_TIMEPOINT_TAG );
 		}
-		
+
 		// adjust query to support recording
 		if ( query.contains( " " ) )
 			query = query.replaceAll( " ", "_" );
-		
+
 		this.attributeChoice = new HashMap< String, Integer >();
-		
+
 		// try parsing if it ends with XML
-		tryParsing( defaultXMLfilename, false );
-		
+		try
+		{
+			tryParsing( new URI( defaultXMLURI ), false );
+		} catch (URISyntaxException e) {}
+
 		final GenericDialogPlus gd;
 		
 		if ( additionalTitle != null && additionalTitle.length() > 0 )
@@ -268,7 +262,7 @@ public class GenericLoadParseQueryXML<
 
 		final String text = "Select";
 
-		gd.addFileField( text, defaultXMLfilename, 65 );
+		gd.addFileField( text, defaultXMLURI, 65 );
 		gd.addMessage( this.message1, GUIHelper.largestatusfont, this.color );
 		Label l1 = (Label)gd.getMessage();
 		
@@ -287,32 +281,6 @@ public class GenericLoadParseQueryXML<
 			gd.addChoice( query + "_" + attribute, choices, choices[ defaultChoice ] );
 		}
 
-		if ( Toggle_Cluster_Options.displayClusterProcessing )
-		{
-			gd.addMessage( "" );
-			gd.addChoice( "XML_Output", clusterOptions1, clusterOptions1[ defaultClusterOption1 ] );
-			gd.addMessage( "Note: Later on you need to merge the different XML's using Plugins>MultiView Reconstruction>Tools>Cluster>Merge Cluster Jobs", GUIHelper.smallStatusFont );
-		}
-
-		if ( !PluginHelper.isHeadless() )
-			addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
-
-		if ( buttonText != null && listener != null )
-		{
-			for ( int i = 0; i < buttonText.size(); ++i )
-			{
-				gd.addMessage( "", GUIHelper.smallStatusFont );
-				gd.addButton( buttonText.get( i ), listener.get( i ) );
-
-				try
-				{
-					if ( buttonText.get( i ).equals( "Define a new dataset" ) )
-						defineNewDataset = ((Button)gd.getComponent( gd.getComponentCount() - 1 ));
-				}
-				catch (Exception e) { defineNewDataset = null; }
-			}
-		}
-
 		this.gd = gd;
 
 		gd.addMessage( "" );
@@ -323,17 +291,29 @@ public class GenericLoadParseQueryXML<
 		if ( gd.wasCanceled() )
 			return false;
 		
-		String xmlFilename = defaultXMLfilename = gd.getNextString();
+		String xmlURI = defaultXMLURI = gd.getNextString();
 
 		// try to parse the file anyways
-		tryParsing( xmlFilename, true );
+		boolean success;
 
-		if ( buttonText != null && xmlFilename.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
+		try
+		{
+			success = tryParsing( new URI( xmlURI ), true );
+		}
+		catch (URISyntaxException e)
+		{
+			success = false;
+		}
+
+		if ( buttonText != null && xmlURI.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 		{
 			this.data = null;
 			this.attributes = null;
 			return true;
 		}
+
+		if ( !success )
+			return false;
 
 		for ( int i = 0; i < specifyAttributes.size(); ++i )
 		{
@@ -344,68 +324,11 @@ public class GenericLoadParseQueryXML<
 			attributeChoice.put( attribute, choice );
 		}
 
-		final int clusterSaving;
-
-		// check for cluster options if selected
-		if ( Toggle_Cluster_Options.displayClusterProcessing )
-			clusterSaving = defaultClusterOption1 = gd.getNextChoiceIndex();
-		else
-			clusterSaving = 0;
-
 		// fill up angles, channels, illuminations, timepoints (all, if there is no further dialog)
 		if ( !queryDetails() )
 			return false;
 
-		if ( clusterSaving == 0 )
-		{
-			this.clusterExt = "";
-		}
-		else if ( clusterSaving == 1 )
-		{
-			this.clusterExt = "job_" + createUniqueName();
-		}
-		else
-		{
-			final GenericDialog gdCluster = new GenericDialog( "Define unique ID" );
-			gdCluster.addStringField( "UNIQUE_ID", "" );
-			gdCluster.addMessage( "Note: Using an ID twice might result in overwriting of the XML files.", GUIHelper.smallStatusFont );
-
-			gdCluster.showDialog();
-
-			if ( gdCluster.wasCanceled() )
-				return false;
-
-			this.clusterExt = "job_" + gdCluster.getNextString();
-		}
-
 		return true;
-	}
-
-	public String getClusterExtension() { return this.clusterExt; }
-
-	protected String createUniqueName()
-	{
-		long idSum = 1;
-
-		for ( final TimePoint t : getTimePointsToProcess() )
-			idSum *= t.getId();
-
-		for ( final BasicViewSetup v : getViewSetupsToProcess() )
-			idSum += v.getId();
-
-		long nano = System.nanoTime();
-		long millis = System.currentTimeMillis();
-		long finalHash = nano + millis + idSum;
-
-		if ( debugRandomClusterHash )
-		{
-			IOFunctions.println( "idsum=" + idSum );
-			IOFunctions.println( "nano=" + nano );
-			IOFunctions.println( "millis=" + millis );
-			IOFunctions.println( "final=" + finalHash );
-		}
-
-		return "" + finalHash;
 	}
 
 	/**
@@ -552,6 +475,7 @@ public class GenericLoadParseQueryXML<
 		catch ( final ParseException e ) 
 		{
 			IOFunctions.println( "Cannot parse pattern '" + defaultSelection + "': " + e );
+			//e.printStackTrace();
 			return null;
 		}
 		
@@ -710,9 +634,9 @@ public class GenericLoadParseQueryXML<
 		return choiceList;
 	}
 
-	protected boolean tryParsing( final String xmlfile, final boolean parseAllTypes )
+	protected boolean tryParsing( final URI xmlURI, final boolean parseAllTypes )
 	{
-		this.xmlfilename = xmlfile;
+		//this.xmlURI = xmlURI;
 		if ( buttonText != null && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 			this.message1 = neutralMsg1a;
 		else
@@ -721,11 +645,13 @@ public class GenericLoadParseQueryXML<
 		this.color = GUIHelper.neutral;
 		this.data = null;
 		
-		if ( parseAllTypes || ( !parseAllTypes && xmlfile.endsWith( ".xml" ) ) )
+		if ( parseAllTypes || ( !parseAllTypes && xmlURI.toString().endsWith( ".xml" ) ) )
 		{
 			try 
 			{
-				this.data = parseXML( xmlfile );
+				this.data = parseXML( xmlURI );
+
+				this.xmlFileName = Paths.get(xmlURI.getPath()).getFileName().toString();
 
 				// which attributes
 				this.attributes = getAttributes( data, comparator );
@@ -754,12 +680,12 @@ public class GenericLoadParseQueryXML<
 				if ( defineNewDataset != null )
 					defineNewDataset.setForeground( Color.BLACK );
 
-				IOFunctions.println( "Cannot parse '" + xmlfile + "': " + e );
+				IOFunctions.println( "Cannot parse '" + xmlURI + "': " + e );
 				e.printStackTrace();
 				return false;
 			}
 		}
-		else if ( xmlfile.length() > 0 )
+		else if ( xmlURI.toString().length() > 0 )
 		{
 			this.message1 = warningMsg1;
 			this.message2 = noMsg2;
@@ -937,11 +863,9 @@ public class GenericLoadParseQueryXML<
 		return message2;
 	}
 
-	protected AS parseXML( final String xmlFilename ) throws SpimDataException
-	{
-		return io.load( xmlFilename );
-	}
+	protected abstract AS parseXML( final URI xmlPath ) throws SpimDataException;
 
+	/*
 	protected void addListeners( final GenericDialog gd, final TextField tf, final Label label1, final Label label2  )
 	{
 		final GenericLoadParseQueryXML< ?,?,?,?,?,? > lpq = this;
@@ -966,5 +890,5 @@ public class GenericLoadParseQueryXML<
 				}
 			}
 		});
-	}
+	}*/
 }
