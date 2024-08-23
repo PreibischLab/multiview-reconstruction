@@ -42,6 +42,17 @@ public class URITools
 		return !hasScheme || FILE_SCHEME.asPredicate().test( scheme );
 	}
 
+	public static String removeFilePrefix( URI uri )
+	{
+		final String scheme = uri.getScheme();
+		final boolean hasScheme = scheme != null;
+
+		if ( hasScheme && FILE_SCHEME.asPredicate().test( scheme ) )
+			return uri.toString().substring( 5, uri.toString().length() ); // cut off 'file:'
+		else
+			return uri.toString();
+	}
+
 	public static URI xmlFilenameToFullPath( final AbstractSpimData<?> data, final String xmlFileName )
 	{
 		return URI.create( data.getBasePathURI().toString() + ( data.getBasePathURI().toString().endsWith( "/" ) ? "" : "/") + xmlFileName );

@@ -111,7 +111,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 		if ( URITools.isFile( xmlURI ) )
 		{
-			return super.load( xmlURI.toString() );
+			return super.load( URITools.removeFilePrefix( xmlURI ) );
 		}
 		else if ( URITools.isS3( xmlURI ) )
 		{

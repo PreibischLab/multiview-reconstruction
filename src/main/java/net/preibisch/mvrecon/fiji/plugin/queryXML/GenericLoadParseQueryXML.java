@@ -25,7 +25,10 @@ package net.preibisch.mvrecon.fiji.plugin.queryXML;
 import java.awt.Button;
 import java.awt.Color;
 import java.awt.Label;
+import java.awt.TextField;
 import java.awt.event.ActionListener;
+import java.awt.event.TextEvent;
+import java.awt.event.TextListener;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -57,6 +60,7 @@ import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
 import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
@@ -285,6 +289,9 @@ public abstract class GenericLoadParseQueryXML<
 
 		gd.addMessage( "" );
 		GUIHelper.addCredits( gd );
+
+		if ( !PluginHelper.isHeadless() )
+			addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
 
 		gd.showDialog();
 		
@@ -636,6 +643,8 @@ public abstract class GenericLoadParseQueryXML<
 
 	protected boolean tryParsing( final URI xmlURI, final boolean parseAllTypes )
 	{
+		IOFunctions.println( "Trying to parse '" + xmlURI + "'"  );
+
 		//this.xmlURI = xmlURI;
 		if ( buttonText != null && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 			this.message1 = neutralMsg1a;
@@ -865,14 +874,13 @@ public abstract class GenericLoadParseQueryXML<
 
 	protected abstract AS parseXML( final URI xmlPath ) throws SpimDataException;
 
-	/*
 	protected void addListeners( final GenericDialog gd, final TextField tf, final Label label1, final Label label2  )
 	{
 		final GenericLoadParseQueryXML< ?,?,?,?,?,? > lpq = this;
 		
 		// using TextListener instead
 		tf.addTextListener( new TextListener()
-		{	
+		{
 			@Override
 			public void textValueChanged( final TextEvent t )
 			{
@@ -881,8 +889,17 @@ public abstract class GenericLoadParseQueryXML<
 					final String xmlFilename = tf.getText();
 					
 					// try parsing if it ends with XML
-					tryParsing( xmlFilename, false );
-					
+					try
+					{
+						tryParsing( new URI( xmlFilename ), false );
+					}
+					catch (URISyntaxException e)
+					{
+						lpq.message1 = errorMsg1;
+						lpq.message2 = noMsg2;
+						lpq.color = GUIHelper.error;
+					}
+
 					label1.setText( lpq.message1 );
 					label2.setText( lpq.message2 );
 					label1.setForeground( lpq.color );
@@ -890,5 +907,5 @@ public abstract class GenericLoadParseQueryXML<
 				}
 			}
 		});
-	}*/
+	}
 }

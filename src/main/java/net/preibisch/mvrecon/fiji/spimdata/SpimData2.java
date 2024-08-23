@@ -626,6 +626,7 @@ public class SpimData2 extends SpimData
 		
 		System.out.println( u );
 		System.out.println( u2 );
+		System.out.println( URITools.removeFilePrefix( u2 ) );
 		System.out.println( Paths.get(u2.getPath()).getFileName().toString());
 	}
 }
