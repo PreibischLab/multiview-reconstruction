@@ -30,6 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -55,11 +57,6 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
@@ -68,6 +65,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
+import util.URITools;
 
 public class Resave_TIFF implements PlugIn
 {
@@ -79,13 +77,13 @@ public class Resave_TIFF implements PlugIn
 		new Resave_TIFF().run( null );
 	}
 
-	public static class Parameters
+	public static class ParametersResaveAsTIFF
 	{
-		public String xmlFile;
+		public URI xmlPath;
 		public boolean compress;
 		
 		public boolean compress() { return compress; }
-		public String getXMLFile() { return xmlFile; }
+		public URI getXMLPath() { return xmlPath; }
 	}
 
 	@Override
@@ -98,17 +96,19 @@ public class Resave_TIFF implements PlugIn
 
 		final ProgressWriter progressWriter = new ProgressWriterIJ();
 		progressWriter.out().println( "starting export..." );
-		
-		final Parameters params = getParameters();
-		
+
+		final ParametersResaveAsTIFF params = getParameters();
+
 		if ( params == null )
 			return;
 
 		final SpimData2 data = lpq.getData();
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( data, lpq.getViewSetupsToProcess(), lpq.getTimePointsToProcess() );
 
+		final File file = new File( URITools.removeFilePrefix( params.getXMLPath() ) );
+
 		// write the TIFF's
-		writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter );
+		writeTIFF( data, viewIds, file.getParent(), params.compress, progressWriter );
 
 		// write the XML
 		try
@@ -117,20 +117,20 @@ public class Resave_TIFF implements PlugIn
 			progressWriter.setProgress( 0.95 );
 
 			// write the XML
-			lpq.getIO().save( result.getA(), new File( params.xmlFile ).getAbsolutePath() );
+			lpq.getIO().save( result.getA(), file.getAbsolutePath() );
 
 			// copy the interest points if they exist
-			copyInterestPoints( data.getBasePath(), new File( params.xmlFile ).getParentFile(), result.getB() );
+			copyInterestPoints( data.getBasePath(), file.getParentFile(), result.getB() );
 		}
 		catch ( SpimDataException e )
 		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + params.xmlFile + "'." );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + params.getXMLPath() + "'." );
 			e.printStackTrace();
 		}
 		finally
 		{
 			progressWriter.setProgress( 1.00 );
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + params.xmlFile + "'." );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + params.getXMLPath() + "'." );
 		}
 	}
 
@@ -172,12 +172,15 @@ public class Resave_TIFF implements PlugIn
 		}
 	}
 
-	public static Parameters getParameters()
+	/**
+	 * @return - the parameters if it is specifying a locally mounted share, otherwise null
+	 */
+	public static ParametersResaveAsTIFF getParameters()
 	{
 		final GenericDialogPlus gd = new GenericDialogPlus( "Resave dataset as TIFF" );
 
 		if ( defaultPath == null )
-			defaultPath = LoadParseQueryXML.defaultXMLfilename;
+			defaultPath = LoadParseQueryXML.defaultXMLURI;
 
 		PluginHelper.addSaveAsFileField( gd, "Export_path for XML", defaultPath, 80 );
 		//gd.addCheckbox( "Lossless compression of TIFF files (ZIP)", defaultCompress );
@@ -187,14 +190,33 @@ public class Resave_TIFF implements PlugIn
 		if ( gd.wasCanceled() )
 			return null;
 
-		final Parameters params = new Parameters();
+		final ParametersResaveAsTIFF params = new ParametersResaveAsTIFF();
 
-		params.xmlFile = gd.getNextString();
+		String fullPath = gd.getNextString();
 
-		if ( !params.xmlFile.endsWith( ".xml" ) )
-			params.xmlFile += ".xml";
+		if ( !fullPath.endsWith( ".xml" ) )
+			fullPath += ".xml";
 
-		defaultPath = LoadParseQueryXML.defaultXMLfilename = params.xmlFile;
+		final URI uri;
+
+		try
+		{
+			uri = new URI( fullPath );
+		}
+		catch (URISyntaxException e )
+		{
+			IOFunctions.println( "Cannot interpret '" + fullPath + "' as URI. Stopping." );
+			return null;
+		}
+
+		if ( !URITools.isFile( uri ) )
+		{
+			IOFunctions.println( "Provided URI '" + fullPath + "' is not on a local file system. Re-saving as TIFF only works on locally mounted file systems. Stopping." );
+			return null;
+		}
+
+		LoadParseQueryXML.defaultXMLURI = defaultPath = fullPath;
+		params.xmlPath = uri;
 
 		params.compress = false; //defaultCompress = gd.getNextBoolean();
 
@@ -254,7 +276,7 @@ public class Resave_TIFF implements PlugIn
 	}
 
 
-	public static Pair< SpimData2, List< String > > createXMLObject( final SpimData2 spimData, final List< ViewId > viewIds, final Parameters params )
+	public static Pair< SpimData2, List< String > > createXMLObject( final SpimData2 spimData, final List< ViewId > viewIds, final ParametersResaveAsTIFF params )
 	{
 		int layoutTP = 0, layoutChannels = 0, layoutIllum = 0, layoutAngles = 0, layoutTiles = 0;
 		String filename = "img";
@@ -302,10 +324,10 @@ public class Resave_TIFF implements PlugIn
 
 		// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 		final List< String > filesToCopy = new ArrayList< String >();
-		final SpimData2 newSpimData = assemblePartialSpimData2( spimData, viewIds, new File( params.xmlFile ).getParentFile(), filesToCopy );
+		final SpimData2 newSpimData = assemblePartialSpimData2( spimData, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile(), filesToCopy );
 
 		final StackImgLoaderIJ imgLoader = new StackImgLoaderIJ(
-				new File( params.xmlFile ).getParentFile(),
+				new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile(),
 				filename,
 				layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, newSpimData.getSequenceDescription() );
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );

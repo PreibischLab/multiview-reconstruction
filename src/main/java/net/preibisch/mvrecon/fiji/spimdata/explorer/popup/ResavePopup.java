@@ -48,10 +48,11 @@ import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.ParametersResaveAsTIFF;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
+import util.URITools;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable
 {
@@ -60,7 +61,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	FilteredAndGroupedExplorerPanel< ? > panel;
 
-	protected static String[] types = new String[]{ "As TIFF ...", "As compressed TIFF ...", "As HDF5 ...", "As compressed HDF5 ...", "As compressed N5 ..." };
+	protected static String[] types = new String[]{ "As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 ...", "As compressed HDF5 ...", "As compressed N5 ..." };
 
 	public ResavePopup()
 	{
@@ -156,17 +157,17 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 							IOFunctions.println( "Saving " + viewIds.size() + " of " + data.getSequenceDescription().getViewDescriptions().size() + " views.");
 						}
 					}
-					
 					// all views in SpimData have been selected, ask user for confirmation before starting resave.
 					else
 					{
 						question = "Resaving all (except missing) views of the current dataset.\n";
 
-					if ( JOptionPane.showConfirmDialog( null,
-							question + "Note: this will first save the current state of the open XML. Proceed?",
-							"Warning",
-							JOptionPane.YES_NO_OPTION ) == JOptionPane.NO_OPTION )
-						return;
+						if ( JOptionPane.showConfirmDialog(
+								null,
+								question + "Note: this will first save the current state of the open XML. Proceed?",
+								"Warning",
+								JOptionPane.YES_NO_OPTION ) == JOptionPane.NO_OPTION )
+							return;
 					}
 
 					// filter not present ViewIds
@@ -176,17 +177,22 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					final ProgressWriter progressWriter = new ProgressWriterIJ();
 					progressWriter.out().println( "Resaving " + viewIds.size() + " views " + types[ index ] );
 
-					if ( index < 2 ) // zip, compressed zip
+					if ( index < 2 ) // TIFF, compressed tiff
 					{
 						panel.saveXML();
 
-						final Parameters params = new Parameters();
+						if ( !URITools.isFile( panel.xml() ) )
+						{
+							IOFunctions.println( "Intrinsic URI '" + panel.xml() + "' is not on a local file system. Re-saving as TIFF only works on locally mounted file systems. Please use the explicit Re-save plugin for more options." );
+							return;
+						}
 
+						final ParametersResaveAsTIFF params = new ParametersResaveAsTIFF();
 						params.compress = index != 0;
-						params.xmlFile = panel.xml();
+						params.xmlPath = panel.xml();
 
 						// write the TIFF's
-						Resave_TIFF.writeTIFF( data, viewIds, new File( params.xmlFile ).getParent(), params.compress, progressWriter );
+						Resave_TIFF.writeTIFF( data, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParent(), params.compress, progressWriter );
 	
 						// write the XML
 						final Pair< SpimData2, List< String > > result = Resave_TIFF.createXMLObject( data, viewIds, params );

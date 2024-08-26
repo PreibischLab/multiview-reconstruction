@@ -51,7 +51,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -60,7 +59,7 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.ParametersResaveAsTIFF;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -71,6 +70,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 public class ExportSpimData2TIFF implements ImgExport
 {
@@ -80,7 +80,7 @@ public class ExportSpimData2TIFF implements ImgExport
 	FusionExportInterface fusion;
 	HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap = new HashMap<>();
 
-	Parameters params;
+	ParametersResaveAsTIFF params;
 	Save3dTIFF saver;
 	SpimData2 newSpimData;
 
@@ -128,20 +128,20 @@ public class ExportSpimData2TIFF implements ImgExport
 
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );
 
-		XmlIoSpimData2 io = new XmlIoSpimData2();
+		final XmlIoSpimData2 io = new XmlIoSpimData2();
 
 		try
 		{
-			io.save( newSpimData, new File( params.getXMLFile() ).getAbsolutePath() );
+			io.save( newSpimData, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getAbsolutePath() );
 			
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + io.lastFileName() + "'." );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + io.lastURI() + "'." );
 
 			// this spimdata object was not modified, we just wrote a new one
 			return false;
 		}
 		catch ( SpimDataException e )
 		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + io.lastFileName() + "'." );
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + io.lastURI() + "'." );
 			e.printStackTrace();
 			return false;
 		}
@@ -158,7 +158,7 @@ public class ExportSpimData2TIFF implements ImgExport
 		if ( this.params == null )
 			return false;
 
-		this.path = new File( new File( this.params.getXMLFile() ).getParent() );
+		this.path = new File( new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParent() );
 		this.saver = new Save3dTIFF( this.path.toString(), this.params.compress() );
 
 		// define new timepoints and viewsetups
@@ -327,10 +327,10 @@ public class ExportSpimData2TIFF implements ImgExport
 	protected SpimData2 createSpimData2(
 			final List< TimePoint > timepointsToProcess,
 			final List< ViewSetup > viewSetupsToProcess,
-			final Parameters params )
+			final ParametersResaveAsTIFF params )
 	{
 		// Assemble a new SpimData object containing the subset of viewsetups and timepoints
-		return assembleSpimData2( timepointsToProcess, viewSetupsToProcess, new File( params.getXMLFile() ).getParentFile() );
+		return assembleSpimData2( timepointsToProcess, viewSetupsToProcess, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile() );
 	}
 
 	/**
