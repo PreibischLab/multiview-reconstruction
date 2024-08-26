@@ -46,6 +46,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -78,21 +79,19 @@ public class PSF_Assign implements PlugIn
 			return;
 
 		assign(result.getData(), SpimData2.getAllViewIdsSorted(result.getData(),
-			result.getViewSetupsToProcess(), result.getTimePointsToProcess()), result
-				.getClusterExtension(), result.getXMLFileName(), true);
+			result.getViewSetupsToProcess(), result.getTimePointsToProcess()), result.getXMLFileName(), true);
 	}
 	
 	public static boolean assign(
 		final SpimData2 spimData,
 		final Collection< ? extends ViewId > viewCollection)
 	{
-		return assign(spimData, viewCollection, null, null, false);
+		return assign(spimData, viewCollection, null, false);
 	}
 
 	public static boolean assign(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewCollection,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXml )
 	{
@@ -143,7 +142,7 @@ public class PSF_Assign implements PlugIn
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' to " + Group.pvid( viewId ) );
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
 				if ( saveXml )
-					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+					new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 			}
 		}
 		else if ( assignType == 1 ) // "Assign new PSF to all selected views"
@@ -178,13 +177,13 @@ public class PSF_Assign implements PlugIn
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Local filename '" + localFileName + "' assigned" );
 					spimData.getPointSpreadFunctions().addPSF( viewId, psf );
 					if ( saveXml )
-						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+						new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 				}
 				else
 				{
 					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), localFileName ) );
 					if ( saveXml )
-						SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+						new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 				}
 			}
 		}
@@ -303,7 +302,7 @@ public class PSF_Assign implements PlugIn
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
 						
 						if ( saveXml )
-							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+							new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 					}
 				}
 			}
@@ -393,7 +392,7 @@ public class PSF_Assign implements PlugIn
 						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
 						
 						if ( saveXml )
-							SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+							new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 					}
 				}
 			}

@@ -34,7 +34,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.registration.ViewTransform;
@@ -196,7 +196,7 @@ public class Duplicate_Transformation implements PlugIn
 		}
 
 		// now save it in case something was applied
-		SpimData2.saveXML( result.getData(), new File( result.getXMLFileName() ).getName(), result.getClusterExtension() );
+		new XmlIoSpimData2().saveWithFilename( result.getData(), new File( result.getXMLFileName() ).getName() );
 	}
 
 	protected void askForRegistrations( final GenericDialog gd )

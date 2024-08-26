@@ -48,6 +48,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 
 public class Specify_Calibration implements PlugIn
 {
@@ -73,7 +74,7 @@ public class Specify_Calibration implements PlugIn
 		applyCal( maxCal, data, viewIds );
 
 		// save the xml
-		SpimData2.saveXML( data, result.getXMLFileName(), result.getClusterExtension() );
+		new XmlIoSpimData2().saveWithFilename( data, result.getXMLFileName() );
 	}
 
 	public static boolean queryNewCal( final ArrayList< Cal > calibrations, final Cal maxCal )

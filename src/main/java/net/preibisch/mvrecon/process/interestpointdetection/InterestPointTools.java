@@ -183,7 +183,7 @@ public class InterestPointTools
 	{
 		for ( final ViewId viewId : points.keySet() )
 		{
-			final InterestPoints list = InterestPoints.newInstance( data.getBasePath(), viewId, label );
+			final InterestPoints list = InterestPoints.newInstance( data.getBasePathURI(), viewId, label );
 			/*final InterestPointList list =
 					new InterestPointList(
 							data.getBasePath(),

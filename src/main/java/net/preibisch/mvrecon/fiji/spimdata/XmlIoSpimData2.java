@@ -23,18 +23,24 @@
 package net.preibisch.mvrecon.fiji.spimdata;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
+import java.util.Date;
 
+import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.jdom2.Element;
+
+import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
+import mpicbg.spim.data.registration.XmlIoViewRegistrations;
+import mpicbg.spim.data.sequence.SequenceDescription;
+import mpicbg.spim.data.sequence.XmlIoSequenceDescription;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.XmlIoBoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.XmlIoIntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlIoViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -42,14 +48,6 @@ import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlIoPointSpread
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.XmlIoStitchingResults;
 import util.URITools;
-import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
-import mpicbg.spim.data.registration.XmlIoViewRegistrations;
-import mpicbg.spim.data.sequence.SequenceDescription;
-import mpicbg.spim.data.sequence.XmlIoSequenceDescription;
-
-import org.janelia.saalfeldlab.n5.N5FSWriter;
-import org.jdom2.Element;
 
 public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, SpimData2 >
 {
@@ -88,110 +86,104 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 			{
 				// trigger the N5-blosc error, because if it is triggered for the first
 				// time inside Spark, everything crashes
-				new N5FSWriter(null);
+				new N5FSWriter(null).close();;
 			}
 			catch (Exception e ) {}
 		}
 	}
 
-	public SpimData2 load( final String xmlFilename ) throws SpimDataException
+	public URI lastURI() { return lastURI; }
+
+	@Deprecated
+	@Override
+	public void save( final SpimData2 spimData, String xmlPath ) throws SpimDataException
 	{
-		throw new RuntimeException( "This method is outdated and does not work anymore, use load( URI xmlURI )." );
+		// old loading code with copying files
+		this.lastURI = URI.create( xmlPath );
+
+		try
+		{
+			// fist make a copy of the XML and save it to not loose it
+			if ( new File( xmlPath ).exists() )
+			{
+				int maxExistingBackup = 0;
+				for ( int i = 1; i < numBackups; ++i )
+					if ( new File( xmlPath + "~" + i ).exists() )
+						maxExistingBackup = i;
+					else
+						break;
+	
+				// copy the backups
+				for ( int i = maxExistingBackup; i >= 1; --i )
+					URITools.copyFile( new File( xmlPath + "~" + i ), new File( xmlPath + "~" + (i + 1) ) );
+
+				URITools.copyFile( new File( xmlPath ), new File( xmlPath + "~1" ) );
+			}
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not save backup of XML file for '" + lastURI() + "': " + e );
+		}
+
+		try
+		{
+			super.save( spimData, xmlPath );
+
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + lastURI() + "'." );
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not save xml '" + lastURI() + "': " + e );
+		}
+
+		try
+		{
+			saveInterestPoints( spimData );
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not interest points for '" + lastURI() + "': " + e );
+		}
 	}
 
-	@Override
-	public void save( final SpimData2 spimData, String xmlURI ) throws SpimDataException
+	public void save( final SpimData2 spimData, URI xmlURI )
 	{
-		throw new RuntimeException( "This method is outdated and does not work anymore, use save( final SpimData2 spimData, URI xmlURI )." );
+		try
+		{
+			URITools.saveSpimData( spimData, xmlURI, this );
+		}
+		catch (SpimDataException e)
+		{
+			IOFunctions.println( "Failed to write XML / Copy backups / save interestpoints: " + e );
+			e.printStackTrace();
+			return;
+		}
+
+		this.lastURI = xmlURI;
+		// save also as zarr metadata object
+	}
+
+	/**
+	 * Saves a SpimData2 object using its own URI into a filename specified by xmlFilename
+	 * 
+	 * @param data - SpimData2 object (contains basePath)
+	 * @param xmlFileName - the filename (e.g. dataset.xml)
+	 * @return the assembled, full path it was saved as
+	 */
+	public URI saveWithFilename( final SpimData2 data, final String xmlFileName )
+	{
+		final URI xml = URITools.xmlFilenameToFullPath(data, xmlFileName);
+
+		this.save( data, xml );
+
+		return xml;
 	}
 
 	public SpimData2 load( final URI xmlURI ) throws SpimDataException
 	{
 		IOFunctions.println( "Loading: " + xmlURI.toString() );
 
-		if ( URITools.isFile( xmlURI ) )
-		{
-			return super.load( URITools.removeFilePrefix( xmlURI ) );
-		}
-		else if ( URITools.isS3( xmlURI ) )
-		{
-			throw new RuntimeException( "Not implemented yet." );
-		}
-		else if ( URITools.isGC( xmlURI ) )
-		{
-			throw new RuntimeException( "Not implemented yet." );
-		}
-		else
-		{
-			throw new RuntimeException( "Unsupported URI: " + xmlURI );
-		}
-	}
-
-	//@Override
-	public void save( final SpimData2 spimData, URI xmlURI ) throws SpimDataException
-	{
-		this.lastURI = xmlURI;
-
-		// TODO: copy on cloud is different!
-		// TODO: saving on the cloud is different
-		throw new RuntimeException( "Not implemented yet." );
-
-		/*
-		// fist make a copy of the XML and save it to not loose it
-		if ( new File( xmlFilename ).exists() )
-		{
-			int maxExistingBackup = 0;
-			for ( int i = 1; i < numBackups; ++i )
-				if ( new File( xmlFilename + "~" + i ).exists() )
-					maxExistingBackup = i;
-				else
-					break;
-
-			// copy the backups
-			try
-			{
-				for ( int i = maxExistingBackup; i >= 1; --i )
-					copyFile( new File( xmlFilename + "~" + i ), new File( xmlFilename + "~" + (i + 1) ) );
-
-				copyFile( new File( xmlFilename ), new File( xmlFilename + "~1" ) );
-			}
-			catch ( final IOException e )
-			{
-				IOFunctions.println( "Could not save backup of XML file: " + e );
-				e.printStackTrace();
-			}
-		}
-
-		super.save( spimData, xmlFilename );
-		*/
-		// save also as zarr metadata object
-	}
-
-	public URI lastURI() { return lastURI; }
-
-	protected static void copyFile( final File inputFile, final File outputFile ) throws IOException
-	{
-		InputStream input = null;
-		OutputStream output = null;
-		
-		try
-		{
-			input = new FileInputStream( inputFile );
-			output = new FileOutputStream( outputFile );
-
-			final byte[] buf = new byte[ 65536 ];
-			int bytesRead;
-			while ( ( bytesRead = input.read( buf ) ) > 0 )
-				output.write( buf, 0, bytesRead );
-
-		}
-		finally
-		{
-			if ( input != null )
-				input.close();
-			if ( output != null )
-				output.close();
-		}
+		return URITools.loadSpimData( xmlURI, this );
 	}
 
 	@Override
@@ -260,5 +252,20 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		root.addContent( xmlIntensityAdjustments.toXml( spimData.getIntensityAdjustments() ) );
 
 		return root;
+	}
+
+	public static void saveInterestPoints( final SpimData2 spimData )
+	{
+		final ViewInterestPoints vip = spimData.getViewInterestPoints();
+
+		for ( final ViewInterestPointLists vipl : vip.getViewInterestPoints().values() )
+		{
+			for ( final String label : vipl.getHashMap().keySet() )
+			{
+				final InterestPoints ipl = vipl.getInterestPointList( label );
+				ipl.saveInterestPoints( false );
+				ipl.saveCorrespondingInterestPoints( false );
+			}
+		}
 	}
 }

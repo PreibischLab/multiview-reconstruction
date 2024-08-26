@@ -25,14 +25,15 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
@@ -47,13 +48,11 @@ import bdv.viewer.SourceAndConverter;
 import bdv.viewer.ViewerState;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.base.NamedEntity;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -62,16 +61,14 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.GroupedViews;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.BDVFlyThrough;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.BDVUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 
-public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimData< ? > >
+public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 		extends JPanel implements ExplorerWindow< AS >, GroupedRowWindow
 {
 	public static FilteredAndGroupedExplorerPanel< ? > currentInstance = null;
@@ -92,26 +89,22 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 	protected ArrayList< SelectedViewDescriptionListener< AS > > listeners;
 	protected AS data;
 	protected FilteredAndGroupedExplorer< AS > explorer;
-	protected final String xml;
-	protected final XmlIoAbstractSpimData< ?, AS > io;
+	protected final URI xml;
+	protected final XmlIoSpimData2 io;
 	protected final boolean isMac;
 	protected boolean colorMode = false;
 
 	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
 	protected BasicViewDescription< ? > firstSelectedVD;
 
-	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data,
-			final String xml, final XmlIoAbstractSpimData< ?, AS > io)
+	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data, final URI xml, final XmlIoSpimData2 io)
 	{
-
-
-
 		this.explorer = explorer;
 		this.listeners = new ArrayList<>();
 		this.data = data;
 
 		// normalize the xml path
-		this.xml = xml == null ? "" : xml.replace("\\\\", "////").replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
+		this.xml = xml;// == null ? "" : xml.replace("\\\\", "////").replace( "\\", "/" ).replace( "//", "/" ).replace( "/./", "/" );
 		// NB: a lot of path normalization problems (e.g. windows network locations not accessible) are also fixed by not normalizing
 		// therefore, if we run into problems in the future, we could also use the line below:
 		//this.xml = xml == null ? "" : xml;
@@ -161,12 +154,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 	}
 
 	@Override
-	public String xml()
+	public URI xml()
 	{
 		return xml;
 	}
 
-	public XmlIoAbstractSpimData< ?, AS > io()
+	public XmlIoSpimData2 io()
 	{
 		return io;
 	}
@@ -493,41 +486,16 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends AbstractSpimDa
 
 	public void showInfoBox()
 	{
-		new ViewSetupExplorerInfoBox<>( data, xml );
+		new ViewSetupExplorerInfoBox<>( data );
 	}
 
 	@Override
 	public void saveXML()
 	{
-		try
-		{
-			io.save( data, xml );
+		io.save( data, xml );
 
-			for ( final SelectedViewDescriptionListener< AS > l : listeners )
-				l.save();
-
-			if ( data instanceof SpimData2 )
-			{
-				final ViewInterestPoints vip = ( ( SpimData2 ) data ).getViewInterestPoints();
-
-				for ( final ViewInterestPointLists vipl : vip.getViewInterestPoints().values() )
-				{
-					for ( final String label : vipl.getHashMap().keySet() )
-					{
-						final InterestPoints ipl = vipl.getInterestPointList( label );
-						ipl.saveInterestPoints( false );
-						ipl.saveCorrespondingInterestPoints( false );
-					}
-				}
-			}
-
-			IOFunctions.println( "Saved XML '" + xml + "'." );
-		}
-		catch ( SpimDataException e )
-		{
-			IOFunctions.println( "Failed to save XML '" + xml + "': " + e );
-			e.printStackTrace();
-		}
+		for ( final SelectedViewDescriptionListener< AS > l : listeners )
+			l.save(); // e.g. delete interest points
 	}
 
 	protected void addPopupMenu( final JTable table )

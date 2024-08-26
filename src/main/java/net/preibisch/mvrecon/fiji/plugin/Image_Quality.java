@@ -202,9 +202,9 @@ public class Image_Quality implements PlugIn
 		new ImageJ();
 
 		if ( !System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			GenericLoadParseQueryXML.defaultXMLfilename = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
 		else
-			GenericLoadParseQueryXML.defaultXMLfilename = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
 
 		new Image_Quality().run( null );
 	}

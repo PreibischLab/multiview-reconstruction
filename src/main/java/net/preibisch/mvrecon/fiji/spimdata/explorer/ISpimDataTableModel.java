@@ -28,13 +28,11 @@ import java.util.Set;
 
 import javax.swing.table.TableModel;
 
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-
-import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 
-public interface ISpimDataTableModel<AS extends AbstractSpimData<?>> extends TableModel {
+public interface ISpimDataTableModel<AS extends SpimData2> extends TableModel {
 	
 	public enum SpecialColumnType{
 		INTEREST_POINT_COLUMN,

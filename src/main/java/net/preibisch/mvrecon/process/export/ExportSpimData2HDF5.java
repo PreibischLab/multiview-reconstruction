@@ -101,7 +101,7 @@ public class ExportSpimData2HDF5 implements ImgExport
 		String path = params.getSeqFile().getAbsolutePath();
 		try
 		{
-			new XmlIoSpimData2( "" ).save( spimData, path );
+			new XmlIoSpimData2().save( spimData, path );
 
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + path + "'." );
 

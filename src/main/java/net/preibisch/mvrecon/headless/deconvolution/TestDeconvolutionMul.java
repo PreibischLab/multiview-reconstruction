@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.deconvolution;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -79,7 +80,7 @@ public class TestDeconvolutionMul
 		new ImageJ();
 
 		// load drosophila
-		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "Z:/Betzig/dataset.xml" );
+		SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "Z:/Betzig/dataset.xml" ) );
 		Collection< Group< ViewDescription > >groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		BoundingBox bb = BoundingBoxTools.maximalBoundingBox( spimData, new ArrayList<>( spimData.getSequenceDescription().getViewDescriptions().values() ), "All Views" );

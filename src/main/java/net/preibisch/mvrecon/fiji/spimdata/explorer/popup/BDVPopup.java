@@ -31,6 +31,7 @@ import bdv.viewer.ViewerState;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.URI;
 import java.util.Collection;
 
 import javax.swing.JMenuItem;
@@ -295,7 +296,7 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 
 	public static BigDataViewer createBDV(
 			final AbstractSpimData< ? > spimData,
-			final String xml )
+			final URI xml )
 	{
 		if ( AbstractImgLoader.class.isInstance( spimData.getSequenceDescription().getImgLoader() ) )
 		{
@@ -308,8 +309,8 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 				return null;
 		}
 
-		final BigDataViewer bdv = BigDataViewer.open( spimData, xml, IOFunctions.getProgressWriter(), ViewerOptions.options() );
-		if ( !bdv.tryLoadSettings( xml ) )
+		final BigDataViewer bdv = BigDataViewer.open( spimData, xml.toString(), IOFunctions.getProgressWriter(), ViewerOptions.options() );
+		if ( !bdv.tryLoadSettings( xml.toString() ) )
 			InitializeViewerState.initBrightness( 0.001, 0.999, bdv.getViewerFrame() );
 
 		// do not rotate BDV view by default

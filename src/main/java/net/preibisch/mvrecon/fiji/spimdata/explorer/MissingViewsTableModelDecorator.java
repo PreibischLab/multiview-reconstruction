@@ -29,11 +29,11 @@ import java.util.Set;
 
 import javax.swing.event.TableModelListener;
 
-import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 
-public class MissingViewsTableModelDecorator < AS extends AbstractSpimData< ? > > implements ISpimDataTableModel< AS >
+public class MissingViewsTableModelDecorator < AS extends SpimData2 > implements ISpimDataTableModel< AS >
 {
 
 	private ISpimDataTableModel<AS> decorated;

@@ -27,6 +27,7 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,7 +99,7 @@ public class OpenSeaDragonExport
 
 		new ImageJ();
 
-		SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Downloads/troy eberhardt/dataset.xml" );
+		SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Downloads/troy eberhardt/dataset.xml" ) );
 
 		testOpenSeaDragonExport( spimData, 0, 1, 2 );
 	}

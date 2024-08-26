@@ -27,6 +27,7 @@ import java.net.URI;
 import java.util.List;
 
 import mpicbg.spim.data.sequence.ViewId;
+import util.URITools;
 
 /**
  * A list of interest points for a certain label, can save and load from textfile as specified in the XML
@@ -60,7 +61,7 @@ public abstract class InterestPoints
 			throw new RuntimeException( "unknown interestpoint representation: '" + fromXMLInfo + "' -- this should not happen.");
 	}
 
-	public static InterestPoints newInstance( final File baseDir, final ViewId viewId, final String label )
+	public static InterestPoints newInstance( final URI baseDir, final ViewId viewId, final String label )
 	{
 		final InterestPoints list;
 
@@ -71,6 +72,9 @@ public abstract class InterestPoints
 		}
 		else
 		{
+			if ( !URITools.isFile( baseDir ) )
+				throw new RuntimeException( "InterestPointsTextFileList only works for local file systems." );
+	
 			final String fileName = new InterestPointsTextFileList( null, null ).createXMLRepresentation( viewId, label );
 			list = new InterestPointsTextFileList( baseDir, new File( fileName ) );
 		}
@@ -81,8 +85,8 @@ public abstract class InterestPoints
 	public boolean hasModifiedInterestPoints() { return modifiedInterestPoints; }
 	public boolean hasModifiedCorrespondingInterestPoints() { return modifiedCorrespondingInterestPoints; }
 
-	public File getBaseDir() { return baseDir; }
-	public void setBaseDir( final File baseDir )
+	public URI getBaseDir() { return baseDir; }
+	public void setBaseDir( final URI baseDir )
 	{
 		this.baseDir = baseDir;
 		this.modifiedCorrespondingInterestPoints = true;

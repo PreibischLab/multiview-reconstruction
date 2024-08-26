@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.fusion;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -63,9 +64,7 @@ public class TestNonRigid
 		SpimData2 spimData;
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Desktop/i2k/sim2/dataset.xml" );
-		//spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Downloads/x-wing/dataset.xml" );
+		spimData = new XmlIoSpimData2( ).load( URI.create( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 		Pair< List< ViewId >, Interval > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges

@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.headless.definedataset;
 
 import java.io.File;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,8 +125,8 @@ public class Rewrite_LuxendoXML implements Callable<Void>, PlugIn
 
 			XmlIoSpimData2.initN5Writing = false;
 
-			final XmlIoSpimData2 io2 = new XmlIoSpimData2( "" );
-			io2.save(spimDataOut, output);
+			final XmlIoSpimData2 io2 = new XmlIoSpimData2();
+			io2.save(spimDataOut, URI.create( output ) );
 
 			IOFunctions.println( "done.");
 		}

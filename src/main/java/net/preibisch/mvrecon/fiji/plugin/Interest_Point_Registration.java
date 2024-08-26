@@ -78,6 +78,7 @@ import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.statistics.Ti
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
@@ -169,7 +170,6 @@ public class Interest_Point_Registration implements PlugIn
 		register(
 			result.getData(),
 			SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
-			result.getClusterExtension(),
 			result.getXMLFileName(),
 			true );
 	}
@@ -178,33 +178,12 @@ public class Interest_Point_Registration implements PlugIn
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection )
 	{
-		return register( data, viewCollection, "", null, false );
+		return register( data, viewCollection, null, false );
 	}
 
 	public boolean register(
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection,
-			final String xmlFileName,
-			final boolean saveXML )
-	{
-		return register( data, viewCollection, "", xmlFileName, saveXML );
-	}
-
-	public boolean register(
-			final SpimData2 data,
-			final Collection< ? extends ViewId > viewCollection,
-			final String clusterExtension,
-			final String xmlFileName,
-			final boolean saveXML )
-	{
-		return register( data, viewCollection, false, "", xmlFileName, saveXML );
-	}
-
-	public boolean register(
-			final SpimData2 data,
-			final Collection< ? extends ViewId > viewCollection,
-			final boolean onlyShowGoodMethods,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXML )
 	{
@@ -220,7 +199,7 @@ public class Interest_Point_Registration implements PlugIn
 		final int nAllTimepoints = data.getSequenceDescription().getTimePoints().size();
 
 		// query basic registration parameters
-		final BasicRegistrationParameters brp = basicRegistrationParameters( timepointToProcess, nAllTimepoints, onlyShowGoodMethods, data, viewIds );
+		final BasicRegistrationParameters brp = basicRegistrationParameters( timepointToProcess, nAllTimepoints, data, viewIds );
 
 		if ( brp == null )
 			return false;
@@ -275,7 +254,7 @@ public class Interest_Point_Registration implements PlugIn
 
 		// save the XML including transforms and correspondences
 		if ( saveXML )
-			SpimData2.saveXML( data, xmlFileName, clusterExtension );
+			new XmlIoSpimData2().saveWithFilename( data, xmlFileName );
 
 		if ( arp.showStatistics )
 		{
@@ -767,14 +746,13 @@ public class Interest_Point_Registration implements PlugIn
 	public BasicRegistrationParameters basicRegistrationParameters(
 			final List< TimePoint > timepointToProcess,
 			final int nAllTimepoints,
-			final boolean onlyShowGoodMethods,
 			final SpimData2 data,
 			final List< ViewId > viewIds )
 	{
 		final GenericDialog gd = new GenericDialog( "Basic Registration Parameters" );
 
 		// the GenericDialog needs a list[] of String for the algorithms that can register
-		final String[] descriptions = new String[ ( onlyShowGoodMethods ? 3 : staticPairwiseAlgorithms.size() ) ];
+		final String[] descriptions = new String[ ( staticPairwiseAlgorithms.size() ) ];
 
 		for ( int i = 0; i < descriptions.length; ++i )
 			descriptions[ i ] = staticPairwiseAlgorithms.get( i ).getDescription();

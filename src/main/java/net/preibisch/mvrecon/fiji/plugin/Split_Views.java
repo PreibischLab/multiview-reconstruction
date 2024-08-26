@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin;
 
 import java.awt.Color;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -70,8 +71,6 @@ public class Split_Views implements PlugIn
 
 	public static boolean defaultAssignIlluminations = true;
 
-	public static String defaultPath = null;
-
 	public static int defaultChoice = 0;
 	private static final String[] resultChoice = new String[] { "Display", "Save & Close" };
 
@@ -85,12 +84,12 @@ public class Split_Views implements PlugIn
 
 		final SpimData2 data = xml.getData();
 
-		split( data, xml.getXMLFileName() );
+		split( data, xml.getXMLURI() );
 	}
 
 	public static boolean split(
 			final SpimData2 data,
-			final String saveAs,
+			final URI saveAs,
 			final long[] targetSize,
 			final long[] overlap,
 			final long[] minStepSize,
@@ -108,18 +107,18 @@ public class Split_Views implements PlugIn
 
 		if ( display )
 		{
-			final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, saveAs, new XmlIoSpimData2( "" ) );
+			final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, saveAs, new XmlIoSpimData2() );
 			explorer.getFrame().toFront();
 		}
 		else
 		{
-			SpimData2.saveXML( newSD, saveAs, "" );
+			new XmlIoSpimData2().save( newSD, saveAs );
 		}
 
 		return true;
 	}
 
-	public static boolean split( final SpimData2 data, final String fileName )
+	public static boolean split( final SpimData2 data, final URI filePath )
 	{
 		final long[] minStepSize = findMinStepSize( data );
 
@@ -167,17 +166,17 @@ public class Split_Views implements PlugIn
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
 			gd.addCheckbox( "Assign_old_tiles_as_illuminations (great for visualization)", defaultAssignIlluminations );
 
-		IOFunctions.println( fileName );
-		if ( defaultPath == null || defaultPath.trim().length() == 0 )
-		{
-			final int index = fileName.indexOf( ".xml");
-			if ( index > 0 )
-				defaultPath = fileName.substring( 0, index ) + ".split.xml";
-			else
-				defaultPath = fileName + ".split.xml";
-		}
+		IOFunctions.println( filePath );
 
-		gd.addFileField("New_XML_File", defaultPath, 30);
+		final String suggestion;
+
+		final int index = filePath.toString().indexOf( ".xml");
+		if ( index > 0 )
+			suggestion = filePath.toString().substring( 0, index ) + ".split.xml";
+		else
+			suggestion = filePath.toString() + ".split.xml";
+
+		gd.addFileField("New_XML_File", suggestion, 30);
 		gd.addChoice( "Split_Result", resultChoice, resultChoice[ defaultChoice ] );
 
 		gd.showDialog();
@@ -213,7 +212,7 @@ public class Split_Views implements PlugIn
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
 			gd.addCheckbox( "Assign_old_tiles_as_illuminations (great for visualization)", defaultAssignIlluminations );
 
-		final String saveAs = defaultPath = gd.getNextString();
+		final String saveAs = gd.getNextString();
 		final int choice = defaultChoice = gd.getNextChoiceIndex();
 
 		System.out.println( sx + ", " + sy + ", " + sz + ", " + ox  + ", " + oy  + ", " + oz );
@@ -225,7 +224,7 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, saveAs, new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
+		return split( data, URI.create( saveAs ), new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )
@@ -355,7 +354,7 @@ public class Split_Views implements PlugIn
 	{
 		new ImageJ();
 
-		GenericLoadParseQueryXML.defaultXMLfilename = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
+		GenericLoadParseQueryXML.defaultXMLURI = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
 
 		new Split_Views().run( null );
 		//SpimData2 data = new XmlIoSpimData2("").load( GenericLoadParseQueryXML.defaultXMLfilename );

@@ -23,6 +23,7 @@
 
 package net.preibisch.mvrecon.process.fusion.lazy;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -197,7 +198,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	{
 		new ImageJ();
 
-		final SpimData2 data = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Documents/Microscopy/Stitching/Truman/standard/dataset.xml");
+		final SpimData2 data = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Documents/Microscopy/Stitching/Truman/standard/dataset.xml" ) );
 
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 

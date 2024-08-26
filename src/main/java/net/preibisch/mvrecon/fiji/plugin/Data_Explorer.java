@@ -27,6 +27,7 @@ import java.awt.TextField;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.URI;
 
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -70,7 +71,7 @@ public class Data_Explorer implements PlugIn
 			return;
 
 		final SpimData2 data = result.getData();
-		final String xml = result.getXMLFileName();
+		final URI xml = result.getXMLURI();
 		final XmlIoSpimData2 io = result.getIO();
 
 		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( data, xml, io );

@@ -22,6 +22,8 @@
  */
 package net.preibisch.mvrecon.headless.splitting;
 
+import java.net.URI;
+
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import net.preibisch.mvrecon.fiji.plugin.Split_Views;
@@ -47,15 +49,15 @@ public class TestSplitting
 		 */
 
 		//final String file = "/Volumes/home/Data/Expansion Microscopy/dataset.xml";
-		final String file = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
+		final URI uri = URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
 
-		final String fileOut = file.replace( ".xml", ".split.xml" );
+		final URI uriOut = URI.create( uri.toString().replace( ".xml", ".split.xml" ) );
 
-		System.out.println( "in: " + file );
-		System.out.println( "out: " + fileOut );
+		System.out.println( "in: " + uri );
+		System.out.println( "out: " + uriOut );
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( file );
+		spimData = new XmlIoSpimData2().load( uri );
 
 		final long[] minStepSize = Split_Views.findMinStepSize( spimData );
 
@@ -79,7 +81,7 @@ public class TestSplitting
 						20.0 );
 		// drosophila with 1000 views
 
-		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, fileOut, new XmlIoSpimData2( "" ) );
+		final ViewSetupExplorer< SpimData2 > explorer = new ViewSetupExplorer<>( newSD, uriOut, new XmlIoSpimData2() );
 		explorer.getFrame().toFront();
 	}
 

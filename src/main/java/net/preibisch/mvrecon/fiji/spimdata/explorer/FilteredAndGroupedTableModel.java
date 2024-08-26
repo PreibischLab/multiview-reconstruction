@@ -32,26 +32,21 @@ import java.util.Set;
 
 import javax.swing.table.AbstractTableModel;
 
-import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
-import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-
-import mpicbg.models.ElasticMovingLeastSquaresMesh;
-import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.base.NamedEntity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
-import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 
-public class FilteredAndGroupedTableModel < AS extends AbstractSpimData< ? > > extends AbstractTableModel implements ISpimDataTableModel<AS>
+public class FilteredAndGroupedTableModel < AS extends SpimData2 > extends AbstractTableModel implements ISpimDataTableModel<AS>
 {
 
 	private static final long serialVersionUID = -6526338840427674269L;

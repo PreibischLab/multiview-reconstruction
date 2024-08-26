@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.deconvolution;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -83,7 +84,7 @@ public class TestDeconvolution
 		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 		groups = selectViews( spimData.getSequenceDescription().getViewDescriptions().values() );
 		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 

@@ -41,6 +41,7 @@ import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.InterestPointDet
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -86,7 +87,6 @@ public class Interest_Point_Detection implements PlugIn
 		detectInterestPoints(
 				result.getData(),
 				SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
-				result.getClusterExtension(),
 				result.getXMLFileName(),
 				true );
 	}
@@ -102,22 +102,12 @@ public class Interest_Point_Detection implements PlugIn
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection )
 	{
-		return detectInterestPoints( data, viewCollection, "", null, false );
+		return detectInterestPoints( data, viewCollection, null, false );
 	}
 
 	public boolean detectInterestPoints(
 			final SpimData2 data,
 			final Collection< ? extends ViewId > viewCollection,
-			final String xmlFileName,
-			final boolean saveXML )
-	{
-		return detectInterestPoints( data, viewCollection, "", xmlFileName, saveXML );
-	}
-
-	public boolean detectInterestPoints(
-			final SpimData2 data,
-			final Collection< ? extends ViewId > viewCollection,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXML )
 	{
@@ -231,7 +221,7 @@ public class Interest_Point_Detection implements PlugIn
 
 			// save the xml
 			if ( saveXML )
-				SpimData2.saveXML( data, xmlFileName, clusterExtension );
+				new XmlIoSpimData2().saveWithFilename( data, xmlFileName );
 		}
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): DONE." );
@@ -241,7 +231,7 @@ public class Interest_Point_Detection implements PlugIn
 
 	public static void main( final String[] args )
 	{
-		LoadParseQueryXML.defaultXMLfilename = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
+		LoadParseQueryXML.defaultXMLURI = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml";
 
 		new ImageJ();
 		new Interest_Point_Detection().run( null );

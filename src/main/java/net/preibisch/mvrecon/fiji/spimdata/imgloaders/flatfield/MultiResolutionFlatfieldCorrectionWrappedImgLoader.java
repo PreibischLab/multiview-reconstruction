@@ -33,13 +33,9 @@ import bdv.export.WriteSequenceToHdf5;
 import ij.ImageJ;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHints;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
-import mpicbg.spim.data.sequence.SequenceDescription;
-import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
@@ -58,9 +54,8 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 
@@ -483,8 +478,7 @@ public class MultiResolutionFlatfieldCorrectionWrappedImgLoader
 
 	public static void main(String[] args)
 	{
-		GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 > lpq = new GenericLoadParseQueryXML<>(
-				new XmlIoSpimData2( "" ) );
+		LoadParseQueryXML lpq = new LoadParseQueryXML();
 		lpq.queryXML();
 		SpimData2 data = lpq.getData();
 

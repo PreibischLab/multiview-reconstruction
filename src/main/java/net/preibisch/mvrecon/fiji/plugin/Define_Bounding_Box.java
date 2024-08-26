@@ -36,6 +36,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 
 import ij.ImageJ;
@@ -71,7 +72,6 @@ public class Define_Bounding_Box implements PlugIn
 		defineBoundingBox(
 			result.getData(),
 			SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
-			result.getClusterExtension(),
 			result.getXMLFileName(),
 			true );
 		
@@ -81,13 +81,12 @@ public class Define_Bounding_Box implements PlugIn
 			final SpimData2 data,
 			final List< ViewId > viewIds )
 	{
-		return defineBoundingBox( data, viewIds, "", null, false );
+		return defineBoundingBox( data, viewIds, null, false );
 	}
 
 	public BoundingBox defineBoundingBox(
 			final SpimData2 data,
 			final List< ViewId > viewIds,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXML )
 	{
@@ -147,7 +146,7 @@ public class Define_Bounding_Box implements PlugIn
 		data.getBoundingBoxes().addBoundingBox( boundingBox );
 
 		if ( saveXML )
-			SpimData2.saveXML( data, xmlFileName, clusterExtension );
+			new XmlIoSpimData2().saveWithFilename( data, xmlFileName );
 
 		return boundingBox;
 	}
@@ -179,9 +178,9 @@ public class Define_Bounding_Box implements PlugIn
 		new ImageJ();
 
 		if ( !System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			GenericLoadParseQueryXML.defaultXMLfilename = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
 		else
-			GenericLoadParseQueryXML.defaultXMLfilename = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
 
 		new Define_Bounding_Box().run( null );
 	}

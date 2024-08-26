@@ -52,7 +52,7 @@ public class ResaveHdf5 {
         if ( Resave_HDF5.loadDimensions( xml.getData(), xml.getViewSetupsToProcess() ) )
         {
             // save the XML again with the dimensions loaded
-            SpimData2.saveXML( xml.getData(), xml.getXMLFileName(), xml.getClusterExtension() );
+            SpimData2.saveXML( xml.getData(), xml.getXMLFileName() );
         }
 
         final Map< Integer, ExportMipmapInfo> perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( xml.getViewSetupsToProcess() );

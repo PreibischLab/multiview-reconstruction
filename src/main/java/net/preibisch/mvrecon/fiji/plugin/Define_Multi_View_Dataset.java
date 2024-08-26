@@ -50,6 +50,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.MyMultiLineLabel;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 
 public class Define_Multi_View_Dataset implements PlugIn
 {
@@ -149,7 +150,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 		}
 		else
 		{
-			final URI xml = SpimData2.saveXML( spimData, xmlFileName );
+			final URI xml = new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 
 			if ( xml != null )
 			{

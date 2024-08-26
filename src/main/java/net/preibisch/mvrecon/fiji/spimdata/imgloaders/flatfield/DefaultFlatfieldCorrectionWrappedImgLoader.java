@@ -47,6 +47,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
@@ -271,8 +272,7 @@ public class DefaultFlatfieldCorrectionWrappedImgLoader extends LazyLoadingFlatF
 
 	public static void main(String[] args)
 	{
-		GenericLoadParseQueryXML< SpimData2, SequenceDescription, ViewSetup, ViewDescription, ImgLoader, XmlIoSpimData2 > lpq = new GenericLoadParseQueryXML<>(
-				new XmlIoSpimData2( "" ) );
+		LoadParseQueryXML lpq = new LoadParseQueryXML();
 		lpq.queryXML();
 		SpimData2 data = lpq.getData();
 

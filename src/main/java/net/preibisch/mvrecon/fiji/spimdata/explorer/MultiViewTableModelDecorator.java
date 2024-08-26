@@ -29,17 +29,14 @@ import java.util.Set;
 
 import javax.swing.event.TableModelListener;
 
+import mpicbg.spim.data.generic.base.Entity;
+import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import mpicbg.spim.data.registration.ViewRegistrations;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.base.Entity;
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.registration.ViewRegistrations;
-
-public class MultiViewTableModelDecorator < AS extends AbstractSpimData< ? > > implements ISpimDataTableModel< AS >
+public class MultiViewTableModelDecorator < AS extends SpimData2 > implements ISpimDataTableModel< AS >
 {
 	private ISpimDataTableModel<AS> decorated;
 	final ArrayList< String > columnNames;
@@ -58,26 +55,15 @@ public class MultiViewTableModelDecorator < AS extends AbstractSpimData< ? > > i
 		registrationColumn = decorated.getColumnCount() + columnNames.size();
 		viewRegistrations = decorated.getPanel().getSpimData().getViewRegistrations();
 
-		if ( SpimData2.class.isInstance( decorated.getPanel().getSpimData() ) )
-		{
-			final SpimData2 data2 = (SpimData2)decorated.getPanel().getSpimData();
-			columnNames.add( "#InterestPoints" );
+		final SpimData2 data2 = (SpimData2)decorated.getPanel().getSpimData();
+		columnNames.add( "#InterestPoints" );
 
-			interestPointsColumn = decorated.getColumnCount() + columnNames.size();
-			viewInterestPoints = data2.getViewInterestPoints();
+		interestPointsColumn = decorated.getColumnCount() + columnNames.size();
+		viewInterestPoints = data2.getViewInterestPoints();
 
-			columnNames.add( "PSF" );
-			psfColumn = decorated.getColumnCount() + columnNames.size();
-			pointSpradFunctions = data2.getPointSpreadFunctions();
-		}
-		else
-		{
-			viewInterestPoints = null;
-			interestPointsColumn = -1;
-
-			pointSpradFunctions = null;
-			psfColumn = -1;
-		}
+		columnNames.add( "PSF" );
+		psfColumn = decorated.getColumnCount() + columnNames.size();
+		pointSpradFunctions = data2.getPointSpreadFunctions();
 	}
 	
 	@Override

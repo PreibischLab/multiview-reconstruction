@@ -30,6 +30,7 @@ import java.util.List;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointremoval.ThinOut;
 import net.preibisch.mvrecon.process.interestpointremoval.ThinOutParameters;
@@ -62,7 +63,7 @@ public class ThinOut_Detections implements PlugIn
 			return;
 
 		// write new xml
-		SpimData2.saveXML( data, xml.getXMLFileName(), xml.getClusterExtension() );
+		new XmlIoSpimData2().saveWithFilename( data, xml.getXMLFileName() );
 	}
 
 	public static boolean thinOut( final SpimData2 data, final Collection< ? extends ViewId > viewCollection )

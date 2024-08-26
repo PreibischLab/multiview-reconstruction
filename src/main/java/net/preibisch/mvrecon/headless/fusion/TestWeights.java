@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.fusion;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -34,15 +35,14 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
@@ -52,7 +52,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.ContentBasedRealRandomAccessible;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGImgLib2;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
 public class TestWeights
 {
@@ -61,7 +60,7 @@ public class TestWeights
 		new ImageJ();
 
 		// test a real scenario
-		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );;
+		final SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 		final List< ViewId > viewIds = new ArrayList< ViewId >();
 		viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );

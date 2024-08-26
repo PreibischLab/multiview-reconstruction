@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.quality;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -64,10 +65,7 @@ public class TestQuality
 		for ( int run = 2; run <= 3; ++run )
 		{
 			// load drosophila
-			//spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
-			spimData = new XmlIoSpimData2( "" ).load( "/Volumes/home/Data/brain/HHHEGFP_het.xml" );
-			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/Fabio Testdata/half_new2/dataset_initial.xml");
-			//spimData = new XmlIoSpimData2( "" ).load( "/Volumes/Samsung_T5/CLARITY/dataset_fullbrainsection.xml");
+			spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 			for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
 				System.out.println( Group.pvid( viewId ) );

@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.base.NamedEntity;
@@ -42,7 +41,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class ViewSetupExplorerInfoBox< AS extends AbstractSpimData< ? > >
 {
-	public ViewSetupExplorerInfoBox( final AS data, final String xml )
+	public ViewSetupExplorerInfoBox( final AS data )
 	{
 		String text = "";
 

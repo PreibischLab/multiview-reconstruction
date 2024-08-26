@@ -28,6 +28,7 @@ import java.awt.event.ActionListener;
 import javax.swing.JMenuItem;
 
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
@@ -88,7 +89,7 @@ public class RegistrationExplorerPopup extends JMenuItem implements ExplorerWind
 		}
 	}
 
-	private static < AS extends AbstractSpimData< ? > > RegistrationExplorer< AS > instanceFor( final FilteredAndGroupedExplorerPanel< AS > panel )
+	private static < AS extends SpimData2 > RegistrationExplorer< AS > instanceFor( final FilteredAndGroupedExplorerPanel< AS > panel )
 	{
 		return new RegistrationExplorer<>( panel.xml(), panel.io(), panel.explorer() );
 	}

@@ -63,6 +63,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxBigDataViewer;
 import net.preibisch.mvrecon.vecmath.Transform3D;
 
@@ -123,7 +124,7 @@ public class Apply_Transformation implements PlugIn
 		applyModels( data, params.minResolution, params.applyTo, modelLinks );
 
 		// now save it
-		SpimData2.saveXML( result.getData(), result.getXMLFileName(), result.getClusterExtension() );
+		new XmlIoSpimData2().saveWithFilename( result.getData(), result.getXMLFileName() );
 
 	}
 

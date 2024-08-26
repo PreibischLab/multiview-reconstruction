@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.boundingbox;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -52,7 +53,7 @@ public class TestRealDataBoundingBox
 		final ExecutorService service = DeconViews.createExecutorService();
 
 		// test a real scenario
-		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );;
+		final SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 		final List< ViewId > viewIds = new ArrayList< ViewId >();
 		viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );

@@ -128,7 +128,7 @@ public class ExportSpimData2TIFF implements ImgExport
 
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );
 
-		XmlIoSpimData2 io = new XmlIoSpimData2( "" );
+		XmlIoSpimData2 io = new XmlIoSpimData2();
 
 		try
 		{

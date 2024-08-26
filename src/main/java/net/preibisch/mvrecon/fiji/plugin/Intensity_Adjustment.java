@@ -49,6 +49,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -80,7 +81,6 @@ public class Intensity_Adjustment implements PlugIn
 		intensityAdjustment(
 			result.getData(),
 			SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ),
-			result.getClusterExtension(),
 			result.getXMLFileName(),
 			true );
 		
@@ -90,13 +90,12 @@ public class Intensity_Adjustment implements PlugIn
 			final SpimData2 data,
 			final List< ViewId > viewIds )
 	{
-		return intensityAdjustment( data, viewIds, "", null, false );
+		return intensityAdjustment( data, viewIds, null, false );
 	}
 
 	public boolean intensityAdjustment(
 			final SpimData2 data,
 			final List< ViewId > views,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXML )
 	{
@@ -202,7 +201,7 @@ public class Intensity_Adjustment implements PlugIn
 		data.getIntensityAdjustments().getIntensityAdjustments().putAll( intensityMapping );
 
 		if ( saveXML )
-			SpimData2.saveXML( data, xmlFileName, clusterExtension );
+			new XmlIoSpimData2().saveWithFilename( data, xmlFileName );
 
 		return true;
 	}
@@ -296,9 +295,9 @@ public class Intensity_Adjustment implements PlugIn
 		new ImageJ();
 
 		if ( !System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			GenericLoadParseQueryXML.defaultXMLfilename = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
 		else
-			GenericLoadParseQueryXML.defaultXMLfilename = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
 
 		new Intensity_Adjustment().run( null );
 	}

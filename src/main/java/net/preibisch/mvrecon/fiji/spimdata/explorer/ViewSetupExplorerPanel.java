@@ -63,7 +63,6 @@ import bdv.viewer.DisplayMode;
 import bdv.viewer.VisibilityAndGrouping;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -74,6 +73,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.type.numeric.ARGBType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ApplyTransformationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
@@ -111,7 +111,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 
-public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends FilteredAndGroupedExplorerPanel< AS > implements ExplorerWindow< AS >
+public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndGroupedExplorerPanel< AS > implements ExplorerWindow< AS >
 {
 	private static final long serialVersionUID = -2512096359830259015L;
 
@@ -145,13 +145,11 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends 
 	@Override
 	public boolean channelsGrouped() { return false; }
 
-	public ViewSetupExplorerPanel( final FilteredAndGroupedExplorer< AS > explorer, final AS data, final String xml, final XmlIoAbstractSpimData< ?, AS > io, boolean requestStartBDV )
+	public ViewSetupExplorerPanel( final FilteredAndGroupedExplorer< AS > explorer, final AS data, final URI xml, final XmlIoSpimData2 io, boolean requestStartBDV )
 	{
 		super( explorer, data, xml, io );
 
-		
-		if ( data instanceof SpimData2 )
-			((SpimData2)data).gridMoveRequested = false;
+		data.gridMoveRequested = false;
 
 		popups = initPopups();
 		initComponent();
@@ -315,7 +313,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends 
 		addPopupMenu( table );
 	}
 
-	public static JLabel getXMLLabel( final String xml )
+	public static JLabel getXMLLabel( final URI xml )
 	{
 		final JLabel l = new JLabel( "XML: " + xml );
 		l.setBorder( new EmptyBorder( 0, 9, 0, 0 ) );
@@ -579,42 +577,7 @@ public class ViewSetupExplorerPanel< AS extends AbstractSpimData< ? > > extends 
 
 	public void showInfoBox()
 	{
-		new ViewSetupExplorerInfoBox< AS >( data, xml );
-	}
-
-	@Override
-	public void saveXML()
-	{
-		try
-		{
-			io.save( data, xml );
-
-			for ( final SelectedViewDescriptionListener< AS > l : listeners )
-				l.save();
-
-			if ( SpimData2.class.isInstance( data ) )
-			{
-				final ViewInterestPoints vip = ( (SpimData2)data ).getViewInterestPoints();
-				
-				for ( final ViewInterestPointLists vipl : vip.getViewInterestPoints().values() )
-				{
-					for ( final String label : vipl.getHashMap().keySet() )
-					{
-						final InterestPoints ipl = vipl.getInterestPointList( label );
-
-						ipl.saveInterestPoints( false );
-						ipl.saveCorrespondingInterestPoints( false );
-					}
-				}
-			}
-
-			IOFunctions.println( "Saved XML '" + xml + "'." );
-		}
-		catch ( SpimDataException e )
-		{
-			IOFunctions.println( "Failed to save XML '" + xml + "': " + e );
-			e.printStackTrace();
-		}
+		new ViewSetupExplorerInfoBox< AS >( data );
 	}
 
 	protected void addPopupMenu( final JTable table )

@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.interactive;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -140,9 +141,9 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 
 		// load drosophila
 		if ( System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			spimData = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+			spimData = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 		else
-			spimData = new XmlIoSpimData2( "" ).load( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" );
+			spimData = new XmlIoSpimData2().load( URI.create( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" ) );
 
 		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
 

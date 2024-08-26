@@ -25,30 +25,27 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer.registration;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JFrame;
 
-import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.SelectedViewDescriptionListener;
-import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
-
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.SelectedViewDescriptionListener;
 
-public class RegistrationExplorer< AS extends AbstractSpimData< ? > >
+public class RegistrationExplorer< AS extends SpimData2 >
 	implements SelectedViewDescriptionListener< AS >
 {
-	final String xml;
+	final URI xml;
 	final JFrame frame;
 	final RegistrationExplorerPanel panel;
 	final FilteredAndGroupedExplorer< AS > viewSetupExplorer;
 
-	public RegistrationExplorer( final String xml, final XmlIoAbstractSpimData< ?, AS > io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
+	public RegistrationExplorer( final URI xml, final XmlIoSpimData2 io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
 	{
 		this.xml = xml;
 		this.viewSetupExplorer = viewSetupExplorer;

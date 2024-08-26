@@ -35,6 +35,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -58,20 +59,19 @@ public class PSF_Extract implements PlugIn
 		if ( !result.queryXML( "Dataset Fusion", true, true, true, true, true ) )
 			return;
 
-		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), result.getClusterExtension(), result.getXMLFileName(), true );
+		extract( result.getData(), SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() ), result.getXMLFileName(), true );
 	}
 
 	public static boolean extract(
 		final SpimData2 spimData,
 		final Collection< ? extends ViewId > viewCollection )
 	{
-		return extract( spimData, viewCollection, null, null, false );
+		return extract( spimData, viewCollection, null, false );
 	}
 
 	public static boolean extract(
 			final SpimData2 spimData,
 			final Collection< ? extends ViewId > viewCollection,
-			final String clusterExtension,
 			final String xmlFileName,
 			final boolean saveXml )
 	{
@@ -171,7 +171,7 @@ public class PSF_Extract implements PlugIn
 				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData, viewId, psf.getPSF() ) );
 				
 				if ( saveXml )
-					SpimData2.saveXML( spimData, xmlFileName, clusterExtension );
+					new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 			}
 		}
 

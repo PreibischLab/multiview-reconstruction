@@ -27,20 +27,19 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JFrame;
 
 import bdv.BigDataViewer;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorer;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.SelectedViewDescriptionListener;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
@@ -49,12 +48,12 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 public class InterestPointExplorer< AS extends SpimData2 >
 	implements SelectedViewDescriptionListener< AS >
 {
-	final String xml;
+	final URI xml;
 	final JFrame frame;
 	final InterestPointExplorerPanel panel;
 	final FilteredAndGroupedExplorer< AS > viewSetupExplorer;
 
-	public InterestPointExplorer( final String xml, final XmlIoAbstractSpimData< ?, AS > io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
+	public InterestPointExplorer( final URI xml, final XmlIoSpimData2 io, final FilteredAndGroupedExplorer< AS > viewSetupExplorer )
 	{
 		this.xml = xml;
 		this.viewSetupExplorer = viewSetupExplorer;

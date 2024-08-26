@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.headless.interestpointdetection;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,8 +51,8 @@ public class VerifyDownsamplingCorrection
 		new ImageJ();
 		IOFunctions.printIJLog = true;
 
-		final SpimData2 sdTiff = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/TIF/dataset.xml" );
-		final SpimData2 sdHdf5 = new XmlIoSpimData2( "" ).load( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/HDF5/dataset.xml" );
+		final SpimData2 sdTiff = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/TIF/dataset.xml" ) );
+		final SpimData2 sdHdf5 = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/HDF5/dataset.xml" ) );
 
 		//String label = "beads4x";
 		//testLoad( sdTiff, sdHdf5, label );

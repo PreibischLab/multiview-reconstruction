@@ -26,9 +26,9 @@ import java.util.ArrayList;
 
 import javax.swing.JFrame;
 
-import mpicbg.spim.data.generic.AbstractSpimData;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 
-public abstract class FilteredAndGroupedExplorer<AS extends AbstractSpimData< ? > >
+public abstract class FilteredAndGroupedExplorer<AS extends SpimData2 >
 {
 
 	protected JFrame frame;

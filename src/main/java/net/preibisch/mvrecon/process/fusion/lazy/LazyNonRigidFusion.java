@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.fusion.lazy;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -244,7 +245,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	{
 		new ImageJ();
 
-		final SpimData2 spimData = new XmlIoSpimData2( "" ).load( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		final SpimData2 spimData = new XmlIoSpimData2().load( URI.create("/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml") );
 
 		Interval boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
 		IOFunctions.println( BoundingBox.getBoundingBoxDescription( (BoundingBox)boundingBox ) );

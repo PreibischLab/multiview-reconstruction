@@ -35,7 +35,10 @@ import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccess;
@@ -47,6 +50,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import util.URITools;
 
 public class InterestPointsN5 extends InterestPoints
 {
@@ -146,8 +150,12 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			// TODO: cloud support
-			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer;
+
+			if ( URITools.isFile( baseDir ) )
+				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -211,11 +219,11 @@ public class InterestPointsN5 extends InterestPoints
 
 			n5Writer.close();
 
-			IOFunctions.println( "Saved: " + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset );
+			IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
 		}
 		catch (Exception e)
 		{
-			IOFunctions.println("Couldn't write interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
+			IOFunctions.println("Couldn't write interestpoints to N5 '" + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + "': " + e );
 			e.printStackTrace();
 			return false;
 		}
@@ -238,8 +246,12 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			// TODO: cloud support
-			final N5FSWriter n5Writer = new N5FSWriter( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Writer n5Writer;
+
+			if ( URITools.isFile( baseDir ) )
+				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -327,13 +339,13 @@ public class InterestPointsN5 extends InterestPoints
 					new long[] {0});
 			*/
 
-			IOFunctions.println( "Saved: " + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset );
+			IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
 
 			n5Writer.close();
 		}
 		catch (Exception e)
 		{
-			IOFunctions.println("Couldn't write corresponding interestpoints to N5 '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "': " + e );
+			IOFunctions.println("Couldn't write corresponding interestpoints to N5 '" + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + "': " + e );
 			e.printStackTrace();
 			return false;
 		}
@@ -346,13 +358,19 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// TODO: cloud support
-			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			
+			final N5Reader n5;
+
+			if ( URITools.isFile( baseDir ) )
+				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+
 			final String dataset = ipDataset();
 
 			if (!n5.exists(dataset))
 			{
-				IOFunctions.println( "InterestPointsN5.loadInterestPoints(): dataset '" + new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() + ":/" + dataset + "' does not exist, cannot load interestpoints." );
+				IOFunctions.println( "InterestPointsN5.loadInterestPoints(): dataset '" + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + "' does not exist, cannot load interestpoints." );
 				return false;
 			}
 
@@ -446,8 +464,13 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// TODO: cloud support
-			final N5FSReader n5 = new N5FSReader( new File( baseDir.getAbsolutePath(), baseN5 ).getAbsolutePath() );
+			final N5Reader n5;
+
+			if ( URITools.isFile( baseDir ) )
+				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+
 			final String dataset = corrDataset();
 
 			if (!n5.exists(dataset))
@@ -564,9 +587,16 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// TODO: cloud support
-			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
-	
+			// cloud support
+			//final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+			final N5Writer n5Writer;
+
+			if ( URITools.isFile( baseDir ) )
+				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+
+
 			if (n5Writer.exists(ipDataset()))
 				n5Writer.remove(ipDataset());
 	
@@ -588,9 +618,16 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// TODO: cloud support
-			final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
-	
+			// cloud support
+			//final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+
+			final N5Writer n5Writer;
+
+			if ( URITools.isFile( baseDir ) )
+				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
+			else
+				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+
 			if (n5Writer.exists(corrDataset()))
 				n5Writer.remove(corrDataset());
 	

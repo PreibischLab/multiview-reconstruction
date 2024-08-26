@@ -33,6 +33,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 import net.preibisch.mvrecon.process.interestpointremoval.CreateFromCorrespondencesParameters;
 import net.preibisch.mvrecon.process.interestpointremoval.CreateInterestPointsFromCorrespondences;
@@ -56,7 +57,7 @@ public class CreateFromCorresponding_Detections implements PlugIn
 			return;
 
 		// write new xml
-		SpimData2.saveXML( data, xml.getXMLFileName(), xml.getClusterExtension() );
+		new XmlIoSpimData2().saveWithFilename( data, xml.getXMLFileName() );
 	}
 
 	public static boolean create( final SpimData2 data, final Collection< ? extends ViewId > viewCollection )

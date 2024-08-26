@@ -512,42 +512,6 @@ public class SpimData2 extends SpimData
 		return timepoints;
 	}
 
-	public static URI saveXML( final SpimData2 data, final String xmlFileName )
-	{
-		// save the xml
-		final XmlIoSpimData2 io = new XmlIoSpimData2();
-
-		final URI xml = URITools.xmlFilenameToFullPath(data, xmlFileName);
-		//final String xml = new File( data.getBasePath(), new File( xmlFileName ).getName() ).getAbsolutePath();
-
-		try
-		{
-			for ( final ViewId viewId : data.getViewInterestPoints().getViewInterestPoints().keySet() )
-			{
-				final ViewInterestPointLists vipl = data.getViewInterestPoints().getViewInterestPoints().get( viewId );
-				for ( final String label : vipl.getHashMap().keySet() )
-				{
-					final InterestPoints ipl = vipl.getHashMap().get( label );
-
-					// save if interestpoints were loaded or created, potentially modified
-					ipl.saveInterestPoints( false );
-					ipl.saveCorrespondingInterestPoints( false );
-				}
-			}
-
-			io.save( data, xml );
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + io.lastURI() + "'." );
-			return xml;
-		}
-		catch ( Exception e )
-		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Could not save xml '" + io.lastURI() + "': " + e );
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-
 	public static SpimData2 convert( final SpimData data1 )
 	{
 		final SequenceDescription s = data1.getSequenceDescription();

@@ -25,23 +25,23 @@ package net.preibisch.mvrecon.fiji.spimdata.explorer;
 import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.net.URI;
 
 import javax.swing.JFrame;
 
 import net.preibisch.mvrecon.fiji.plugin.util.MultiWindowLayoutHelper;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BasicBDVPopup;
 
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
-
-public class ViewSetupExplorer< AS extends AbstractSpimData< ? > > extends FilteredAndGroupedExplorer< AS >
+public class ViewSetupExplorer< AS extends SpimData2 > extends FilteredAndGroupedExplorer< AS >
 {
 	public static final double xPos = 0.4;
 	public static final double yPos = 0.4;
 	public static final double xPosLog = 0.0;
 	public static final double yPosLog = 0.8;
 
-	public ViewSetupExplorer( final AS data, final String xml, final XmlIoAbstractSpimData< ?, AS > io )
+	public ViewSetupExplorer( final AS data, final URI xml, final XmlIoSpimData2 io )
 	{
 		frame = new JFrame( "ViewSetup Explorer" );
 		panel = new ViewSetupExplorerPanel< AS >( this, data, xml, io, true );
