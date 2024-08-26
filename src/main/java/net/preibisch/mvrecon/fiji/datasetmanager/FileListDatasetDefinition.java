@@ -34,6 +34,7 @@ import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -100,7 +101,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePattern
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilenamePatternDetector;
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
@@ -120,6 +121,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
@@ -1136,7 +1138,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			data = buildSpimData( state, useVirtualLoader );
 
 		File chosenPath = new File( gdSave.getNextString());
-		data.setBasePath( chosenPath );
+		data.setBasePathURI( chosenPath );
 
 		// check and correct stack sizes (the "BioFormats bug")
 		// TODO: remove once the bug is fixed upstream
@@ -1200,10 +1202,16 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		boolean resaveAsHDF5 = loadChoice == 0;
 		if (resaveAsHDF5)
 		{
+			if ( !URITools.isFile( chosenPath ) )
+			{
+				IOFunctions.println( "Intrinsic URI '" + panel.xml() + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems. Please use the explicit Re-save plugin for more options." );
+				return;
+			}
+
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( data.getSequenceDescription().getViewSetupsOrdered() );
 			final int firstviewSetupId = data.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
 			//Generic_Resave_HDF5.lastExportPath = String.join( File.separator, chosenPath.getAbsolutePath(), "dataset");
-			final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, true );
+			final ParametersResaveHDF5 params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), false, true );
 
 			// HDF5 options dialog was cancelled
 			if (params == null)

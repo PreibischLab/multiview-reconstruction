@@ -157,6 +157,9 @@ public abstract class GenericLoadParseQueryXML<
 	 */
 	public URI getXMLURI() { return URITools.xmlFilenameToFullPath( getData(), xmlFileName ); }
 
+	/**
+	 * @return ONLY the filename, without any path
+	 */
 	public String getXMLFileName() { return xmlFileName; }
 
 	/**

@@ -61,7 +61,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	FilteredAndGroupedExplorerPanel< ? > panel;
 
-	protected static String[] types = new String[]{ "As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 ...", "As compressed HDF5 ...", "As compressed N5 ..." };
+	protected static String[] types = new String[]{ "As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 (in place) ...", "As compressed HDF5 (in place) ...", "As compressed N5 ..." };
 
 	public ResavePopup()
 	{
@@ -179,13 +179,13 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 					if ( index < 2 ) // TIFF, compressed tiff
 					{
-						panel.saveXML();
-
 						if ( !URITools.isFile( panel.xml() ) )
 						{
 							IOFunctions.println( "Intrinsic URI '" + panel.xml() + "' is not on a local file system. Re-saving as TIFF only works on locally mounted file systems. Please use the explicit Re-save plugin for more options." );
 							return;
 						}
+
+						panel.saveXML();
 
 						final ParametersResaveAsTIFF params = new ParametersResaveAsTIFF();
 						params.compress = index != 0;
@@ -208,6 +208,12 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					}
 					else if ( index == 2 || index == 3 ) // HDF5, compressed HDF5
 					{
+						if ( !URITools.isFile( panel.xml() ) )
+						{
+							IOFunctions.println( "Intrinsic URI '" + panel.xml() + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems. Please use the explicit Re-save plugin for more options." );
+							return;
+						}
+
 						final List< ViewSetup > setups = SpimData2.getAllViewSetupsSorted( data, viewIds );
 
 						// load all dimensions if they are not known (required for estimating the mipmap layout)
@@ -225,12 +231,14 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						File hdf5File;
 						int i = 1;
 
+						String xml = URITools.removeFilePrefix( panel.xml() );
+
 						do
 						{
 							if ( hdf5Filename == null )
-								hdf5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".h5";
+								hdf5Filename = xml.substring( 0, xml.length() - 4 ) + ".h5";
 							else
-								hdf5Filename = panel.xml().substring( 0, panel.xml().length() - 4 ) + ".v" + (i++) + ".h5";
+								hdf5Filename = xml.substring( 0, xml.length() - 4 ) + ".v" + (i++) + ".h5";
 
 							hdf5File = new File( hdf5Filename );
 	
@@ -241,8 +249,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 						IOFunctions.println( "HDF5 file: " + hdf5File.getAbsolutePath() );
 
-						final Generic_Resave_HDF5.Parameters params =
-								new Generic_Resave_HDF5.Parameters(
+						final Generic_Resave_HDF5.ParametersResaveHDF5 params =
+								new Generic_Resave_HDF5.ParametersResaveHDF5(
 										false,
 										autoMipmapSettings.getExportResolutions(),
 										autoMipmapSettings.getSubdivisions(),

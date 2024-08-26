@@ -22,17 +22,12 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
-import fiji.util.gui.GenericDialogPlus;
-import ij.IJ;
-import ij.gui.DialogListener;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
-
 import java.awt.AWTEvent;
 import java.awt.Checkbox;
 import java.awt.TextField;
 import java.awt.event.ItemEvent;
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,12 +36,22 @@ import java.util.Map;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
-import net.imglib2.RandomAccessibleInterval;
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.Threads;
-import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
-import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
-
+import bdv.export.ExportMipmapInfo;
+import bdv.export.ExportScalePyramid.DefaultLoopbackHeuristic;
+import bdv.export.ExportScalePyramid.LoopbackHeuristic;
+import bdv.export.ProgressWriter;
+import bdv.export.ProposeMipmaps;
+import bdv.export.SubTaskProgressWriter;
+import bdv.export.WriteSequenceToHdf5;
+import bdv.img.hdf5.Hdf5ImageLoader;
+import bdv.img.hdf5.Partition;
+import bdv.spimdata.SpimDataMinimal;
+import bdv.spimdata.XmlIoSpimDataMinimal;
+import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
+import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
@@ -54,17 +59,11 @@ import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.TimePoint;
-import bdv.export.ExportMipmapInfo;
-import bdv.export.ProgressWriter;
-import bdv.export.ProposeMipmaps;
-import bdv.export.SubTaskProgressWriter;
-import bdv.export.ExportScalePyramid.DefaultLoopbackHeuristic;
-import bdv.export.ExportScalePyramid.LoopbackHeuristic;
-import bdv.export.WriteSequenceToHdf5;
-import bdv.img.hdf5.Hdf5ImageLoader;
-import bdv.img.hdf5.Partition;
-import bdv.spimdata.SpimDataMinimal;
-import bdv.spimdata.XmlIoSpimDataMinimal;
+import net.imglib2.RandomAccessibleInterval;
+import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
+import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import util.URITools;
 
 public class Generic_Resave_HDF5 implements PlugIn
 {
@@ -81,7 +80,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		new Generic_Resave_HDF5().run( null );
 	}
 
-	public static class Parameters
+	public static class ParametersResaveHDF5
 	{
 		boolean setMipmapManual;
 		int[][] resolutions;
@@ -99,7 +98,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		double min = Double.NaN;
 		double max = Double.NaN;
 
-		public Parameters(
+		public ParametersResaveHDF5(
 				final boolean setMipmapManual, final int[][] resolutions, final int[][] subdivisions,
 				final File seqFile, final File hdf5File,
 				final boolean deflate,
@@ -172,7 +171,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
 
 		final int firstviewSetupId = spimData.getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
-		final Parameters params = getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
+		final ParametersResaveHDF5 params = getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
 		if ( params == null )
 			return;
 
@@ -193,7 +192,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		}
 	}
 
-	public static Map< Integer, ExportMipmapInfo > getPerSetupExportMipmapInfo( final AbstractSpimData< ? > spimData, final Parameters params )
+	public static Map< Integer, ExportMipmapInfo > getPerSetupExportMipmapInfo( final AbstractSpimData< ? > spimData, final ParametersResaveHDF5 params )
 	{
 		if ( params.setMipmapManual )
 		{
@@ -208,7 +207,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 			//return ProposeMipmaps.proposeMipmaps( spimData.getSequenceDescription() );
 	}
 
-	public static ArrayList< Partition > getPartitions( final AbstractSpimData< ? > spimData, final Parameters params )
+	public static ArrayList< Partition > getPartitions( final AbstractSpimData< ? > spimData, final ParametersResaveHDF5 params )
 	{
 		final AbstractSequenceDescription< ?, ?, ? > seq = spimData.getSequenceDescription();
 		if ( params.split )
@@ -234,7 +233,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 		}
 	}
 
-	public static void writeHDF5( final AbstractSpimData< ? > spimData, final Parameters params, final ProgressWriter progressWriter )
+	public static void writeHDF5( final AbstractSpimData< ? > spimData, final ParametersResaveHDF5 params, final ProgressWriter progressWriter )
 	{
 		Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = getPerSetupExportMipmapInfo( spimData, params );
 		final ArrayList< Partition > partitions = getPartitions( spimData, params );
@@ -265,7 +264,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 	public static < T extends AbstractSpimData< A >, A extends AbstractSequenceDescription< ?, ?, ? super ImgLoader > > void writeXML(
 			final T spimData,
 			final XmlIoAbstractSpimData< A, T > io,
-			final Parameters params,
+			final ParametersResaveHDF5 params,
 			final ProgressWriter progressWriter )
 		throws SpimDataException
 	{
@@ -341,21 +340,13 @@ public class Generic_Resave_HDF5 implements PlugIn
 			return null;
 	}
 
-	public static Parameters getParameters( final ExportMipmapInfo autoMipmapSettings, final boolean askForXMLPath, final boolean is16bit )
+	public static ParametersResaveHDF5 getParameters( final ExportMipmapInfo autoMipmapSettings, final boolean askForXMLPath, final boolean is16bit )
 	{
 		return getParameters( autoMipmapSettings, askForXMLPath, "Export for BigDataViewer", is16bit );
 	}
 
-	public static Parameters getParameters( final ExportMipmapInfo autoMipmapSettings, final boolean askForXMLPath, final String dialogTitle, final boolean is16bit )
+	public static ParametersResaveHDF5 getParameters( final ExportMipmapInfo autoMipmapSettings, final boolean askForXMLPath, final String dialogTitle, final boolean is16bit )
 	{
-		final boolean displayClusterProcessing = Toggle_Cluster_Options.displayClusterProcessing;
-		if ( displayClusterProcessing )
-		{
-			lastSplit = true;
-			lastTimepointsPerPartition = 1;
-			lastSetupsPerPartition = 0;
-		}
-
 		while ( true )
 		{
 			final GenericDialogPlus gd = new GenericDialogPlus( dialogTitle );
@@ -400,9 +391,6 @@ public class Generic_Resave_HDF5 implements PlugIn
 			else
 				tfSplitSetups = null;
 
-			if ( displayClusterProcessing )
-				gd.addNumericField( "run_only_job_number", lastJobIndex, 0, 25, "" );
-
 			gd.addMessage( "" );
 			gd.addCheckbox( "use_deflate_compression", lastDeflate );
 
@@ -436,8 +424,6 @@ public class Generic_Resave_HDF5 implements PlugIn
 						gd.getNextBoolean();
 						gd.getNextNumber();
 						gd.getNextNumber();
-						if ( displayClusterProcessing )
-							gd.getNextNumber();
 						gd.getNextBoolean();
 						if ( askForXMLPath )
 							gd.getNextString();
@@ -474,13 +460,6 @@ public class Generic_Resave_HDF5 implements PlugIn
 
 				tfSplitTimepoints.setEnabled( lastSplit );
 				tfSplitSetups.setEnabled( lastSplit );
-
-				if ( displayClusterProcessing )
-				{
-					cSplit.setEnabled( false );
-					tfSplitTimepoints.setEnabled( false );
-					tfSplitSetups.setEnabled( false );
-				}
 			}
 
 			gd.showDialog();
@@ -493,10 +472,6 @@ public class Generic_Resave_HDF5 implements PlugIn
 			lastSplit = gd.getNextBoolean();
 			lastTimepointsPerPartition = ( int ) gd.getNextNumber();
 			lastSetupsPerPartition = ( int ) gd.getNextNumber();
-			if ( displayClusterProcessing )
-			{
-				lastJobIndex = ( int ) gd.getNextNumber();
-			}
 			lastDeflate = gd.getNextBoolean();
 			if ( askForXMLPath )
 				lastExportPath = gd.getNextString();
@@ -529,6 +504,13 @@ public class Generic_Resave_HDF5 implements PlugIn
 				String seqFilename = lastExportPath;
 				if ( !seqFilename.endsWith( ".xml" ) )
 					seqFilename += ".xml";
+
+				if ( !URITools.isFile( URI.create( seqFilename ) ) )
+				{
+					IOFunctions.println( "Provided URI '" + seqFilename + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems. Stopping." );
+					return null;
+				}
+
 				seqFile = new File( seqFilename );
 				final File parent = seqFile.getParentFile();
 				if ( parent == null || !parent.exists() || !parent.isDirectory() )
@@ -571,9 +553,9 @@ public class Generic_Resave_HDF5 implements PlugIn
 				defaultMin = defaultMax = Double.NaN;
 			}
 
-			return new Parameters(
+			return new ParametersResaveHDF5(
 					lastSetMipmapManual, resolutions, subdivisions, seqFile, hdf5File, lastDeflate, lastSplit,
-					lastTimepointsPerPartition, lastSetupsPerPartition, displayClusterProcessing, lastJobIndex,
+					lastTimepointsPerPartition, lastSetupsPerPartition, false, lastJobIndex,
 					defaultConvertChoice, defaultMin, defaultMax );
 		}
 	}

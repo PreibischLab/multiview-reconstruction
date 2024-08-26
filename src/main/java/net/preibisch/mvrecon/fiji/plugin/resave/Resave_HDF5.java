@@ -22,8 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
-import ij.plugin.PlugIn;
-
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import bdv.export.ExportMipmapInfo;
+import bdv.export.ProgressWriter;
+import bdv.export.ProposeMipmaps;
+import bdv.img.hdf5.Hdf5ImageLoader;
+import bdv.img.hdf5.Partition;
+import ij.plugin.PlugIn;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -50,18 +54,12 @@ import net.imglib2.Dimensions;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
-import net.preibisch.mvrecon.fiji.plugin.Toggle_Cluster_Options;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
-
-import bdv.export.ExportMipmapInfo;
-import bdv.export.ProgressWriter;
-import bdv.export.ProposeMipmaps;
-import bdv.img.hdf5.Hdf5ImageLoader;
-import bdv.img.hdf5.Partition;
 
 public class Resave_HDF5 implements PlugIn
 {
@@ -73,34 +71,29 @@ public class Resave_HDF5 implements PlugIn
 	@Override
 	public void run( final String arg0 )
 	{
-		boolean rememberClusterProcessing = Toggle_Cluster_Options.displayClusterProcessing;
-		Toggle_Cluster_Options.displayClusterProcessing = false;
-
 		final LoadParseQueryXML xml = new LoadParseQueryXML();
 
 		if ( !xml.queryXML( "Resaving as HDF5", "Resave", true, true, true, true, true ) )
 			return;
 
-		Toggle_Cluster_Options.displayClusterProcessing = rememberClusterProcessing;
-
 		// load all dimensions if they are not known (required for estimating the mipmap layout)
 		if ( loadDimensions( xml.getData(), xml.getViewSetupsToProcess() ) )
 		{
 			// save the XML again with the dimensions loaded
-			SpimData2.saveXML( xml.getData(), xml.getXMLFileName(), xml.getClusterExtension() );
+			new XmlIoSpimData2().saveWithFilename( xml.getData(), xml.getXMLFileName() );
 		}
 
 		final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = proposeMipmaps( xml.getViewSetupsToProcess() );
 
-		Generic_Resave_HDF5.lastExportPath = LoadParseQueryXML.defaultXMLfilename;
+		Generic_Resave_HDF5.lastExportPath = LoadParseQueryXML.defaultXMLURI;
 
 		final int firstviewSetupId = xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
-		final Parameters params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
+		final ParametersResaveHDF5 params = Generic_Resave_HDF5.getParameters( perSetupExportMipmapInfo.get( firstviewSetupId ), true, true );
 
 		if ( params == null )
 			return;
 
-		LoadParseQueryXML.defaultXMLfilename = params.getSeqFile().toString();
+		LoadParseQueryXML.defaultXMLURI = params.getSeqFile().toString();
 
 		final ProgressWriter progressWriter = new ProgressWriterIJ();
 		progressWriter.out().println( "starting export..." );
@@ -289,7 +282,7 @@ public class Resave_HDF5 implements PlugIn
 	public static Pair< SpimData2, List< String > > createXMLObject(
 			final SpimData2 spimData,
 			final List< ViewId > viewIds,
-			final Parameters params,
+			final ParametersResaveHDF5 params,
 			final ProgressWriter progressWriter,
 			final boolean useRightAway )
 	{
