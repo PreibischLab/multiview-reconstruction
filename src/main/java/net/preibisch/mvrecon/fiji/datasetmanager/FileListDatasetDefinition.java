@@ -35,6 +35,7 @@ import java.awt.event.TextListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,7 +128,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 	//public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
-	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly"};
+	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly (no resaving)"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
 
 	public static boolean windowsHack = true;
@@ -1081,13 +1082,13 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			}
 		}
 
-		GenericDialogPlus gdSave = new GenericDialogPlus( "Save dataset definition" );
+		GenericDialogPlus gdSave = new GenericDialogPlus( "Rs-save dataset definition" );
 
-		addMessageAsJLabel("<html> <h1> Loading options </h1> <br /> </html>", gdSave);
-		gdSave.addChoice( "how_to_load_images", loadChoicesNew, loadChoicesNew[defaultLoadChoice] );
-		gdSave.addCheckbox( "load_raw_data_virtually (also when resaving to HDF5/N5, slower, but supports larger stacks)", defaultVirtual );
+		addMessageAsJLabel("<html> <h1> Input image	 storage options </h1> <br /> </html>", gdSave);
+		gdSave.addChoice( "how_to_store_input_images", loadChoicesNew, loadChoicesNew[defaultLoadChoice] );
+		gdSave.addCheckbox( "load_raw_data_virtually (supports large stacks; required to work with BigSticher-Spark and efficient re-saving to HDF5/N5)", defaultVirtual );
 
-		addMessageAsJLabel("<html><h2> Save path </h2></html>", gdSave);
+		addMessageAsJLabel("<html><h2> Save paths for XML & Data</h2></html>", gdSave);
 
 		// get default save path := deepest parent directory of all files in dataset
 		final Set<String> filenames = new HashSet<>();
@@ -1105,7 +1106,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			prefixPath = new File((String)fi.subSequence( 0, fi.lastIndexOf( File.separator )));
 		}
 
-		gdSave.addDirectoryField( "dataset_save_path", prefixPath.getAbsolutePath(), 55 );
+		gdSave.addDirectoryField( "metadata_save_path (XML)", prefixPath.getAbsolutePath(), 65 );
+		gdSave.addDirectoryField( "image_data_save_path", prefixPath.getAbsolutePath(), 65 );
+		gdSave.addMessage( "Note: image data save path will be ignored if not re-saved as N5/HDF5.", GUIHelper.smallStatusFont );
 
 		// check if all stack sizes are the same (in each file)
 		boolean zSizeEqualInEveryFile = LegacyFileMapImgLoaderLOCI.isZSizeEqualInEveryFile( data, (FileMapGettable)data.getSequenceDescription().getImgLoader() );
@@ -1133,12 +1136,42 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		final int loadChoice = defaultLoadChoice = gdSave.getNextChoiceIndex();
 		final boolean useVirtualLoader = defaultVirtual = gdSave.getNextBoolean();
 
-		// re-build the SpimData if user explicitly doesn't want virtual loading
+		// re-build the SpimData if user explicitly doesn't want virtual loading (the first one was created as virtual)
 		if (!useVirtualLoader)
-			data = buildSpimData( state, useVirtualLoader );
+			data = buildSpimData( state, false );
 
-		File chosenPath = new File( gdSave.getNextString());
-		data.setBasePathURI( chosenPath );
+		// by default, both are identical
+		final String chosenPathXML = gdSave.getNextString(); // where the XML and interest points live
+		final String chosenPathData;
+
+		if ( loadChoice == 2 )
+		{
+			gdSave.getNextString(); // << goes to void
+			chosenPathData = prefixPath.getAbsolutePath(); // the data is where it is if not resaved
+			IOFunctions.println( "Ignoring selection for 'image data save path' since data is not resaved. Data is in '" + prefixPath.getAbsolutePath() + "'" );
+		}
+		else
+		{
+			chosenPathData = gdSave.getNextString(); // will be stored in the img loader (if identical to chosenPathXML then relative, otherwise absolute)
+		}
+
+		final URI chosenPathXMLURI, chosenPathDataURI;
+
+		try
+		{
+			chosenPathXMLURI = new URI( chosenPathXML );
+			chosenPathDataURI = new URI( chosenPathData );
+		}
+		catch ( URISyntaxException e )
+		{
+			IOFunctions.println( "Could not convert provided paths into a URI: " + e );
+			return null;
+		}
+
+		IOFunctions.println( "XML & metadata path: " + chosenPathXMLURI );
+		IOFunctions.println( "Image data path: " + chosenPathDataURI );
+
+		data.setBasePathURI( chosenPathXMLURI );
 
 		// check and correct stack sizes (the "BioFormats bug")
 		// TODO: remove once the bug is fixed upstream
@@ -1199,13 +1232,21 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if (applyAxis)
 			Apply_Transformation.applyAxisGrouped( data );
 
-		boolean resaveAsHDF5 = loadChoice == 0;
+		boolean resaveAsHDF5 = (loadChoice == 0);
+		boolean resaveAsN5 = (loadChoice == 1);
+
 		if (resaveAsHDF5)
 		{
-			if ( !URITools.isFile( chosenPath ) )
+			if ( !URITools.isFile( chosenPathDataURI ) )
 			{
-				IOFunctions.println( "Intrinsic URI '" + panel.xml() + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems. Please use the explicit Re-save plugin for more options." );
-				return;
+				IOFunctions.println( "The image data path you selected '" + chosenPathDataURI + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems." );
+				return null;
+			}
+
+			if ( !URITools.isFile( chosenPathXMLURI ) )
+			{
+				IOFunctions.println( "The XML path you selected '" + chosenPathXMLURI + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems." );
+				return null;
 			}
 
 			final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( data.getSequenceDescription().getViewSetupsOrdered() );
@@ -1217,8 +1258,17 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if (params == null)
 				return null;
 
-			params.setHDF5File(new File( chosenPath.getAbsolutePath(), xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".h5" ) );
-			params.setSeqFile(new File( chosenPath.getAbsolutePath(), xmlFileName ) );
+			String dataPath = URITools.removeFilePrefix( chosenPathDataURI );
+			String xmlPath = URITools.removeFilePrefix( chosenPathXMLURI );
+
+			if ( !new File( dataPath ).exists() )
+			{
+				IOFunctions.println( "Path for HDF5 does not exist, trying to create folder: " + dataPath );
+				new File( dataPath ).mkdirs();
+			}
+
+			params.setHDF5File(new File( dataPath, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".h5" ) );
+			params.setSeqFile(new File( xmlPath, xmlFileName ) );
 
 			final ProgressWriter progressWriter = new ProgressWriterIJ();
 			progressWriter.out().println( "starting export..." );
@@ -1234,9 +1284,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			data = result.getA();
 		}
-
-		boolean resaveAsN5 = loadChoice == 1;
-		if (resaveAsN5)
+		else if (resaveAsN5)
 		{
 			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
 			Collections.sort( viewIds );
