@@ -296,8 +296,8 @@ public class InteractiveDoG
 		}
 
 		final double radius = ( ( params.sigma + HelperFunctions.computeSigma2( params.sigma, sensitivity ) ) / 2.0 );
-		final ArrayList< RefinedPeak< Point > > filteredPeaksMax = HelperFunctions.filterPeaks( peaksMax, rectangle, params.threshold );
-		final ArrayList< RefinedPeak< Point > > filteredPeaksMin = HelperFunctions.filterPeaks( peaksMin, rectangle, params.threshold );
+		final ArrayList< RefinedPeak< Point > > filteredPeaksMax = HelperFunctions.filterPeaks( peaksMax, rectangle, params.threshold / 2.5 ); // correction factor of 2.5 applied to match thresholding in final DoG IP detection
+		final ArrayList< RefinedPeak< Point > > filteredPeaksMin = HelperFunctions.filterPeaks( peaksMin, rectangle, params.threshold / 2.5 ); // correction factor of 2.5 applied to match thresholding in
 
 		HelperFunctions.drawRealLocalizable( filteredPeaksMax, imagePlus, radius, Color.RED, true );
 		HelperFunctions.drawRealLocalizable( filteredPeaksMin, imagePlus, radius, Color.GREEN, false );
