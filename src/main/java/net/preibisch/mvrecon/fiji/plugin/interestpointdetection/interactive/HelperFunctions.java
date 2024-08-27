@@ -3,7 +3,7 @@
  * Software for the reconstruction of multi-view microscopic acquisitions
  * like Selective Plane Illumination Microscopy (SPIM) Data.
  * %%
- * Copyright (C) 2012 - 2024 Multiview Reconstruction developers.
+ * Copyright (C) 2012 - 2022 Multiview Reconstruction developers.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -110,18 +110,19 @@ public class HelperFunctions {
 
 		for (final L peak : peaks) {
 
-			// we only draw a 3d peak when it is +- 1.0 pixel away
-			if ( peak.numDimensions() > 2 && imp.getNSlices() > 1 )
-				if ( Math.abs( peak.getDoublePosition( 2 ) - currentSlice ) > 1.0 )
-					continue;
-
+			// determine Z distance from peak center and adjust scale radius
 			final float x = peak.getFloatPosition(0);
 			final float y = peak.getFloatPosition(1);
+			final float zDistance = Math.abs(peak.getFloatPosition(2) - currentSlice) + 1;
+			double drawRadius = 1.5 * radius / Math.sqrt( zDistance );
 
-			// +0.5 is to center in on the middle of the detection pixel
-			final OvalRoi or = new OvalRoi(x - radius + 0.5, y - radius + 0.5, radius * 2, radius * 2);
-			or.setStrokeColor(col);
-			overlay.add(or);
+			// only draw nearby peaks
+			if ( drawRadius > 0.67 )
+			{
+				final OvalRoi or = new OvalRoi(x - radius + 0.5, y - radius + 0.5, drawRadius * 2, drawRadius * 2);
+				or.setStrokeColor(col);
+				overlay.add(or);
+			}
 		}
 
 		// this part might be useful for debugging

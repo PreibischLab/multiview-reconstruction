@@ -104,7 +104,7 @@ public class InteractiveDoG
 	public static final float sigmaMin = 0.5f;
 	public static final float sigmaMax = 10f;
 	public static final float thresholdMin = 0.00001f;
-	public static final float thresholdMax = 0.3f;
+	public static final float thresholdMax = 1f;
 	
 	final int scrollbarSize = 1000;
 	// ----------------------------------------
@@ -265,11 +265,11 @@ public class InteractiveDoG
 				min = new long []{
 						rectangle.x,
 						rectangle.y,
-						Math.max( imgTmp.min( 2 ), currentSlice - 1 ) };
+						Math.max( imgTmp.min( 2 ), currentSlice - (long) (2.5 * Math.ceil(params.sigma) ) ) };
 				max = new long []{
 						rectangle.width + rectangle.x - 1,
 						rectangle.height + rectangle.y - 1,
-						Math.min( imgTmp.max( 2 ), currentSlice + 1 ) };
+						Math.min( imgTmp.max( 2 ), currentSlice + (long) (2.5 * Math.ceil(params.sigma) ) ) };
 			}
 			else { // 2d or 2d+t case
 
