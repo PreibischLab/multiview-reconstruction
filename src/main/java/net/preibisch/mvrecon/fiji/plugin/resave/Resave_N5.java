@@ -28,7 +28,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
+
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
@@ -36,10 +44,15 @@ import bdv.export.n5.WriteSequenceToN5;
 import bdv.img.n5.N5ImageLoader;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
+import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -120,6 +133,7 @@ public class Resave_N5 implements PlugIn
 		}
 		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )
 		{
+			final N5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
 			// TODO: save to cloud
 		}
 
@@ -134,6 +148,44 @@ public class Resave_N5 implements PlugIn
 		progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Finished saving " + n5Params.n5URI + " and " + n5Params.xmlURI );
 	}
 
+	public static void createDatasets(
+			final N5Writer n5,
+			final AbstractSpimData<?> data,
+			final int[] blockSize,
+			final int[][] downsamplingFactors,
+			final Compression compression,
+			final Map<Integer, long[]> viewSetupIdToDimensions )
+	{
+		for ( final Entry<Integer, long[]> viewSetup : viewSetupIdToDimensions.entrySet() )
+		{
+			final Object type = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewSetup.getKey() ).getImageType();
+			final DataType dataType;
+	
+			if ( UnsignedShortType.class.isInstance( type ) )
+				dataType = DataType.UINT16;
+			else if ( UnsignedByteType.class.isInstance( type ) )
+				dataType = DataType.UINT8;
+			else if ( FloatType.class.isInstance( type ) )
+				dataType = DataType.FLOAT32;
+			else
+				throw new RuntimeException("Unsupported pixel type: " + type.getClass().getCanonicalName() );
+	
+			// TODO: ViewSetupId needs to contain: {"downsamplingFactors":[[1,1,1],[2,2,1]],"dataType":"uint16"}
+			final String n5Dataset = "setup" + viewSetup.getKey();
+	
+			System.out.println( "Creating group: " + "'setup" + viewSetup.getKey() + "'" );
+	
+			n5.createGroup( n5Dataset );
+	
+			System.out.println( "setting attributes for '" + "setup" + viewSetup.getKey() + "'");
+	
+			n5.setAttribute( n5Dataset, "downsamplingFactors", downsamplingFactors );
+			n5.setAttribute( n5Dataset, "dataType", dataType );
+			n5.setAttribute( n5Dataset, "blockSize", blockSize );
+			n5.setAttribute( n5Dataset, "dimensions", viewSetup.getValue() );
+			n5.setAttribute( n5Dataset, "compression", compression );
+		}
+	}
 
 	public static void main(String[] args)
 	{

@@ -324,7 +324,7 @@ public class Resave_TIFF implements PlugIn
 
 		// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 		final List< String > filesToCopy = new ArrayList< String >();
-		final SpimData2 newSpimData = assemblePartialSpimData2( spimData, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile(), filesToCopy );
+		final SpimData2 newSpimData = assemblePartialSpimData2( spimData, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile().toURI(), filesToCopy );
 
 		final StackImgLoaderIJ imgLoader = new StackImgLoaderIJ(
 				new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile(),
@@ -393,7 +393,7 @@ public class Resave_TIFF implements PlugIn
 	 * @param basePath - the base path
 	 * @return new SpimData
 	 */
-	public static SpimData2 assemblePartialSpimData2( final SpimData2 spimData, final List< ? extends ViewId > viewIds, final File basePath, final List< String > filesToCopy )
+	public static SpimData2 assemblePartialSpimData2( final SpimData2 spimData, final List< ? extends ViewId > viewIds, final URI basePath, final List< String > filesToCopy )
 	{
 		final TimePoints timepoints;
 

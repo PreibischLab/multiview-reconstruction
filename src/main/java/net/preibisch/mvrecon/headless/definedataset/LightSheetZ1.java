@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.headless.definedataset;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 
 import mpicbg.spim.data.registration.ViewRegistrations;
@@ -122,7 +123,7 @@ public class LightSheetZ1 extends DefineDataSet
 
 		// finally create the SpimData itself based on the sequence description and the view registration
 		final SpimData2 spimData = new SpimData2(
-				new File( cziFile.getParent() ),
+				new File( cziFile.getParent() ).toURI(),
 				sequenceDescription,
 				viewRegistrations,
 				viewInterestPoints,

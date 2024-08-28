@@ -73,17 +73,15 @@ import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadF
 import net.preibisch.mvrecon.process.deconvolution.iteration.mul.ComputeBlockMulThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCPUFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCUDAFactory;
-import net.preibisch.mvrecon.process.export.AppendSpimData2HDF5;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
-import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
-import net.preibisch.mvrecon.process.export.ExportSpimData2TIFF;
+import net.preibisch.mvrecon.process.export.ExportN5API;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools.ImgDataType;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class DeconvolutionGUI implements FusionExportInterface
@@ -97,9 +95,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
-		staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
-		staticImgExportAlgorithms.add( new ExportSpimData2HDF5() );
-		staticImgExportAlgorithms.add( new AppendSpimData2HDF5() );
+		staticImgExportAlgorithms.add( new ExportN5API() );
 
 		imgExportDescriptions = new String[ staticImgExportAlgorithms.size() ];
 

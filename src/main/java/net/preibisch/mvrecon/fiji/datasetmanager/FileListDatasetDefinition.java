@@ -645,7 +645,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
 		//viewInterestPoints.createViewInterestPoints( sd.getViewDescriptions() );
 
-		SpimData2 data = new SpimData2( new File("/"), sd, vrs, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
+		SpimData2 data = new SpimData2( new File("/").toURI(), sd, vrs, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 		return data;
 	}
 

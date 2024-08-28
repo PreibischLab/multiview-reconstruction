@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.headless.definedataset;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 
 import mpicbg.spim.data.registration.ViewRegistrations;
@@ -128,7 +129,7 @@ public class MicroManager extends DefineDataSet
 		//viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimData = new SpimData2( new File( directory ), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
+		final SpimData2 spimData = new SpimData2( new File( directory ).toURI(), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
 		if ( reader.applyAxis() )
 			Apply_Transformation.applyAxis( spimData );

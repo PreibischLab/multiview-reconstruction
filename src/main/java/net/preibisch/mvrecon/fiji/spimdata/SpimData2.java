@@ -73,7 +73,8 @@ public class SpimData2 extends SpimData
 	private IntensityAdjustments intensityAdjustments;
 	public boolean gridMoveRequested = false;
 
-	// TODO: only for compatibility with depending packages, remove at some point
+	/*
+	// only for compatibility with depending packages, remove at some point
 	public SpimData2(
 			final File basePath,
 			final SequenceDescription sequenceDescription,
@@ -85,9 +86,10 @@ public class SpimData2 extends SpimData
 	{
 		this( basePath, sequenceDescription, viewRegistrations, viewsInterestPoints, boundingBoxes, pointSpreadFunctions, stitchingResults, new IntensityAdjustments() );
 	}
+	*/
 
 	public SpimData2(
-			final File basePath,
+			final URI basePathUri,
 			final SequenceDescription sequenceDescription,
 			final ViewRegistrations viewRegistrations,
 			final ViewInterestPoints viewsInterestPoints,
@@ -96,7 +98,10 @@ public class SpimData2 extends SpimData
 			final StitchingResults stitchingResults,
 			final IntensityAdjustments intensityAdjustments )
 	{
-		super( basePath, sequenceDescription, viewRegistrations );
+		super( null, sequenceDescription, viewRegistrations );
+
+		// work-around for the super class not having a constructor for URI
+		this.setBasePathURI(basePathUri);
 
 		this.viewsInterestPoints = viewsInterestPoints;
 		this.boundingBoxes = boundingBoxes;
@@ -523,7 +528,7 @@ public class SpimData2 extends SpimData
 		final StitchingResults sr = new StitchingResults();
 		final IntensityAdjustments ia = new IntensityAdjustments();
 
-		return new SpimData2( data1.getBasePath(), s, vr, vipl, bb, psfs, sr, ia );
+		return new SpimData2( data1.getBasePathURI(), s, vr, vipl, bb, psfs, sr, ia );
 	}
 
 	/**

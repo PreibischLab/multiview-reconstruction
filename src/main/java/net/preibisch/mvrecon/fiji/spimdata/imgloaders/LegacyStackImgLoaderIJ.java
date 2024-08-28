@@ -22,40 +22,38 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
+import java.io.File;
+import java.util.Date;
+
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.io.Opener;
 import ij.process.ImageProcessor;
-
-import java.io.File;
-import java.util.Date;
-
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.planar.PlanarImg;
-import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListImageJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
-import net.preibisch.mvrecon.process.export.ExportSpimData2HDF5;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import util.ImgLib2Tools;
 
 public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 {
-	Parameters params = null;
+	ParametersResaveHDF5 params = null;
 
 	public LegacyStackImgLoaderIJ(
 			final File path, final String fileNamePattern,
@@ -132,7 +130,7 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 			if ( params == null )
 				return null;
 
-			final double[] minmax = ExportSpimData2HDF5.updateAndGetMinMax( ImageJFunctions.wrapFloat( imp ), params );
+			final double[] minmax = updateAndGetMinMax( ImageJFunctions.wrapFloat( imp ), params );
 			converter = new RealUnsignedShortConverter< FloatType >( minmax[ 0 ], minmax[ 1 ] );
 		}
 		else
@@ -246,7 +244,7 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 		return new StackListImageJ().getTitle() + ", ImgFactory=" + getImgFactory().getClass().getSimpleName();
 	}
 
-	protected static Parameters queryParameters()
+	protected static ParametersResaveHDF5 queryParameters()
 	{
 		final GenericDialog gd = new GenericDialog( "Opening 32bit TIFF as 16bit" );
 
@@ -288,6 +286,38 @@ public class LegacyStackImgLoaderIJ extends LegacyStackImgLoader
 			Generic_Resave_HDF5.defaultMin = Generic_Resave_HDF5.defaultMax = Double.NaN;
 		}
 
-		return new Parameters( false, null, null, null, null, false, false, 0, 0, false, 0, Generic_Resave_HDF5.defaultConvertChoice, Generic_Resave_HDF5.defaultMin, Generic_Resave_HDF5.defaultMax );
+		return new ParametersResaveHDF5( false, null, null, null, null, false, false, 0, 0, false, 0, Generic_Resave_HDF5.defaultConvertChoice, Generic_Resave_HDF5.defaultMin, Generic_Resave_HDF5.defaultMax );
 	}
+
+	public static < T extends RealType< T > > double[] updateAndGetMinMax( final RandomAccessibleInterval< T > img, final ParametersResaveHDF5 params )
+	{
+		double min, max;
+
+		if ( params == null || params.getConvertChoice() == 0 || Double.isNaN( params.getMin() ) || Double.isNaN( params.getMin() ) )
+		{
+			final float[] minmax = FusionTools.minMax( img );
+			min = minmax[ 0 ];
+			max = minmax[ 1 ];
+
+			min = Math.max( 0, min - ((min+max)/2.0) * 0.1 );
+			max = max + ((min+max)/2.0) * 0.1;
+
+			if ( params != null )
+			{
+				params.setMin( min );
+				params.setMax( max );
+			}
+		}
+		else
+		{
+			min = params.getMin();
+			max = params.getMax();
+		}
+
+		IOFunctions.println( "Min intensity for 16bit conversion: " + min );
+		IOFunctions.println( "Max intensity for 16bit conversion: " + max );
+
+		return new double[]{ min, max };
+	}
+
 }

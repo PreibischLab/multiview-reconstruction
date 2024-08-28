@@ -446,7 +446,7 @@ public class SplittingTools
 		// TODO: fix intensity adjustments?
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePath(), sequenceDescription, viewRegistrations, viewInterestPoints, spimData.getBoundingBoxes(), psfs, new StitchingResults(), new IntensityAdjustments() );
+		final SpimData2 spimDataNew = new SpimData2( spimData.getBasePathURI(), sequenceDescription, viewRegistrations, viewInterestPoints, spimData.getBoundingBoxes(), psfs, new StitchingResults(), new IntensityAdjustments() );
 
 		return spimDataNew;
 	}

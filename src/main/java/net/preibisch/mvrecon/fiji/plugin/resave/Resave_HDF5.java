@@ -267,7 +267,7 @@ public class Resave_HDF5 implements PlugIn
 		//TODO: copy PSFs
 
 		final SpimData2 newSpimData = new SpimData2(
-				oldSpimData.getBasePath(),
+				oldSpimData.getBasePathURI(),
 				sequenceDescription,
 				viewRegistrations,
 				viewsInterestPoints,
@@ -288,7 +288,7 @@ public class Resave_HDF5 implements PlugIn
 	{
 		// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 		final List< String > filesToCopy = new ArrayList< String >();
-		final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( spimData, viewIds, params.seqFile.getParentFile(), filesToCopy );
+		final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( spimData, viewIds, params.seqFile.getParentFile().toURI(), filesToCopy );
 		final ArrayList< Partition > partitions = Generic_Resave_HDF5.getPartitions( newSpimData, params );
 
 		final Hdf5ImageLoader hdf5Loader;
