@@ -260,6 +260,11 @@ public class URITools
 		os.close();
 	}
 
+	public static boolean isKnownScheme( URI uri )
+	{
+		return isFile( uri ) || isS3( uri ) || isGC( uri );
+	}
+
 	public static boolean isGC( URI uri )
 	{
 		final String scheme = uri.getScheme();

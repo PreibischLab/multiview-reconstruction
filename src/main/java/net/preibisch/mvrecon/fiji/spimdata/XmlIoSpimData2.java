@@ -146,7 +146,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 	}
 
-	public void save( final SpimData2 spimData, URI xmlURI )
+	public boolean save( final SpimData2 spimData, URI xmlURI )
 	{
 		try
 		{
@@ -156,11 +156,13 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		{
 			IOFunctions.println( "Failed to write XML / Copy backups / save interestpoints: " + e );
 			e.printStackTrace();
-			return;
+			return false;
 		}
 
 		this.lastURI = xmlURI;
 		// save also as zarr metadata object
+
+		return true;
 	}
 
 	/**

@@ -23,7 +23,8 @@
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
 import java.awt.Font;
-import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -43,15 +44,15 @@ import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 
-public class N5Parameters
+public class ParametersResaveN5
 {
 	public static String[] compressions = new String[]{ "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz" };
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
 	public static int defaultCompression = 1;
-	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 );
+	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() - 1 );
 
-	public File xmlFile, n5File;
+	public URI xmlURI, n5URI;
 
 	public int[][] resolutions, subdivisions;
 	public Map< Integer, ExportMipmapInfo > proposedMipmaps;
@@ -59,25 +60,29 @@ public class N5Parameters
 	public Compression compression;
 	public int numCellCreatorThreads = 1;
 
-	public boolean saveXML = true; // mostly important for cluster-based re-saving
-	public boolean saveData = true; // mostly important for cluster-based re-saving
+	//public boolean saveXML = true; // mostly important for cluster-based re-saving
+	//public boolean saveData = true; // mostly important for cluster-based re-saving
 
-	public boolean setFinishedAttributeInN5 = true; // required if double-checking that all ViewId were written
-	final public static String finishedAttrib = "saved_completely"; // required if double-checking that all ViewId were written
+	//public boolean setFinishedAttributeInN5 = true; // required if double-checking that all ViewId were written
+	//final public static String finishedAttrib = "saved_completely"; // required if double-checking that all ViewId were written
 
-	public static N5Parameters getParamtersIJ(
-			final String xmlFileName,
+	public static ParametersResaveN5 getParamtersIJ(
+			final URI xmlURI,
 			final Collection< ViewSetup > setupsToProcess,
-			final boolean localOnly )
+			final boolean askForPaths )
 	{
-		final N5Parameters n5params = new N5Parameters();
+		final URI n5URI = URI.create( xmlURI.toString().subSequence( 0, xmlURI.toString().length() - 4 ) + ".n5" );
 
-		if ( localOnly )
-			n5params.xmlFile = new File( xmlFileName );
-		else
-			n5params.xmlFile = new File( xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + "-n5.xml" ); //.replace( ".xml", "-n5.xml" ) );
+		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, askForPaths );
+	}
 
-		n5params.n5File = new File( xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".n5" ); //.replace( ".xml", ".n5" ));
+	public static ParametersResaveN5 getParamtersIJ(
+			final URI xmlURI,
+			final URI n5URI,
+			final Collection< ViewSetup > setupsToProcess,
+			final boolean askForPaths )
+	{
+		final ParametersResaveN5 n5params = new ParametersResaveN5();
 
 		final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setupsToProcess ); //xml.getViewSetupsToProcess() );
 		final int firstviewSetupId = setupsToProcess.iterator().next().getId();// xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
@@ -87,31 +92,25 @@ public class N5Parameters
 		for ( final int[] row : autoMipmapSettings.getSubdivisions() )
 		{
 			Arrays.fill( row, defaultBlockSize );
-			row[ 0 ] = N5Parameters.defaultBlockSizeXY;
+			row[ 0 ] = ParametersResaveN5.defaultBlockSizeXY;
 			if ( row.length >= 2 )
-				row[ 1 ] = N5Parameters.defaultBlockSizeXY;
+				row[ 1 ] = ParametersResaveN5.defaultBlockSizeXY;
 		}
 
 		final GenericDialogPlus gdp = new GenericDialogPlus( "Options" );
 
-		if ( !localOnly )
-			gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
 
 		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
 		gdp.addStringField( "Subsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
 		gdp.addStringField( "N5_block_sizes", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
+		gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
 
-		if ( localOnly )
+		if ( askForPaths )
 		{
-			gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
-		}
-		else
-		{
-			gdp.addMessage( "Cluster-related options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
-			gdp.addFileField( "Output_XML", n5params.xmlFile.getAbsolutePath(), 75 );
-			gdp.addFileField( "Output_N5", n5params.n5File.getAbsolutePath(), 75 );
-			gdp.addCheckbox( "Write_XML", true );
-			gdp.addCheckbox( "Write_data", true );
+			gdp.addMessage( "" );
+			gdp.addDirectoryField( "XML_path", xmlURI.toString(), 65 );
+			gdp.addDirectoryField( "N5_path", n5URI.toString(), 65 );
 		}
 
 		gdp.showDialog();
@@ -126,18 +125,26 @@ public class N5Parameters
 
 		n5params.numCellCreatorThreads = defaultNumThreads = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
 
-		if ( localOnly )
+		if ( askForPaths )
 		{
-			n5params.saveXML = true;
-			n5params.saveData = true;
+			try
+			{
+				n5params.xmlURI = new URI( gdp.getNextString() );
+				n5params.n5URI = new URI( gdp.getNextString() );
+			}
+			catch ( URISyntaxException e )
+			{
+				IOFunctions.println( "Cannot create URIs for provided paths: " + e );
+				return null;
+			}
+
+			IOFunctions.println( "XML & metadata path: " + n5params.xmlURI );
+			IOFunctions.println( "Image data path: " + n5params.n5URI );
 		}
 		else
 		{
-			n5params.xmlFile = new File(gdp.getNextString());
-			n5params.n5File = new File(gdp.getNextString());
-	
-			n5params.saveXML = gdp.getNextBoolean();
-			n5params.saveData = gdp.getNextBoolean();
+			n5params.xmlURI = xmlURI;
+			n5params.n5URI = n5URI;
 		}
 
 		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"

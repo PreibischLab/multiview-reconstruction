@@ -103,7 +103,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilena
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.N5Parameters;
+import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
@@ -1168,6 +1168,18 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			return null;
 		}
 
+		if ( !URITools.isKnownScheme( chosenPathDataURI ) )
+		{
+			IOFunctions.println( "The scheme of the image data path you selected '" + chosenPathDataURI + "' is unknown." );
+			return null;
+		}
+
+		if ( !URITools.isKnownScheme( chosenPathXMLURI ) )
+		{
+			IOFunctions.println( "The scheme of the  XML path you selected '" + chosenPathXMLURI + "' is unknown." );
+			return null;
+		}
+
 		IOFunctions.println( "XML & metadata path: " + chosenPathXMLURI );
 		IOFunctions.println( "Image data path: " + chosenPathDataURI );
 
@@ -1289,26 +1301,21 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
 			Collections.sort( viewIds );
 
-			final File xmlFile = new File( chosenPath.getAbsolutePath(), xmlFileName );
-
 			final SequenceDescription sd = data.getSequenceDescription();
 
-			final N5Parameters n5params = N5Parameters.getParamtersIJ(
-					xmlFile.getAbsolutePath(),
+			final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ(
+					chosenPathXMLURI,
+					chosenPathDataURI,
 					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
-					true );
+					false ); // do not ask for paths again
 
 			if ( n5params == null )
 				return null;
 
-			// n5-filename is same as XML name now (set in N5Parameters.getParamtersIJ)
-			//n5params.n5File =  new File( chosenPath.getAbsolutePath(), "dataset.n5" );
-
 			Resave_N5.resaveN5( data, viewIds, n5params );
 
 			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
-			final List< String > filesToCopy = new ArrayList< String >();
-			final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), filesToCopy );
+			final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), new ArrayList<>() );
 
 			// replace imgLoader
 			newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5File, newSpimData.getSequenceDescription() ) );
