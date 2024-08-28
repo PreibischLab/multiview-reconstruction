@@ -590,6 +590,9 @@ public class SpimData2 extends SpimData
 		
 		System.out.println( u );
 		System.out.println( u2 );
+		System.out.println( new File( u2 ) );
+		System.out.println( new File( URI.create("file:/nrs/test.xml") ) );
+		// System.out.println( new File( URI.create("/nrs/test.xml") ) ); // FAILS
 		System.out.println( URITools.removeFilePrefix( u2 ) );
 		System.out.println( Paths.get(u2.getPath()).getFileName().toString());
 	}
