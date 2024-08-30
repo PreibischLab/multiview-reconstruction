@@ -1108,7 +1108,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		gdSave.addDirectoryField( "metadata_save_path (XML)", prefixPath.getAbsolutePath(), 65 );
 		gdSave.addDirectoryField( "image_data_save_path", prefixPath.getAbsolutePath(), 65 );
-		gdSave.addMessage( "Note: image data save path will be ignored if not re-saved as N5/HDF5.", GUIHelper.smallStatusFont );
+		gdSave.addMessage( "Note: image data save path will be ignored if not re-saved as N5/HDF5.\nOnly provide the path, the actual .zarr, .n5 or .h5 path/file will be appended!", GUIHelper.smallStatusFont );
 
 		// check if all stack sizes are the same (in each file)
 		boolean zSizeEqualInEveryFile = LegacyFileMapImgLoaderLOCI.isZSizeEqualInEveryFile( data, (FileMapGettable)data.getSequenceDescription().getImgLoader() );
@@ -1155,7 +1155,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			chosenPathData = gdSave.getNextString(); // will be stored in the img loader (if identical to chosenPathXML then relative, otherwise absolute)
 		}
 
-		final URI chosenPathXMLURI, chosenPathDataURI;
+		final boolean resaveAsHDF5 = (loadChoice == 0);
+		final boolean resaveAsN5 = (loadChoice == 1);
+
+		URI chosenPathXMLURI, chosenPathDataURI;
 
 		try
 		{
@@ -1181,6 +1184,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		}
 
 		IOFunctions.println( "XML & metadata path: " + chosenPathXMLURI );
+		IOFunctions.println( "XML: " + URITools.appendName( chosenPathXMLURI, xmlFileName ) );
 		IOFunctions.println( "Image data path: " + chosenPathDataURI );
 
 		data.setBasePathURI( chosenPathXMLURI );
@@ -1244,9 +1248,6 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		if (applyAxis)
 			Apply_Transformation.applyAxisGrouped( data );
 
-		boolean resaveAsHDF5 = (loadChoice == 0);
-		boolean resaveAsN5 = (loadChoice == 1);
-
 		if (resaveAsHDF5)
 		{
 			if ( !URITools.isFile( chosenPathDataURI ) )
@@ -1303,26 +1304,31 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			final SequenceDescription sd = data.getSequenceDescription();
 
+			final URI xmlURI = URI.create( URITools.appendName(chosenPathXMLURI, xmlFileName ) );
+			final URI n5DatasetURI = URI.create( URITools.appendName(chosenPathDataURI, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".n5" ) );
+
+			IOFunctions.println( "N5 path: " + n5DatasetURI );
+
 			final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ(
-					chosenPathXMLURI,
-					chosenPathDataURI,
+					xmlURI,
+					n5DatasetURI,
 					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
 					false ); // do not ask for paths again
 
 			if ( n5params == null )
 				return null;
 
-			Resave_N5.resaveN5( data, viewIds, n5params );
+			data = Resave_N5.resaveN5( data, viewIds, n5params, false );
 
 			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
-			final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, n5params.n5File.getParentFile(), new ArrayList<>() );
+			//final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, chosenPathXMLURI , new ArrayList<>() );
 
 			// replace imgLoader
-			newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5File, newSpimData.getSequenceDescription() ) );
-			newSpimData.setBasePath( n5params.n5File.getParentFile() );
+			//newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5DatasetURI, newSpimData.getSequenceDescription() ) );
+			//newSpimData.setBasePathURI( chosenPathXMLURI );
 
 			// replace the spimdata object
-			data = newSpimData;
+			//data = newSpimData;
 
 			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): N5 resave finished." );
 		}
@@ -1333,7 +1339,6 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		}
 		
 		return data;
-		
 	}
 	
 	public static File getLongestPathPrefix(Collection<String> paths)

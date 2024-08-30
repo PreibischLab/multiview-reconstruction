@@ -29,12 +29,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 
@@ -44,18 +43,15 @@ import bdv.export.n5.WriteSequenceToN5;
 import bdv.img.n5.N5ImageLoader;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
-import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Util;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import util.URITools;
 
 public class Resave_N5 implements PlugIn
@@ -78,14 +74,15 @@ public class Resave_N5 implements PlugIn
 			for ( final ViewSetup vs : xml.getViewSetupsToProcess() )
 				vidsToProcess.add( new ViewId( tp.getId(), vs.getId() ) );
 
-		resaveN5( xml.getData(), vidsToProcess, n5params );
+		resaveN5( xml.getData(), vidsToProcess, n5params, true );
 	}
 
 
-	public static void resaveN5(
+	public static SpimData2 resaveN5(
 			final SpimData2 data,
 			final Collection<? extends ViewId> vidsToResave,
-			final ParametersResaveN5 n5Params )
+			final ParametersResaveN5 n5Params,
+			final boolean saveXML )
 	{
 		final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, vidsToResave.stream().collect( Collectors.toList() ) );
 
@@ -133,58 +130,95 @@ public class Resave_N5 implements PlugIn
 		}
 		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )
 		{
-			final N5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
 			// TODO: save to cloud
+			final N5Writer n5Writer = new N5Factory().openWriter( n5Params.n5URI.toString() ); // cloud support, avoid dependency hell if it is a local file
+
+			final int[] blockSize = null;
+			final int[] computeBlockSize = null;
+			final Compression compression = null;
+
+			//final ArrayList<ViewSetup> viewSetups =
+			//		N5ResaveTools.assembleViewSetups( data, vidsToResave );
+
+			final HashMap<Integer, long[]> viewSetupIdToDimensions =
+					N5ResaveTools.assembleDimensions( data, vidsToResave );
+
+			final int[][] downsamplings =
+					N5ResaveTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
+
+			final ArrayList<long[][]> grid =
+					N5ResaveTools.assembleAllS0Jobs( vidsToResave, viewSetupIdToDimensions, blockSize, computeBlockSize );
+
+			N5ResaveTools.createGroups( n5Writer, data, viewSetupIdToDimensions, blockSize, downsamplings, compression );
+			N5ResaveTools.createS0Datasets( n5Writer, vidsToResave, viewSetupIdToDimensions, blockSize, compression );
+
+			//
+			// Save full resolution dataset (s0)
+			//
+			final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
+
+			long time = System.currentTimeMillis();
+
+			try
+			{
+				myPool.submit(() -> grid.parallelStream().forEach( gridBlock -> N5ResaveTools.writeS0Block( data, n5Writer, gridBlock ) ) ).get();
+			}
+			catch (InterruptedException | ExecutionException e)
+			{
+				IOFunctions.println( "Failed to write s0 for N5 '" + n5Params.n5URI + "'. Error: " + e );
+				e.printStackTrace();
+				return null;
+			}
+
+			IOFunctions.println( "Saved level s0, took: " + (System.currentTimeMillis() - time ) + " ms." );
+
+			//
+			// Save remaining downsampling levels (s1 ... sN)
+			//
+
+			for ( int level = 1; level < downsamplings.length; ++level )
+			{
+				final int s = level;
+				final int[] ds = N5ResaveTools.computeRelativeDownsampling( downsamplings, s );
+				IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
+
+				final ArrayList<long[][]> allBlocks = N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, blockSize, ds, downsamplings[ s ], compression );
+
+				time = System.currentTimeMillis();
+
+				try
+				{
+					myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( data, n5Writer, s, ds, gridBlock ) ) ).get();
+				}
+				catch (InterruptedException | ExecutionException e)
+				{
+					IOFunctions.println( "Failed to write downsample step s" + s +" for N5 '" + n5Params.n5URI + "'. Error: " + e );
+					e.printStackTrace();
+					return null;
+				}
+
+				IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
+			}
+
+			myPool.shutdown();
+			//myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS );
+
+			n5Writer.close();
 		}
 
 		sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
-		sdReduced.setBasePathURI( n5Params.xmlURI );
+		sdReduced.setBasePathURI( URITools.getParent( n5Params.xmlURI ) );
 
-		progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Saving " + n5Params.xmlURI );
-
-		new XmlIoSpimData2().save( sdReduced, n5Params.xmlURI );
+		if ( saveXML )
+		{
+			progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Saving " + n5Params.xmlURI );
+			new XmlIoSpimData2().save( sdReduced, n5Params.xmlURI );
+		}
 
 		progressWriter.setProgress( 1.0 );
-		progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Finished saving " + n5Params.n5URI + " and " + n5Params.xmlURI );
-	}
+		progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Finished saving " + n5Params.n5URI );
 
-	public static void createDatasets(
-			final N5Writer n5,
-			final AbstractSpimData<?> data,
-			final int[] blockSize,
-			final int[][] downsamplingFactors,
-			final Compression compression,
-			final Map<Integer, long[]> viewSetupIdToDimensions )
-	{
-		for ( final Entry<Integer, long[]> viewSetup : viewSetupIdToDimensions.entrySet() )
-		{
-			final Object type = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewSetup.getKey() ).getImageType();
-			final DataType dataType;
-	
-			if ( UnsignedShortType.class.isInstance( type ) )
-				dataType = DataType.UINT16;
-			else if ( UnsignedByteType.class.isInstance( type ) )
-				dataType = DataType.UINT8;
-			else if ( FloatType.class.isInstance( type ) )
-				dataType = DataType.FLOAT32;
-			else
-				throw new RuntimeException("Unsupported pixel type: " + type.getClass().getCanonicalName() );
-	
-			// TODO: ViewSetupId needs to contain: {"downsamplingFactors":[[1,1,1],[2,2,1]],"dataType":"uint16"}
-			final String n5Dataset = "setup" + viewSetup.getKey();
-	
-			System.out.println( "Creating group: " + "'setup" + viewSetup.getKey() + "'" );
-	
-			n5.createGroup( n5Dataset );
-	
-			System.out.println( "setting attributes for '" + "setup" + viewSetup.getKey() + "'");
-	
-			n5.setAttribute( n5Dataset, "downsamplingFactors", downsamplingFactors );
-			n5.setAttribute( n5Dataset, "dataType", dataType );
-			n5.setAttribute( n5Dataset, "blockSize", blockSize );
-			n5.setAttribute( n5Dataset, "dimensions", viewSetup.getValue() );
-			n5.setAttribute( n5Dataset, "compression", compression );
-		}
+		return sdReduced;
 	}
 
 	public static void main(String[] args)

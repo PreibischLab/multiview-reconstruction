@@ -67,13 +67,24 @@ public class ParametersResaveN5
 	//final public static String finishedAttrib = "saved_completely"; // required if double-checking that all ViewId were written
 
 	public static ParametersResaveN5 getParamtersIJ(
+			final Collection< ViewSetup > setupsToProcess )
+	{
+		return getParamtersIJ( null, null, setupsToProcess, false );
+	}
+
+	public static ParametersResaveN5 getParamtersIJ(
 			final URI xmlURI,
 			final Collection< ViewSetup > setupsToProcess,
 			final boolean askForPaths )
 	{
-		final URI n5URI = URI.create( xmlURI.toString().subSequence( 0, xmlURI.toString().length() - 4 ) + ".n5" );
+		final URI n5URI = createN5URIfromXMLURI( xmlURI );
 
 		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, askForPaths );
+	}
+
+	public static URI createN5URIfromXMLURI( final URI xmlURI )
+	{
+		return URI.create( xmlURI.toString().subSequence( 0, xmlURI.toString().length() - 4 ) + ".n5" );
 	}
 
 	public static ParametersResaveN5 getParamtersIJ(

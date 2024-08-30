@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
@@ -303,6 +304,16 @@ public class URITools
 			return uri.toString().substring( 5, uri.toString().length() ); // cut off 'file:'
 		else
 			return uri.toString();
+	}
+
+	public static URI getParent( final URI uri )
+	{
+		return uri.getPath().endsWith("/") ? uri.resolve("..") : uri.resolve(".");
+	}
+
+	public static String getFileName( final URI uri )
+	{
+		return Paths.get( uri.getPath() ).getFileName().toString();
 	}
 
 	public static String appendName( final URI uri, final String name )
