@@ -26,7 +26,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,6 @@ import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
@@ -53,6 +51,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.ParametersResaveAsTI
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
+import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 import util.URITools;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable
@@ -196,14 +195,14 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						Resave_TIFF.writeTIFF( data, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParent(), params.compress, progressWriter );
 	
 						// write the XML
-						final Pair< SpimData2, List< String > > result = Resave_TIFF.createXMLObject( data, viewIds, params );
+						final SpimData2 newSpimData = Resave_TIFF.createXMLObject( data, viewIds, params );
 						progressWriter.setProgress( 1.01 );
 
 						// copy the interest points is not necessary as we overwrite the XML if they exist
 						// Resave_TIFF.copyInterestPoints( data.getBasePath(), new File( params.xmlFile ).getParentFile(), result.getB() );
 
 						// replace the spimdata object
-						panel.setSpimData( result.getA() );
+						panel.setSpimData( newSpimData );
 						panel.updateContent();
 						panel.saveXML();
 					}
@@ -266,15 +265,15 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 										0, Double.NaN, Double.NaN );
 
 						// write hdf5
-						Generic_Resave_HDF5.writeHDF5( Resave_HDF5.reduceSpimData2( data, viewIds ), params, progressWriter );
+						Generic_Resave_HDF5.writeHDF5( SpimData2Tools.reduceSpimData2( data, viewIds ), params, progressWriter );
 
-						final Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, viewIds, params, progressWriter, true );
+						final SpimData2 newSpimData = Resave_HDF5.createXMLObject( data, viewIds, params, progressWriter, true );
 
 						// copy the interest points is not necessary as we overwrite the XML if they exist
 						// Resave_TIFF.copyInterestPoints( xml.getData().getBasePath(), params.getSeqFile().getParentFile(), result.getB() );
 
 						// replace the spimdata object
-						panel.setSpimData( result.getA() );
+						panel.setSpimData( newSpimData );
 						panel.updateContent();
 
 						progressWriter.setProgress( 1.0 );

@@ -52,6 +52,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.resave.N5ResaveTools;
+import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 import util.URITools;
 
 public class Resave_N5 implements PlugIn
@@ -84,7 +85,7 @@ public class Resave_N5 implements PlugIn
 			final ParametersResaveN5 n5Params,
 			final boolean saveXML )
 	{
-		final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, vidsToResave.stream().collect( Collectors.toList() ) );
+		final SpimData2 sdReduced = SpimData2Tools.reduceSpimData2( data, vidsToResave.stream().collect( Collectors.toList() ) );
 
 		final ProgressWriter progressWriter = new ProgressWriterIJ();
 		progressWriter.out().println( new Date( System.currentTimeMillis() ) + ": Saving " + n5Params.n5URI );

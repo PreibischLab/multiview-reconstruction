@@ -1290,12 +1290,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): HDF5 resave finished." );
 
-			net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair< SpimData2, List< String > > result = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
+			data = Resave_HDF5.createXMLObject( data, new ArrayList<>(data.getSequenceDescription().getViewDescriptions().keySet()), params, progressWriter, true );
 
 			// ensure progressbar is gone
 			progressWriter.setProgress( 1.0 );
-
-			data = result.getA();
 		}
 		else if (resaveAsN5)
 		{
