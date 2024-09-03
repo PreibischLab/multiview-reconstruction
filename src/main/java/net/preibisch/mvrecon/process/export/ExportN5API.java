@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -39,6 +40,8 @@ import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import bdv.export.ProposeMipmaps;
@@ -68,12 +71,13 @@ import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x
 import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
+import util.URITools;
 
 public class ExportN5API implements ImgExport
 {
 	public enum StorageType { N5, ZARR, HDF5 }
 
-	public static String defaultPath = null;
+	public static String defaultPathURI = null;
 	public static int defaultOption = 2;
 	public static String defaultDatasetName = "fused";
 	public static String defaultBaseDataset = "/";
@@ -81,7 +85,7 @@ public class ExportN5API implements ImgExport
 
 	public static boolean defaultBDV = false;
 	public static boolean defaultMultiRes = false;
-	public static String defaultXMLOut = null;
+	public static String defaultXMLOutURI = null;
 	public static boolean defaultManuallyAssignViewId = false;
 	public static int defaultTpId = 0;
 	public static int defaultVSId = 0;
@@ -103,12 +107,12 @@ public class ExportN5API implements ImgExport
 	public static int defaultBlocksizeFactorZ_H5 = 4;
 
 	StorageType storageType = StorageType.values()[ defaultOption ];
-	String path = defaultPath;
+	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
 	String baseDataset = defaultBaseDataset;
 	String datasetExtension = defaultDatasetExtension;
 
 	boolean bdv = defaultBDV;
-	String xmlOut;
+	URI xmlOut;
 	boolean manuallyAssignViewId = false;
 	int tpId = defaultTpId;
 	int vsId = defaultVSId;
@@ -165,15 +169,25 @@ public class ExportN5API implements ImgExport
 			try
 			{
 				if ( storageType == StorageType.N5 )
-					driverVolumeWriter = new N5FSWriter(path);
+				{
+					if ( URITools.isFile( path ) )
+						driverVolumeWriter = new N5FSWriter( URITools.removeFilePrefix( path ) );
+					else
+						driverVolumeWriter = new N5Factory().openWriter( StorageFormat.N5, path ); // cloud support, avoid dependency hell if it is a local file
+				}
 				else if ( storageType == StorageType.ZARR )
-					driverVolumeWriter = new N5ZarrWriter(path);
+				{
+					if ( URITools.isFile( path ) )
+						driverVolumeWriter = new N5ZarrWriter( URITools.removeFilePrefix( path ) );
+					else
+						driverVolumeWriter = new N5Factory().openWriter( StorageFormat.ZARR, path ); // cloud support, avoid dependency hell if it is a local file
+				}
 				else if ( storageType == StorageType.HDF5 )
 				{
-					final File dir = new File( path ).getParentFile();
+					final File dir = new File( URITools.removeFilePrefix( path ) ).getParentFile();
 					if ( !dir.exists() )
 						dir.mkdirs();
-					driverVolumeWriter = new N5HDF5Writer(path);
+					driverVolumeWriter = new N5HDF5Writer( URITools.removeFilePrefix( path ) );
 				}
 				else
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
@@ -185,7 +199,7 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
-		final T type = Views.iterable( imgInterval ).firstElement().createVariable();
+		final T type = imgInterval.firstElement().createVariable();
 		final DataType dataType;
 
 		if ( UnsignedByteType.class.isInstance( type ) )
@@ -267,7 +281,7 @@ public class ExportN5API implements ImgExport
 		{
 			try
 			{
-				// TODO: the first time the XML does not exist, thus instantiate is not called
+				// the first time the XML does not exist, thus instantiate is not called
 				if ( !ExportTools.writeBDVMetaData(
 						driverVolumeWriter,
 						storageType,
@@ -354,6 +368,7 @@ public class ExportN5API implements ImgExport
 		// save multiresolution pyramid (s1 ... sN)
 		//
 
+		// TODO: use code from N5ResaveTools
 		if ( this.downsampling != null )
 		{
 			long[] previousDim = bb.dimensionsAsLongArray();
@@ -602,40 +617,23 @@ public class ExportN5API implements ImgExport
 		//
 		final GenericDialogPlus gd = new GenericDialogPlus( "Export " + name +" using N5-API" );
 
-		if ( defaultPath == null || defaultPath.length() == 0 )
-		{
-			defaultPath = fusion.getSpimData().getBasePath().getAbsolutePath();
-
-			if ( defaultPath.endsWith( "/." ) )
-				defaultPath = defaultPath.substring( 0, defaultPath.length() - 1 );
-			
-			if ( defaultPath.endsWith( "/./" ) )
-				defaultPath = defaultPath.substring( 0, defaultPath.length() - 2 );
-
-			defaultPath = new File( defaultPath, defaultDatasetName + "/" + defaultDatasetName+ext ).getAbsolutePath();
-		}
+		if ( defaultPathURI == null || defaultPathURI.toString().trim().length() == 0 )
+			defaultPathURI = URITools.appendName( fusion.getSpimData().getBasePathURI(), defaultDatasetName + "/" + defaultDatasetName+ext );
 
 		if ( storageType == StorageType.HDF5 )
-			PluginHelper.addSaveAsFileField( gd, name + "_file (should end with "+ext+")", defaultPath, 80 );
+			PluginHelper.addSaveAsFileField( gd, name + "_file (local only, end with "+ext+")", defaultPathURI, 80 );
 		else
-			PluginHelper.addSaveAsDirectoryField( gd, name + "_dataset_path (should end with "+ext+")", defaultPath, 80 );
+			PluginHelper.addSaveAsDirectoryField( gd, name + "_dataset_path (local or cloud, end with "+ext+")", defaultPathURI, 80 );
 
 		if ( bdv )
 		{
-			if ( defaultXMLOut == null )
-			{
-				defaultXMLOut = fusion.getSpimData().getBasePath().getAbsolutePath();
+			if ( defaultXMLOutURI == null )
+				defaultXMLOutURI = URITools.appendName( fusion.getSpimData().getBasePathURI(), defaultDatasetName + "/dataset.xml" );
 
-				if ( defaultXMLOut.endsWith( "/." ) )
-					defaultXMLOut = defaultXMLOut.substring( 0, defaultXMLOut.length() - 1 );
-
-				if ( defaultXMLOut.endsWith( "/./" ) )
-					defaultXMLOut = defaultXMLOut.substring( 0, defaultXMLOut.length() - 2 );
-
-				defaultXMLOut = new File( defaultXMLOut, defaultDatasetName + "/dataset.xml" ).toString();
-			}
-
-			PluginHelper.addSaveAsFileField( gd, "XML_output_file", defaultXMLOut, 80 );
+			if ( storageType == StorageType.HDF5 )
+				PluginHelper.addSaveAsFileField( gd, "XML_output_file (local)", defaultXMLOutURI, 80 );
+			else
+				PluginHelper.addSaveAsFileField( gd, "XML_output_file (local or cloud)", defaultXMLOutURI, 80 );
 
 			if ( fusion.getFusionGroups().size() == 1 )
 			{
@@ -703,11 +701,51 @@ public class ExportN5API implements ImgExport
 		if ( gd.wasCanceled() )
 			return false;
 
-		this.path = defaultPath = gd.getNextString().trim();
+		try
+		{
+			this.path = new URI( defaultPathURI = gd.getNextString().trim() );
+		}
+		catch ( Exception e )
+		{
+			IOFunctions.println( "Could not create URI from provided path '" + defaultPathURI+ "'. Stopping." );
+			return false;
+		}
+
+		if ( !URITools.isKnownScheme( this.path ) )
+		{
+			IOFunctions.println( "You provided an unkown scheme ('" + this.path+ "'). Stopping." );
+			return false;
+		}
+
+		if ( storageType == StorageType.HDF5 && !URITools.isFile( this.path ))
+		{
+			IOFunctions.println( "When storing as HDF5, only local paths are supported; you specified '" + this.path+ "', which appears to not be local. Stopping." );
+			return false;
+		}
 
 		if ( bdv )
 		{
-			this.xmlOut = defaultXMLOut = gd.getNextString();
+			try
+			{
+				this.xmlOut = new URI( defaultXMLOutURI = gd.getNextString().trim() );//defaultXMLOut = gd.getNextString();
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( "Could not create URI from provided path '" + defaultXMLOutURI+ "'. Stopping." );
+				return false;
+			}
+
+			if ( !URITools.isKnownScheme( this.xmlOut ) )
+			{
+				IOFunctions.println( "You provided an unkown scheme ('" + this.xmlOut+ "'). Stopping." );
+				return false;
+			}
+
+			if ( storageType == StorageType.HDF5 && !URITools.isFile( this.xmlOut ))
+			{
+				IOFunctions.println( "When storing as HDF5, only local paths are supported; you specified '" + this.xmlOut+ "', which appears to not be local. Stopping." );
+				return false;
+			}
 
 			if ( fusion.getFusionGroups().size() == 1 )
 			{

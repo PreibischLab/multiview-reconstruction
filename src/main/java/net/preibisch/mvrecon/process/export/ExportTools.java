@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,8 +69,16 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 public class ExportTools {
 
@@ -91,8 +100,8 @@ public class ExportTools {
 			final int[] blockSize,
 			final int[][] downsamplings,
 			final ViewId viewId,
-			final String n5Path,
-			final String xmlOutPathString,
+			final URI n5PathURI,
+			final URI xmlOutPathURI,
 			final InstantiateViewSetup instantiateViewSetup ) throws SpimDataException, IOException
 	{
 		System.out.println( "Writing BDV-metadata ... " );
@@ -100,20 +109,14 @@ public class ExportTools {
 		//final String xmlPath = null;
 		if ( StorageType.N5.equals(storageType) )
 		{
-			final File xmlOutPath;
-			if ( xmlOutPathString == null )
-				xmlOutPath = new File( new File( n5Path ).getParent(), "dataset.xml" );
-			else
-				xmlOutPath = new File( xmlOutPathString );
-
-			System.out.println( "XML: " + xmlOutPath.getAbsolutePath() );
+			System.out.println( "XML: " + xmlOutPathURI );
 
 			final Pair<Boolean, Boolean> exists = writeSpimData(
 					viewId,
 					storageType,
 					dimensions,
-					n5Path,
-					xmlOutPath,
+					n5PathURI,
+					xmlOutPathURI,
 					instantiateViewSetup );
 
 			if ( exists == null )
@@ -167,20 +170,14 @@ public class ExportTools {
 		}
 		else if ( StorageType.HDF5.equals(storageType) )
 		{
-			final File xmlOutPath;
-			if ( xmlOutPathString == null )
-				xmlOutPath = new File( new File( n5Path ).getParent(), "dataset.xml" );
-			else
-				xmlOutPath = new File( xmlOutPathString );
-
-			System.out.println( "XML: " + xmlOutPath.getAbsolutePath() );
+			System.out.println( "XML: " + xmlOutPathURI );
 
 			final Pair<Boolean, Boolean> exists = writeSpimData(
 					viewId,
 					storageType,
 					dimensions,
-					n5Path,
-					xmlOutPath,
+					n5PathURI,
+					xmlOutPathURI,
 					instantiateViewSetup );
 
 			if ( exists == null )
@@ -248,20 +245,29 @@ public class ExportTools {
 			final ViewId viewId,
 			final StorageType storageType,
 			final long[] dimensions,
-			final String n5Path,
-			final File xmlOutPath,
+			final URI n5PathURI,
+			final URI xmlOutPathURI,
 			final InstantiateViewSetup instantiateViewSetup ) throws SpimDataException
 	{
-		if ( xmlOutPath.exists() )
+		SpimData2 existingSpimData;
+
+		try
+		{
+			existingSpimData = new XmlIoSpimData2().load( xmlOutPathURI );
+		}
+		catch (Exception e )
+		{
+			existingSpimData = null;
+		}
+
+		if ( existingSpimData != null ) //xmlOutPath.exists() )
 		{
 			System.out.println( "XML exists. Parsing and adding.");
-			final XmlIoSpimData io = new XmlIoSpimData();
-			final SpimData spimData = io.load( xmlOutPath.getAbsolutePath() );
 
 			boolean tpExists = false;
 			boolean viewSetupExists = false;
 
-			for ( final ViewDescription viewId2 : spimData.getSequenceDescription().getViewDescriptions().values() )
+			for ( final ViewDescription viewId2 : existingSpimData.getSequenceDescription().getViewDescriptions().values() )
 			{
 				/*
 				// uncommented this because if you make a second timepoint and do not add missing views, they all exist already
@@ -288,37 +294,47 @@ public class ExportTools {
 				}
 			}
 
-			final List<ViewSetup> setups = new ArrayList<>( spimData.getSequenceDescription().getViewSetups().values() );
+			final List<ViewSetup> setups = new ArrayList<>( existingSpimData.getSequenceDescription().getViewSetups().values() );
 
 			if ( !viewSetupExists )
 				setups.add( instantiateViewSetup.instantiate( viewId, tpExists, new FinalDimensions( dimensions ), setups ) );
 
 			final TimePoints timepoints;
 			if ( !tpExists) {
-				final List<TimePoint> tps = new ArrayList<>(spimData.getSequenceDescription().getTimePoints().getTimePointsOrdered());
+				final List<TimePoint> tps = new ArrayList<>(existingSpimData.getSequenceDescription().getTimePoints().getTimePointsOrdered());
 				tps.add(new TimePoint(viewId.getTimePointId()));
 				timepoints = new TimePoints(tps);
 			}
 			else
 			{
-				timepoints = spimData.getSequenceDescription().getTimePoints();
+				timepoints = existingSpimData.getSequenceDescription().getTimePoints();
 			}
 
-			final Map<ViewId, ViewRegistration> registrations = spimData.getViewRegistrations().getViewRegistrations();
+			final Map<ViewId, ViewRegistration> registrations = existingSpimData.getViewRegistrations().getViewRegistrations();
 			registrations.put( viewId, new ViewRegistration( viewId.getTimePointId(), viewId.getViewSetupId() ) );
 			final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
 
 			if ( StorageType.N5.equals(storageType) )
-				sequence.setImgLoader( new N5ImageLoader( new File( n5Path ), sequence) );
+				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
 			else if ( StorageType.HDF5.equals(storageType) )
-				sequence.setImgLoader( new Hdf5ImageLoader( new File( n5Path ), null, sequence) );
+				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );
 
-			final SpimData spimDataNew = new SpimData( xmlOutPath.getParentFile(), sequence, viewRegistrations);
-			new XmlIoSpimData().save( spimDataNew, xmlOutPath.getAbsolutePath() );
+			final SpimData2 spimDataNew =
+					new SpimData2(
+							existingSpimData.getBasePathURI(),
+							sequence,
+							viewRegistrations,
+							existingSpimData.getViewInterestPoints(),
+							existingSpimData.getBoundingBoxes(),
+							existingSpimData.getPointSpreadFunctions(),
+							existingSpimData.getStitchingResults(),
+							existingSpimData.getIntensityAdjustments() );
+
+			new XmlIoSpimData2().save( spimDataNew, existingSpimData.getBasePathURI() );
 
 			return new ValuePair<>(tpExists, viewSetupExists);
 		}
@@ -349,15 +365,15 @@ public class ExportTools {
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
 			if ( StorageType.N5.equals(storageType) )
-				sequence.setImgLoader( new N5ImageLoader( new File( n5Path ), sequence) );
+				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
 			else if ( StorageType.HDF5.equals(storageType) )
-				sequence.setImgLoader( new Hdf5ImageLoader( new File( n5Path ), null, sequence) );
+				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );
 
-			final SpimData spimData = new SpimData( xmlOutPath.getParentFile(), sequence, viewRegistrations);
+			final SpimData2 spimData = new SpimData2( xmlOutPathURI, sequence, viewRegistrations, new ViewInterestPoints(), new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
-			new XmlIoSpimData().save( spimData, xmlOutPath.getAbsolutePath() );
+			new XmlIoSpimData2().save( spimData, xmlOutPathURI );
 
 			return new ValuePair<>(false, false);
 		}
