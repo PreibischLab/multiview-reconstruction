@@ -110,6 +110,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<imglib2-cache.version>1.0.0-beta-18</imglib2-cache.version>
 		<imglib2-algorithm.version>0.15.3</imglib2-algorithm.version>
 		<imglib2-roi.version>0.15.0</imglib2-roi.version>
+		<n5-imglib2.version>7.0.1</n5-imglib2.version>
 		<bigdataviewer-core.version>10.6.0</bigdataviewer-core.version>
 		<bigdataviewer-vistools.version>1.0.0-beta-36</bigdataviewer-vistools.version>
 		<spim_data.version>2.3.1</spim_data.version>
