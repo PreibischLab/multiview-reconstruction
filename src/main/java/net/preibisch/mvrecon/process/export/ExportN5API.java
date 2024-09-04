@@ -25,11 +25,13 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -70,6 +72,7 @@ import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
 import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import util.Grid;
 import util.URITools;
 
@@ -363,8 +366,31 @@ public class ExportN5API implements ImgExport
 		//
 		// save multiresolution pyramid (s1 ... sN)
 		//
+		/*
+		for ( int level = 1; level < this.downsampling.length; ++level )
+		{
+			final int s = level;
+			final int[] ds = N5ResaveTools.computeRelativeDownsampling( this.downsampling, s );
+			IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
 
-		// TODO: use code from N5ResaveTools
+			final ArrayList<long[][]> allBlocks = N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, blockSize, ds, this.downsampling[ s ], compression );
+
+			time = System.currentTimeMillis();
+
+			try
+			{
+				myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( data, n5Writer, s, ds, gridBlock ) ) ).get();
+			}
+			catch (InterruptedException | ExecutionException e)
+			{
+				IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + e );
+				e.printStackTrace();
+				return false;
+			}
+
+			IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
+		}
+		*/
 		if ( this.downsampling != null )
 		{
 			long[] previousDim = bb.dimensionsAsLongArray();
@@ -372,10 +398,8 @@ public class ExportN5API implements ImgExport
 
 			for ( int level = 1; level < this.downsampling.length; ++level )
 			{
-				final int[] ds = new int[ this.downsampling[ 0 ].length ];
-
-				for ( int d = 0; d < ds.length; ++d )
-					ds[ d ] = this.downsampling[ level ][ d ] / this.downsampling[ level - 1 ][ d ];
+				final int s = level;
+				final int[] ds = N5ResaveTools.computeRelativeDownsampling( this.downsampling, level );
 
 				IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ level ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
 
@@ -383,8 +407,8 @@ public class ExportN5API implements ImgExport
 				for ( int d = 0; d < dim.length; ++d )
 					dim[ d ] = previousDim[ d ] / ds[ d ];
 
-				final String datasetDownsampling =
-						bdv ? ExportTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
+				final String datasetDownsampling = bdv ?
+								ExportTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
 
 				try
 				{
@@ -401,14 +425,7 @@ public class ExportN5API implements ImgExport
 					return false;
 				}
 
-				final List<long[][]> gridDS = Grid.create(
-						dim,
-						new int[] {
-								blocksize()[0],
-								blocksize()[1],
-								blocksize()[2]
-						},
-						blocksize());
+				final List<long[][]> gridDS = Grid.create( dim, blocksize());
 
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + gridDS.size() );
 
@@ -419,6 +436,9 @@ public class ExportN5API implements ImgExport
 
 				time = System.currentTimeMillis();
 
+				e.submit( () -> gridDS.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( driverVolumeWriter, s, ds, gridBlock ) ) );
+
+				/*
 				e.submit(() ->
 					gridDS.parallelStream().forEach(
 							gridBlock ->
@@ -473,33 +493,6 @@ public class ExportN5API implements ImgExport
 										final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
 										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new FloatType());
 									}
-									// this can be removed because of: https://github.com/bigdataviewer/bigdataviewer-core/pull/157
-									/*
-									else if ( dataType == DataType.INT16 )
-									{
-										// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
-										// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
-										// https://github.com/bigdataviewer/bigdataviewer-core/issues/154
-										// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
-										RandomAccessibleInterval<UnsignedShortType> downsampled =
-												Converters.convertRAI(
-														(RandomAccessibleInterval<ShortType>)(Object)N5Utils.open(driverVolumeWriter, datasetPrev),
-														(i,o)->o.set( i.getShort() ),
-														new UnsignedShortType());
-
-										for ( int d = 0; d < downsampled.numDimensions(); ++d )
-											if ( ds[ d ] > 1 )
-												downsampled = LazyHalfPixelDownsample2x.init(
-													downsampled,
-													new FinalInterval( downsampled ),
-													new UnsignedShortType(),
-													blocksize(),
-													d);
-
-										final RandomAccessibleInterval<ShortType> sourceGridBlock =
-												Converters.convertRAI( Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]), (i,o)->o.set( i.getShort() ), new ShortType() );
-										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new ShortType());
-									}*/
 									else
 									{
 										IOFunctions.println( "Unsupported pixel type: " + dataType );
@@ -512,7 +505,7 @@ public class ExportN5API implements ImgExport
 									exc.printStackTrace();
 								}
 							} )
-					);
+					);*/
 
 				try
 				{

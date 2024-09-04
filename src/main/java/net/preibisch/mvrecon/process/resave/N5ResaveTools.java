@@ -36,7 +36,6 @@ import util.Grid;
 public class N5ResaveTools
 {
 	public static void writeDownsampledBlock(
-			final SpimData2 data,
 			final N5Writer n5,
 			final int level,
 			final int[] relativeDownsampling,
@@ -51,7 +50,7 @@ public class N5ResaveTools
 
 		if ( dataType == DataType.UINT16 )
 		{
-			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPrev);;
+			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPrev);
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
 				if ( relativeDownsampling[ d ] > 1 )
@@ -129,12 +128,20 @@ public class N5ResaveTools
 
 			final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + level;
 
-			n5.createDataset(
-					dataset,
-					dim, // dimensions
-					blockSize,
-					dataType,
-					compression );
+			try
+			{
+				n5.createDataset(
+						dataset,
+						dim, // dimensions
+						blockSize,
+						dataType,
+						compression );
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( "Couldn't create downsampling level " + level + ", dataset '" + dataset + "': " + e );
+				return null;
+			}
 
 			final List<long[][]> grid = Grid.create(
 					dim,

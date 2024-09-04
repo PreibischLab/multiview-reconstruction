@@ -29,19 +29,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.export.n5.WriteSequenceToN5;
 import bdv.img.n5.N5ImageLoader;
-import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
@@ -53,6 +52,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import net.preibisch.mvrecon.process.resave.SpimData2Tools;
+import util.Grid;
 import util.URITools;
 
 public class Resave_N5 implements PlugIn
@@ -189,7 +189,7 @@ public class Resave_N5 implements PlugIn
 
 				try
 				{
-					myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( data, n5Writer, s, ds, gridBlock ) ) ).get();
+					myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( n5Writer, s, ds, gridBlock ) ) ).get();
 				}
 				catch (InterruptedException | ExecutionException e)
 				{
@@ -224,7 +224,15 @@ public class Resave_N5 implements PlugIn
 
 	public static void main(String[] args)
 	{
-		new ImageJ();
-		new Resave_N5().run( null );
+		List<long[][]> grid = Grid.create( new long[] { 500, 500 }, new int[] { 400, 400 }, new int[] { 200, 200 } );
+
+		grid.forEach( b -> {
+			System.out.println( Arrays.toString( b[0]));
+			System.out.println( Arrays.toString( b[1]));
+			System.out.println( Arrays.toString( b[2]));
+			System.out.println();
+		});
+		//new ImageJ();
+		//new Resave_N5().run( null );
 	}
 }
