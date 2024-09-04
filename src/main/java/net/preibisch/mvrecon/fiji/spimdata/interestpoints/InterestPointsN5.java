@@ -39,6 +39,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccess;
@@ -150,12 +151,14 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer;
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
 
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+			*/
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -246,12 +249,14 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer;
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
 
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+			*/
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -359,12 +364,14 @@ public class InterestPointsN5 extends InterestPoints
 		try
 		{
 			
-			final N5Reader n5;
+			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
 
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+			*/
 
 			final String dataset = ipDataset();
 
@@ -464,12 +471,14 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Reader n5;
+			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );;
 
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+			*/
 
 			final String dataset = corrDataset();
 
@@ -587,15 +596,14 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// cloud support
-			//final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
-			final N5Writer n5Writer;
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
 
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
-
+			*/
 
 			if (n5Writer.exists(ipDataset()))
 				n5Writer.remove(ipDataset());
@@ -618,15 +626,14 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			// cloud support
-			//final N5FSWriter n5Writer = new N5FSWriter( baseDir.getAbsolutePath() );
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
 
-			final N5Writer n5Writer;
-
+			/*
 			if ( URITools.isFile( baseDir ) )
 				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
 			else
 				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
+			*/
 
 			if (n5Writer.exists(corrDataset()))
 				n5Writer.remove(corrDataset());

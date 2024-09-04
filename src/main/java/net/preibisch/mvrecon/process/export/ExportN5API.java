@@ -170,17 +170,11 @@ public class ExportN5API implements ImgExport
 			{
 				if ( storageType == StorageType.N5 )
 				{
-					if ( URITools.isFile( path ) )
-						driverVolumeWriter = new N5FSWriter( URITools.removeFilePrefix( path ) );
-					else
-						driverVolumeWriter = new N5Factory().openWriter( StorageFormat.N5, path ); // cloud support, avoid dependency hell if it is a local file
+					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.N5, path );
 				}
 				else if ( storageType == StorageType.ZARR )
 				{
-					if ( URITools.isFile( path ) )
-						driverVolumeWriter = new N5ZarrWriter( URITools.removeFilePrefix( path ) );
-					else
-						driverVolumeWriter = new N5Factory().openWriter( StorageFormat.ZARR, path ); // cloud support, avoid dependency hell if it is a local file
+					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.ZARR, path );
 				}
 				else if ( storageType == StorageType.HDF5 )
 				{
@@ -326,6 +320,8 @@ public class ExportN5API implements ImgExport
 		//
 		// save full-resolution data (s0)
 		//
+
+		// TODO: use Tobi's code (at least for the special cases)
 		ex.submit(() ->
 			grid.parallelStream().forEach(
 					gridBlock -> {

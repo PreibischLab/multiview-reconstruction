@@ -131,8 +131,8 @@ public class Resave_N5 implements PlugIn
 		}
 		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )
 		{
-			// TODO: save to cloud
-			final N5Writer n5Writer = new N5Factory().openWriter( n5Params.n5URI.toString() ); // cloud support, avoid dependency hell if it is a local file
+			// save to cloud or file
+			final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
 
 			final int[] blockSize = null;
 			final int[] computeBlockSize = null;

@@ -18,10 +18,14 @@ import java.util.regex.Pattern;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
@@ -140,6 +144,68 @@ public class URITools
 		{
 			throw new RuntimeException( "Unsupported URI: " + xmlURI );
 		}
+	}
+
+	public static N5Writer instantiateN5Writer( final StorageFormat format, final URI uri )
+	{
+		if ( URITools.isFile( uri ) )
+		{
+			if ( format.equals( StorageFormat.N5 ))
+				return new N5FSWriter( URITools.removeFilePrefix( uri ) );
+			else if ( format.equals( StorageFormat.ZARR ))
+				return new N5ZarrWriter( URITools.removeFilePrefix( uri ) );
+			else
+				throw new RuntimeException( "Format: " + format + " not supported." );
+		}
+		else
+		{
+			return new N5Factory().openWriter( format, uri ); // cloud support, avoid dependency hell if it is a local file
+		}
+	}
+
+	public static N5Reader instantiateN5Reader( final StorageFormat format, final URI uri )
+	{
+		if ( URITools.isFile( uri ) )
+		{
+			if ( format.equals( StorageFormat.N5 ))
+				return new N5FSWriter( URITools.removeFilePrefix( uri ) );
+			else if ( format.equals( StorageFormat.ZARR ))
+				return new N5ZarrWriter( URITools.removeFilePrefix( uri ) );
+			else
+				throw new RuntimeException( "Format: " + format + " not supported." );
+		}
+		else
+			return new N5Factory().openReader( format, uri ); // cloud support, avoid dependency hell if it is a local file
+	}
+
+	public static N5Reader instantiateGuessedN5Reader( final URI uri )
+	{
+		if ( URITools.isFile( uri ) )
+		{
+			if ( uri.toString().toLowerCase().endsWith( ".zarr" ) )
+				return instantiateN5Reader( StorageFormat.ZARR, uri );
+			else if ( uri.toString().toLowerCase().endsWith( ".n5" ) )
+				return instantiateN5Reader( StorageFormat.N5, uri );
+			else
+				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
+		}
+		else
+			return new N5Factory().openReader( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
+	}
+
+	public static N5Writer instantiateGuessedN5Writer( final URI uri )
+	{
+		if ( URITools.isFile( uri ) )
+		{
+			if ( uri.toString().toLowerCase().endsWith( ".zarr" ) )
+				return instantiateN5Writer( StorageFormat.ZARR, uri );
+			else if ( uri.toString().toLowerCase().endsWith( ".n5" ) )
+				return instantiateN5Writer( StorageFormat.N5, uri );
+			else
+				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
+		}
+		else
+			return new N5Factory().openWriter( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
 	}
 
 	public static SpimData2 loadSpimData( final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException

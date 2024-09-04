@@ -177,7 +177,7 @@ public class SpimData2Tools
 		return t;
 	}
 
-	public static void copyFolder( final File src, final File dest, final List< String > filesToCopy ) throws IOException
+	private static void copyFolder( final File src, final File dest, final List< String > filesToCopy ) throws IOException
 	{
 		if ( src.isDirectory() )
 		{
