@@ -33,12 +33,9 @@ import java.util.Map.Entry;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import mpicbg.spim.data.sequence.ViewId;
@@ -223,6 +220,8 @@ public class InterestPointsN5 extends InterestPoints
 			n5Writer.close();
 
 			IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
+
+			modifiedInterestPoints = false;
 		}
 		catch (Exception e)
 		{
@@ -347,6 +346,8 @@ public class InterestPointsN5 extends InterestPoints
 			IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
 
 			n5Writer.close();
+
+			modifiedCorrespondingInterestPoints = false;
 		}
 		catch (Exception e)
 		{
@@ -383,6 +384,8 @@ public class InterestPointsN5 extends InterestPoints
 
 			String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			String type = n5.getAttribute(dataset, "type", String.class );
+
+			System.out.println( "Version: " + version + ", type: " + type );
 
 			if ( !type.equals("list") )
 			{
@@ -489,9 +492,11 @@ public class InterestPointsN5 extends InterestPoints
 			}
 
 			final String version = n5.getAttribute(dataset, "correspondences", String.class );
+
+			@SuppressWarnings("unchecked")
 			final Map< String, Long > idMap = n5.getAttribute(dataset, "idMap", Map.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
 
-			System.out.println( version + ", " + idMap.size() + " correspondence codes" );
+			System.out.println( "Version: " + version + ", " + idMap.size() + " correspondence codes" );
 
 			if ( idMap.size() == 0 )
 			{
