@@ -69,6 +69,7 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.BDVUtils;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ExplorerWindowSetable;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
+import util.URITools;
 
 public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 		extends JPanel implements ExplorerWindow< AS >, GroupedRowWindow
@@ -502,7 +503,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 		{
 			final SpimData2 data = this.getSpimData();
 
-			final URI newXMLPath = XMLSaveAs.saveAs( data, this.xml().toString() );
+			final URI newXMLPath = XMLSaveAs.saveAs( data, URITools.getFileName( this.xml() ) );
 
 			if ( newXMLPath != null )
 			{

@@ -245,6 +245,12 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 	@Override
 	public Element toXml( final SpimData2 spimData, final File xmlFileDirectory ) throws SpimDataException
 	{
+		return toXml(spimData, xmlFileDirectory.toURI() );
+	}
+
+	@Override
+	public Element toXml( final SpimData2 spimData, final URI xmlFileDirectory ) throws SpimDataException
+	{
 		final Element root = super.toXml( spimData, xmlFileDirectory );
 
 		root.addContent( xmlViewsInterestPoints.toXml( spimData.getViewInterestPoints() ) );
