@@ -31,6 +31,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import java.util.Set;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -58,20 +60,24 @@ import javax.swing.table.TableCellRenderer;
 
 import bdv.BigDataViewer;
 import bdv.ViewerImgLoader;
+import bdv.img.hdf5.Hdf5ImageLoader;
+import bdv.img.n5.N5ImageLoader;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.VisibilityAndGrouping;
-import mpicbg.spim.data.SpimDataException;
+import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Illumination;
+import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.type.numeric.ARGBType;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.XMLSaveAs;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
@@ -105,10 +111,9 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeDetectionsPop
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.VisualizeNonRigid;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
-import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 
 public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndGroupedExplorerPanel< AS > implements ExplorerWindow< AS >
@@ -255,6 +260,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 					saveXML();
 			}
 		});
+		save.setComponentPopupMenu( addRightClickSaveAs() );
 
 		final JButton info = new JButton( "Info" );
 		info.addActionListener( new ActionListener()
@@ -272,7 +278,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		buttons.add( save, BorderLayout.EAST );
 
 		final JPanel header = new JPanel( new BorderLayout() );
-		header.add( getXMLLabel( xml ), BorderLayout.WEST );
+		header.add( xmlLabel = getXMLLabel( xml ), BorderLayout.WEST );
 		header.add( buttons, BorderLayout.EAST );
 		this.add( header, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );

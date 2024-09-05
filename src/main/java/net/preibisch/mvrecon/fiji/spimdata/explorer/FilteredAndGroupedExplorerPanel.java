@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
@@ -46,7 +48,6 @@ import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
 import bdv.viewer.ViewerState;
-import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.base.NamedEntity;
@@ -58,6 +59,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.plugin.XMLSaveAs;
 import net.preibisch.mvrecon.fiji.spimdata.GroupedViews;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.SpimDataTools;
@@ -89,10 +91,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	protected ArrayList< SelectedViewDescriptionListener< AS > > listeners;
 	protected AS data;
 	protected FilteredAndGroupedExplorer< AS > explorer;
-	protected final URI xml;
+	protected URI xml;
 	protected final XmlIoSpimData2 io;
 	protected final boolean isMac;
 	protected boolean colorMode = false;
+
+	protected JLabel xmlLabel;
 
 	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
 	protected BasicViewDescription< ? > firstSelectedVD;
@@ -487,6 +491,30 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	public void showInfoBox()
 	{
 		new ViewSetupExplorerInfoBox<>( data );
+	}
+
+	public JPopupMenu addRightClickSaveAs()
+	{
+		final JPopupMenu popupMenu = new JPopupMenu();
+		final JMenuItem item = new JMenuItem( "Save as ..." );
+
+		item.addActionListener( e ->
+		{
+			final SpimData2 data = this.getSpimData();
+
+			final URI newXMLPath = XMLSaveAs.saveAs( data, this.xml().toString() );
+
+			if ( newXMLPath != null )
+			{
+				this.xml = newXMLPath;
+				this.saveXML();
+				this.xmlLabel.setText( "XML: " + newXMLPath );
+			}
+		});
+
+		popupMenu.add( item );
+
+		return popupMenu;
 	}
 
 	@Override
