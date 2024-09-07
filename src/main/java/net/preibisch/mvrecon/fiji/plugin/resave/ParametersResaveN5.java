@@ -99,7 +99,7 @@ public class ParametersResaveN5
 		final int firstviewSetupId = setupsToProcess.iterator().next().getId();// xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
 		final ExportMipmapInfo autoMipmapSettings = perSetupExportMipmapInfo.get( firstviewSetupId );
 
-		// block size should be bigger than hdf5
+		// block size should be bigger than hdf5, and all the same
 		for ( final int[] row : autoMipmapSettings.getSubdivisions() )
 		{
 			Arrays.fill( row, defaultBlockSize );
@@ -113,8 +113,8 @@ public class ParametersResaveN5
 		gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
 
 		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
-		gdp.addStringField( "Subsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
-		gdp.addStringField( "N5_block_sizes", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
+		gdp.addStringField( "Downsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
+		gdp.addStringField( "Block_size (all the same)", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
 		gdp.addNumericField( "Number_of_threads (CPUs:" + Runtime.getRuntime().availableProcessors() + ")", defaultNumThreads, 0 );
 
 		if ( askForPaths )
@@ -169,28 +169,29 @@ public class ParametersResaveN5
 		else
 			n5params.compression = new RawCompression();
 
-		final int[][] resolutions = PluginHelper.parseResolutionsString( subsampling );
-		final int[][] subdivisions = PluginHelper.parseResolutionsString( chunkSizes );
+		n5params.resolutions = PluginHelper.parseResolutionsString( subsampling );
+		n5params.subdivisions = PluginHelper.parseResolutionsString( chunkSizes );
 
-		if ( resolutions.length == 0 )
+		if ( n5params.resolutions.length == 0 )
 		{
-			IOFunctions.println( "Cannot parse subsampling factors " + subsampling );
+			IOFunctions.println( "Cannot parse downsampling factors " + subsampling );
 			return null;
 		}
-		if ( subdivisions.length == 0 )
+
+		if ( n5params.subdivisions.length == 0 )
 		{
-			IOFunctions.println( "Cannot parse hdf5 chunk sizes " + chunkSizes );
+			IOFunctions.println( "Cannot parse block sizes " + chunkSizes );
 			return null;
 		}
-		else if ( resolutions.length != subdivisions.length )
+		else if ( n5params.resolutions.length != n5params.subdivisions.length )
 		{
-			IOFunctions.println( "subsampling factors and hdf5 chunk sizes must have the same number of elements" );
+			IOFunctions.println( "downsampling factors and block sizes must have the same number of elements" );
 			return null;
 		}
 
 		n5params.proposedMipmaps = createProposedMipMaps(
-				resolutions,
-				subdivisions,
+				n5params.resolutions,
+				n5params.subdivisions,
 				setupsToProcess.stream().map( vs -> vs.getId() ).collect( Collectors.toList() ) );
 
 		return n5params;

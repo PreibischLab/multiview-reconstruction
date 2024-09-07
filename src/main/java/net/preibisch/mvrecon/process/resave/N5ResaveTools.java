@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -35,22 +36,37 @@ import util.Grid;
 
 public class N5ResaveTools
 {
+	/**
+	 * @param level - the downsampling level
+	 * @return a Function that maps the gridBlock to a N5 dataset name
+	 */
+	public static Function<long[][], String> mappingFunctionBDV( final int level )
+	{
+		return gridBlock ->
+		{
+			final ViewId viewId = gridBlock.length > 3 ? new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]) : new ViewId( 0, 0 );
+			return "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
+		};
+	}
+
 	public static void writeDownsampledBlock(
 			final N5Writer n5,
-			final int level,
+			final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. s1, s2, ...)
+			final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. s0 when writing s1, s1 when writing s2, ... )
 			final int[] relativeDownsampling,
 			final long[][] gridBlock )
 	{
-		final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
+		final String dataset = viewIdToDataset.apply( gridBlock );
+		final String datasetPreviousScale = viewIdToDatasetPreviousScale.apply( gridBlock );
 
-		final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), DatasetAttributes.DATA_TYPE_KEY, DataType.class );
-		final int[] blockSize = n5.getAttribute( "setup" + viewId.getViewSetupId(), DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
-		final String datasetPrev = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level-1);
-		final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
+		final DataType dataType = n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
+		final int[] blockSize = n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
+		//final String datasetPrev = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level-1);
+		//final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
 
 		if ( dataType == DataType.UINT16 )
 		{
-			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPrev);
+			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPreviousScale);
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
 				if ( relativeDownsampling[ d ] > 1 )
@@ -66,7 +82,7 @@ public class N5ResaveTools
 		}
 		else if ( dataType == DataType.UINT8 )
 		{
-			RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(n5, datasetPrev);
+			RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(n5, datasetPreviousScale);
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
 				if ( relativeDownsampling[ d ] > 1 )
@@ -82,7 +98,7 @@ public class N5ResaveTools
 		}
 		else if ( dataType == DataType.FLOAT32 )
 		{
-			RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(n5, datasetPrev);;
+			RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(n5, datasetPreviousScale);;
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
 				if ( relativeDownsampling[ d ] > 1 )

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -425,7 +426,7 @@ public class ExportN5API implements ImgExport
 					return false;
 				}
 
-				final List<long[][]> gridDS = Grid.create( dim, blocksize());
+				final List<long[][]> gridDS = Grid.create( dim, blocksize() );
 
 				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + gridDS.size() );
 
@@ -436,7 +437,16 @@ public class ExportN5API implements ImgExport
 
 				time = System.currentTimeMillis();
 
-				e.submit( () -> gridDS.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( driverVolumeWriter, s, ds, gridBlock ) ) );
+				final Function<long[][], String> viewIdToDataset = (gridBlock -> datasetDownsampling); // there is only one ViewId, so no matter which gridBlock, its always the same
+				final Function<long[][], String> viewIdToDatasetPreviousScale = (gridBlock -> datasetPrev); // there is only one ViewId
+
+				e.submit( () -> gridDS.parallelStream().forEach(
+						gridBlock -> N5ResaveTools.writeDownsampledBlock(
+								driverVolumeWriter,
+								viewIdToDataset,
+								viewIdToDatasetPreviousScale,
+								ds,
+								gridBlock ) ) );
 
 				/*
 				e.submit(() ->

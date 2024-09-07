@@ -22,8 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
@@ -39,7 +38,6 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
-import bdv.export.n5.WriteSequenceToN5;
 import bdv.img.n5.N5ImageLoader;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.TimePoint;
@@ -109,6 +107,7 @@ public class Resave_N5 implements PlugIn
 			});
 		}
 
+		/*
 		// re-save data to file
 		if ( URITools.isFile( n5Params.n5URI ) )
 		{
@@ -129,14 +128,17 @@ public class Resave_N5 implements PlugIn
 				e.printStackTrace();
 			}
 		}
-		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )
+		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )*/
 		{
 			// save to cloud or file
 			final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
 
-			final int[] blockSize = null;
-			final int[] computeBlockSize = null;
-			final Compression compression = null;
+			final int[] blockSize = n5Params.subdivisions[ 0 ];
+			final int[] computeBlockSize = n5Params.subdivisions[ 0 ];
+			final Compression compression = n5Params.compression;
+
+			computeBlockSize[ 0 ] *= 4;
+			computeBlockSize[ 1 ] *= 4;
 
 			//final ArrayList<ViewSetup> viewSetups =
 			//		N5ResaveTools.assembleViewSetups( data, vidsToResave );
@@ -144,8 +146,13 @@ public class Resave_N5 implements PlugIn
 			final HashMap<Integer, long[]> viewSetupIdToDimensions =
 					N5ResaveTools.assembleDimensions( data, vidsToResave );
 
+			IOFunctions.println( "Dimensions of raw images: " );
+			viewSetupIdToDimensions.forEach( (id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
+
 			final int[][] downsamplings =
 					N5ResaveTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
+
+			IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
 
 			final ArrayList<long[][]> grid =
 					N5ResaveTools.assembleAllS0Jobs( vidsToResave, viewSetupIdToDimensions, blockSize, computeBlockSize );
@@ -189,7 +196,13 @@ public class Resave_N5 implements PlugIn
 
 				try
 				{
-					myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( n5Writer, s, ds, gridBlock ) ) ).get();
+					myPool.submit(() -> allBlocks.parallelStream().forEach(
+							gridBlock -> N5ResaveTools.writeDownsampledBlock(
+									n5Writer,
+									N5ResaveTools.mappingFunctionBDV( s ),
+									N5ResaveTools.mappingFunctionBDV( s - 1 ),
+									ds,
+									gridBlock ) ) ).get();
 				}
 				catch (InterruptedException | ExecutionException e)
 				{
@@ -202,7 +215,7 @@ public class Resave_N5 implements PlugIn
 			}
 
 			myPool.shutdown();
-			//myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS );
+			try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
 
 			n5Writer.close();
 		}
