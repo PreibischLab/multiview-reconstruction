@@ -31,6 +31,7 @@ import bdv.viewer.ViewerState;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
 import java.net.URI;
 import java.util.Collection;
 
@@ -100,37 +101,60 @@ public class BDVPopup extends JMenuItem implements ExplorerWindowSetable, BasicB
 				return;
 			}
 
-			// TODO (TP): replace with lambda
-			new Thread( new Runnable()
+			new Thread( () ->
 			{
-				@Override
-				public void run()
+				// if BDV was closed by the user
+				if ( bdv != null && !bdv.getViewerFrame().isVisible() )
+					bdv = null;
+
+				if ( bdv == null )
 				{
-					// if BDV was closed by the user
-					if ( bdv != null && !bdv.getViewerFrame().isVisible() )
+					try
+					{
+						bdv = createBDV( panel );
+					}
+					catch (Exception ex)
+					{
+						IOFunctions.println( "Could not run BigDataViewer: " + e );
+						ex.printStackTrace();
 						bdv = null;
-
-					if ( bdv == null )
-					{
-
-						try
-						{
-							bdv = createBDV( panel );
-						}
-						catch (Exception e)
-						{
-							IOFunctions.println( "Could not run BigDataViewer: " + e );
-							e.printStackTrace();
-							bdv = null;
-						}
 					}
-					else
-					{
-						closeBDV();
-					}
+				}
+				else
+				{
+					closeBDV();
 				}
 			}).start();
 		}
+	}
+
+	public void reStartBDV()
+	{
+		new Thread( () ->
+		{
+			// if BDV was closed by the user
+			if ( bdv != null && !bdv.getViewerFrame().isVisible() )
+				bdv = null;
+
+			if ( bdv != null )
+			{
+				final ViewerFrame frame = bdv.getViewerFrame();
+				final WindowEvent windowClosing = new WindowEvent( frame, WindowEvent.WINDOW_CLOSING );
+				frame.dispatchEvent( windowClosing );
+				bdv = null;
+			}
+
+			try
+			{
+				bdv = createBDV( panel );
+			}
+			catch (Exception ex)
+			{
+				IOFunctions.println( "Could not run BigDataViewer: " + ex );
+				ex.printStackTrace();
+				bdv = null;
+			}
+		}).start();
 	}
 
 	@Override

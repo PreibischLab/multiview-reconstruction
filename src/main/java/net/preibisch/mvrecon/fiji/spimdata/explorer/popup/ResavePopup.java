@@ -95,7 +95,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	public class MyActionListener implements ActionListener
 	{
-		final int index; // 0 == TIFF, 1 == HDF5
+		final int index; // 0 == TIFF, 1 == compressed TIFF, 2 == HDF5, 3 == compressed HDF5, 4 == N5
 
 		public MyActionListener( final int index )
 		{
@@ -111,18 +111,12 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 				return;
 			}
 
-			if ( !SpimData2.class.isInstance( panel.getSpimData() ) )
-			{
-				IOFunctions.println( "Only supported for SpimData2 objects: " + this.getClass().getSimpleName() );
-				return;
-			}
-
 			new Thread( new Runnable()
 			{
 				@Override
 				public void run()
 				{
-					final SpimData2 data = (SpimData2)panel.getSpimData();
+					final SpimData2 data = panel.getSpimData();
 
 					final List< ViewId > viewIds = ApplyTransformationPopup.getSelectedViews( panel );
 					String question;
@@ -318,6 +312,10 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						panel.saveXML();
 						progressWriter.out().println( "done" );
 					}
+
+					// re-open BDV if active
+					if ( panel.bdvPopup().bdvRunning() )
+						panel.bdvPopup().reStartBDV();
 				}
 			} ).start();
 		}
