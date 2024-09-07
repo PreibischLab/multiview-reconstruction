@@ -134,11 +134,11 @@ public class Resave_N5 implements PlugIn
 			final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
 
 			final int[] blockSize = n5Params.subdivisions[ 0 ];
-			final int[] computeBlockSize = n5Params.subdivisions[ 0 ];
+			final int[] computeBlockSize = new int[ blockSize.length ];
 			final Compression compression = n5Params.compression;
 
-			computeBlockSize[ 0 ] *= 4;
-			computeBlockSize[ 1 ] *= 4;
+			for ( int d = 0; d < blockSize.length; ++d )
+				computeBlockSize[ d ] = blockSize[ d ] * n5Params.blockSizeFactor[ d ];
 
 			//final ArrayList<ViewSetup> viewSetups =
 			//		N5ResaveTools.assembleViewSetups( data, vidsToResave );
