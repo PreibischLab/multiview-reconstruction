@@ -101,7 +101,12 @@ public class XMLSaveAs implements PlugIn
 
 		// make sure interestpoints are saved to the new location as well
 		for ( final ViewInterestPointLists vipl : data.getViewInterestPoints().getViewInterestPoints().values() )
-			vipl.getHashMap().values().forEach( ipl -> ipl.setBaseDir( newBaseDir ) );
+			vipl.getHashMap().values().forEach( ipl ->
+			{
+				ipl.getInterestPointsCopy();
+				ipl.getCorrespondingInterestPointsCopy();
+				ipl.setBaseDir( newBaseDir ); // also sets 'isModified' flags
+			});
 
 		LoadParseQueryXML.defaultXMLURI = newXMLPath.toString();
 
