@@ -239,6 +239,15 @@ public class BigDataViewerTransformationWindow
 	{
 		try
 		{
+			new Thread( () ->
+			{
+				final ViewerFrame frame = bdv.getViewerFrame();
+				final WindowEvent windowClosing = new WindowEvent( frame, WindowEvent.WINDOW_CLOSING );
+				frame.dispatchEvent( windowClosing );
+			}).start();
+
+			/*
+			// error: Exception in thread "AWT-EventQueue-0" java.lang.Error: Cannot call invokeAndWait from the event dispatcher thread
 			SwingUtilities.invokeAndWait( new Runnable()
 			{
 				@Override
@@ -249,6 +258,7 @@ public class BigDataViewerTransformationWindow
 					frame.dispatchEvent( windowClosing );
 				}
 			} );
+			*/
 		}
 		catch ( final Exception e )
 		{}
