@@ -437,85 +437,16 @@ public class ExportN5API implements ImgExport
 
 				time = System.currentTimeMillis();
 
-				final Function<long[][], String> viewIdToDataset = (gridBlock -> datasetDownsampling); // there is only one ViewId, so no matter which gridBlock, its always the same
-				final Function<long[][], String> viewIdToDatasetPreviousScale = (gridBlock -> datasetPrev); // there is only one ViewId
+				final Function<long[][], String> gridBlockToDataset = (gridBlock -> datasetDownsampling); // there is only one ViewId, so no matter which gridBlock, its always the same
+				final Function<long[][], String> gridBlockToDatasetPreviousScale = (gridBlock -> datasetPrev); // there is only one ViewId
 
 				e.submit( () -> gridDS.parallelStream().forEach(
 						gridBlock -> N5ResaveTools.writeDownsampledBlock(
 								driverVolumeWriter,
-								viewIdToDataset,
-								viewIdToDatasetPreviousScale,
+								gridBlockToDataset,
+								gridBlockToDatasetPreviousScale,
 								ds,
 								gridBlock ) ) );
-
-				/*
-				e.submit(() ->
-					gridDS.parallelStream().forEach(
-							gridBlock ->
-							{
-								try
-								{
-									if ( dataType == DataType.UINT16 )
-									{
-										RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
-
-										for ( int d = 0; d < downsampled.numDimensions(); ++d )
-											if ( ds[ d ] > 1 )
-												downsampled = LazyHalfPixelDownsample2x.init(
-													downsampled,
-													new FinalInterval( downsampled ),
-													new UnsignedShortType(),
-													blocksize(),
-													d);
-
-										final RandomAccessibleInterval<UnsignedShortType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new UnsignedShortType());
-									}
-									else if ( dataType == DataType.UINT8 )
-									{
-										RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
-
-										for ( int d = 0; d < downsampled.numDimensions(); ++d )
-											if ( ds[ d ] > 1 )
-												downsampled = LazyHalfPixelDownsample2x.init(
-													downsampled,
-													new FinalInterval( downsampled ),
-													new UnsignedByteType(),
-													blocksize(),
-													d);
-
-										final RandomAccessibleInterval<UnsignedByteType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new UnsignedByteType());
-									}
-									else if ( dataType == DataType.FLOAT32 )
-									{
-										RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(driverVolumeWriter, datasetPrev);
-
-										for ( int d = 0; d < downsampled.numDimensions(); ++d )
-											if ( ds[ d ] > 1 )
-												downsampled = LazyHalfPixelDownsample2x.init(
-													downsampled,
-													new FinalInterval( downsampled ),
-													new FloatType(),
-													blocksize(),
-													d);
-
-										final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-										N5Utils.saveNonEmptyBlock(sourceGridBlock, driverVolumeWriter, datasetDownsampling, gridBlock[2], new FloatType());
-									}
-									else
-									{
-										IOFunctions.println( "Unsupported pixel type: " + dataType );
-										throw new RuntimeException("Unsupported pixel type: " + dataType );
-									}
-								}
-								catch (Exception exc) 
-								{
-									IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " + exc );
-									exc.printStackTrace();
-								}
-							} )
-					);*/
 
 				try
 				{
