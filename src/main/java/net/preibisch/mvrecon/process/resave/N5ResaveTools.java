@@ -1,6 +1,7 @@
 package net.preibisch.mvrecon.process.resave;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -130,6 +131,10 @@ public class N5ResaveTools
 	{
 		// all blocks (a.k.a. grids) across all ViewId's
 		final ArrayList<long[][]> allBlocks = new ArrayList<>();
+
+		System.out.println( "relativeDownsampling: " + Arrays.toString( relativeDownsampling ));
+		System.out.println( "absoluteDownsampling: " + Arrays.toString( absoluteDownsampling ));
+		System.out.println( "blockSize: " + Arrays.toString( blockSize ));
 
 		// adjust dimensions
 		for ( final ViewId viewId : viewIds )
