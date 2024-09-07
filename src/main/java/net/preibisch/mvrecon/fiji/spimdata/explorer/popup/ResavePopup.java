@@ -51,6 +51,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.ParametersResaveAsTI
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 import util.URITools;
 
@@ -61,7 +62,9 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	FilteredAndGroupedExplorerPanel< ? > panel;
 
-	protected static String[] types = new String[]{ "As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 (in place) ...", "As compressed HDF5 (in place) ...", "As compressed N5 ..." };
+	protected static String[] types = new String[]{
+			"As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 (in place) ...",
+			"As compressed HDF5 (in place) ...", "As N5 (in place ) ...", "As N5 (local, cloud) ..." };
 
 	public ResavePopup()
 	{
@@ -72,18 +75,21 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 		final JMenuItem hdf5 = new JMenuItem( types[ 2 ] );
 		final JMenuItem deflatehdf5 = new JMenuItem( types[ 3 ] );
 		final JMenuItem n5 = new JMenuItem( types[ 4 ] );
+		final JMenuItem n5wPath = new JMenuItem( types[ 5 ] );
 
 		tiff.addActionListener( new MyActionListener( 0 ) );
 		zippedTiff.addActionListener( new MyActionListener( 1 ) );
 		hdf5.addActionListener( new MyActionListener( 2 ) );
 		deflatehdf5.addActionListener( new MyActionListener( 3 ) );
 		n5.addActionListener( new MyActionListener( 4 ) );
+		n5wPath.addActionListener( new MyActionListener( 5 ) );
 
 		this.add( tiff );
 		this.add( zippedTiff );
 		this.add( hdf5 );
 		this.add( deflatehdf5 );
 		this.add( n5 );
+		this.add( n5wPath );
 	}
 
 	@Override
@@ -276,10 +282,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					}
 
 					// --- N5 ---
-					else if (index == 4)
+					else if (index == 4 || index == 5) // 4 == in-place, 5 == choose path
 					{
-						//final SpimData2 sdReduced = Resave_HDF5.reduceSpimData2( data, viewIds );
-
 						panel.saveXML();
 
 						final URI n5DatasetURI = ParametersResaveN5.createN5URIfromXMLURI( panel.xml() );
@@ -288,20 +292,43 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 								panel.xml(),
 								n5DatasetURI,
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
-								false );
+								index == 5 );
 
 						if ( n5params == null )
 							return;
 
+						final URI basePathURI;
+
+						if ( index == 5 && !n5params.xmlURI.equals( panel.xml() ) )
+						{
+							IOFunctions.println( "New location for XML selected: " + n5params.xmlURI );
+							basePathURI = URITools.getParent( n5params.xmlURI );
+						}
+						else
+						{
+							basePathURI = data.getBasePathURI();
+						}
+
 						final SpimData2 newSpimData = Resave_N5.resaveN5( data, viewIds, n5params, false );
 
-						// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
-						//final List< String > filesToCopy = new ArrayList< String >();
-						//final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, data.getBasePathURI(), filesToCopy );
-
 						// replace imgLoader
-						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5DatasetURI, newSpimData.getSequenceDescription() ) );
-						newSpimData.setBasePathURI( data.getBasePathURI() );
+						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5URI, newSpimData.getSequenceDescription() ) );
+						newSpimData.setBasePathURI( basePathURI );
+
+						// make sure interestpoints are saved to the new location as well
+						if ( index == 5 && !n5params.xmlURI.equals( panel.xml() ) )
+						{
+							for ( final ViewInterestPointLists vipl : data.getViewInterestPoints().getViewInterestPoints().values() )
+								vipl.getHashMap().values().forEach( ipl ->
+								{
+									ipl.getInterestPointsCopy();
+									ipl.getCorrespondingInterestPointsCopy();
+									ipl.setBaseDir( basePathURI ); // also sets 'isModified' flags
+								});
+
+							panel.xml = n5params.xmlURI;
+							panel.xmlLabel.setText( "XML: " + n5params.xmlURI );
+						}
 
 						// replace the spimdata object
 						panel.setSpimData( newSpimData );

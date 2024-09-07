@@ -92,12 +92,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	protected ArrayList< SelectedViewDescriptionListener< AS > > listeners;
 	protected AS data;
 	protected FilteredAndGroupedExplorer< AS > explorer;
-	protected URI xml;
+	public URI xml;
 	protected final XmlIoSpimData2 io;
 	protected final boolean isMac;
 	protected boolean colorMode = false;
 
-	protected JLabel xmlLabel;
+	public JLabel xmlLabel;
 
 	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
 	protected BasicViewDescription< ? > firstSelectedVD;
