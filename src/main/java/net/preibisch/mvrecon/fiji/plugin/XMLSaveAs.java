@@ -45,7 +45,7 @@ public class XMLSaveAs implements PlugIn
 
 		if ( !N5ImageLoader.class.isInstance( imgLoader ) && !Hdf5ImageLoader.class.isInstance( imgLoader ) )
 		{
-			IOFunctions.println( "Saving the XML in a different location than the image data currently only works when it is re-saved as HDF5/N5/ZARR. Stopping." );
+			IOFunctions.println( "Saving the XML in a different location than the image data currently only works when it is re-saved as HDF5/N5/ZARR -- Consider resaving. Stopping." );
 			return null;
 		}
 
