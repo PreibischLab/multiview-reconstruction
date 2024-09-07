@@ -183,7 +183,6 @@ public class Resave_N5 implements PlugIn
 			//
 			// Save remaining downsampling levels (s1 ... sN)
 			//
-
 			for ( int level = 1; level < downsamplings.length; ++level )
 			{
 				final int s = level;
