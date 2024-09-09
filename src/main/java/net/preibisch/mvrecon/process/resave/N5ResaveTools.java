@@ -24,9 +24,11 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
@@ -237,44 +239,26 @@ public class N5ResaveTools
 		}
 	}
 
-	public static void writeS0Block(
+	public static <T extends NativeType<T>> void writeS0Block(
 			final SpimData2 data,
 			final N5Writer n5,
 			final long[][] gridBlock )
 	{
 		final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
 
-		final SetupImgLoader< ? > imgLoader = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() );
-
-		@SuppressWarnings("rawtypes")
-		final RandomAccessibleInterval img = imgLoader.getImage( viewId.getTimePointId() );
-
 		final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
 		final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s0";
 
-		if ( dataType == DataType.UINT16 )
-		{
-			@SuppressWarnings("unchecked")
-			final RandomAccessibleInterval<UnsignedShortType> sourceGridBlock = Views.offsetInterval(img, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new UnsignedShortType());
-		}
-		else if ( dataType == DataType.UINT8 )
-		{
-			@SuppressWarnings("unchecked")
-			final RandomAccessibleInterval<UnsignedByteType> sourceGridBlock = Views.offsetInterval(img, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new UnsignedByteType());
-		}
-		else if ( dataType == DataType.FLOAT32 )
-		{
-			@SuppressWarnings("unchecked")
-			final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(img, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new FloatType());
-		}
-		else
+		if ( dataType != DataType.UINT16 && dataType != DataType.UINT8 && dataType != DataType.FLOAT32 )
 		{
 			n5.close();
 			throw new RuntimeException("Unsupported pixel type: " + dataType );
 		}
+
+		final SetupImgLoader< ? > imgLoader = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() );
+		final RandomAccessibleInterval< T > img = Cast.unchecked( imgLoader.getImage( viewId.getTimePointId() ) );
+		final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval( img, gridBlock[ 0 ], gridBlock[ 1 ] );
+		N5Utils.saveNonEmptyBlock( sourceGridBlock, n5, dataset, gridBlock[ 2 ], img.getType().createVariable() );
 
 		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( gridBlock[0] ) + ", dimension=" + Util.printCoordinates( gridBlock[1] ) );
 	}
