@@ -360,8 +360,7 @@ public class N5ResaveTools
 					gridBlock[ 0 ].clone(),
 					gridBlock[ 1 ].clone(),
 					gridBlock[ 2 ].clone(),
-					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() },
-					viewSetupIdToDimensions.get( viewId.getViewSetupId() ) // TODO: do we need the dimensions?
+					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
 				});
 		}
 
