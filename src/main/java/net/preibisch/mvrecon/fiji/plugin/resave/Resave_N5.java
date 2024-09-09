@@ -22,6 +22,10 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
+import ij.ImageJ;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -63,7 +67,16 @@ public class Resave_N5 implements PlugIn
 		if ( !xml.queryXML( "Resaving as N5", "Resave", true, true, true, true, true ) )
 			return;
 
-		final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
+		URI uri = null;
+		try
+		{
+			uri = new URI( "file:/Users/pietzsch/Desktop/data/Janelia/BigStitcher/Stitching_TIFF_XML/dataset_resaved_as_n5.xml" );
+		}
+		catch ( URISyntaxException e )
+		{
+			throw new RuntimeException( e );
+		}
+		final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ( uri, xml.getViewSetupsToProcess(), true );
 
 		if ( n5params == null )
 			return;
@@ -237,15 +250,15 @@ public class Resave_N5 implements PlugIn
 
 	public static void main(String[] args)
 	{
-		List<long[][]> grid = Grid.create( new long[] { 500, 500 }, new int[] { 400, 400 }, new int[] { 200, 200 } );
-
-		grid.forEach( b -> {
-			System.out.println( Arrays.toString( b[0]));
-			System.out.println( Arrays.toString( b[1]));
-			System.out.println( Arrays.toString( b[2]));
-			System.out.println();
-		});
-		//new ImageJ();
-		//new Resave_N5().run( null );
+//		List<long[][]> grid = Grid.create( new long[] { 500, 500 }, new int[] { 400, 400 }, new int[] { 200, 200 } );
+//
+//		grid.forEach( b -> {
+//			System.out.println( Arrays.toString( b[0]));
+//			System.out.println( Arrays.toString( b[1]));
+//			System.out.println( Arrays.toString( b[2]));
+//			System.out.println();
+//		});
+		new ImageJ();
+		new Resave_N5().run( null );
 	}
 }

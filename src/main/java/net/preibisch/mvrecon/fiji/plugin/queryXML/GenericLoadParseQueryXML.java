@@ -80,7 +80,7 @@ public abstract class GenericLoadParseQueryXML<
 		L extends BasicImgLoader,
 		X extends XmlIoAbstractSpimData< S, AS > >
 {
-	public static String defaultXMLURI = ""; // the full URI path, but as String (so it'll contain e.g. file:/... )
+	public static String defaultXMLURI = "file:/Users/pietzsch/Desktop/data/Janelia/BigStitcher/Stitching_TIFF_XML/dataset.xml"; // the full URI path, but as String (so it'll contain e.g. file:/... )
 
 	protected static String goodMsg1 = "The selected XML file was parsed successfully";
 	protected static String warningMsg1 = "The selected file does not appear to be an xml. Press OK to try to parse anyways.";

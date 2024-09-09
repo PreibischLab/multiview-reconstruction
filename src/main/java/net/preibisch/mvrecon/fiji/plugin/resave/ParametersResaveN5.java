@@ -52,7 +52,7 @@ public class ParametersResaveN5
 	public static String[] compressions = new String[]{ "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz" };
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
-	public static int defaultCompression = 1;
+	public static int defaultCompression = 3;
 	
 	public static int defaultBlockSizeFactorX = 16;
 	public static int defaultBlockSizeFactorY = 16;
