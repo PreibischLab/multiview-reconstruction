@@ -162,7 +162,7 @@ public class Resave_N5 implements PlugIn
 			final Map<Integer, DataType> dataTypes =
 					N5ResaveTools.createGroups( n5Writer, data, viewSetupIdToDimensions, blockSize, downsamplings, compression );
 
-			N5ResaveTools.createS0Datasets( n5Writer, vidsToResave, viewSetupIdToDimensions, blockSize, compression );
+			N5ResaveTools.createS0Datasets( n5Writer, vidsToResave, dataTypes, viewSetupIdToDimensions, blockSize, compression );
 
 			//
 			// Save full resolution dataset (s0)

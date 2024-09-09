@@ -223,6 +223,7 @@ public class N5ResaveTools
 	public static void createS0Datasets(
 			final N5Writer n5,
 			final Collection< ? extends ViewId > viewIds,
+			final Map<Integer, DataType> dataTypes,
 			final Map<Integer, long[]> viewSetupIdToDimensions,
 			final int[] blockSize,
 			final Compression compression )
@@ -232,13 +233,13 @@ public class N5ResaveTools
 			IOFunctions.println( "Creating dataset for " + Group.pvid( viewId ) );
 			
 			final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s0";
-			final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
+			//final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
 	
 			n5.createDataset(
 					dataset,
 					viewSetupIdToDimensions.get( viewId.getViewSetupId() ), // dimensions
 					blockSize,
-					dataType,
+					dataTypes.get( viewId.getViewSetupId() ), // datatype
 					compression );
 	
 			System.out.println( "Setting attributes for " + Group.pvid( viewId ) );
