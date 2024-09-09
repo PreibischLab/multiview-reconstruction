@@ -28,12 +28,14 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 import bdv.export.ExportMipmapInfo;
@@ -157,7 +159,9 @@ public class Resave_N5 implements PlugIn
 			final ArrayList<long[][]> grid =
 					N5ResaveTools.assembleAllS0Jobs( vidsToResave, viewSetupIdToDimensions, blockSize, computeBlockSize );
 
-			N5ResaveTools.createGroups( n5Writer, data, viewSetupIdToDimensions, blockSize, downsamplings, compression );
+			final Map<Integer, DataType> dataTypes =
+					N5ResaveTools.createGroups( n5Writer, data, viewSetupIdToDimensions, blockSize, downsamplings, compression );
+
 			N5ResaveTools.createS0Datasets( n5Writer, vidsToResave, viewSetupIdToDimensions, blockSize, compression );
 
 			//
@@ -169,7 +173,13 @@ public class Resave_N5 implements PlugIn
 
 			try
 			{
-				myPool.submit(() -> grid.parallelStream().forEach( gridBlock -> N5ResaveTools.writeS0Block( data, n5Writer, gridBlock ) ) ).get();
+				myPool.submit(() -> grid.parallelStream().forEach(
+						gridBlock -> N5ResaveTools.resaveS0Block(
+								data,
+								n5Writer,
+								dataTypes.get( (int)gridBlock[ 3 ][ 1 ] ),
+								N5ResaveTools.datasetMappingFunctionBdvN5( 0 ),
+								gridBlock ) ) ).get();
 			}
 			catch (InterruptedException | ExecutionException e)
 			{
@@ -199,8 +209,8 @@ public class Resave_N5 implements PlugIn
 					myPool.submit(() -> allBlocks.parallelStream().forEach(
 							gridBlock -> N5ResaveTools.writeDownsampledBlock(
 									n5Writer,
-									N5ResaveTools.mappingFunctionBDV( s ),
-									N5ResaveTools.mappingFunctionBDV( s - 1 ),
+									N5ResaveTools.datasetMappingFunctionBdvN5( s ),
+									N5ResaveTools.datasetMappingFunctionBdvN5( s - 1 ),
 									ds,
 									gridBlock ) ) ).get();
 				}

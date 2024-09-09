@@ -41,19 +41,38 @@ public class N5ResaveTools
 	 * @param level - the downsampling level
 	 * @return a Function that maps the gridBlock to a N5 dataset name
 	 */
-	public static Function<long[][], String> mappingFunctionBDV( final int level )
+	public static Function<long[][], String> datasetMappingFunctionBdvN5( final int level )
 	{
 		return gridBlock ->
 		{
-			final ViewId viewId = gridBlock.length > 3 ? new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]) : new ViewId( 0, 0 );
+			if ( gridBlock.length <= 3 )
+				throw new RuntimeException( "mappingFunctionBDV() needs an extended GridBlock long[][], where Gridblock[3][] encodes the ViewId");
+
+			final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
 			return "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
+		};
+	}
+
+	/**
+	 * @param level - the downsampling level
+	 * @return a Function that maps the gridBlock to a HDF5 dataset name
+	 */
+	public static Function<long[][], String> datasetMappingFunctionBdvHDF5( final int level )
+	{
+		return gridBlock ->
+		{
+			if ( gridBlock.length <= 3 )
+				throw new RuntimeException( "mappingFunctionBDV() needs an extended GridBlock long[][], where Gridblock[3][] encodes the ViewId");
+
+			final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
+			return null; //TODO //"setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
 		};
 	}
 
 	public static void writeDownsampledBlock(
 			final N5Writer n5,
-			final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. s1, s2, ...)
-			final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. s0 when writing s1, s1 when writing s2, ... )
+			final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. for s1, s2, ...)
+			final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. for s0 when writing s1, s1 when writing s2, ... )
 			final int[] relativeDownsampling,
 			final long[][] gridBlock )
 	{
@@ -62,8 +81,6 @@ public class N5ResaveTools
 
 		final DataType dataType = n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
 		final int[] blockSize = n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
-		//final String datasetPrev = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level-1);
-		//final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
 
 		if ( dataType == DataType.UINT16 )
 		{
@@ -237,9 +254,11 @@ public class N5ResaveTools
 		}
 	}
 
-	public static void writeS0Block(
+	public static void resaveS0Block(
 			final SpimData2 data,
 			final N5Writer n5,
+			final DataType dataType,
+			final Function<long[][], String> gridBlockToDataset, // gridBlock to dataset name for s0
 			final long[][] gridBlock )
 	{
 		final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
@@ -249,8 +268,8 @@ public class N5ResaveTools
 		@SuppressWarnings("rawtypes")
 		final RandomAccessibleInterval img = imgLoader.getImage( viewId.getTimePointId() );
 
-		final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
-		final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s0";
+		//final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
+		final String dataset = gridBlockToDataset.apply( gridBlock );// "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s0";
 
 		if ( dataType == DataType.UINT16 )
 		{
@@ -279,7 +298,7 @@ public class N5ResaveTools
 		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( gridBlock[0] ) + ", dimension=" + Util.printCoordinates( gridBlock[1] ) );
 	}
 
-	public static void createGroups(
+	public static Map< Integer, DataType > createGroups(
 			final N5Writer n5,
 			final AbstractSpimData<?> data,
 			final Map<Integer, long[]> viewSetupIdToDimensions,
@@ -287,6 +306,8 @@ public class N5ResaveTools
 			final int[][] downsamplingFactors,
 			final Compression compression )
 	{
+		final HashMap< Integer, DataType > dataTypes = new HashMap<>();
+
 		for ( final Entry< Integer, long[] > viewSetup : viewSetupIdToDimensions.entrySet() )
 		{
 			final Object type = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewSetup.getKey() ).getImageType();
@@ -301,6 +322,8 @@ public class N5ResaveTools
 			else
 				throw new RuntimeException("Unsupported pixel type: " + type.getClass().getCanonicalName() );
 	
+			dataTypes.put( viewSetup.getKey(), dataType );
+
 			// ViewSetupId needs to contain: {"downsamplingFactors":[[1,1,1],[2,2,1]],"dataType":"uint16"}
 			final String n5Dataset = "setup" + viewSetup.getKey();
 	
@@ -316,6 +339,8 @@ public class N5ResaveTools
 			n5.setAttribute( n5Dataset, "dimensions", viewSetup.getValue() );
 			n5.setAttribute( n5Dataset, "compression", compression );
 		}
+
+		return dataTypes;
 	}
 
 	public static int[][] mipMapInfoToDownsamplings( final Map< Integer, ExportMipmapInfo > mipmaps )
