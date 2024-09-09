@@ -185,7 +185,7 @@ public class N5ResaveTools
 				});
 
 			// set additional N5 attributes for sN dataset
-			n5.setAttribute(dataset, "downsamplingFactors", absoluteDownsampling[ level ] );
+			n5.setAttribute(dataset, "downsamplingFactors", absoluteDownsampling);
 		}
 
 		return allBlocks;
