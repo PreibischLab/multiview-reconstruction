@@ -200,7 +200,7 @@ public class Resave_N5 implements PlugIn
 				IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
 
 				final ArrayList<long[][]> allBlocks =
-						N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, downsamplings[ s ], ds, blockSize, compression );
+						N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, ds, downsamplings[ s ], blockSize, compression );
 
 				time = System.currentTimeMillis();
 
