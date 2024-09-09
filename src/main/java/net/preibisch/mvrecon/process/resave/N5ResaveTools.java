@@ -22,9 +22,12 @@ import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
+import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.algorithm.blocks.downsample.Downsample;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -33,7 +36,6 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
@@ -52,7 +54,7 @@ public class N5ResaveTools
 		};
 	}
 
-	public static void writeDownsampledBlock(
+	public static < T extends NativeType< T > & RealType< T > > void writeDownsampledBlock(
 			final N5Writer n5,
 			final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. s1, s2, ...)
 			final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. s0 when writing s1, s1 when writing s2, ... )
@@ -67,59 +69,21 @@ public class N5ResaveTools
 		//final String datasetPrev = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level-1);
 		//final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level);
 
-		if ( dataType == DataType.UINT16 )
-		{
-			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPreviousScale);
-
-			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
-					downsampled = LazyHalfPixelDownsample2x.init(
-						downsampled,
-						new FinalInterval( downsampled ),
-						new UnsignedShortType(),
-						blockSize,
-						d);
-
-			final RandomAccessibleInterval<UnsignedShortType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new UnsignedShortType());
-		}
-		else if ( dataType == DataType.UINT8 )
-		{
-			RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(n5, datasetPreviousScale);
-
-			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
-					downsampled = LazyHalfPixelDownsample2x.init(
-						downsampled,
-						new FinalInterval( downsampled ),
-						new UnsignedByteType(),
-						blockSize,
-						d);
-
-			final RandomAccessibleInterval<UnsignedByteType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new UnsignedByteType());
-		}
-		else if ( dataType == DataType.FLOAT32 )
-		{
-			RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(n5, datasetPreviousScale);;
-
-			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
-					downsampled = LazyHalfPixelDownsample2x.init(
-						downsampled,
-						new FinalInterval( downsampled ),
-						new FloatType(),
-						blockSize,
-						d);
-
-			final RandomAccessibleInterval<FloatType> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
-			N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], new FloatType());
-		}
-		else
+		if ( dataType != DataType.UINT16 && dataType != DataType.UINT8 && dataType != DataType.FLOAT32 )
 		{
 			n5.close();
 			throw new RuntimeException("Unsupported pixel type: " + dataType );
 		}
+
+		final RandomAccessibleInterval<T> previousScale = N5Utils.open(n5, datasetPreviousScale);
+		final T type = previousScale.getType().createVariable();
+
+		final BlockSupplier< T > blocks = BlockSupplier.of( previousScale ).andThen( Downsample.downsample( relativeDownsampling ) );
+		final long[] dimensions = n5.getAttribute( dataset, DatasetAttributes.DIMENSIONS_KEY, long[].class );
+		final RandomAccessibleInterval< T > downsampled = BlockAlgoUtils.cellImg( blocks, dimensions, new int[] { 64 } );
+
+		final RandomAccessibleInterval<T> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
+		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], type);
 	}
 
 	public static ArrayList<long[][]> prepareDownsampling(
