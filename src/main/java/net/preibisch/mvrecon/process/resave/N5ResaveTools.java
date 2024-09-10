@@ -189,9 +189,6 @@ public class N5ResaveTools
 					gridBlock[ 2 ].clone(),
 					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
 				});
-
-			// set additional N5 attributes for sN dataset
-			n5.setAttribute(dataset, "downsamplingFactors", absoluteDownsampling);
 		}
 
 		return allBlocks;
