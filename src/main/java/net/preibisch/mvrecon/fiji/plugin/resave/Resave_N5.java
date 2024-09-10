@@ -50,6 +50,8 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
+import net.preibisch.mvrecon.process.export.ExportTools;
 import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 import util.Grid;
@@ -109,126 +111,101 @@ public class Resave_N5 implements PlugIn
 			});
 		}
 
-		/*
-		// re-save data to file
-		if ( URITools.isFile( n5Params.n5URI ) )
+		// save to cloud or file
+		final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
+
+		final int[] blockSize = n5Params.subdivisions[ 0 ];
+		final int[] computeBlockSize = new int[ blockSize.length ];
+		final Compression compression = n5Params.compression;
+
+		for ( int d = 0; d < blockSize.length; ++d )
+			computeBlockSize[ d ] = blockSize[ d ] * n5Params.blockSizeFactor[ d ];
+
+		final HashMap<Integer, long[]> dimensions =
+				N5ResaveTools.assembleDimensions( data, vidsToResave );
+
+		final int[][] downsamplings =
+				N5ResaveTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
+
+		final ArrayList<long[][]> grid =
+				N5ResaveTools.assembleS0Jobs( vidsToResave, dimensions, blockSize, computeBlockSize );
+
+		final Map<Integer, DataType> dataTypes =
+				N5ResaveTools.assembleDataTypes( data, dimensions.keySet() );
+
+		// write BDV metadata for all ViewIds (including downsampling)
+		vidsToResave.forEach( viewId -> ExportTools.writeBDVDatasetMetadataN5(
+				n5Writer, viewId, dataTypes.get( viewId.getViewSetupId() ), dimensions.get( viewId.getViewSetupId() ), compression, blockSize, downsamplings));
+
+		IOFunctions.println( "Dimensions of raw images: " );
+		dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
+
+		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
+
+		//
+		// Save full resolution dataset (s0)
+		//
+		final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
+
+		long time = System.currentTimeMillis();
+
+		try
 		{
-			try
-			{
-				WriteSequenceToN5.writeN5File(
-						sdReduced.getSequenceDescription(),
-						n5Params.proposedMipmaps,
-						n5Params.compression, //new GzipCompression()
-						new File( URITools.removeFilePrefix( n5Params.n5URI ) ),
-						new bdv.export.ExportScalePyramid.DefaultLoopbackHeuristic(),
-						null,
-						n5Params.numCellCreatorThreads, // Runtime.getRuntime().availableProcessors()
-						progressWriter );
-			}
-			catch ( IOException e )
-			{
-				e.printStackTrace();
-			}
+			myPool.submit(() -> grid.parallelStream().forEach(
+					gridBlock -> N5ResaveTools.resaveS0Block(
+							data,
+							n5Writer,
+							dataTypes.get( (int)gridBlock[ 3 ][ 1 ] ),
+							N5ResaveTools.datasetMappingFunctionBdv( 0, StorageType.N5 ),
+							gridBlock ) ) ).get();
 		}
-		else if ( URITools.isS3( n5Params.n5URI ) || URITools.isGC( n5Params.n5URI ) )*/
+		catch (InterruptedException | ExecutionException e)
 		{
-			// save to cloud or file
-			final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
+			IOFunctions.println( "Failed to write s0 for N5 '" + n5Params.n5URI + "'. Error: " + e );
+			e.printStackTrace();
+			return null;
+		}
 
-			final int[] blockSize = n5Params.subdivisions[ 0 ];
-			final int[] computeBlockSize = new int[ blockSize.length ];
-			final Compression compression = n5Params.compression;
+		IOFunctions.println( "Saved level s0, took: " + (System.currentTimeMillis() - time ) + " ms." );
 
-			for ( int d = 0; d < blockSize.length; ++d )
-				computeBlockSize[ d ] = blockSize[ d ] * n5Params.blockSizeFactor[ d ];
+		//
+		// Save remaining downsampling levels (s1 ... sN)
+		//
+		for ( int level = 1; level < downsamplings.length; ++level )
+		{
+			final int s = level;
+			final int[] ds = N5ResaveTools.computeRelativeDownsampling( downsamplings, s );
+			IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
 
-			//final ArrayList<ViewSetup> viewSetups =
-			//		N5ResaveTools.assembleViewSetups( data, vidsToResave );
+			final ArrayList<long[][]> allBlocks =
+					N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, ds, downsamplings[ s ], blockSize, compression );
 
-			final HashMap<Integer, long[]> viewSetupIdToDimensions =
-					N5ResaveTools.assembleDimensions( data, vidsToResave );
-
-			IOFunctions.println( "Dimensions of raw images: " );
-			viewSetupIdToDimensions.forEach( (id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
-
-			final int[][] downsamplings =
-					N5ResaveTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
-
-			IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
-
-			final ArrayList<long[][]> grid =
-					N5ResaveTools.assembleAllS0Jobs( vidsToResave, viewSetupIdToDimensions, blockSize, computeBlockSize );
-
-			final Map<Integer, DataType> dataTypes =
-					N5ResaveTools.createGroups( n5Writer, data, viewSetupIdToDimensions, blockSize, downsamplings, compression );
-
-			N5ResaveTools.createS0Datasets( n5Writer, vidsToResave, dataTypes, viewSetupIdToDimensions, blockSize, compression );
-
-			//
-			// Save full resolution dataset (s0)
-			//
-			final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
-
-			long time = System.currentTimeMillis();
+			time = System.currentTimeMillis();
 
 			try
 			{
-				myPool.submit(() -> grid.parallelStream().forEach(
-						gridBlock -> N5ResaveTools.resaveS0Block(
-								data,
+				myPool.submit(() -> allBlocks.parallelStream().forEach(
+						gridBlock -> N5ResaveTools.writeDownsampledBlock(
 								n5Writer,
-								dataTypes.get( (int)gridBlock[ 3 ][ 1 ] ),
-								N5ResaveTools.datasetMappingFunctionBdvN5( 0 ),
+								N5ResaveTools.datasetMappingFunctionBdv( s, StorageType.N5 ),
+								N5ResaveTools.datasetMappingFunctionBdv( s - 1, StorageType.N5 ),
+								ds,
 								gridBlock ) ) ).get();
 			}
 			catch (InterruptedException | ExecutionException e)
 			{
-				IOFunctions.println( "Failed to write s0 for N5 '" + n5Params.n5URI + "'. Error: " + e );
+				IOFunctions.println( "Failed to write downsample step s" + s +" for N5 '" + n5Params.n5URI + "'. Error: " + e );
 				e.printStackTrace();
 				return null;
 			}
 
-			IOFunctions.println( "Saved level s0, took: " + (System.currentTimeMillis() - time ) + " ms." );
-
-			//
-			// Save remaining downsampling levels (s1 ... sN)
-			//
-			for ( int level = 1; level < downsamplings.length; ++level )
-			{
-				final int s = level;
-				final int[] ds = N5ResaveTools.computeRelativeDownsampling( downsamplings, s );
-				IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
-
-				final ArrayList<long[][]> allBlocks =
-						N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, ds, downsamplings[ s ], blockSize, compression );
-
-				time = System.currentTimeMillis();
-
-				try
-				{
-					myPool.submit(() -> allBlocks.parallelStream().forEach(
-							gridBlock -> N5ResaveTools.writeDownsampledBlock(
-									n5Writer,
-									N5ResaveTools.datasetMappingFunctionBdvN5( s ),
-									N5ResaveTools.datasetMappingFunctionBdvN5( s - 1 ),
-									ds,
-									gridBlock ) ) ).get();
-				}
-				catch (InterruptedException | ExecutionException e)
-				{
-					IOFunctions.println( "Failed to write downsample step s" + s +" for N5 '" + n5Params.n5URI + "'. Error: " + e );
-					e.printStackTrace();
-					return null;
-				}
-
-				IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
-			}
-
-			myPool.shutdown();
-			try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
-
-			n5Writer.close();
+			IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
+
+		myPool.shutdown();
+		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
+
+		n5Writer.close();
 
 		sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
 		sdReduced.setBasePathURI( URITools.getParent( n5Params.xmlURI ) );

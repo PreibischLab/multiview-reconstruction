@@ -41,9 +41,7 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
-import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.XmlIoSpimData;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
@@ -91,6 +89,132 @@ public class ExportTools {
 		return emi.getExportResolutions();
 	}
 
+	public static boolean writeBDVDatasetMetadataN5(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final DataType dataType,
+			final long[] dimensions,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		String ds = "setup" + viewId.getViewSetupId();
+
+		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes(ds);
+
+		// if viewsetup does not exist
+		if ( !attribs.containsKey( "dataType" ) || !attribs.containsKey( "blockSize" ) || !attribs.containsKey( "dimensions" ) || !attribs.containsKey( "compression" ) || !attribs.containsKey( "downsamplingFactors" )  )
+		{
+			// set N5 attributes for setup
+			// e.g. {"compression":{"type":"gzip","useZlib":false,"level":1},"downsamplingFactors":[[1,1,1],[2,2,1]],"blockSize":[128,128,32],"dataType":"uint16","dimensions":[512,512,86]}
+			IOFunctions.println( "setting attributes for '" + "setup" + viewId.getViewSetupId() + "'");
+
+			driverVolumeWriter.setAttribute(ds, "dataType", dataType );
+			driverVolumeWriter.setAttribute(ds, "blockSize", blockSize );
+			driverVolumeWriter.setAttribute(ds, "dimensions", dimensions );
+			driverVolumeWriter.setAttribute(ds, "compression", compression );
+
+			if ( downsamplings == null || downsamplings.length == 0 )
+				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[][] {{1,1,1}} );
+			else
+				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", downsamplings );
+		}
+		else
+		{
+			// TODO: test that the values are consistent?
+		}
+
+		// set N5 attributes for timepoint
+		// e.g. {"resolution":[1.0,1.0,3.0],"saved_completely":true,"multiScale":true}
+		ds ="setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId();
+		driverVolumeWriter.setAttribute(ds, "resolution", new double[] {1,1,1} );
+		driverVolumeWriter.setAttribute(ds, "saved_completely", true );
+		driverVolumeWriter.setAttribute(ds, "multiScale", downsamplings != null && downsamplings.length != 0 );
+
+		if ( downsamplings == null || downsamplings.length == 0 )
+		{
+			// set additional N5 attributes for s0 dataset
+			ds = ds + "/s0";
+			driverVolumeWriter.createGroup( ds );
+			driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
+		}
+		else
+		{
+			for ( int level = 0; level < downsamplings.length; ++level )
+			{
+				// set additional N5 attributes for s0 ... sN datasets
+				final String dsLevel = ds + "/s" + level;
+				driverVolumeWriter.createGroup( dsLevel );
+				driverVolumeWriter.setAttribute(dsLevel, "downsamplingFactors", downsamplings[ level ] );
+			}
+		}
+
+		return true;
+	}
+
+	public static boolean writeBDVDatasetMetadataHDF5(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final String subdivisionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions";
+		final String resolutionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions";
+		
+		if ( driverVolumeWriter.datasetExists( subdivisionsDatasets ) && driverVolumeWriter.datasetExists( resolutionsDatasets ) )
+		{
+			// TODO: test that the values are consistent?
+			return true;
+		}
+
+		final Img<IntType> subdivisions;
+		final Img<DoubleType> resolutions;
+
+		if ( downsamplings == null || downsamplings.length == 0 )
+		{
+			subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } ); // blocksize
+			resolutions = ArrayImgs.doubles( new double[] { 1,1,1 }, new long[] { 3, 1 } ); // downsampling
+		}
+		else
+		{
+			final int[] blocksizes = new int[ 3 * downsamplings.length ];
+			final double[] downsamples = new double[ 3 * downsamplings.length ];
+
+			int i = 0;
+			for ( int level = 0; level < downsamplings.length; ++level )
+			{
+				downsamples[ i ] = downsamplings[ level ][ 0 ];
+				blocksizes[ i++ ] = blockSize[ 0 ];
+				downsamples[ i ] = downsamplings[ level ][ 1 ];
+				blocksizes[ i++ ] = blockSize[ 1 ];
+				downsamples[ i ] = downsamplings[ level ][ 2 ];
+				blocksizes[ i++ ] = blockSize[ 2 ];
+			}
+
+			subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
+			resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
+		}
+		
+		driverVolumeWriter.createDataset(
+				subdivisionsDatasets,
+				subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+				new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
+				DataType.INT32,
+				new RawCompression() );
+
+		driverVolumeWriter.createDataset(
+				resolutionsDatasets,
+				resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+				new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
+				DataType.FLOAT64,
+				new RawCompression() );
+
+		N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
+		N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
+
+		return true;
+	}
+
 	public static boolean writeBDVMetaData(
 			final N5Writer driverVolumeWriter,
 			final StorageType storageType,
@@ -108,7 +232,7 @@ public class ExportTools {
 
 		//final String xmlPath = null;
 		if ( StorageType.N5.equals(storageType) )
-		{
+		{	
 			System.out.println( "XML: " + xmlOutPathURI );
 
 			final Pair<Boolean, Boolean> exists = writeSpimData(
@@ -122,6 +246,9 @@ public class ExportTools {
 			if ( exists == null )
 				return false;
 
+			return writeBDVDatasetMetadataN5( driverVolumeWriter, viewId, dataType, dimensions, compression, blockSize, downsamplings );
+
+			/*
 			String ds = "setup" + viewId.getViewSetupId();
 
 			// if viewsetup does not exist
@@ -166,7 +293,7 @@ public class ExportTools {
 				}
 			}
 
-			return true;
+			return true;*/
 		}
 		else if ( StorageType.HDF5.equals(storageType) )
 		{
@@ -183,6 +310,13 @@ public class ExportTools {
 			if ( exists == null )
 				return false;
 
+			return writeBDVDatasetMetadataHDF5(
+					driverVolumeWriter,
+					viewId,
+					blockSize,
+					downsamplings );
+
+			/*
 			// if viewsetup does not exist
 			if ( !exists.getB() )
 			{
@@ -231,8 +365,11 @@ public class ExportTools {
 				N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
 				N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
 			}
-
-			return true;
+			else
+			{
+				return true;
+			}
+			*/
 		}
 		else
 		{
@@ -389,22 +526,22 @@ public class ExportTools {
 		return new ViewId(timepointId, viewSetupId);
 	}
 
-	public static String createBDVPath(final String bdvString, final StorageType storageType)
+	public static String createBDVPath(final String bdvString, final int level, final StorageType storageType)
 	{
-		return createBDVPath(getViewId(bdvString), storageType);
+		return createBDVPath(getViewId(bdvString), level, storageType);
 	}
 
-	public static String createBDVPath( final ViewId viewId, final StorageType storageType)
+	public static String createBDVPath( final ViewId viewId, final int level, final StorageType storageType)
 	{
 		String path = null;
 
 		if ( StorageType.N5.equals(storageType) )
 		{
-			path = "setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId() + "/s0";
+			path = "setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId() + "/s" + level;
 		}
 		else if ( StorageType.HDF5.equals(storageType) )
 		{
-			path = "t" + String.format("%05d", viewId.getTimePointId()) + "/" + "s" + String.format("%02d", viewId.getViewSetupId()) + "/0/cells";
+			path = "t" + String.format("%05d", viewId.getTimePointId()) + "/" + "s" + String.format("%02d", viewId.getViewSetupId()) + "/" + level + "/cells";
 		}
 		else
 		{
