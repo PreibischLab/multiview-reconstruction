@@ -43,7 +43,6 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
 import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewSetup;
-import net.imglib2.Dimensions;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 
@@ -53,11 +52,7 @@ public class ParametersResaveN5
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
 	public static int defaultCompression = 1;
-	
-	public static int defaultBlockSizeFactorX = 16;
-	public static int defaultBlockSizeFactorY = 16;
-	public static int defaultBlockSizeFactorZ = 1;
-	
+
 	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() - 1 );
 
 	public URI xmlURI, n5URI;
@@ -119,6 +114,17 @@ public class ParametersResaveN5
 				maxDimensions[ d ] = Math.max( maxDimensions[ d ], viewSetup.getSize().dimension( d ) );
 		} );
 
+		final int[] blockSizeFactor = new int[ maxDimensions.length ];
+		Arrays.setAll( blockSizeFactor, i -> 1 );
+
+		for ( int d = 0; d < 2; ++d )
+		{
+			final long dim = maxDimensions[ d ];
+			final int bs = autoMipmapSettings.getSubdivisions()[ 0 ][ 0 ];
+
+			blockSizeFactor[ d ] = (int)( dim / bs + Math.min( 1, dim%bs ) );
+		}
+
 		final GenericDialogPlus gdp = new GenericDialogPlus( "Options" );
 
 		gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
@@ -126,9 +132,9 @@ public class ParametersResaveN5
 		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
 		gdp.addStringField( "Downsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
 		gdp.addStringField( "Block_size (all the same)", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
-		gdp.addSlider( "Compute_block_size_factor_X", 1, 128, defaultBlockSizeFactorX );
-		gdp.addSlider( "Compute_block_size_factor_Y", 1, 128, defaultBlockSizeFactorY );
-		gdp.addSlider( "Compute_block_size_factor_Z", 1, 128, defaultBlockSizeFactorZ );
+		gdp.addSlider( "Compute_block_size_factor_X", 1, 128, blockSizeFactor[ 0 ] );
+		gdp.addSlider( "Compute_block_size_factor_Y", 1, 128, blockSizeFactor[ 1 ] );
+		gdp.addSlider( "Compute_block_size_factor_Z", 1, 128, blockSizeFactor[ 2 ] );
 		gdp.addMessage( "Defines how many blocks are written at once; e.g. 4,4,1 & blockSize 128,128,32 means each thread writes 512,512,32 chunks.\n"
 				+ "For optimal performance, the size in XY is as large as each XY plane, as usually entire planes must be read.", GUIHelper.smallStatusFont );
 		gdp.addMessage( "Max dimensions of the images that will be re-saved: " + Arrays.toString( maxDimensions ), GUIHelper.smallStatusFont, Color.red );
@@ -151,9 +157,9 @@ public class ParametersResaveN5
 		final String subsampling = gdp.getNextString();
 		final String chunkSizes = gdp.getNextString();
 
-		final int blockSizeFactorX = defaultBlockSizeFactorX = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
-		final int blockSizeFactorY = defaultBlockSizeFactorY = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
-		final int blockSizeFactorZ = defaultBlockSizeFactorZ = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
+		final int blockSizeFactorX = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
+		final int blockSizeFactorY = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
+		final int blockSizeFactorZ = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
 
 		n5params.blockSizeFactor = new int[] { blockSizeFactorX, blockSizeFactorY, blockSizeFactorZ };
 		n5params.numCellCreatorThreads = defaultNumThreads = Math.max( 1, (int)Math.round( gdp.getNextNumber() ) );
