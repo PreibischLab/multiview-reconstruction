@@ -411,10 +411,7 @@ public class Image_Fusion implements PlugIn
 		IOFunctions.printIJLog = true;
 		new ImageJ();
 
-		if ( !System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			GenericLoadParseQueryXML.defaultXMLURI = "/home/preibisch/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset_tp18.xml";
-		else
-			GenericLoadParseQueryXML.defaultXMLURI = "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM//dataset.xml";
+		GenericLoadParseQueryXML.defaultXMLURI = "file:/Users/pietzsch/Desktop/data/Janelia/test-spark/dataset.xml";
 
 		new Image_Fusion().run( null );
 	}
