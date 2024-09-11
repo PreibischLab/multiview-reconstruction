@@ -25,14 +25,15 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -61,11 +62,12 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools.InstantiateViewSetupBigStitcher;
@@ -206,6 +208,155 @@ public class ExportN5API implements ImgExport
 
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
+		final MultiResolutionLevelInfo[] mrInfo;
+		final ViewId viewId;
+
+		if ( bdv )
+		{
+			if ( manuallyAssignViewId )
+				viewId = new ViewId( tpId, vsId );
+			else
+				viewId = getViewIdForGroup( fusionGroup, splittingType );
+
+			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
+
+			//final String dataset = N5ApiTools.createBDVPath( viewId, 0, this.storageType );
+
+			try
+			{
+				// the first time the XML does not exist, thus instantiate is not called
+				mrInfo = SpimData2Tools.writeBDVMetaData(
+						driverVolumeWriter,
+						storageType,
+						dataType,
+						bb.dimensionsAsLongArray(),
+						compression,
+						blocksize(),
+						this.downsampling,
+						viewId,
+						path,
+						xmlOut,
+						instantiate );
+
+				if ( mrInfo == null )
+					return false;
+			}
+			catch (SpimDataException | IOException e)
+			{
+				e.printStackTrace();
+				IOFunctions.println( "Failed to write metadata for '"  + "': " + e );
+				return false;
+			}
+		}
+		else
+		{
+			// TODO: write
+			mrInfo = null;
+			viewId = null;
+			throw new RuntimeException( " not implemented yet. " );
+		}
+
+		final List<long[][]> grid =
+				Grid.create(
+						bb.dimensionsAsLongArray(),
+						new int[] {
+								blocksize()[0] * computeBlocksizeFactor()[ 0 ],
+								blocksize()[1] * computeBlocksizeFactor()[ 1 ],
+								blocksize()[2] * computeBlocksizeFactor()[ 2 ]
+						},
+						blocksize() );
+
+		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
+		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
+
+		//
+		// save full-resolution data (s0)
+		//
+
+		// TODO: use Tobi's code (at least for the special cases)
+		final ForkJoinPool myPool = new ForkJoinPool(  Threads.numThreads() );
+
+		long time = System.currentTimeMillis();
+
+		try
+		{
+			myPool.submit(() ->
+				grid.parallelStream().forEach(
+						gridBlock -> {
+							try {
+	
+								final Interval block =
+										Intervals.translate(
+												new FinalInterval( gridBlock[1] ), // blocksize
+												gridBlock[0] ); // block offset
+		
+								final RandomAccessibleInterval< T > source = Views.interval( img, block );
+		
+								final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
+								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+							}
+							catch (Exception e) 
+							{
+								IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " );
+								e.printStackTrace();
+							}
+						} )
+				).get();
+
+			myPool.shutdown();
+		}
+		catch (InterruptedException | ExecutionException e)
+		{
+			IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ 0 ].dataset + "'. Error: " + e );
+			e.printStackTrace();
+			return false;
+		}
+
+		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
+		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved full resolution, took: " + (System.currentTimeMillis() - time ) + " ms." );
+
+		//
+		// save multiresolution pyramid (s1 ... sN)
+		//
+		if ( this.downsampling != null )
+		{
+			for ( int level = 1; level < this.downsampling.length; ++level )
+			{
+				final int s = level;
+				final ArrayList<long[][]> allBlocks = N5ApiTools.assembleDownsamplingJobs( mrInfo[ level ] );
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + mrInfo[ level - 1 ].dataset + "', downsampled will be written as '" + mrInfo[ level ].dataset + "'." );
+
+				time = System.currentTimeMillis();
+
+				try
+				{
+					myPool.submit( () -> allBlocks.parallelStream().forEach(
+							gridBlock -> N5ApiTools.writeDownsampledBlock(
+									driverVolumeWriter,
+									mrInfo[ s ],
+									mrInfo[ s - 1 ],
+									gridBlock ) ) ).get();
+
+					myPool.shutdown();
+					myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
+				}
+				catch (InterruptedException | ExecutionException e)
+				{
+					IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ level ].dataset + "'. Error: " + e );
+					e.printStackTrace();
+					return false;
+				}
+
+				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
+			}
+		}
+
+		return true;
+
+		/*
 		final String dataset;
 		final ViewId viewId;
 
@@ -295,8 +446,8 @@ public class ExportN5API implements ImgExport
 						bb.dimensionsAsLongArray(),
 						new int[] {
 								blocksize()[0] * computeBlocksizeFactor()[ 0 ],
-								blocksize()[1] * computeBlocksizeFactor()[ 0 ],
-								blocksize()[2] * computeBlocksizeFactor()[ 0 ]
+								blocksize()[1] * computeBlocksizeFactor()[ 1 ],
+								blocksize()[2] * computeBlocksizeFactor()[ 2 ]
 						},
 						blocksize() );
 
@@ -428,7 +579,7 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
-		return true;
+		return true; */
 	}
 
 	@Override
@@ -720,7 +871,7 @@ public class ExportN5API implements ImgExport
 
 			final double aniso = fusion.getAnisotropyFactor();
 			final Interval bb = fusion.getDownsampledBoundingBox();
-			final int[][] proposedDownsampling = ExportTools.estimateMultiResPyramid( new FinalDimensions( bb.dimensionsAsLongArray() ), aniso );
+			final int[][] proposedDownsampling = N5ApiTools.estimateMultiResPyramid( new FinalDimensions( bb.dimensionsAsLongArray() ), aniso );
 
 			final GenericDialog gdp = new GenericDialog( "Adjust downsampling options" );
 

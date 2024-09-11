@@ -185,11 +185,10 @@ public class Resave_N5 implements PlugIn
 		for ( int level = 1; level < downsamplings.length; ++level )
 		{
 			final int s = level;
-			final int[] ds = N5ApiTools.computeRelativeDownsampling( downsamplings, s );
 			final ArrayList<long[][]> allBlocks =
 					N5ApiTools.assembleDownsamplingJobs( vidsToResave, viewIdToMrInfo, level );
 
-			IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
+			IOFunctions.println( "Downsampling level s" + s + "... " );
 			IOFunctions.println( "Number of compute blocks: " + allBlocks.size() );
 
 			time = System.currentTimeMillis();

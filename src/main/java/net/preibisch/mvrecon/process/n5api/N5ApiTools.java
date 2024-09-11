@@ -447,15 +447,29 @@ public class N5ApiTools
 		// all blocks (a.k.a. grids) across all ViewId's
 		final ArrayList<long[][]> allBlocks = new ArrayList<>();
 
-		for ( final ViewId viewId : viewIds )
+		viewIds.forEach( viewId -> allBlocks.addAll( assembleDownsamplingJobs( viewId, viewIdToMrInfo.get( viewId )[ level ] ) ) );
+
+		return allBlocks;
+	}
+	public static ArrayList<long[][]> assembleDownsamplingJobs( final MultiResolutionLevelInfo mrInfo )
+	{
+		return assembleDownsamplingJobs( null, mrInfo );
+	}
+
+	public static ArrayList<long[][]> assembleDownsamplingJobs(
+			final ViewId viewId,
+			final MultiResolutionLevelInfo mrInfo )
+	{
+		// all blocks (a.k.a. grids) across all ViewId's
+		final ArrayList<long[][]> allBlocks = new ArrayList<>();
+
+		final List<long[][]> grid = Grid.create(
+				mrInfo.dimensions,
+				mrInfo.blockSize,
+				mrInfo.blockSize);
+
+		if ( viewId != null )
 		{
-			final MultiResolutionLevelInfo mrInfo = viewIdToMrInfo.get( viewId )[ level ];
-
-			final List<long[][]> grid = Grid.create(
-					mrInfo.dimensions,
-					mrInfo.blockSize,
-					mrInfo.blockSize);
-
 			// add timepointId and ViewSetupId to the gridblock
 			for ( final long[][] gridBlock : grid )
 				allBlocks.add( new long[][]{
