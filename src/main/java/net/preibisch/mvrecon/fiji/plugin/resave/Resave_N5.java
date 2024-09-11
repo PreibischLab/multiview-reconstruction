@@ -52,6 +52,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 import net.preibisch.mvrecon.process.export.ExportTools;
+import net.preibisch.mvrecon.process.export.ExportTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import net.preibisch.mvrecon.process.resave.SpimData2Tools;
 import util.Grid;
@@ -133,21 +134,32 @@ public class Resave_N5 implements PlugIn
 		final Map<Integer, DataType> dataTypes =
 				N5ResaveTools.assembleDataTypes( data, dimensions.keySet() );
 
-		// write BDV metadata for all ViewIds (including downsampling)
-		vidsToResave.forEach( viewId -> ExportTools.writeBDVDatasetMetadataN5(
-				n5Writer, viewId, dataTypes.get( viewId.getViewSetupId() ), dimensions.get( viewId.getViewSetupId() ), compression, blockSize, downsamplings));
+		// create all datasets and write BDV metadata for all ViewIds (including downsampling)
+		final HashMap< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo = new HashMap<>();
 
+		long time = System.currentTimeMillis();
+
+		for ( final ViewId viewId : vidsToResave )
+			viewIdToMrInfo.put( viewId , ExportTools.setupBdvDatasetsN5(
+				n5Writer, viewId,
+				dataTypes.get( viewId.getViewSetupId() ),
+				dimensions.get( viewId.getViewSetupId() ),
+				compression,
+				blockSize,
+				downsamplings) );
+
+		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		IOFunctions.println( "Dimensions of raw images: " );
 		dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
-
 		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
+		IOFunctions.println( "Number of compute blocks: " + grid.size() );
 
 		//
 		// Save full resolution dataset (s0)
 		//
 		final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
 
-		long time = System.currentTimeMillis();
+		time = System.currentTimeMillis();
 
 		try
 		{
@@ -155,8 +167,8 @@ public class Resave_N5 implements PlugIn
 					gridBlock -> N5ResaveTools.resaveS0Block(
 							data,
 							n5Writer,
-							dataTypes.get( (int)gridBlock[ 3 ][ 1 ] ),
-							N5ResaveTools.datasetMappingFunctionBdv( 0, StorageType.N5 ),
+							dataTypes.get( N5ResaveTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
+							N5ResaveTools.gridToDatasetBdv( 0, StorageType.N5 ), // a function mapping the gridblock to the dataset name for level 0 and N5
 							gridBlock ) ) ).get();
 		}
 		catch (InterruptedException | ExecutionException e)
@@ -175,22 +187,25 @@ public class Resave_N5 implements PlugIn
 		{
 			final int s = level;
 			final int[] ds = N5ResaveTools.computeRelativeDownsampling( downsamplings, s );
-			IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
-
 			final ArrayList<long[][]> allBlocks =
-					N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, ds, downsamplings[ s ], blockSize, compression );
+					N5ResaveTools.assembleDownsamplingJobs( vidsToResave, viewIdToMrInfo, level );
+
+			IOFunctions.println( "Downsampling: " + Util.printCoordinates( downsamplings[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
+			IOFunctions.println( "Number of compute blocks: " + allBlocks.size() );
 
 			time = System.currentTimeMillis();
 
 			try
 			{
 				myPool.submit(() -> allBlocks.parallelStream().forEach(
-						gridBlock -> N5ResaveTools.writeDownsampledBlock(
+						gridBlock -> 
+						{
+							N5ResaveTools.writeDownsampledBlock(
 								n5Writer,
-								N5ResaveTools.datasetMappingFunctionBdv( s, StorageType.N5 ),
-								N5ResaveTools.datasetMappingFunctionBdv( s - 1, StorageType.N5 ),
-								ds,
-								gridBlock ) ) ).get();
+								viewIdToMrInfo.get( N5ResaveTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
+								viewIdToMrInfo.get( N5ResaveTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
+								gridBlock );
+						} ) ).get();
 			}
 			catch (InterruptedException | ExecutionException e)
 			{

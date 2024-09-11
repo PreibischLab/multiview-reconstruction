@@ -6,12 +6,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
@@ -34,51 +33,81 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
-import net.preibisch.mvrecon.process.export.ExportTools;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
+import net.preibisch.mvrecon.process.export.ExportTools;
+import net.preibisch.mvrecon.process.export.ExportTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
 public class N5ResaveTools
 {
+	public static ViewId gridBlockToViewId( final long[][] gridBlock )
+	{
+		if ( gridBlock.length <= 3 )
+			throw new RuntimeException( "gridBlockToViewId() needs an extended GridBlock long[][], where Gridblock[3][] encodes the ViewId");
+
+		return new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
+	}
+
 	/**
 	 * @param level - the downsampling level
 	 * @param storageType - N5 or HDF5 (soon Zarr)
 	 * @return a Function that maps the gridBlock to a N5 dataset name
 	 */
-	public static Function<long[][], String> datasetMappingFunctionBdv( final int level, final StorageType storageType )
+	public static Function<long[][], String> gridToDatasetBdv( final int level, final StorageType storageType )
 	{
-		return gridBlock ->
-		{
-			if ( gridBlock.length <= 3 )
-				throw new RuntimeException( "mappingFunctionBDV() needs an extended GridBlock long[][], where Gridblock[3][] encodes the ViewId");
+		return (gridBlock) -> viewIdToDatasetBdv( level, storageType ).apply( gridBlockToViewId( gridBlock ) );
+	}
 
-			return ExportTools.createBDVPath(
-					new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]),
-					level,
-					storageType );
-		};
+	/**
+	 * @param level - the downsampling level
+	 * @param storageType - N5 or HDF5 (soon Zarr)
+	 * @return a Function that maps the ViewId to a N5 dataset name
+	 */
+	public static Function<ViewId, String> viewIdToDatasetBdv( final int level, final StorageType storageType )
+	{
+		return (viewId) -> ExportTools.createBDVPath( viewId, level, storageType );
+	}
+
+	/**
+	 * @param storageType - N5 or HDF5 (soon Zarr)
+	 * @return a Function that maps (ViewId, level) to a N5 dataset name
+	 */
+	public static BiFunction<ViewId, Integer, String> viewIdToDatasetBdv( final StorageType storageType )
+	{
+		return (viewId, level) -> viewIdToDatasetBdv( level, storageType ).apply( viewId );
+	}
+
+	/**
+	 * @param storageType - N5 or HDF5 (soon Zarr)
+	 * @return a Function that maps (gridBlock, level) to a N5 dataset name
+	 */
+	public static BiFunction<long[][], Integer, String> gridToDatasetBdv( final StorageType storageType )
+	{
+		return (gridBlock, level) -> gridToDatasetBdv( level, storageType ).apply( gridBlock );
 	}
 
 	public static void writeDownsampledBlock(
 			final N5Writer n5,
-			final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. for s1, s2, ...)
-			final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. for s0 when writing s1, s1 when writing s2, ... )
-			final int[] relativeDownsampling,
+			final MultiResolutionLevelInfo mrInfo,
+			final MultiResolutionLevelInfo mrInfoPreviousScale,
+			//final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. for s1, s2, ...)
+			//final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. for s0 when writing s1, s1 when writing s2, ... )
+			//final int[] relativeDownsampling,
 			final long[][] gridBlock )
 	{
-		final String dataset = viewIdToDataset.apply( gridBlock );
-		final String datasetPreviousScale = viewIdToDatasetPreviousScale.apply( gridBlock );
+		final String dataset = mrInfo.dataset;// viewIdToDataset.apply( gridBlock );
+		final String datasetPreviousScale = mrInfoPreviousScale.dataset; // viewIdToDatasetPreviousScale.apply( gridBlock );
 
-		final DataType dataType = n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
-		final int[] blockSize = n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
+		final DataType dataType = mrInfo.dataType;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
+		final int[] blockSize = mrInfo.blockSize;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
 
 		if ( dataType == DataType.UINT16 )
 		{
 			RandomAccessibleInterval<UnsignedShortType> downsampled = N5Utils.open(n5, datasetPreviousScale);
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
+				if ( mrInfo.relativeDownsampling[ d ] > 1 )
 					downsampled = LazyHalfPixelDownsample2x.init(
 						downsampled,
 						new FinalInterval( downsampled ),
@@ -94,7 +123,7 @@ public class N5ResaveTools
 			RandomAccessibleInterval<UnsignedByteType> downsampled = N5Utils.open(n5, datasetPreviousScale);
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
+				if ( mrInfo.relativeDownsampling[ d ] > 1 )
 					downsampled = LazyHalfPixelDownsample2x.init(
 						downsampled,
 						new FinalInterval( downsampled ),
@@ -110,7 +139,7 @@ public class N5ResaveTools
 			RandomAccessibleInterval<FloatType> downsampled = N5Utils.open(n5, datasetPreviousScale);;
 
 			for ( int d = 0; d < downsampled.numDimensions(); ++d )
-				if ( relativeDownsampling[ d ] > 1 )
+				if ( mrInfo.relativeDownsampling[ d ] > 1 )
 					downsampled = LazyHalfPixelDownsample2x.init(
 						downsampled,
 						new FinalInterval( downsampled ),
@@ -128,6 +157,36 @@ public class N5ResaveTools
 		}
 	}
 
+	public static ArrayList<long[][]> assembleDownsamplingJobs(
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo,
+			final int level )
+	{
+		// all blocks (a.k.a. grids) across all ViewId's
+		final ArrayList<long[][]> allBlocks = new ArrayList<>();
+
+		for ( final ViewId viewId : viewIds )
+		{
+			final MultiResolutionLevelInfo mrInfo = viewIdToMrInfo.get( viewId )[ level ];
+
+			final List<long[][]> grid = Grid.create(
+					mrInfo.dimensions,
+					mrInfo.blockSize,
+					mrInfo.blockSize);
+
+			// add timepointId and ViewSetupId to the gridblock
+			for ( final long[][] gridBlock : grid )
+				allBlocks.add( new long[][]{
+					gridBlock[ 0 ].clone(),
+					gridBlock[ 1 ].clone(),
+					gridBlock[ 2 ].clone(),
+					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
+				});
+		}
+
+		return allBlocks;
+	}
+	/*
 	public static ArrayList<long[][]> prepareDownsampling(
 			final Collection< ? extends ViewId > viewIds,
 			final N5Writer n5,
@@ -192,7 +251,7 @@ public class N5ResaveTools
 		}
 
 		return allBlocks;
-	}
+	}*/
 
 	public static int[] computeRelativeDownsampling(
 			final int[][] downsamplings,
@@ -252,7 +311,7 @@ public class N5ResaveTools
 			final Function<long[][], String> gridBlockToDataset, // gridBlock to dataset name for s0
 			final long[][] gridBlock )
 	{
-		final ViewId viewId = new ViewId( (int)gridBlock[ 3 ][ 0 ], (int)gridBlock[ 3 ][ 1 ]);
+		final ViewId viewId = gridBlockToViewId( gridBlock );
 		final String dataset = gridBlockToDataset.apply( gridBlock );
 
 		if ( dataType != DataType.UINT16 && dataType != DataType.UINT8 && dataType != DataType.FLOAT32 )

@@ -196,16 +196,6 @@ public class ExportN5API implements ImgExport
 
 		if ( UnsignedByteType.class.isInstance( type ) )
 			dataType = DataType.UINT8;
-		// can be removed because: https://github.com/bigdataviewer/bigdataviewer-core/pull/157
-		/*else if ( UnsignedShortType.class.isInstance( type ) && bdv && storageType == StorageType.HDF5 )
-		{
-			// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
-			// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
-			// https://github.com/bigdataviewer/bigdataviewer-core/issues/154
-			// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
-			imgInterval = (RandomAccessibleInterval)Converters.convertRAI( (RandomAccessibleInterval<UnsignedShortType>)(Object)imgInterval, (i,o)->o.set( i.getShort() ), new ShortType() );
-			dataType = DataType.INT16;
-		}*/
 		else if ( UnsignedShortType.class.isInstance( type ) )
 			dataType = DataType.UINT16;
 		else if ( FloatType.class.isInstance( type ) )
@@ -239,7 +229,7 @@ public class ExportN5API implements ImgExport
 		}
 
 		//
-		// create dataset
+		// create datasets and save extra metadata if BDV-compatibility is requested
 		//
 		if ( driverVolumeWriter.exists( dataset ) )
 		{
@@ -274,7 +264,7 @@ public class ExportN5API implements ImgExport
 			try
 			{
 				// the first time the XML does not exist, thus instantiate is not called
-				if ( !ExportTools.writeBDVMetaData(
+				if ( ExportTools.writeBDVMetaData(
 						driverVolumeWriter,
 						storageType,
 						dataType,
@@ -285,7 +275,7 @@ public class ExportN5API implements ImgExport
 						viewId,
 						path,
 						xmlOut,
-						instantiate ) )
+						instantiate ) == null )
 					return false;
 			}
 			catch (SpimDataException | IOException e)
@@ -361,31 +351,6 @@ public class ExportN5API implements ImgExport
 		//
 		// save multiresolution pyramid (s1 ... sN)
 		//
-		/*
-		for ( int level = 1; level < this.downsampling.length; ++level )
-		{
-			final int s = level;
-			final int[] ds = N5ResaveTools.computeRelativeDownsampling( this.downsampling, s );
-			IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ s ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
-
-			final ArrayList<long[][]> allBlocks = N5ResaveTools.prepareDownsampling( vidsToResave, n5Writer, level, blockSize, ds, this.downsampling[ s ], compression );
-
-			time = System.currentTimeMillis();
-
-			try
-			{
-				myPool.submit(() -> allBlocks.parallelStream().forEach( gridBlock -> N5ResaveTools.writeDownsampledBlock( data, n5Writer, s, ds, gridBlock ) ) ).get();
-			}
-			catch (InterruptedException | ExecutionException e)
-			{
-				IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + e );
-				e.printStackTrace();
-				return false;
-			}
-
-			IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
-		}
-		*/
 		if ( this.downsampling != null )
 		{
 			long[] previousDim = bb.dimensionsAsLongArray();

@@ -24,12 +24,16 @@ package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -76,6 +80,7 @@ import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunct
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import net.preibisch.mvrecon.process.resave.N5ResaveTools;
 import util.URITools;
 
 public class ExportTools {
@@ -89,70 +94,7 @@ public class ExportTools {
 		return emi.getExportResolutions();
 	}
 
-	public static boolean writeBDVDatasetMetadataN5(
-			final N5Writer driverVolumeWriter,
-			final ViewId viewId,
-			final DataType dataType,
-			final long[] dimensions,
-			final Compression compression,
-			final int[] blockSize,
-			final int[][] downsamplings )
-	{
-		String ds = "setup" + viewId.getViewSetupId();
-
-		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes(ds);
-
-		// if viewsetup does not exist
-		if ( !attribs.containsKey( "dataType" ) || !attribs.containsKey( "blockSize" ) || !attribs.containsKey( "dimensions" ) || !attribs.containsKey( "compression" ) || !attribs.containsKey( "downsamplingFactors" )  )
-		{
-			// set N5 attributes for setup
-			// e.g. {"compression":{"type":"gzip","useZlib":false,"level":1},"downsamplingFactors":[[1,1,1],[2,2,1]],"blockSize":[128,128,32],"dataType":"uint16","dimensions":[512,512,86]}
-			IOFunctions.println( "setting attributes for '" + "setup" + viewId.getViewSetupId() + "'");
-
-			driverVolumeWriter.setAttribute(ds, "dataType", dataType );
-			driverVolumeWriter.setAttribute(ds, "blockSize", blockSize );
-			driverVolumeWriter.setAttribute(ds, "dimensions", dimensions );
-			driverVolumeWriter.setAttribute(ds, "compression", compression );
-
-			if ( downsamplings == null || downsamplings.length == 0 )
-				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[][] {{1,1,1}} );
-			else
-				driverVolumeWriter.setAttribute(ds, "downsamplingFactors", downsamplings );
-		}
-		else
-		{
-			// TODO: test that the values are consistent?
-		}
-
-		// set N5 attributes for timepoint
-		// e.g. {"resolution":[1.0,1.0,3.0],"saved_completely":true,"multiScale":true}
-		ds ="setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId();
-		driverVolumeWriter.setAttribute(ds, "resolution", new double[] {1,1,1} );
-		driverVolumeWriter.setAttribute(ds, "saved_completely", true );
-		driverVolumeWriter.setAttribute(ds, "multiScale", downsamplings != null && downsamplings.length != 0 );
-
-		if ( downsamplings == null || downsamplings.length == 0 )
-		{
-			// set additional N5 attributes for s0 dataset
-			ds = ds + "/s0";
-			driverVolumeWriter.createGroup( ds );
-			driverVolumeWriter.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
-		}
-		else
-		{
-			for ( int level = 0; level < downsamplings.length; ++level )
-			{
-				// set additional N5 attributes for s0 ... sN datasets
-				final String dsLevel = ds + "/s" + level;
-				driverVolumeWriter.createGroup( dsLevel );
-				driverVolumeWriter.setAttribute(dsLevel, "downsamplingFactors", downsamplings[ level ] );
-			}
-		}
-
-		return true;
-	}
-
-	public static boolean writeBDVDatasetMetadataHDF5(
+	public static MultiResolutionLevelInfo[] setupBdvDatasetsHDF5(
 			final N5Writer driverVolumeWriter,
 			final ViewId viewId,
 			final int[] blockSize,
@@ -164,7 +106,7 @@ public class ExportTools {
 		if ( driverVolumeWriter.datasetExists( subdivisionsDatasets ) && driverVolumeWriter.datasetExists( resolutionsDatasets ) )
 		{
 			// TODO: test that the values are consistent?
-			return true;
+			return null;
 		}
 
 		final Img<IntType> subdivisions;
@@ -212,10 +154,163 @@ public class ExportTools {
 		N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
 		N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
 
-		return true;
+		return null;
 	}
 
-	public static boolean writeBDVMetaData(
+	public static MultiResolutionLevelInfo[] setupBdvDatasetsN5(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final DataType dataType,
+			final long[] dimensions,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final String s0Dataset = createBDVPath( viewId, 0, StorageType.N5 );
+
+		driverVolumeWriter.createDataset(
+				s0Dataset,
+				dimensions,
+				blockSize,
+				dataType,
+				compression );
+
+		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
+		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
+
+		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes( setupDataset );
+
+		// if viewsetup does not exist
+		if ( !attribs.containsKey( "dataType" ) || !attribs.containsKey( "blockSize" ) || !attribs.containsKey( "dimensions" ) || !attribs.containsKey( "compression" ) || !attribs.containsKey( "downsamplingFactors" )  )
+		{
+			// set N5 attributes for setup
+			// e.g. {"compression":{"type":"gzip","useZlib":false,"level":1},"downsamplingFactors":[[1,1,1],[2,2,1]],"blockSize":[128,128,32],"dataType":"uint16","dimensions":[512,512,86]}
+			IOFunctions.println( "setting attributes for '" + "setup" + viewId.getViewSetupId() + "'");
+
+			driverVolumeWriter.setAttribute(setupDataset, "dataType", dataType );
+			driverVolumeWriter.setAttribute(setupDataset, "blockSize", blockSize );
+			driverVolumeWriter.setAttribute(setupDataset, "dimensions", dimensions );
+			driverVolumeWriter.setAttribute(setupDataset, "compression", compression );
+
+			if ( downsamplings == null || downsamplings.length == 0 )
+				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", new int[][] {{1,1,1}} );
+			else
+				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", downsamplings );
+		}
+		else
+		{
+			// TODO: test that the values are consistent?
+		}
+
+		// set N5 attributes for timepoint
+		// e.g. {"resolution":[1.0,1.0,3.0],"saved_completely":true,"multiScale":true}
+		driverVolumeWriter.setAttribute(timepointDataset, "resolution", new double[] {1,1,1} );
+		driverVolumeWriter.setAttribute(timepointDataset, "saved_completely", true );
+		driverVolumeWriter.setAttribute(timepointDataset, "multiScale", downsamplings != null && downsamplings.length != 0 );
+
+		final MultiResolutionLevelInfo[] mrInfo;
+
+		if ( downsamplings == null || downsamplings.length == 0 )
+		{
+			// set additional N5 attributes for s0 dataset
+			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", new int[] {1,1,1} );
+
+			mrInfo = new MultiResolutionLevelInfo[] { new MultiResolutionLevelInfo( s0Dataset, dimensions.clone(), dataType, new int[] {1,1,1}, new int[] {1,1,1}, blockSize ) };
+		}
+		else
+		{
+			mrInfo = setupMultiResolutionPyramid(
+					driverVolumeWriter,
+					viewId,
+					N5ResaveTools.viewIdToDatasetBdv( StorageType.N5 ),
+					dataType,
+					dimensions,
+					compression,
+					blockSize,
+					downsamplings);
+
+			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", downsamplings[ 0 ] );
+
+			for ( int level = 1; level < downsamplings.length; ++level )
+			{
+				// set additional N5 attributes for s0 ... sN datasets
+				driverVolumeWriter.setAttribute( mrInfo[ level ].dataset, "downsamplingFactors", downsamplings[ level ] );
+			}
+		}
+
+		return mrInfo;
+	}
+
+	public static class MultiResolutionLevelInfo implements Serializable
+	{
+		private static final long serialVersionUID = 5392269335394869108L;
+
+		final public int[] relativeDownsampling, absoluteDownsampling, blockSize;
+		final public long[] dimensions;
+		final public String dataset;
+		final public DataType dataType;
+
+		public MultiResolutionLevelInfo(
+				final String dataset,
+				final long[] dimensions,
+				final DataType dataType,
+				final int[] relativeDownsampling,
+				final int[] absoluteDownsampling,
+				final int[] blockSize )
+		{
+			this.dataset = dataset;
+			this.dimensions = dimensions;
+			this.dataType = dataType;
+			this.relativeDownsampling = relativeDownsampling;
+			this.absoluteDownsampling = absoluteDownsampling;
+			this.blockSize = blockSize;
+		}
+	}
+
+	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final BiFunction<ViewId, Integer, String> viewIdToDataset,
+			final DataType dataType,
+			final long[] dimensionsS0,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final MultiResolutionLevelInfo[] mrInfo = new MultiResolutionLevelInfo[ downsamplings.length];
+
+		mrInfo[ 0 ] = new MultiResolutionLevelInfo(
+				viewIdToDataset.apply( viewId, 0 ), dimensionsS0.clone(), dataType, downsamplings[ 0 ], downsamplings[ 0 ], blockSize );
+
+		long[] previousDim = dimensionsS0.clone();
+
+		for ( int level = 1; level < downsamplings.length; ++level )
+		{
+			final int[] relativeDownsampling = N5ResaveTools.computeRelativeDownsampling( downsamplings, level );
+
+			final String datasetLevel = viewIdToDataset.apply( viewId, level );
+
+			final long[] dim = new long[ previousDim.length ];
+			for ( int d = 0; d < dim.length; ++d )
+				dim[ d ] = previousDim[ d ] / relativeDownsampling[ d ];
+
+			mrInfo[ level ] = new MultiResolutionLevelInfo(
+					datasetLevel, dim.clone(), dataType, relativeDownsampling, downsamplings[ level ], blockSize );
+
+			driverVolumeWriter.createDataset(
+					datasetLevel,
+					dim,
+					blockSize,
+					dataType,
+					compression );
+
+			previousDim = dim;
+		}
+
+		return mrInfo;
+	}
+
+	public static MultiResolutionLevelInfo[] writeBDVMetaData(
 			final N5Writer driverVolumeWriter,
 			final StorageType storageType,
 			final DataType dataType,
@@ -228,7 +323,7 @@ public class ExportTools {
 			final URI xmlOutPathURI,
 			final InstantiateViewSetup instantiateViewSetup ) throws SpimDataException, IOException
 	{
-		System.out.println( "Writing BDV-metadata ... " );
+		IOFunctions.println( "Creating datasets and writing BDV-metadata ... " );
 
 		//final String xmlPath = null;
 		if ( StorageType.N5.equals(storageType) )
@@ -244,9 +339,9 @@ public class ExportTools {
 					instantiateViewSetup );
 
 			if ( exists == null )
-				return false;
+				return null;
 
-			return writeBDVDatasetMetadataN5( driverVolumeWriter, viewId, dataType, dimensions, compression, blockSize, downsamplings );
+			return setupBdvDatasetsN5( driverVolumeWriter, viewId, dataType, dimensions, compression, blockSize, downsamplings );
 
 			/*
 			String ds = "setup" + viewId.getViewSetupId();
@@ -308,9 +403,9 @@ public class ExportTools {
 					instantiateViewSetup );
 
 			if ( exists == null )
-				return false;
+				return null;
 
-			return writeBDVDatasetMetadataHDF5(
+			return setupBdvDatasetsHDF5(
 					driverVolumeWriter,
 					viewId,
 					blockSize,
@@ -374,7 +469,7 @@ public class ExportTools {
 		else
 		{
 			IOFunctions.println( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
-			return false;
+			return null;
 		}
 	}
 
@@ -528,7 +623,7 @@ public class ExportTools {
 
 	public static String createBDVPath(final String bdvString, final int level, final StorageType storageType)
 	{
-		return createBDVPath(getViewId(bdvString), level, storageType);
+		return createBDVPath( getViewId( bdvString ), level, storageType);
 	}
 
 	public static String createBDVPath( final ViewId viewId, final int level, final StorageType storageType)
@@ -547,9 +642,6 @@ public class ExportTools {
 		{
 			new RuntimeException( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
 		}
-
-		System.out.println( "Saving BDV-compatible " + storageType + " using ViewSetupId=" + viewId.getViewSetupId() + ", TimepointId=" + viewId.getTimePointId()  );
-		System.out.println( "path=" + path );
 
 		return path;
 	}
