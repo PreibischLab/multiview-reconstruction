@@ -55,6 +55,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.blk.DebugHelpers;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 
 /**
@@ -105,6 +106,9 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final long[] globalMin,
 			final T type )
 	{
+		System.out.println( "LazyAffineFusion.LazyAffineFusion" );
+		DebugHelpers.printStackTrace( 20 );
+
 		// TODO: share cache for content-based fusion if wanted
 		this.globalMin = globalMin;
 		this.type = type;
