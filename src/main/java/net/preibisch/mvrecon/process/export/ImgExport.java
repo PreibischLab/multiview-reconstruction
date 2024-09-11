@@ -37,14 +37,14 @@ public interface ImgExport
 	 *
 	 * @return - the desired 3d blocksize
 	 */
-	public int[] blocksize();
+	int[] blocksize();
 
 	/**
 	 * Called last when the fusion is finished (e.g. to write the XML)
 	 *
 	 * @return - true if the spimdata was modified, otherwise false
 	 */
-	public boolean finish();
+	boolean finish();
 
 	/**
 	 * Exports the image using a predefined min/max
@@ -58,7 +58,7 @@ public interface ImgExport
 	 * @param <T> pixel type
 	 * @return success? true or false
 	 */
-	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
+	< T extends RealType< T > & NativeType< T > > boolean exportImage(
 			final RandomAccessibleInterval< T > img,
 			final Interval bb,
 			final double downsampling,
@@ -71,13 +71,13 @@ public interface ImgExport
 	 * 
 	 * @return success? true or false
 	 */
-	public abstract boolean queryParameters( final FusionExportInterface fusion );
+	boolean queryParameters( final FusionExportInterface fusion );
 
 
-	public abstract ImgExport newInstance();
-	
+	ImgExport newInstance();
+
 	/**
 	 * @return - to be displayed in the generic dialog
 	 */
-	public abstract String getDescription();
+	String getDescription();
 }
