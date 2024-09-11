@@ -52,7 +52,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
-import net.preibisch.mvrecon.process.resave.SpimData2Tools;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import util.URITools;
 
 public class ResavePopup extends JMenu implements ExplorerWindowSetable

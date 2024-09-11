@@ -47,7 +47,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.process.resave.SpimData2Tools;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 
 public class Resave_HDF5 implements PlugIn
 {

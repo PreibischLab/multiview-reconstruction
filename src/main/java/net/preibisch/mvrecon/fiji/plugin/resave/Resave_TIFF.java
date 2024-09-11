@@ -43,7 +43,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
-import net.preibisch.mvrecon.process.resave.SpimData2Tools;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import util.URITools;
 
 public class Resave_TIFF implements PlugIn

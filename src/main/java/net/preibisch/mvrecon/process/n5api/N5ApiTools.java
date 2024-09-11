@@ -1,7 +1,7 @@
-package net.preibisch.mvrecon.process.resave;
+package net.preibisch.mvrecon.process.n5api;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -12,20 +12,30 @@ import java.util.function.Function;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import bdv.export.ExportMipmapInfo;
+import bdv.export.ProposeMipmaps;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import mpicbg.spim.data.sequence.VoxelDimensions;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
@@ -34,12 +44,10 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
-import net.preibisch.mvrecon.process.export.ExportTools;
-import net.preibisch.mvrecon.process.export.ExportTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
-public class N5ResaveTools
+public class N5ApiTools
 {
 	public static ViewId gridBlockToViewId( final long[][] gridBlock )
 	{
@@ -66,7 +74,7 @@ public class N5ResaveTools
 	 */
 	public static Function<ViewId, String> viewIdToDatasetBdv( final int level, final StorageType storageType )
 	{
-		return (viewId) -> ExportTools.createBDVPath( viewId, level, storageType );
+		return (viewId) -> createBDVPath( viewId, level, storageType );
 	}
 
 	/**
@@ -87,6 +95,280 @@ public class N5ResaveTools
 		return (gridBlock, level) -> gridToDatasetBdv( level, storageType ).apply( gridBlock );
 	}
 
+	public static ViewId getViewId(final String bdvString )
+	{
+		final String[] entries = bdvString.trim().split( "," );
+		final int timepointId = Integer.parseInt( entries[ 0 ].trim() );
+		final int viewSetupId = Integer.parseInt( entries[ 1 ].trim() );
+
+		return new ViewId(timepointId, viewSetupId);
+	}
+
+	public static String createBDVPath(final String bdvString, final int level, final StorageType storageType)
+	{
+		return createBDVPath( getViewId( bdvString ), level, storageType);
+	}
+
+	public static String createBDVPath( final ViewId viewId, final int level, final StorageType storageType)
+	{
+		String path = null;
+
+		if ( StorageType.N5.equals(storageType) )
+		{
+			path = "setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId() + "/s" + level;
+		}
+		else if ( StorageType.HDF5.equals(storageType) )
+		{
+			path = "t" + String.format("%05d", viewId.getTimePointId()) + "/" + "s" + String.format("%02d", viewId.getViewSetupId()) + "/" + level + "/cells";
+		}
+		else
+		{
+			new RuntimeException( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
+		}
+
+		return path;
+	}
+
+	public static String createDownsampledBDVPath( final String s0path, final int level, final StorageType storageType )
+	{
+		if ( StorageType.N5.equals(storageType) )
+		{
+			return s0path.substring( 0, s0path.length() - 3 ) + "/s" + level;
+		}
+		else if ( StorageType.HDF5.equals(storageType) )
+		{
+			return s0path.substring( 0, s0path.length() - 8 ) + "/" + level + "/cells";
+		}
+		else
+		{
+			throw new RuntimeException( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
+		}
+	}
+
+	public static int[][] estimateMultiResPyramid( final Dimensions dimensions, final double aniso )
+	{
+		final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
+		final BasicViewSetup setup = new BasicViewSetup(0, "fusion", dimensions, v );
+		final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
+
+		return emi.getExportResolutions();
+	}
+
+	public static class MultiResolutionLevelInfo implements Serializable
+	{
+		private static final long serialVersionUID = 5392269335394869108L;
+
+		final public int[] relativeDownsampling, absoluteDownsampling, blockSize;
+		final public long[] dimensions;
+		final public String dataset;
+		final public DataType dataType;
+
+		public MultiResolutionLevelInfo(
+				final String dataset,
+				final long[] dimensions,
+				final DataType dataType,
+				final int[] relativeDownsampling,
+				final int[] absoluteDownsampling,
+				final int[] blockSize )
+		{
+			this.dataset = dataset;
+			this.dimensions = dimensions;
+			this.dataType = dataType;
+			this.relativeDownsampling = relativeDownsampling;
+			this.absoluteDownsampling = absoluteDownsampling;
+			this.blockSize = blockSize;
+		}
+	}
+
+	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final BiFunction<ViewId, Integer, String> viewIdToDataset,
+			final DataType dataType,
+			final long[] dimensionsS0,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final MultiResolutionLevelInfo[] mrInfo = new MultiResolutionLevelInfo[ downsamplings.length];
+
+		mrInfo[ 0 ] = new MultiResolutionLevelInfo(
+				viewIdToDataset.apply( viewId, 0 ), dimensionsS0.clone(), dataType, downsamplings[ 0 ], downsamplings[ 0 ], blockSize );
+
+		long[] previousDim = dimensionsS0.clone();
+
+		for ( int level = 1; level < downsamplings.length; ++level )
+		{
+			final int[] relativeDownsampling = computeRelativeDownsampling( downsamplings, level );
+
+			final String datasetLevel = viewIdToDataset.apply( viewId, level );
+
+			final long[] dim = new long[ previousDim.length ];
+			for ( int d = 0; d < dim.length; ++d )
+				dim[ d ] = previousDim[ d ] / relativeDownsampling[ d ];
+
+			mrInfo[ level ] = new MultiResolutionLevelInfo(
+					datasetLevel, dim.clone(), dataType, relativeDownsampling, downsamplings[ level ], blockSize );
+
+			driverVolumeWriter.createDataset(
+					datasetLevel,
+					dim,
+					blockSize,
+					dataType,
+					compression );
+
+			previousDim = dim;
+		}
+
+		return mrInfo;
+	}
+
+	public static MultiResolutionLevelInfo[] setupBdvDatasetsHDF5(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final String subdivisionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions";
+		final String resolutionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions";
+		
+		if ( driverVolumeWriter.datasetExists( subdivisionsDatasets ) && driverVolumeWriter.datasetExists( resolutionsDatasets ) )
+		{
+			// TODO: test that the values are consistent?
+			return null;
+		}
+
+		final Img<IntType> subdivisions;
+		final Img<DoubleType> resolutions;
+
+		if ( downsamplings == null || downsamplings.length == 0 )
+		{
+			subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } ); // blocksize
+			resolutions = ArrayImgs.doubles( new double[] { 1,1,1 }, new long[] { 3, 1 } ); // downsampling
+		}
+		else
+		{
+			final int[] blocksizes = new int[ 3 * downsamplings.length ];
+			final double[] downsamples = new double[ 3 * downsamplings.length ];
+
+			int i = 0;
+			for ( int level = 0; level < downsamplings.length; ++level )
+			{
+				downsamples[ i ] = downsamplings[ level ][ 0 ];
+				blocksizes[ i++ ] = blockSize[ 0 ];
+				downsamples[ i ] = downsamplings[ level ][ 1 ];
+				blocksizes[ i++ ] = blockSize[ 1 ];
+				downsamples[ i ] = downsamplings[ level ][ 2 ];
+				blocksizes[ i++ ] = blockSize[ 2 ];
+			}
+
+			subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
+			resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
+		}
+		
+		driverVolumeWriter.createDataset(
+				subdivisionsDatasets,
+				subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+				new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
+				DataType.INT32,
+				new RawCompression() );
+
+		driverVolumeWriter.createDataset(
+				resolutionsDatasets,
+				resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+				new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
+				DataType.FLOAT64,
+				new RawCompression() );
+
+		N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
+		N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
+
+		return null; // TODO: this is not done.
+	}
+
+	public static MultiResolutionLevelInfo[] setupBdvDatasetsN5(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final DataType dataType,
+			final long[] dimensions,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		final String s0Dataset = createBDVPath( viewId, 0, StorageType.N5 );
+
+		driverVolumeWriter.createDataset(
+				s0Dataset,
+				dimensions,
+				blockSize,
+				dataType,
+				compression );
+
+		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
+		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
+
+		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes( setupDataset );
+
+		// if viewsetup does not exist
+		if ( !attribs.containsKey( "dataType" ) || !attribs.containsKey( "blockSize" ) || !attribs.containsKey( "dimensions" ) || !attribs.containsKey( "compression" ) || !attribs.containsKey( "downsamplingFactors" )  )
+		{
+			// set N5 attributes for setup
+			// e.g. {"compression":{"type":"gzip","useZlib":false,"level":1},"downsamplingFactors":[[1,1,1],[2,2,1]],"blockSize":[128,128,32],"dataType":"uint16","dimensions":[512,512,86]}
+			IOFunctions.println( "setting attributes for '" + "setup" + viewId.getViewSetupId() + "'");
+
+			driverVolumeWriter.setAttribute(setupDataset, "dataType", dataType );
+			driverVolumeWriter.setAttribute(setupDataset, "blockSize", blockSize );
+			driverVolumeWriter.setAttribute(setupDataset, "dimensions", dimensions );
+			driverVolumeWriter.setAttribute(setupDataset, "compression", compression );
+
+			if ( downsamplings == null || downsamplings.length == 0 )
+				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", new int[][] {{1,1,1}} );
+			else
+				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", downsamplings );
+		}
+		else
+		{
+			// TODO: test that the values are consistent?
+		}
+
+		// set N5 attributes for timepoint
+		// e.g. {"resolution":[1.0,1.0,3.0],"saved_completely":true,"multiScale":true}
+		driverVolumeWriter.setAttribute(timepointDataset, "resolution", new double[] {1,1,1} );
+		driverVolumeWriter.setAttribute(timepointDataset, "saved_completely", true );
+		driverVolumeWriter.setAttribute(timepointDataset, "multiScale", downsamplings != null && downsamplings.length != 0 );
+
+		final MultiResolutionLevelInfo[] mrInfo;
+
+		if ( downsamplings == null || downsamplings.length == 0 )
+		{
+			// set additional N5 attributes for s0 dataset
+			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", new int[] {1,1,1} );
+
+			mrInfo = new MultiResolutionLevelInfo[] { new MultiResolutionLevelInfo( s0Dataset, dimensions.clone(), dataType, new int[] {1,1,1}, new int[] {1,1,1}, blockSize ) };
+		}
+		else
+		{
+			mrInfo = setupMultiResolutionPyramid(
+					driverVolumeWriter,
+					viewId,
+					viewIdToDatasetBdv( StorageType.N5 ),
+					dataType,
+					dimensions,
+					compression,
+					blockSize,
+					downsamplings);
+
+			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", downsamplings[ 0 ] );
+
+			for ( int level = 1; level < downsamplings.length; ++level )
+			{
+				// set additional N5 attributes for s0 ... sN datasets
+				driverVolumeWriter.setAttribute( mrInfo[ level ].dataset, "downsamplingFactors", downsamplings[ level ] );
+			}
+		}
+
+		return mrInfo;
+	}
 	public static void writeDownsampledBlock(
 			final N5Writer n5,
 			final MultiResolutionLevelInfo mrInfo,
@@ -186,72 +468,6 @@ public class N5ResaveTools
 
 		return allBlocks;
 	}
-	/*
-	public static ArrayList<long[][]> prepareDownsampling(
-			final Collection< ? extends ViewId > viewIds,
-			final N5Writer n5,
-			final int level,
-			final int[] relativeDownsampling,
-			final int[] absoluteDownsampling,
-			final int[] blockSize,
-			final Compression compression )
-	{
-		// all blocks (a.k.a. grids) across all ViewId's
-		final ArrayList<long[][]> allBlocks = new ArrayList<>();
-
-		System.out.println( "relativeDownsampling: " + Arrays.toString( relativeDownsampling ));
-		System.out.println( "absoluteDownsampling: " + Arrays.toString( absoluteDownsampling ));
-		System.out.println( "blockSize: " + Arrays.toString( blockSize ));
-
-		// adjust dimensions
-		for ( final ViewId viewId : viewIds )
-		{
-			final long[] previousDim = n5.getAttribute( "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + (level-1), "dimensions", long[].class );
-			final long[] dim = new long[ previousDim.length ];
-			for ( int d = 0; d < dim.length; ++d )
-				dim[ d ] = previousDim[ d ] / relativeDownsampling[ d ];
-			final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
-
-			System.out.println( Group.pvid( viewId ) + ": s" + (level-1) + " dim=" + Util.printCoordinates( previousDim ) + ", s" + level + " dim=" + Util.printCoordinates( dim ) + ", datatype=" + dataType );
-
-			final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s" + level;
-
-			try
-			{
-				n5.createDataset(
-						dataset,
-						dim, // dimensions
-						blockSize,
-						dataType,
-						compression );
-			}
-			catch ( Exception e )
-			{
-				IOFunctions.println( "Couldn't create downsampling level " + level + ", dataset '" + dataset + "': " + e );
-				return null;
-			}
-
-			final List<long[][]> grid = Grid.create(
-					dim,
-					new int[] {
-							blockSize[0],
-							blockSize[1],
-							blockSize[2]
-					},
-					blockSize);
-
-			// add timepointId and ViewSetupId to the gridblock
-			for ( final long[][] gridBlock : grid )
-				allBlocks.add( new long[][]{
-					gridBlock[ 0 ].clone(),
-					gridBlock[ 1 ].clone(),
-					gridBlock[ 2 ].clone(),
-					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
-				});
-		}
-
-		return allBlocks;
-	}*/
 
 	public static int[] computeRelativeDownsampling(
 			final int[][] downsamplings,
@@ -264,45 +480,6 @@ public class N5ResaveTools
 
 		return ds;
 	}
-
-	/*
-	public static void createS0DatasetsBdvN5(
-			final N5Writer n5,
-			final Collection< ? extends ViewId > viewIds,
-			final Map<Integer, DataType> dataTypes,
-			final Map<Integer, long[]> viewSetupIdToDimensions,
-			final int[] blockSize,
-			final Compression compression )
-	{
-		for ( final ViewId viewId : viewIds )
-		{
-			IOFunctions.println( "Creating dataset for " + Group.pvid( viewId ) );
-			
-			final String dataset = "setup" + viewId.getViewSetupId() + "/timepoint" + viewId.getTimePointId() + "/s0";
-			//final DataType dataType = n5.getAttribute( "setup" + viewId.getViewSetupId(), "dataType", DataType.class );
-	
-			n5.createDataset(
-					dataset,
-					viewSetupIdToDimensions.get( viewId.getViewSetupId() ), // dimensions
-					blockSize,
-					dataTypes.get( viewId.getViewSetupId() ), // datatype
-					compression );
-	
-			System.out.println( "Setting attributes for " + Group.pvid( viewId ) );
-	
-			// set N5 attributes for timepoint
-			// e.g. {"resolution":[1.0,1.0,3.0],"saved_completely":true,"multiScale":true}
-			String ds ="setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId();
-			n5.setAttribute(ds, "resolution", new double[] {1,1,1} );
-			n5.setAttribute(ds, "saved_completely", true );
-			n5.setAttribute(ds, "multiScale", true );
-	
-			// set additional N5 attributes for s0 dataset
-			ds = ds + "/s0";
-			n5.setAttribute(ds, "downsamplingFactors", new int[] {1,1,1} );
-		}
-	}
-	*/
 
 	public static <T extends NativeType<T>> void resaveS0Block(
 			final SpimData2 data,

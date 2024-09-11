@@ -65,9 +65,10 @@ import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
-import net.preibisch.mvrecon.process.export.ExportTools.InstantiateViewSetupBigStitcher;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import net.preibisch.mvrecon.process.resave.N5ResaveTools;
+import net.preibisch.mvrecon.process.n5api.N5ApiTools;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools.InstantiateViewSetupBigStitcher;
 import util.Grid;
 import util.URITools;
 
@@ -225,7 +226,7 @@ public class ExportN5API implements ImgExport
 
 			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
 
-			dataset = ExportTools.createBDVPath( viewId, 0, this.storageType );
+			dataset = N5ApiTools.createBDVPath( viewId, 0, this.storageType );
 		}
 
 		//
@@ -264,7 +265,7 @@ public class ExportN5API implements ImgExport
 			try
 			{
 				// the first time the XML does not exist, thus instantiate is not called
-				if ( ExportTools.writeBDVMetaData(
+				if ( SpimData2Tools.writeBDVMetaData(
 						driverVolumeWriter,
 						storageType,
 						dataType,
@@ -359,7 +360,7 @@ public class ExportN5API implements ImgExport
 			for ( int level = 1; level < this.downsampling.length; ++level )
 			{
 				final int s = level;
-				final int[] ds = N5ResaveTools.computeRelativeDownsampling( this.downsampling, level );
+				final int[] ds = N5ApiTools.computeRelativeDownsampling( this.downsampling, level );
 
 				IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ level ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
 
@@ -368,7 +369,7 @@ public class ExportN5API implements ImgExport
 					dim[ d ] = previousDim[ d ] / ds[ d ];
 
 				final String datasetDownsampling = bdv ?
-								ExportTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
+						N5ApiTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
 
 				try
 				{
@@ -400,7 +401,7 @@ public class ExportN5API implements ImgExport
 				final Function<long[][], String> gridBlockToDatasetPreviousScale = (gridBlock -> datasetPrev); // there is only one ViewId
 
 				e.submit( () -> gridDS.parallelStream().forEach(
-						gridBlock -> N5ResaveTools.writeDownsampledBlock(
+						gridBlock -> N5ApiTools.writeDownsampledBlock(
 								driverVolumeWriter,
 								gridBlockToDataset,
 								gridBlockToDatasetPreviousScale,
