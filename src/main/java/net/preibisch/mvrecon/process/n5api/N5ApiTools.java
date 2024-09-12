@@ -2,6 +2,7 @@ package net.preibisch.mvrecon.process.n5api;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -212,14 +213,26 @@ public class N5ApiTools
 	{
 		final MultiResolutionLevelInfo[] mrInfo = new MultiResolutionLevelInfo[ downsamplings.length];
 
+		// set up s0
+		int[] relativeDownsampling = downsamplings[ 0 ].clone();
+		Arrays.setAll( relativeDownsampling, i -> 1 );
+
 		mrInfo[ 0 ] = new MultiResolutionLevelInfo(
-				viewIdToDataset.apply( viewId, 0 ), dimensionsS0.clone(), dataType, downsamplings[ 0 ], downsamplings[ 0 ], blockSize );
+				viewIdToDataset.apply( viewId, 0 ), dimensionsS0.clone(), dataType, relativeDownsampling, downsamplings[ 0 ], blockSize );
+
+		driverVolumeWriter.createDataset(
+				viewIdToDataset.apply( viewId, 0 ),
+				dimensionsS0,
+				blockSize,
+				dataType,
+				compression );
 
 		long[] previousDim = dimensionsS0.clone();
 
+		// set up s1 ... sN
 		for ( int level = 1; level < downsamplings.length; ++level )
 		{
-			final int[] relativeDownsampling = computeRelativeDownsampling( downsamplings, level );
+			relativeDownsampling = computeRelativeDownsampling( downsamplings, level );
 
 			final String datasetLevel = viewIdToDataset.apply( viewId, level );
 
@@ -313,19 +326,21 @@ public class N5ApiTools
 			final long[] dimensions,
 			final Compression compression,
 			final int[] blockSize,
-			final int[][] downsamplings )
+			int[][] downsamplings )
 	{
 		final String s0Dataset = createBDVPath( viewId, 0, StorageType.N5 );
-
-		driverVolumeWriter.createDataset(
-				s0Dataset,
-				dimensions,
-				blockSize,
-				dataType,
-				compression );
-
 		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
 		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
+
+		final MultiResolutionLevelInfo[] mrInfo = setupMultiResolutionPyramid(
+				driverVolumeWriter,
+				viewId,
+				viewIdToDatasetBdv( StorageType.N5 ),
+				dataType,
+				dimensions,
+				compression,
+				blockSize,
+				downsamplings);
 
 		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes( setupDataset );
 
@@ -357,38 +372,19 @@ public class N5ApiTools
 		driverVolumeWriter.setAttribute(timepointDataset, "saved_completely", true );
 		driverVolumeWriter.setAttribute(timepointDataset, "multiScale", downsamplings != null && downsamplings.length != 0 );
 
-		final MultiResolutionLevelInfo[] mrInfo;
-
 		if ( downsamplings == null || downsamplings.length == 0 )
 		{
-			// set additional N5 attributes for s0 dataset
-			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", new int[] {1,1,1} );
-
-			mrInfo = new MultiResolutionLevelInfo[] { new MultiResolutionLevelInfo( s0Dataset, dimensions.clone(), dataType, new int[] {1,1,1}, new int[] {1,1,1}, blockSize ) };
+			downsamplings = new int[1][ dimensions.length ];
+			Arrays.setAll( downsamplings[ 0 ], i -> 1 );
 		}
-		else
-		{
-			mrInfo = setupMultiResolutionPyramid(
-					driverVolumeWriter,
-					viewId,
-					viewIdToDatasetBdv( StorageType.N5 ),
-					dataType,
-					dimensions,
-					compression,
-					blockSize,
-					downsamplings);
 
-			driverVolumeWriter.setAttribute( s0Dataset, "downsamplingFactors", downsamplings[ 0 ] );
-
-			for ( int level = 1; level < downsamplings.length; ++level )
-			{
-				// set additional N5 attributes for s0 ... sN datasets
-				driverVolumeWriter.setAttribute( mrInfo[ level ].dataset, "downsamplingFactors", downsamplings[ level ] );
-			}
-		}
+		// set additional N5 attributes for s0 ... sN datasets
+		for ( int level = 0; level < downsamplings.length; ++level )
+			driverVolumeWriter.setAttribute( mrInfo[ level ].dataset, "downsamplingFactors", mrInfo[ level ].absoluteDownsampling );
 
 		return mrInfo;
 	}
+
 	public static void writeDownsampledBlock(
 			final N5Writer n5,
 			final MultiResolutionLevelInfo mrInfo,

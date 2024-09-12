@@ -252,14 +252,6 @@ public class ExportN5API implements ImgExport
 			// this is the relative path to the dataset inside the Zarr/N5/HDF5 container, thus using File here seems fine
 			final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
 
-			// create s0 dataset
-			driverVolumeWriter.createDataset(
-					dataset,
-					bb.dimensionsAsLongArray(),
-					blocksize(),
-					dataType,
-					compression );
-
 			// setup multi-resolution pyramid
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
