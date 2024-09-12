@@ -22,13 +22,19 @@ class WeightedAverageBlockSupplier extends AbstractBlockSupplier< FloatType >
 
 	private final List< BlockSupplier< FloatType > > weights;
 
+	private final Overlap overlap;
+
 	private final TempArray< float[] >[] tempArrays;
 
-	WeightedAverageBlockSupplier( final List< BlockSupplier< FloatType > > images, final List< BlockSupplier< FloatType > > weights )
+	WeightedAverageBlockSupplier(
+			final List< BlockSupplier< FloatType > > images,
+			final List< BlockSupplier< FloatType > > weights,
+			final Overlap overlap )
 	{
 		this.numDimensions = images.get( 0 ).numDimensions();
 		this.images = images;
 		this.weights = weights;
+		this.overlap = overlap;
 		tempArrays = Cast.unchecked( new TempArray[ 4 ] );
 		Arrays.setAll( tempArrays, i -> TempArray.forPrimitiveType( FLOAT ) );
 	}
@@ -40,6 +46,7 @@ class WeightedAverageBlockSupplier extends AbstractBlockSupplier< FloatType >
 		weights = new ArrayList<>( s.weights.size() );
 		s.images.forEach( i -> images.add( i.independentCopy() ) );
 		s.weights.forEach( i -> weights.add( i.independentCopy() ) );
+		overlap = s.overlap;
 		tempArrays = Cast.unchecked( new TempArray[ 4 ] );
 		Arrays.setAll( tempArrays, i -> TempArray.forPrimitiveType( FLOAT ) );
 	}
@@ -53,26 +60,20 @@ class WeightedAverageBlockSupplier extends AbstractBlockSupplier< FloatType >
 		final float[] sumI = tempArrays[ 2 ].get( len );
 		final float[] sumW = tempArrays[ 3 ].get( len );
 
-		final int numImages = images.size();
-		for ( int i = 0; i < numImages; i++ )
+		Arrays.fill( sumI, 0 );
+		Arrays.fill( sumW, 0 );
+
+		final long[] srcMax = new long[ srcPos.length ];
+		Arrays.setAll( srcMax, d -> srcPos[ d ] + size[ d ] - 1 );
+		final int[] overlapping = overlap.getOverlappingViewIndices( srcPos, srcMax );
+		for ( int i : overlapping )
 		{
 			images.get( i ).copy( srcPos, tmpI, size );
 			weights.get( i ).copy( srcPos, tmpW, size );
-			if ( i == 0 )
+			for ( int x = 0; x < len; ++x )
 			{
-				for ( int x = 0; x < len; ++x )
-				{
-					sumI[ x ] = tmpW[ x ] * tmpI[ x ];
-					sumW[ x ] = tmpW[ x ];
-				}
-			}
-			else
-			{
-				for ( int x = 0; x < len; ++x )
-				{
-					sumI[ x ] += tmpW[ x ] * tmpI[ x ];
-					sumW[ x ] += tmpW[ x ];
-				}
+				sumI[ x ] += tmpW[ x ] * tmpI[ x ];
+				sumW[ x ] += tmpW[ x ];
 			}
 		}
 

@@ -5,10 +5,13 @@ import java.util.List;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.type.numeric.real.FloatType;
 
-public class WeightedAverage
+class WeightedAverage
 {
-	public static BlockSupplier< FloatType > of( final List< BlockSupplier< FloatType > > images, final List< BlockSupplier< FloatType > > weights )
+	public static BlockSupplier< FloatType > of(
+			final List< BlockSupplier< FloatType > > images,
+			final List< BlockSupplier< FloatType > > weights,
+			final Overlap overlap)
 	{
-		return new WeightedAverageBlockSupplier( images, weights );
+		return new WeightedAverageBlockSupplier( images, weights, overlap );
 	}
 }

@@ -4,7 +4,6 @@ import static net.imglib2.algorithm.blocks.transform.Transform.Interpolation.NEA
 import static net.imglib2.algorithm.blocks.transform.Transform.Interpolation.NLINEAR;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,10 +16,8 @@ import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.ClampType;
@@ -33,7 +30,6 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
@@ -103,7 +99,8 @@ public class BlkAffineFusion
 				viewDimensions,
 				LazyFusionTools.defaultAffineExpansion,
 				is2d ? 2 : 3 )
-				.filter( fusionInterval );
+				.filter( fusionInterval )
+				.offset( fusionInterval.minAsLongArray() );
 
 		final List< BlockSupplier< FloatType > > images = new ArrayList<>( overlap.numViews() );
 		final List< BlockSupplier< FloatType > > weights = new ArrayList<>( overlap.numViews() );
@@ -137,21 +134,10 @@ public class BlkAffineFusion
 		}
 
 		final BlockSupplier< T > blocks = convertToOutputType(
-				WeightedAverage.of( images, weights ),
-				converter, type );
+				WeightedAverage.of( images, weights, overlap ),
+				converter, type )
+				.tile( 32 );
 		return BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), blockSize );
-	}
-
-	private static < T extends NativeType< T > > RandomAccessibleInterval< T > getFusedRandomAccessibleInterval(
-			final Interval boundingBox,
-			final List< BlockSupplier< FloatType > > images,
-			final List< BlockSupplier< FloatType > > blendings,
-			final Converter< FloatType, T > converter,
-			final T type )
-	{
-		final BlockSupplier< FloatType > floatBlocks = WeightedAverage.of( images, blendings );
-		final BlockSupplier< T > blocks = convertToOutputType( floatBlocks, converter, type );
-		return BlockAlgoUtils.cellImg( blocks, boundingBox.dimensionsAsLongArray(), new int[] { 64 } );
 	}
 
 	private static < T extends NativeType< T > > BlockSupplier< T > convertToOutputType(
@@ -199,148 +185,6 @@ public class BlkAffineFusion
 				-boundingBoxInTarget.min( 2 ) );
 		t.concatenate( transformFromSource );
 		return t;
-	}
-
-	/**
-	 * Compute and cache the expanded bounding boxes of all transformed views for per-block overlap determination.
-	 * Sort order of {@code viewIds} is maintained for per-block queries. (for FIRST-WINS strategy)
-	 */
-	private static class Overlap
-	{
-		private final List< ? extends ViewId > viewIds;
-
-		private final long[] bb;
-
-		private final int numDimensions;
-
-		private final int numViews;
-
-		Overlap(
-				final List< ? extends ViewId > viewIds,
-				final Map< ? extends ViewId, ? extends AffineTransform3D > viewRegistrations,
-				final Map< ? extends ViewId, ? extends Dimensions > viewDimensions,
-				final int expandOverlap,
-				final int numDimensions )
-		{
-			this.viewIds = viewIds;
-			this.numDimensions = numDimensions;
-			final List< Interval > bounds = new ArrayList<>();
-			for ( final ViewId viewId : viewIds )
-			{
-				// expand to be conservative ...
-				final AffineTransform3D t = viewRegistrations.get( viewId );
-				final Dimensions dim = viewDimensions.get( viewId );
-				final RealInterval ri = t.estimateBounds( new FinalInterval( dim ) );
-				final Interval boundingBoxLocal = Intervals.largestContainedInterval( ri );
-				bounds.add( Intervals.expand( boundingBoxLocal, expandOverlap ) );
-			}
-
-			numViews = bounds.size();
-			bb = new long[ numViews * numDimensions * 2 ];
-		}
-
-		private void setBounds( int i, Interval interval )
-		{
-			final int o_min = numDimensions * ( 2 * i );
-			final int o_max = numDimensions * ( 2 * i + 1 );
-			for ( int d = 0; d < numDimensions; d++ )
-			{
-				bb[ o_min + d ] = interval.min( d );
-				bb[ o_max + d ] = interval.max( d );
-			}
-		}
-
-		private long boundsMin( int i, int d )
-		{
-			final int o_min = numDimensions * ( 2 * i );
-			return bb[ o_min + d ];
-		}
-
-		private long boundsMax( int i, int d )
-		{
-			final int o_max = numDimensions * ( 2 * i + 1 );
-			return bb[ o_max + d ];
-		}
-
-		int[] getOverlappingViewIndices( final Interval interval )
-		{
-			final int[] indices = new int[ numViews ];
-			final long[] min = interval.minAsLongArray();
-			final long[] max = interval.maxAsLongArray();
-			int j = 0;
-			for ( int i = 0; i < numViews; ++i )
-				if ( isOverlapping( i, min, max ) )
-					indices[ j++ ] = i;
-			return Arrays.copyOf( indices, j );
-		}
-
-		List< ViewId > getOverlappingViewIds( final Interval interval )
-		{
-			final int[] indices = getOverlappingViewIndices( interval );
-			final List< ViewId > views = new ArrayList<>();
-			for ( final int i : indices )
-				views.add( viewIds.get( i ) );
-			return views;
-		}
-
-		private boolean isOverlapping( final int i, final long[] min, final long[] max )
-		{
-			for ( int d = 0; d < numDimensions; ++d )
-				if ( min[ d ] > boundsMax( i, d ) || max[ d ] < boundsMin( i, d ) )
-					return false;
-			return true;
-		}
-
-		/**
-		 * The ViewIds that are checked.
-		 * <p>
-		 * Elements of {@code int[]} array returned by {@link #getOverlappingViewIds(Interval)}
-		 * correspond to indices into this list.
-		 */
-		public List< ? extends ViewId > getViewIds()
-		{
-			return viewIds;
-		}
-
-		public int numViews()
-		{
-			return numViews;
-		}
-
-		private Overlap(
-				final List< ? extends ViewId > viewIds,
-				final long[] bb,
-				final int numDimensions )
-		{
-			this.viewIds = viewIds;
-			this.bb = bb;
-			this.numDimensions = numDimensions;
-			numViews = viewIds.size();
-		}
-
-		/**
-		 * Return a new {@code Overlap}, containing only those ViewIds that overlap the given {@code boundingBox}.
-		 *
-		 * @param boundingBox
-		 *
-		 * @return
-		 */
-		Overlap filter( final Interval boundingBox )
-		{
-			final int[] indices = getOverlappingViewIndices( boundingBox );
-			final int filteredNumViews = indices.length;
-			final List< ViewId > filteredViews = new ArrayList<>( filteredNumViews );
-			final long[] filteredBB = new long[ filteredNumViews * numDimensions * 2 ];
-			for ( final int i : indices )
-			{
-				final int o = numDimensions * ( 2 * i );
-				final int fo = numDimensions * ( 2 * filteredViews.size() );
-				for ( int k = 0; k < 2 * numDimensions; ++k )
-					filteredBB[ fo + k ] = bb[ o + k ];
-				filteredViews.add( viewIds.get( i ) );
-			}
-			return new Overlap( filteredViews, filteredBB, numDimensions );
-		}
 	}
 
 
