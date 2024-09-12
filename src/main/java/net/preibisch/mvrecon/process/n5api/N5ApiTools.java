@@ -182,6 +182,26 @@ public class N5ApiTools
 
 	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
 			final N5Writer driverVolumeWriter,
+			final Function<Integer, String> levelToDataset,
+			final DataType dataType,
+			final long[] dimensionsS0,
+			final Compression compression,
+			final int[] blockSize,
+			final int[][] downsamplings )
+	{
+		return setupMultiResolutionPyramid(
+				driverVolumeWriter,
+				null,
+				(viewId, level) -> levelToDataset.apply( level ),
+				dataType,
+				dimensionsS0,
+				compression,
+				blockSize,
+				downsamplings);
+	}
+
+	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
+			final N5Writer driverVolumeWriter,
 			final ViewId viewId,
 			final BiFunction<ViewId, Integer, String> viewIdToDataset,
 			final DataType dataType,

@@ -209,10 +209,11 @@ public class ExportN5API implements ImgExport
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
 		final MultiResolutionLevelInfo[] mrInfo;
-		final ViewId viewId;
 
 		if ( bdv )
 		{
+			final ViewId viewId;
+
 			if ( manuallyAssignViewId )
 				viewId = new ViewId( tpId, vsId );
 			else
@@ -220,11 +221,9 @@ public class ExportN5API implements ImgExport
 
 			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
 
-			//final String dataset = N5ApiTools.createBDVPath( viewId, 0, this.storageType );
-
 			try
 			{
-				// the first time the XML does not exist, thus instantiate is not called
+				// create or extend XML, setup s0 and multiresolution pyramid
 				mrInfo = SpimData2Tools.writeBDVMetaData(
 						driverVolumeWriter,
 						storageType,
@@ -250,10 +249,26 @@ public class ExportN5API implements ImgExport
 		}
 		else
 		{
-			// TODO: write
-			mrInfo = null;
-			viewId = null;
-			throw new RuntimeException( " not implemented yet. " );
+			// this is the relative path to the dataset inside the Zarr/N5/HDF5 container, thus using File here seems fine
+			final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
+
+			// create s0 dataset
+			driverVolumeWriter.createDataset(
+					dataset,
+					bb.dimensionsAsLongArray(),
+					blocksize(),
+					dataType,
+					compression );
+
+			// setup multi-resolution pyramid
+			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
+					driverVolumeWriter,
+					(level) -> dataset.substring(0, dataset.lastIndexOf( datasetExtension ) ) + "/s" + level,
+					dataType,
+					bb.dimensionsAsLongArray(),
+					compression,
+					blocksize(),
+					this.downsampling );
 		}
 
 		final List<long[][]> grid =
@@ -355,231 +370,6 @@ public class ExportN5API implements ImgExport
 		}
 
 		return true;
-
-		/*
-		final String dataset;
-		final ViewId viewId;
-
-		//
-		// define dataset name
-		//
-		if ( !bdv )
-		{
-			viewId = null;
-			dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
-		}
-		else
-		{
-			if ( manuallyAssignViewId )
-				viewId = new ViewId( tpId, vsId );
-			else
-				viewId = getViewIdForGroup( fusionGroup, splittingType );
-
-			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
-
-			dataset = N5ApiTools.createBDVPath( viewId, 0, this.storageType );
-		}
-
-		//
-		// create datasets and save extra metadata if BDV-compatibility is requested
-		//
-		if ( driverVolumeWriter.exists( dataset ) )
-		{
-			IOFunctions.println( "Dataset '" + dataset + "' exists. STOPPING!" );
-			return false;
-		}
-
-		IOFunctions.println( "Creating dataset '" + dataset + "' ... " );
-
-		try
-		{
-			driverVolumeWriter.createDataset(
-					dataset,
-					bb.dimensionsAsLongArray(),
-					blocksize(),
-					dataType,
-					compression );
-
-			driverVolumeWriter.setAttribute( dataset, "offset", bb.minAsLongArray() );
-		}
-		catch ( Exception e )
-		{
-			IOFunctions.println( "Couldn't create " + storageType + " container '" + path + "': " + e );
-			return false;
-		}
-
-		//
-		// write bdv-metadata into dataset
-		//
-		if ( bdv )
-		{
-			try
-			{
-				// the first time the XML does not exist, thus instantiate is not called
-				if ( SpimData2Tools.writeBDVMetaData(
-						driverVolumeWriter,
-						storageType,
-						dataType,
-						bb.dimensionsAsLongArray(),
-						compression,
-						blocksize(),
-						this.downsampling,
-						viewId,
-						path,
-						xmlOut,
-						instantiate ) == null )
-					return false;
-			}
-			catch (SpimDataException | IOException e)
-			{
-				e.printStackTrace();
-				IOFunctions.println( "Failed to write metadata for '" + dataset + "': " + e );
-				return false;
-			}
-		}
-
-		//
-		// export image
-		//
-		final List<long[][]> grid =
-				Grid.create(
-						bb.dimensionsAsLongArray(),
-						new int[] {
-								blocksize()[0] * computeBlocksizeFactor()[ 0 ],
-								blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-								blocksize()[2] * computeBlocksizeFactor()[ 2 ]
-						},
-						blocksize() );
-
-		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
-		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
-
-		long time = System.currentTimeMillis();
-		final ExecutorService ex = DeconViews.createExecutorService();
-
-		//
-		// save full-resolution data (s0)
-		//
-
-		// TODO: use Tobi's code (at least for the special cases)
-		ex.submit(() ->
-			grid.parallelStream().forEach(
-					gridBlock -> {
-						try {
-
-							final Interval block =
-									Intervals.translate(
-											new FinalInterval( gridBlock[1] ), // blocksize
-											gridBlock[0] ); // block offset
-	
-							final RandomAccessibleInterval< T > source = Views.interval( img, block );
-	
-							final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-							N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, dataset, gridBlock[2]);
-						}
-						catch (Exception e) 
-						{
-							IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " );
-							e.printStackTrace();
-						}
-					} )
-			);
-
-		try
-		{
-			ex.shutdown();
-			ex.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
-		}
-		catch (InterruptedException e)
-		{
-			IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + e );
-			e.printStackTrace();
-			return false;
-		}
-
-		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
-		IOFunctions.println( "Saved full resolution, took: " + (System.currentTimeMillis() - time ) + " ms." );
-
-		//
-		// save multiresolution pyramid (s1 ... sN)
-		//
-		if ( this.downsampling != null )
-		{
-			long[] previousDim = bb.dimensionsAsLongArray();
-			String previousDataset = dataset;
-
-			for ( int level = 1; level < this.downsampling.length; ++level )
-			{
-				final int s = level;
-				final int[] ds = N5ApiTools.computeRelativeDownsampling( this.downsampling, level );
-
-				IOFunctions.println( "Downsampling: " + Util.printCoordinates( this.downsampling[ level ] ) + " with relative downsampling of " + Util.printCoordinates( ds ));
-
-				final long[] dim = new long[ previousDim.length ];
-				for ( int d = 0; d < dim.length; ++d )
-					dim[ d ] = previousDim[ d ] / ds[ d ];
-
-				final String datasetDownsampling = bdv ?
-						N5ApiTools.createDownsampledBDVPath(dataset, level, storageType) : dataset.substring(0, dataset.length() - 3) + "/s" + level;
-
-				try
-				{
-					driverVolumeWriter.createDataset(
-							datasetDownsampling,
-							dim, // dimensions
-							blocksize(),
-							dataType,
-							compression );
-				}
-				catch ( Exception e )
-				{
-					IOFunctions.println( "Couldn't create downsampling level " + level + " for container '" + path + "', dataset '" + datasetDownsampling + "': " + e );
-					return false;
-				}
-
-				final List<long[][]> gridDS = Grid.create( dim, blocksize() );
-
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + gridDS.size() );
-
-				final String datasetPrev = previousDataset;
-				final ExecutorService e = DeconViews.createExecutorService();
-
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + datasetPrev + "', downsampled will be written as '" + datasetDownsampling + "'." );
-
-				time = System.currentTimeMillis();
-
-				final Function<long[][], String> gridBlockToDataset = (gridBlock -> datasetDownsampling); // there is only one ViewId, so no matter which gridBlock, its always the same
-				final Function<long[][], String> gridBlockToDatasetPreviousScale = (gridBlock -> datasetPrev); // there is only one ViewId
-
-				e.submit( () -> gridDS.parallelStream().forEach(
-						gridBlock -> N5ApiTools.writeDownsampledBlock(
-								driverVolumeWriter,
-								gridBlockToDataset,
-								gridBlockToDatasetPreviousScale,
-								ds,
-								gridBlock ) ) );
-
-				try
-				{
-					e.shutdown();
-					e.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
-				}
-				catch (InterruptedException exc)
-				{
-					IOFunctions.println( "Failed to write HDF5/N5/ZARR. Error: " + exc );
-					exc.printStackTrace();
-					return false;
-				}
-
-				IOFunctions.println( "Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
-
-				// for next downsampling level
-				previousDim = dim.clone();
-				previousDataset = datasetDownsampling;
-			}
-		}
-
-		return true; */
 	}
 
 	@Override
