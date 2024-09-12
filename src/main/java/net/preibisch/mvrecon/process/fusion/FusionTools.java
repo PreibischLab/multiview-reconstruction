@@ -442,7 +442,7 @@ public class FusionTools
 		// which views to process (use un-altered bounding box and registrations)
 		final ArrayList< ViewId > viewIdsToProcess =
 				LazyFusionTools.overlappingViewIds(
-						is2d ? bBox2d : boundingBox,
+						bb,
 						views,
 						registrations,
 						LazyFusionTools.assembleDimensions( views, viewDescriptions ),
