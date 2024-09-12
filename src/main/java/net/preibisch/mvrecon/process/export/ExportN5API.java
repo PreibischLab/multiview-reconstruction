@@ -28,6 +28,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,26 +198,10 @@ public class ExportN5API implements ImgExport
 			}
 		}
 
-		final T type = imgInterval.firstElement().createVariable();
-		final DataType dataType;
-
-		if ( UnsignedByteType.class.isInstance( type ) )
-			dataType = DataType.UINT8;
-		// can be removed because: https://github.com/bigdataviewer/bigdataviewer-core/pull/157
-		/*else if ( UnsignedShortType.class.isInstance( type ) && bdv && storageType == StorageType.HDF5 )
-		{
-			// Tobias: unfortunately I store as short and treat it as unsigned short in Java.
-			// The reason is, that when I wrote this, the jhdf5 library did not support unsigned short. It's terrible and should be fixed.
-			// https://github.com/bigdataviewer/bigdataviewer-core/issues/154
-			// https://imagesc.zulipchat.com/#narrow/stream/327326-BigDataViewer/topic/XML.2FHDF5.20specification
-			imgInterval = (RandomAccessibleInterval)Converters.convertRAI( (RandomAccessibleInterval<UnsignedShortType>)(Object)imgInterval, (i,o)->o.set( i.getShort() ), new ShortType() );
-			dataType = DataType.INT16;
-		}*/
-		else if ( UnsignedShortType.class.isInstance( type ) )
-			dataType = DataType.UINT16;
-		else if ( FloatType.class.isInstance( type ) )
-			dataType = DataType.FLOAT32;
-		else
+		final T type = imgInterval.getType();
+		final DataType dataType = N5Utils.dataType( type );
+		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
+		if ( !supportedDataTypes.contains( dataType ) )
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
 
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
