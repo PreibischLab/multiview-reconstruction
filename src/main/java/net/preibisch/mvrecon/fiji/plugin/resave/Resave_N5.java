@@ -47,7 +47,6 @@ import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -55,8 +54,8 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
-import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
+import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import util.Grid;
 import util.URITools;
 
@@ -141,6 +140,11 @@ public class Resave_N5 implements PlugIn
 		final Map<Integer, DataType> dataTypes =
 				N5ApiTools.assembleDataTypes( data, dimensions.keySet() );
 
+		IOFunctions.println( "Dimensions of raw images: " );
+		dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
+		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
+		IOFunctions.println( "Number of compute blocks: " + grid.size() );
+
 		// create all datasets and write BDV metadata for all ViewIds (including downsampling) in parallel
 		long time = System.currentTimeMillis();
 
@@ -149,7 +153,8 @@ public class Resave_N5 implements PlugIn
 						viewId -> new ValuePair<>(
 								viewId,
 								N5ApiTools.setupBdvDatasetsN5(
-										n5Writer, viewId,
+										n5Writer,
+										viewId,
 										dataTypes.get( viewId.getViewSetupId() ),
 										dimensions.get( viewId.getViewSetupId() ),
 										compression,
@@ -157,10 +162,6 @@ public class Resave_N5 implements PlugIn
 										downsamplings ) ) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
-		IOFunctions.println( "Dimensions of raw images: " );
-		dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
-		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
-		IOFunctions.println( "Number of compute blocks: " + grid.size() );
 
 		final AtomicInteger progress = new AtomicInteger( 0 );
 		IJ.showProgress( progress.get(), grid.size() );
