@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -341,21 +342,24 @@ public class N5ApiTools
 		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes( setupDataset );
 
 		// if viewsetup does not exist
-		if ( !attribs.containsKey( "dataType" ) || !attribs.containsKey( "blockSize" ) || !attribs.containsKey( "dimensions" ) || !attribs.containsKey( "compression" ) || !attribs.containsKey( "downsamplingFactors" )  )
+		if ( !attribs.containsKey( DatasetAttributes.DATA_TYPE_KEY ) || !attribs.containsKey( DatasetAttributes.BLOCK_SIZE_KEY ) || !attribs.containsKey( DatasetAttributes.DIMENSIONS_KEY ) || !attribs.containsKey( DatasetAttributes.COMPRESSION_KEY ) || !attribs.containsKey( "downsamplingFactors" ) )
 		{
 			// set N5 attributes for setup
 			// e.g. {"compression":{"type":"gzip","useZlib":false,"level":1},"downsamplingFactors":[[1,1,1],[2,2,1]],"blockSize":[128,128,32],"dataType":"uint16","dimensions":[512,512,86]}
 			IOFunctions.println( "setting attributes for '" + "setup" + viewId.getViewSetupId() + "'");
 
-			driverVolumeWriter.setAttribute(setupDataset, "dataType", dataType );
-			driverVolumeWriter.setAttribute(setupDataset, "blockSize", blockSize );
-			driverVolumeWriter.setAttribute(setupDataset, "dimensions", dimensions );
-			driverVolumeWriter.setAttribute(setupDataset, "compression", compression );
+			final HashMap<String, Object > attribs2 = new HashMap<>();
+			attribs2.put(DatasetAttributes.DATA_TYPE_KEY, dataType );
+			attribs2.put(DatasetAttributes.BLOCK_SIZE_KEY, blockSize );
+			attribs2.put(DatasetAttributes.DIMENSIONS_KEY, dimensions );
+			attribs2.put(DatasetAttributes.COMPRESSION_KEY, compression );
 
 			if ( downsamplings == null || downsamplings.length == 0 )
-				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", new int[][] {{1,1,1}} );
+				attribs2.put( "downsamplingFactors", new int[][] {{1,1,1}} );
 			else
-				driverVolumeWriter.setAttribute(setupDataset, "downsamplingFactors", downsamplings );
+				attribs2.put( "downsamplingFactors", downsamplings );
+
+			driverVolumeWriter.setAttributes (setupDataset, attribs2 );
 		}
 		else
 		{
