@@ -228,7 +228,7 @@ public class ExportN5Api implements ImgExport
 						bb.dimensionsAsLongArray(),
 						compression,
 						blocksize(),
-						this.downsampling,
+						this.downsampling == null ? new int[][] {{1,1,1}} : this.downsampling,
 						viewId,
 						path,
 						xmlOut,
