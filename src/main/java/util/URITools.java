@@ -25,6 +25,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -46,6 +47,9 @@ public class URITools
 	private final static Pattern FILE_SCHEME = Pattern.compile( "file", Pattern.CASE_INSENSITIVE );
 
 	public static int cloudThreads = 256;
+
+	public static boolean useS3CredentialsWrite = true;
+	public static boolean useS3CredentialsRead = true;
 
 	public static class ParsedBucket
 	{
@@ -159,7 +163,24 @@ public class URITools
 		}
 		else
 		{
-			return new N5Factory().openWriter( format, uri ); // cloud support, avoid dependency hell if it is a local file
+			N5Writer n5w;
+
+			try
+			{
+				System.out.println( "Trying anonymous writing ..." );
+				n5w = new N5Factory().openWriter( format, uri );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "Anonymous failed; trying writing with credentials ..." );
+
+				N5Factory factory = new N5Factory();
+				factory.s3UseCredentials();
+				n5w = factory.openWriter( format, uri );
+			}
+
+			return n5w;
+			//return new N5Factory().openWriter( format, uri ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -168,14 +189,32 @@ public class URITools
 		if ( URITools.isFile( uri ) )
 		{
 			if ( format.equals( StorageFormat.N5 ))
-				return new N5FSWriter( URITools.removeFilePrefix( uri ) );
+				return new N5FSReader( URITools.removeFilePrefix( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrWriter( URITools.removeFilePrefix( uri ) );
+				return new N5ZarrReader( URITools.removeFilePrefix( uri ) );
 			else
 				throw new RuntimeException( "Format: " + format + " not supported." );
 		}
 		else
-			return new N5Factory().openReader( format, uri ); // cloud support, avoid dependency hell if it is a local file
+		{
+			N5Reader n5r;
+
+			try
+			{
+				System.out.println( "Trying anonymous reading ..." );
+				n5r = new N5Factory().openReader( format, uri );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "Anonymous failed; trying reading with credentials ..." );
+				N5Factory factory = new N5Factory();
+				factory.s3UseCredentials();
+				n5r = factory.openReader( format, uri );
+			}
+
+			return n5r;
+			//return new N5Factory().openReader( format, uri ); // cloud support, avoid dependency hell if it is a local file
+		}
 	}
 
 	public static N5Reader instantiateGuessedN5Reader( final URI uri )
@@ -190,7 +229,25 @@ public class URITools
 				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
 		}
 		else
-			return new N5Factory().openReader( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
+		{
+			N5Reader n5r;
+
+			try
+			{
+				System.out.println( "Trying anonymous reading ..." );
+				n5r = new N5Factory().openReader( uri.toString() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "Anonymous failed; trying reading with credentials ..." );
+				N5Factory factory = new N5Factory();
+				factory.s3UseCredentials();
+				n5r = factory.openReader( uri.toString() );
+			}
+
+			return n5r;
+			//return new N5Factory().openReader( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
+		}
 	}
 
 	public static N5Writer instantiateGuessedN5Writer( final URI uri )
@@ -205,7 +262,27 @@ public class URITools
 				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
 		}
 		else
-			return new N5Factory().openWriter( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
+		{
+			N5Writer n5w;
+
+			try
+			{
+				System.out.println( "Trying anonymous writing ..." );
+				n5w = new N5Factory().openWriter( uri.toString() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "Anonymous failed; trying writing with credentials ..." );
+
+				N5Factory factory = new N5Factory();
+				factory.s3UseCredentials();
+				n5w = factory.openWriter( uri.toString() );
+			}
+
+			return n5w;
+
+			//return new N5Factory().openWriter( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
+		}
 	}
 
 	public static SpimData2 loadSpimData( final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
