@@ -133,6 +133,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		}
 		catch ( Exception e )
 		{
+			e.printStackTrace();
 			throw new SpimDataException( "Could not save xml '" + lastURI() + "': " + e );
 		}
 

@@ -43,6 +43,7 @@ import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.img.n5.N5ImageLoader;
 import ij.IJ;
+import ij.ImageJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
@@ -140,10 +141,9 @@ public class Resave_N5 implements PlugIn
 		final Map<Integer, DataType> dataTypes =
 				N5ApiTools.assembleDataTypes( data, dimensions.keySet() );
 
-		IOFunctions.println( "Dimensions of raw images: " );
-		dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
+		//IOFunctions.println( "Dimensions of raw images: " );
+		//dimensions.forEach( ( id,dim ) -> IOFunctions.println( "ViewSetup " + id + ": " + Arrays.toString( dim )) );
 		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
-		IOFunctions.println( "Number of compute blocks: " + grid.size() );
 
 		// create all datasets and write BDV metadata for all ViewIds (including downsampling) in parallel
 		long time = System.currentTimeMillis();
@@ -162,6 +162,7 @@ public class Resave_N5 implements PlugIn
 										downsamplings ) ) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
+		IOFunctions.println( "Number of compute blocks: " + grid.size() );
 
 		final AtomicInteger progress = new AtomicInteger( 0 );
 		IJ.showProgress( progress.get(), grid.size() );
@@ -272,7 +273,8 @@ public class Resave_N5 implements PlugIn
 			System.out.println( Arrays.toString( b[2]));
 			System.out.println();
 		});
-		//new ImageJ();
-		//new Resave_N5().run( null );
+
+		new ImageJ();
+		new Resave_N5().run( null );
 	}
 }
