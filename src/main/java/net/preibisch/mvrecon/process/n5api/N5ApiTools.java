@@ -245,64 +245,74 @@ public class N5ApiTools
 	public static MultiResolutionLevelInfo[] setupBdvDatasetsHDF5(
 			final N5Writer driverVolumeWriter,
 			final ViewId viewId,
+			final DataType dataType,
+			final long[] dimensions,
+			final Compression compression,
 			final int[] blockSize,
 			final int[][] downsamplings )
 	{
+		final MultiResolutionLevelInfo[] mrInfo = setupMultiResolutionPyramid(
+				driverVolumeWriter,
+				viewId,
+				viewIdToDatasetBdv( StorageType.N5 ),
+				dataType,
+				dimensions,
+				compression,
+				blockSize,
+				downsamplings);
+
 		final String subdivisionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions";
 		final String resolutionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions";
 
-		if ( driverVolumeWriter.datasetExists( subdivisionsDatasets ) && driverVolumeWriter.datasetExists( resolutionsDatasets ) )
+		if ( !driverVolumeWriter.datasetExists( subdivisionsDatasets ) || !driverVolumeWriter.datasetExists( resolutionsDatasets ) )
 		{
-			// TODO: test that the values are consistent?
-			return null;
-		}
-
-		final Img<IntType> subdivisions;
-		final Img<DoubleType> resolutions;
-
-		if ( downsamplings == null || downsamplings.length == 0 )
-		{
-			subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } ); // blocksize
-			resolutions = ArrayImgs.doubles( new double[] { 1,1,1 }, new long[] { 3, 1 } ); // downsampling
-		}
-		else
-		{
-			final int[] blocksizes = new int[ 3 * downsamplings.length ];
-			final double[] downsamples = new double[ 3 * downsamplings.length ];
-
-			int i = 0;
-			for ( int level = 0; level < downsamplings.length; ++level )
+			final Img<IntType> subdivisions;
+			final Img<DoubleType> resolutions;
+	
+			if ( downsamplings == null || downsamplings.length == 0 )
 			{
-				downsamples[ i ] = downsamplings[ level ][ 0 ];
-				blocksizes[ i++ ] = blockSize[ 0 ];
-				downsamples[ i ] = downsamplings[ level ][ 1 ];
-				blocksizes[ i++ ] = blockSize[ 1 ];
-				downsamples[ i ] = downsamplings[ level ][ 2 ];
-				blocksizes[ i++ ] = blockSize[ 2 ];
+				subdivisions = ArrayImgs.ints( blockSize, new long[] { 3, 1 } ); // blocksize
+				resolutions = ArrayImgs.doubles( new double[] { 1,1,1 }, new long[] { 3, 1 } ); // downsampling
 			}
-
-			subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
-			resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
+			else
+			{
+				final int[] blocksizes = new int[ 3 * downsamplings.length ];
+				final double[] downsamples = new double[ 3 * downsamplings.length ];
+	
+				int i = 0;
+				for ( int level = 0; level < downsamplings.length; ++level )
+				{
+					downsamples[ i ] = downsamplings[ level ][ 0 ];
+					blocksizes[ i++ ] = blockSize[ 0 ];
+					downsamples[ i ] = downsamplings[ level ][ 1 ];
+					blocksizes[ i++ ] = blockSize[ 1 ];
+					downsamples[ i ] = downsamplings[ level ][ 2 ];
+					blocksizes[ i++ ] = blockSize[ 2 ];
+				}
+	
+				subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
+				resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
+			}
+			
+			driverVolumeWriter.createDataset(
+					subdivisionsDatasets,
+					subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+					new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
+					DataType.INT32,
+					new RawCompression() );
+	
+			driverVolumeWriter.createDataset(
+					resolutionsDatasets,
+					resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
+					new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
+					DataType.FLOAT64,
+					new RawCompression() );
+	
+			N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
+			N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
 		}
-		
-		driverVolumeWriter.createDataset(
-				subdivisionsDatasets,
-				subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
-				new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
-				DataType.INT32,
-				new RawCompression() );
 
-		driverVolumeWriter.createDataset(
-				resolutionsDatasets,
-				resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
-				new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
-				DataType.FLOAT64,
-				new RawCompression() );
-
-		N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
-		N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
-
-		return null; // TODO: this is not done.
+		return mrInfo;
 	}
 
 	public static MultiResolutionLevelInfo[] setupBdvDatasetsN5(

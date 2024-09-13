@@ -94,7 +94,14 @@ public class SpimData2Tools
 			if ( exists == null )
 				return null;
 
-			return N5ApiTools.setupBdvDatasetsN5( driverVolumeWriter, viewId, dataType, dimensions, compression, blockSize, downsamplings );
+			return N5ApiTools.setupBdvDatasetsN5(
+					driverVolumeWriter,
+					viewId,
+					dataType,
+					dimensions,
+					compression,
+					blockSize,
+					downsamplings );
 		}
 		else if ( StorageType.HDF5.equals(storageType) )
 		{
@@ -114,6 +121,9 @@ public class SpimData2Tools
 			return N5ApiTools.setupBdvDatasetsHDF5(
 					driverVolumeWriter,
 					viewId,
+					dataType,
+					dimensions,
+					compression,
 					blockSize,
 					downsamplings );
 		}
