@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -46,6 +47,7 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
 import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -279,6 +281,9 @@ public class ExportN5API implements ImgExport
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
 
+		final AtomicInteger progress = new AtomicInteger( 0 );
+		IJ.showProgress( progress.get(), grid.size() );
+
 		//
 		// save full-resolution data (s0)
 		//
@@ -304,6 +309,8 @@ public class ExportN5API implements ImgExport
 		
 								final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
 								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+
+								IJ.showProgress( progress.incrementAndGet(), grid.size() );
 							}
 							catch (Exception e) 
 							{
@@ -323,6 +330,7 @@ public class ExportN5API implements ImgExport
 		}
 
 		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
+		IJ.showProgress( progress.getAndSet( 0 ), grid.size() );
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved full resolution, took: " + (System.currentTimeMillis() - time ) + " ms." );
 
 		//
@@ -336,17 +344,23 @@ public class ExportN5API implements ImgExport
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + mrInfo[ level - 1 ].dataset + "', downsampled will be written as '" + mrInfo[ level ].dataset + "'." );
+			IJ.showProgress( progress.get(), allBlocks.size() );
 
 			time = System.currentTimeMillis();
 
 			try
 			{
 				myPool.submit( () -> allBlocks.parallelStream().forEach(
-						gridBlock -> N5ApiTools.writeDownsampledBlock(
+						gridBlock ->
+						{
+							N5ApiTools.writeDownsampledBlock(
 								driverVolumeWriter,
 								mrInfo[ s ],
 								mrInfo[ s - 1 ],
-								gridBlock ) ) ).get();
+								gridBlock );
+
+							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
+						})).get();
 
 				myPool.shutdown();
 				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
@@ -358,6 +372,7 @@ public class ExportN5API implements ImgExport
 				return false;
 			}
 
+			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 

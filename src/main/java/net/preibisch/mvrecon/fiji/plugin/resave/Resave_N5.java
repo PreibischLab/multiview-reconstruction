@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
@@ -41,6 +42,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import bdv.img.n5.N5ImageLoader;
+import ij.IJ;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
@@ -160,6 +162,9 @@ public class Resave_N5 implements PlugIn
 		IOFunctions.println( "Downsamplings: " + Arrays.deepToString( downsamplings ) );
 		IOFunctions.println( "Number of compute blocks: " + grid.size() );
 
+		final AtomicInteger progress = new AtomicInteger( 0 );
+		IJ.showProgress( progress.get(), grid.size() );
+
 		//
 		// Save full resolution dataset (s0)
 		//
@@ -170,12 +175,17 @@ public class Resave_N5 implements PlugIn
 		try
 		{
 			myPool.submit(() -> grid.parallelStream().forEach(
-					gridBlock -> N5ApiTools.resaveS0Block(
+					gridBlock -> 
+					{
+						N5ApiTools.resaveS0Block(
 							data,
 							n5Writer,
 							dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
 							N5ApiTools.gridToDatasetBdv( 0, StorageType.N5 ), // a function mapping the gridblock to the dataset name for level 0 and N5
-							gridBlock ) ) ).get();
+							gridBlock );
+
+						IJ.showProgress( progress.incrementAndGet(), grid.size() );
+					})).get();
 		}
 		catch (InterruptedException | ExecutionException e)
 		{
@@ -184,6 +194,7 @@ public class Resave_N5 implements PlugIn
 			return null;
 		}
 
+		IJ.showProgress( progress.getAndSet( 0 ), grid.size() );
 		IOFunctions.println( "Saved level s0, took: " + (System.currentTimeMillis() - time ) + " ms." );
 
 		//
@@ -192,8 +203,6 @@ public class Resave_N5 implements PlugIn
 		for ( int level = 1; level < downsamplings.length; ++level )
 		{
 			final int s = level;
-			//final ArrayList<long[][]> allBlocks =
-			//		N5ApiTools.assembleJobs( vidsToResave, viewIdToMrInfo, level );
 
 			final List<long[][]> allBlocks =
 					vidsToResave.stream().map( viewId ->
@@ -203,6 +212,7 @@ public class Resave_N5 implements PlugIn
 
 			IOFunctions.println( "Downsampling level s" + s + "... " );
 			IOFunctions.println( "Number of compute blocks: " + allBlocks.size() );
+			IJ.showProgress( progress.get(), allBlocks.size() );
 
 			time = System.currentTimeMillis();
 
@@ -216,6 +226,8 @@ public class Resave_N5 implements PlugIn
 								viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
 								viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
 								gridBlock );
+
+							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 						} ) ).get();
 			}
 			catch (InterruptedException | ExecutionException e)
@@ -225,6 +237,7 @@ public class Resave_N5 implements PlugIn
 				return null;
 			}
 
+			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
 			IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 
