@@ -43,12 +43,17 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
+import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.VoxelDimensions;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -648,7 +653,7 @@ public class ExportN5API implements ImgExport
 
 			final double aniso = fusion.getAnisotropyFactor();
 			final Interval bb = fusion.getDownsampledBoundingBox();
-			final int[][] proposedDownsampling = N5ApiTools.estimateMultiResPyramid( new FinalDimensions( bb.dimensionsAsLongArray() ), aniso );
+			final int[][] proposedDownsampling = estimateMultiResPyramid( new FinalDimensions( bb.dimensionsAsLongArray() ), aniso );
 
 			final GenericDialog gdp = new GenericDialog( "Adjust downsampling options" );
 
@@ -680,6 +685,15 @@ public class ExportN5API implements ImgExport
 		}
 
 		return true;
+	}
+
+	public static int[][] estimateMultiResPyramid( final Dimensions dimensions, final double aniso )
+	{
+		final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
+		final BasicViewSetup setup = new BasicViewSetup(0, "fusion", dimensions, v );
+		final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
+
+		return emi.getExportResolutions();
 	}
 
 	private ViewId getViewIdForGroup(

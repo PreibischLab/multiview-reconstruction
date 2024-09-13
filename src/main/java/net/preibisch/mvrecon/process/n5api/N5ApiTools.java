@@ -17,17 +17,12 @@ import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import bdv.export.ExportMipmapInfo;
-import bdv.export.ProposeMipmaps;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import mpicbg.spim.data.sequence.VoxelDimensions;
-import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -144,15 +139,6 @@ public class N5ApiTools
 		{
 			throw new RuntimeException( "BDV-compatible dataset cannot be written for " + storageType + " (yet).");
 		}
-	}
-
-	public static int[][] estimateMultiResPyramid( final Dimensions dimensions, final double aniso )
-	{
-		final VoxelDimensions v = new FinalVoxelDimensions( "px", 1.0, 1.0, Double.isNaN( aniso ) ? 1.0 : aniso );
-		final BasicViewSetup setup = new BasicViewSetup(0, "fusion", dimensions, v );
-		final ExportMipmapInfo emi = ProposeMipmaps.proposeMipmaps( setup );
-
-		return emi.getExportResolutions();
 	}
 
 	public static class MultiResolutionLevelInfo implements Serializable
@@ -454,34 +440,6 @@ public class N5ApiTools
 			throw new RuntimeException("Unsupported pixel type: " + dataType );
 		}
 	}
-
-	/*
-	public static ArrayList<long[][]> assembleJobs(
-			final Collection< ? extends ViewId > viewIds,
-			final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo,
-			final int level )
-	{
-		// all blocks (a.k.a. grids) across all ViewId's
-		final ArrayList<long[][]> allBlocks = new ArrayList<>();
-
-		viewIds.forEach( viewId -> allBlocks.addAll( assembleJobs( viewId, viewIdToMrInfo.get( viewId )[ level ] ) ) );
-
-		return allBlocks;
-	}
-
-	public static ArrayList<long[][]> assembleJobs(
-			final Collection< ? extends ViewId > viewIds,
-			final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo,
-			final int level,
-			final int[] computeBlockSize )
-	{
-		// all blocks (a.k.a. grids) across all ViewId's
-		final ArrayList<long[][]> allBlocks = new ArrayList<>();
-
-		viewIds.forEach( viewId -> allBlocks.addAll( assembleJobs( viewId, viewIdToMrInfo.get( viewId )[ level ], computeBlockSize ) ) );
-
-		return allBlocks;
-	}*/
 
 	public static ArrayList<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
 	{
