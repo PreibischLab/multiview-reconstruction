@@ -46,6 +46,7 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -127,25 +128,31 @@ public class Resave_N5 implements PlugIn
 		final int[][] downsamplings =
 				N5ApiTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
 
-		final ArrayList<long[][]> grid =
-				N5ApiTools.assembleS0Jobs( vidsToResave, dimensions, blockSize, computeBlockSize );
+		final List<long[][]> grid =
+				vidsToResave.stream().map( viewId ->
+						N5ApiTools.assembleJobs(
+								viewId,
+								dimensions.get( viewId.getViewSetupId() ),
+								blockSize,
+								computeBlockSize ) ).flatMap(List::stream).collect( Collectors.toList() );
 
 		final Map<Integer, DataType> dataTypes =
 				N5ApiTools.assembleDataTypes( data, dimensions.keySet() );
 
-		// create all datasets and write BDV metadata for all ViewIds (including downsampling)
-		final HashMap< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo = new HashMap<>();
-
+		// create all datasets and write BDV metadata for all ViewIds (including downsampling) in parallel
 		long time = System.currentTimeMillis();
 
-		for ( final ViewId viewId : vidsToResave )
-			viewIdToMrInfo.put( viewId , N5ApiTools.setupBdvDatasetsN5(
-				n5Writer, viewId,
-				dataTypes.get( viewId.getViewSetupId() ),
-				dimensions.get( viewId.getViewSetupId() ),
-				compression,
-				blockSize,
-				downsamplings) );
+		final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo =
+				vidsToResave.parallelStream().map(
+						viewId -> new ValuePair<>(
+								viewId,
+								N5ApiTools.setupBdvDatasetsN5(
+										n5Writer, viewId,
+										dataTypes.get( viewId.getViewSetupId() ),
+										dimensions.get( viewId.getViewSetupId() ),
+										compression,
+										blockSize,
+										downsamplings ) ) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		IOFunctions.println( "Dimensions of raw images: " );
@@ -185,8 +192,14 @@ public class Resave_N5 implements PlugIn
 		for ( int level = 1; level < downsamplings.length; ++level )
 		{
 			final int s = level;
-			final ArrayList<long[][]> allBlocks =
-					N5ApiTools.assembleDownsamplingJobs( vidsToResave, viewIdToMrInfo, level );
+			//final ArrayList<long[][]> allBlocks =
+			//		N5ApiTools.assembleJobs( vidsToResave, viewIdToMrInfo, level );
+
+			final List<long[][]> allBlocks =
+					vidsToResave.stream().map( viewId ->
+							N5ApiTools.assembleJobs(
+									viewId,
+									viewIdToMrInfo.get(viewId)[s] )).flatMap(List::stream).collect( Collectors.toList() );
 
 			IOFunctions.println( "Downsampling level s" + s + "... " );
 			IOFunctions.println( "Number of compute blocks: " + allBlocks.size() );

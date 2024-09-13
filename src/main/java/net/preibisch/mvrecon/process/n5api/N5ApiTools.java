@@ -264,7 +264,7 @@ public class N5ApiTools
 	{
 		final String subdivisionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions";
 		final String resolutionsDatasets = "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions";
-		
+
 		if ( driverVolumeWriter.datasetExists( subdivisionsDatasets ) && driverVolumeWriter.datasetExists( resolutionsDatasets ) )
 		{
 			// TODO: test that the values are consistent?
@@ -455,7 +455,8 @@ public class N5ApiTools
 		}
 	}
 
-	public static ArrayList<long[][]> assembleDownsamplingJobs(
+	/*
+	public static ArrayList<long[][]> assembleJobs(
 			final Collection< ? extends ViewId > viewIds,
 			final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo,
 			final int level )
@@ -463,30 +464,90 @@ public class N5ApiTools
 		// all blocks (a.k.a. grids) across all ViewId's
 		final ArrayList<long[][]> allBlocks = new ArrayList<>();
 
-		viewIds.forEach( viewId -> allBlocks.addAll( assembleDownsamplingJobs( viewId, viewIdToMrInfo.get( viewId )[ level ] ) ) );
+		viewIds.forEach( viewId -> allBlocks.addAll( assembleJobs( viewId, viewIdToMrInfo.get( viewId )[ level ] ) ) );
 
 		return allBlocks;
 	}
-	public static ArrayList<long[][]> assembleDownsamplingJobs( final MultiResolutionLevelInfo mrInfo )
-	{
-		return assembleDownsamplingJobs( null, mrInfo );
-	}
 
-	public static ArrayList<long[][]> assembleDownsamplingJobs(
-			final ViewId viewId,
-			final MultiResolutionLevelInfo mrInfo )
+	public static ArrayList<long[][]> assembleJobs(
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo,
+			final int level,
+			final int[] computeBlockSize )
 	{
 		// all blocks (a.k.a. grids) across all ViewId's
 		final ArrayList<long[][]> allBlocks = new ArrayList<>();
 
+		viewIds.forEach( viewId -> allBlocks.addAll( assembleJobs( viewId, viewIdToMrInfo.get( viewId )[ level ], computeBlockSize ) ) );
+
+		return allBlocks;
+	}*/
+
+	public static ArrayList<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
+	{
+		return assembleJobs( null, mrInfo );
+	}
+
+	public static ArrayList<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo, final int[] computeBlockSize )
+	{
+		return assembleJobs( null, mrInfo, computeBlockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final ViewId viewId,
+			final MultiResolutionLevelInfo mrInfo )
+	{
+		return assembleJobs( viewId, mrInfo.dimensions, mrInfo.blockSize, mrInfo.blockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final ViewId viewId,
+			final MultiResolutionLevelInfo mrInfo,
+			final int[] computeBlockSize )
+	{
+		return assembleJobs( viewId, mrInfo.dimensions, mrInfo.blockSize, computeBlockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final long[] dimensions,
+			final int[] blockSize )
+	{
+		return assembleJobs(null, dimensions, blockSize, blockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final long[] dimensions,
+			final int[] blockSize,
+			final int[] computeBlockSize )
+	{
+		return assembleJobs(null, dimensions, blockSize, computeBlockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final ViewId viewId, //can be null 
+			final long[] dimensions,
+			final int[] blockSize )
+	{
+		return assembleJobs(viewId, dimensions, blockSize, blockSize );
+	}
+
+	public static ArrayList<long[][]> assembleJobs(
+			final ViewId viewId, //can be null 
+			final long[] dimensions,
+			final int[] blockSize,
+			final int[] computeBlockSize )
+	{
+		// all blocks (a.k.a. grids)
+		final ArrayList<long[][]> allBlocks = new ArrayList<>();
+
 		final List<long[][]> grid = Grid.create(
-				mrInfo.dimensions,
-				mrInfo.blockSize,
-				mrInfo.blockSize);
+				dimensions,
+				computeBlockSize,
+				blockSize);
 
 		if ( viewId != null )
 		{
-			// add timepointId and ViewSetupId to the gridblock
+			// add timepointId and ViewSetupId & dimensions to the gridblock
 			for ( final long[][] gridBlock : grid )
 				allBlocks.add( new long[][]{
 					gridBlock[ 0 ].clone(),
@@ -571,35 +632,6 @@ public class N5ApiTools
 				downsamplings = info.getExportResolutions();
 
 		return downsamplings;
-	}
-
-	public static ArrayList<long[][]> assembleS0Jobs(
-			final Collection< ? extends ViewId > viewIds,
-			final HashMap< Integer, long[] > viewSetupIdToDimensions,
-			final int[] blockSize,
-			final int[] computeBlockSize )
-	{
-		// all blocks (a.k.a. grids) across all ViewId's
-		final ArrayList<long[][]> allBlocks = new ArrayList<>();
-
-		for ( final ViewId viewId : viewIds )
-		{
-			final List<long[][]> grid = Grid.create(
-					viewSetupIdToDimensions.get( viewId.getViewSetupId() ),
-					computeBlockSize,
-					blockSize);
-
-			// add timepointId and ViewSetupId & dimensions to the gridblock
-			for ( final long[][] gridBlock : grid )
-				allBlocks.add( new long[][]{
-					gridBlock[ 0 ].clone(),
-					gridBlock[ 1 ].clone(),
-					gridBlock[ 2 ].clone(),
-					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
-				});
-		}
-
-		return allBlocks;
 	}
 
 	public static HashMap<Integer, long[]> assembleDimensions(

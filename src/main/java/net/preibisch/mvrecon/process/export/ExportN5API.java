@@ -263,15 +263,13 @@ public class ExportN5API implements ImgExport
 					this.downsampling );
 		}
 
-		final List<long[][]> grid =
-				Grid.create(
-						bb.dimensionsAsLongArray(),
-						new int[] {
-								blocksize()[0] * computeBlocksizeFactor()[ 0 ],
-								blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-								blocksize()[2] * computeBlocksizeFactor()[ 2 ]
-						},
-						blocksize() );
+		final List<long[][]> grid = N5ApiTools.assembleJobs(
+				mrInfo[ 0 ],
+				new int[] {
+						blocksize()[0] * computeBlocksizeFactor()[ 0 ],
+						blocksize()[1] * computeBlocksizeFactor()[ 1 ],
+						blocksize()[2] * computeBlocksizeFactor()[ 2 ]
+				} );
 
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
@@ -325,40 +323,37 @@ public class ExportN5API implements ImgExport
 		//
 		// save multiresolution pyramid (s1 ... sN)
 		//
-		if ( this.downsampling != null )
+		for ( int level = 1; level < mrInfo.length; ++level )
 		{
-			for ( int level = 1; level < this.downsampling.length; ++level )
+			final int s = level;
+			final ArrayList<long[][]> allBlocks = N5ApiTools.assembleJobs( mrInfo[ level ] );
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + mrInfo[ level - 1 ].dataset + "', downsampled will be written as '" + mrInfo[ level ].dataset + "'." );
+
+			time = System.currentTimeMillis();
+
+			try
 			{
-				final int s = level;
-				final ArrayList<long[][]> allBlocks = N5ApiTools.assembleDownsamplingJobs( mrInfo[ level ] );
+				myPool.submit( () -> allBlocks.parallelStream().forEach(
+						gridBlock -> N5ApiTools.writeDownsampledBlock(
+								driverVolumeWriter,
+								mrInfo[ s ],
+								mrInfo[ s - 1 ],
+								gridBlock ) ) ).get();
 
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + mrInfo[ level - 1 ].dataset + "', downsampled will be written as '" + mrInfo[ level ].dataset + "'." );
-
-				time = System.currentTimeMillis();
-
-				try
-				{
-					myPool.submit( () -> allBlocks.parallelStream().forEach(
-							gridBlock -> N5ApiTools.writeDownsampledBlock(
-									driverVolumeWriter,
-									mrInfo[ s ],
-									mrInfo[ s - 1 ],
-									gridBlock ) ) ).get();
-
-					myPool.shutdown();
-					myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
-				}
-				catch (InterruptedException | ExecutionException e)
-				{
-					IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ level ].dataset + "'. Error: " + e );
-					e.printStackTrace();
-					return false;
-				}
-
-				IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
+				myPool.shutdown();
+				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
 			}
+			catch (InterruptedException | ExecutionException e)
+			{
+				IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ level ].dataset + "'. Error: " + e );
+				e.printStackTrace();
+				return false;
+			}
+
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 
 		return true;
