@@ -45,7 +45,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5Api;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF.ParametersResaveAsTIFF;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -309,7 +309,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 							basePathURI = data.getBasePathURI();
 						}
 
-						final SpimData2 newSpimData = Resave_N5.resaveN5( data, viewIds, n5params, false );
+						final SpimData2 newSpimData = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
 						// replace imgLoader
 						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5URI, newSpimData.getSequenceDescription() ) );

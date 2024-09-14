@@ -107,7 +107,7 @@ import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5;
+import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5Api;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -1316,7 +1316,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if ( n5params == null )
 				return null;
 
-			data = Resave_N5.resaveN5( data, viewIds, n5params, false );
+			data = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
 			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 			//final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, chosenPathXMLURI , new ArrayList<>() );

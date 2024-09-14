@@ -60,7 +60,7 @@ import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import util.Grid;
 import util.URITools;
 
-public class Resave_N5 implements PlugIn
+public class Resave_N5Api implements PlugIn
 {
 	@Override
 	public void run(String arg)
@@ -275,6 +275,6 @@ public class Resave_N5 implements PlugIn
 		});
 
 		new ImageJ();
-		new Resave_N5().run( null );
+		new Resave_N5Api().run( null );
 	}
 }
