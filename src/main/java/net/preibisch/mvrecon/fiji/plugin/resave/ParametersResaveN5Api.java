@@ -62,6 +62,7 @@ public class ParametersResaveN5Api
 	public Map< Integer, ExportMipmapInfo > proposedMipmaps;
 
 	public Compression compression;
+	public int format = 0; // 0 == N5, 1 == HDF5
 	public int numCellCreatorThreads = 1;
 
 	public static URI createN5URIfromXMLURI( final URI xmlURI )
@@ -72,7 +73,7 @@ public class ParametersResaveN5Api
 	public static ParametersResaveN5Api getParamtersIJ(
 			final Collection< ViewSetup > setupsToProcess )
 	{
-		return getParamtersIJ( null, null, setupsToProcess, false );
+		return getParamtersIJ( null, null, setupsToProcess, false, false );
 	}
 
 	public static ParametersResaveN5Api getParamtersIJ(
@@ -82,13 +83,14 @@ public class ParametersResaveN5Api
 	{
 		final URI n5URI = createN5URIfromXMLURI( xmlURI );
 
-		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, askForPaths );
+		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, false, askForPaths );
 	}
 
 	public static ParametersResaveN5Api getParamtersIJ(
 			final URI xmlURI,
 			final URI n5URI,
 			final Collection< ViewSetup > setupsToProcess,
+			final boolean askForFormat,
 			final boolean askForPaths )
 	{
 		final ParametersResaveN5Api n5params = new ParametersResaveN5Api();
@@ -147,6 +149,12 @@ public class ParametersResaveN5Api
 			gdp.addDirectoryField( "N5_path", n5URI.toString(), 65 );
 		}
 
+		if ( askForFormat )
+		{
+			final String[] options = new String[] { "N5", "HDF5" };
+			gdp.addChoice( "Format for raw data", options, options[ 0 ] );
+		}
+
 		gdp.showDialog();
 
 		if (gdp.wasCanceled())
@@ -185,6 +193,9 @@ public class ParametersResaveN5Api
 			n5params.xmlURI = xmlURI;
 			n5params.n5URI = n5URI;
 		}
+
+		if ( askForFormat )
+			n5params.format = gdp.getNextChoiceIndex();
 
 		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"
 			n5params.compression = new Bzip2Compression();

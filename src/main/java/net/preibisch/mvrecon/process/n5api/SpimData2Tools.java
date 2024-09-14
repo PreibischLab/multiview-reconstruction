@@ -19,6 +19,7 @@ import java.util.Set;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
@@ -56,7 +57,6 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
-import net.preibisch.mvrecon.process.export.ExportN5Api.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import util.URITools;
@@ -65,7 +65,7 @@ public class SpimData2Tools
 {
 	public static MultiResolutionLevelInfo[] writeBDVMetaData(
 			final N5Writer driverVolumeWriter,
-			final StorageType storageType,
+			final StorageFormat storageType,
 			final DataType dataType,
 			final long[] dimensions,
 			final Compression compression,
@@ -79,7 +79,7 @@ public class SpimData2Tools
 		IOFunctions.println( "Creating datasets and writing BDV-metadata ... " );
 
 		//final String xmlPath = null;
-		if ( StorageType.N5.equals(storageType) )
+		if ( StorageFormat.N5.equals(storageType) )
 		{	
 			System.out.println( "XML: " + xmlOutPathURI );
 
@@ -103,7 +103,7 @@ public class SpimData2Tools
 					blockSize,
 					downsamplings );
 		}
-		else if ( StorageType.HDF5.equals(storageType) )
+		else if ( StorageFormat.HDF5.equals(storageType) )
 		{
 			System.out.println( "XML: " + xmlOutPathURI );
 
@@ -135,7 +135,7 @@ public class SpimData2Tools
 	}
 	public static Pair<Boolean, Boolean> writeSpimData(
 			final ViewId viewId,
-			final StorageType storageType,
+			final StorageFormat storageType,
 			final long[] dimensions,
 			final URI n5PathURI,
 			final URI xmlOutPathURI,
@@ -208,9 +208,9 @@ public class SpimData2Tools
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
 
-			if ( StorageType.N5.equals(storageType) )
+			if ( StorageFormat.N5.equals(storageType) )
 				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
-			else if ( StorageType.HDF5.equals(storageType) )
+			else if ( StorageFormat.HDF5.equals(storageType) )
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );
@@ -256,9 +256,9 @@ public class SpimData2Tools
 			final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
-			if ( StorageType.N5.equals(storageType) )
+			if ( StorageFormat.N5.equals(storageType) )
 				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
-			else if ( StorageType.HDF5.equals(storageType) )
+			else if ( StorageFormat.HDF5.equals(storageType) )
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );

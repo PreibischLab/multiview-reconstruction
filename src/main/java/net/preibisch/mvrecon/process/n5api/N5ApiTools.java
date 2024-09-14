@@ -16,6 +16,7 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import bdv.export.ExportMipmapInfo;
 import mpicbg.spim.data.SpimData;
@@ -40,7 +41,6 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
-import net.preibisch.mvrecon.process.export.ExportN5Api.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
@@ -59,7 +59,7 @@ public class N5ApiTools
 	 * @param storageType - N5 or HDF5 (soon Zarr)
 	 * @return a Function that maps the gridBlock to a N5 dataset name
 	 */
-	public static Function<long[][], String> gridToDatasetBdv( final int level, final StorageType storageType )
+	public static Function<long[][], String> gridToDatasetBdv( final int level, final StorageFormat storageType )
 	{
 		return (gridBlock) -> viewIdToDatasetBdv( level, storageType ).apply( gridBlockToViewId( gridBlock ) );
 	}
@@ -69,7 +69,7 @@ public class N5ApiTools
 	 * @param storageType - N5 or HDF5 (soon Zarr)
 	 * @return a Function that maps the ViewId to a N5 dataset name
 	 */
-	public static Function<ViewId, String> viewIdToDatasetBdv( final int level, final StorageType storageType )
+	public static Function<ViewId, String> viewIdToDatasetBdv( final int level, final StorageFormat storageType )
 	{
 		return (viewId) -> createBDVPath( viewId, level, storageType );
 	}
@@ -78,7 +78,7 @@ public class N5ApiTools
 	 * @param storageType - N5 or HDF5 (soon Zarr)
 	 * @return a Function that maps (ViewId, level) to a N5 dataset name
 	 */
-	public static BiFunction<ViewId, Integer, String> viewIdToDatasetBdv( final StorageType storageType )
+	public static BiFunction<ViewId, Integer, String> viewIdToDatasetBdv( final StorageFormat storageType )
 	{
 		return (viewId, level) -> viewIdToDatasetBdv( level, storageType ).apply( viewId );
 	}
@@ -87,7 +87,7 @@ public class N5ApiTools
 	 * @param storageType - N5 or HDF5 (soon Zarr)
 	 * @return a Function that maps (gridBlock, level) to a N5 dataset name
 	 */
-	public static BiFunction<long[][], Integer, String> gridToDatasetBdv( final StorageType storageType )
+	public static BiFunction<long[][], Integer, String> gridToDatasetBdv( final StorageFormat storageType )
 	{
 		return (gridBlock, level) -> gridToDatasetBdv( level, storageType ).apply( gridBlock );
 	}
@@ -101,20 +101,20 @@ public class N5ApiTools
 		return new ViewId(timepointId, viewSetupId);
 	}
 
-	public static String createBDVPath(final String bdvString, final int level, final StorageType storageType)
+	public static String createBDVPath(final String bdvString, final int level, final StorageFormat storageType)
 	{
 		return createBDVPath( getViewId( bdvString ), level, storageType);
 	}
 
-	public static String createBDVPath( final ViewId viewId, final int level, final StorageType storageType)
+	public static String createBDVPath( final ViewId viewId, final int level, final StorageFormat storageType)
 	{
 		String path = null;
 
-		if ( StorageType.N5.equals(storageType) )
+		if ( StorageFormat.N5.equals(storageType) )
 		{
 			path = "setup" + viewId.getViewSetupId() + "/" + "timepoint" + viewId.getTimePointId() + "/s" + level;
 		}
-		else if ( StorageType.HDF5.equals(storageType) )
+		else if ( StorageFormat.HDF5.equals(storageType) )
 		{
 			path = "t" + String.format("%05d", viewId.getTimePointId()) + "/" + "s" + String.format("%02d", viewId.getViewSetupId()) + "/" + level + "/cells";
 		}
@@ -126,13 +126,13 @@ public class N5ApiTools
 		return path;
 	}
 
-	public static String createDownsampledBDVPath( final String s0path, final int level, final StorageType storageType )
+	public static String createDownsampledBDVPath( final String s0path, final int level, final StorageFormat storageType )
 	{
-		if ( StorageType.N5.equals(storageType) )
+		if ( StorageFormat.N5.equals(storageType) )
 		{
 			return s0path.substring( 0, s0path.length() - 3 ) + "/s" + level;
 		}
-		else if ( StorageType.HDF5.equals(storageType) )
+		else if ( StorageFormat.HDF5.equals(storageType) )
 		{
 			return s0path.substring( 0, s0path.length() - 8 ) + "/" + level + "/cells";
 		}
@@ -255,7 +255,7 @@ public class N5ApiTools
 		final MultiResolutionLevelInfo[] mrInfo = setupMultiResolutionPyramid(
 				driverVolumeWriter,
 				viewId,
-				viewIdToDatasetBdv( StorageType.N5 ),
+				viewIdToDatasetBdv( StorageFormat.HDF5 ),
 				dataType,
 				dimensions,
 				compression,
@@ -325,14 +325,14 @@ public class N5ApiTools
 			final int[] blockSize,
 			int[][] downsamplings )
 	{
-		final String s0Dataset = createBDVPath( viewId, 0, StorageType.N5 );
+		final String s0Dataset = createBDVPath( viewId, 0, StorageFormat.N5 );
 		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
 		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
 
 		final MultiResolutionLevelInfo[] mrInfo = setupMultiResolutionPyramid(
 				driverVolumeWriter,
 				viewId,
-				viewIdToDatasetBdv( StorageType.N5 ),
+				viewIdToDatasetBdv( StorageFormat.N5 ),
 				dataType,
 				dimensions,
 				compression,

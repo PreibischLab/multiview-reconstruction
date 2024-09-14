@@ -83,8 +83,6 @@ import util.URITools;
 
 public class ExportN5Api implements ImgExport
 {
-	public enum StorageType { N5, ZARR, HDF5 }
-
 	public static String defaultPathURI = null;
 	public static int defaultOption = 2;
 	public static String defaultDatasetName = "fused";
@@ -114,7 +112,7 @@ public class ExportN5Api implements ImgExport
 	public static int defaultBlocksizeFactorY_H5 = 4;
 	public static int defaultBlocksizeFactorZ_H5 = 4;
 
-	StorageType storageType = StorageType.values()[ defaultOption ];
+	StorageFormat storageType = StorageFormat.values()[ defaultOption ];
 	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
 	String baseDataset = defaultBaseDataset;
 	String datasetExtension = defaultDatasetExtension;
@@ -176,15 +174,15 @@ public class ExportN5Api implements ImgExport
 
 			try
 			{
-				if ( storageType == StorageType.N5 )
+				if ( storageType == StorageFormat.N5 )
 				{
 					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.N5, path );
 				}
-				else if ( storageType == StorageType.ZARR )
+				else if ( storageType == StorageFormat.ZARR )
 				{
 					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.ZARR, path );
 				}
-				else if ( storageType == StorageType.HDF5 )
+				else if ( storageType == StorageFormat.HDF5 )
 				{
 					final File dir = new File( URITools.removeFilePrefix( path ) ).getParentFile();
 					if ( !dir.exists() )
@@ -388,7 +386,7 @@ public class ExportN5Api implements ImgExport
 		final GenericDialogPlus gdInit = new GenericDialogPlus( "Save fused images as ZARR/N5/HDF5 using N5-API" );
 
 		final String[] options = 
-				Arrays.asList( StorageType.values() ).stream().map( s -> s.name() ).toArray(String[]::new);
+				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name() ).toArray(String[]::new);
 
 		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
 
@@ -422,7 +420,7 @@ public class ExportN5Api implements ImgExport
 			return false;
 
 		final int previousExportOption = defaultOption;
-		this.storageType = StorageType.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
+		this.storageType = StorageFormat.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
 		this.bdv = defaultBDV = gdInit.getNextBoolean();
 		final boolean multiRes = defaultMultiRes = gdInit.getNextBoolean();
 		this.splittingType = fusion.getSplittingType();
@@ -431,20 +429,20 @@ public class ExportN5Api implements ImgExport
 		final String name = storageType.name();
 		final String ext;
 
-		if ( storageType == StorageType.HDF5 )
+		if ( storageType == StorageFormat.HDF5 )
 			ext = ".h5";
-		else if ( storageType == StorageType.N5 )
+		else if ( storageType == StorageFormat.N5 )
 			ext = ".n5";
 		else
 			ext = ".zarr";
 
-		if ( bdv && storageType == StorageType.ZARR )
+		if ( bdv && storageType == StorageFormat.ZARR )
 		{
 			IOFunctions.println( "BDV-compatible ZARR file not (yet) supported." );
 			return false;
 		}
 
-		if ( bdv && storageType == StorageType.HDF5 && fusion.getPixelType() == 0 )
+		if ( bdv && storageType == StorageFormat.HDF5 && fusion.getPixelType() == 0 )
 		{
 			IOFunctions.println( "BDV-compatible HDF5 @ 32-bit not (yet) supported." );
 			return false;
@@ -458,7 +456,7 @@ public class ExportN5Api implements ImgExport
 		if ( defaultPathURI == null || defaultPathURI.toString().trim().length() == 0 )
 			defaultPathURI = URITools.appendName( fusion.getSpimData().getBasePathURI(), defaultDatasetName + "/" + defaultDatasetName+ext );
 
-		if ( storageType == StorageType.HDF5 )
+		if ( storageType == StorageFormat.HDF5 )
 			PluginHelper.addSaveAsFileField( gd, name + "_file (local only, end with "+ext+")", defaultPathURI, 80 );
 		else
 			PluginHelper.addSaveAsDirectoryField( gd, name + "_dataset_path (local or cloud, end with "+ext+")", defaultPathURI, 80 );
@@ -468,7 +466,7 @@ public class ExportN5Api implements ImgExport
 			if ( defaultXMLOutURI == null )
 				defaultXMLOutURI = URITools.appendName( fusion.getSpimData().getBasePathURI(), defaultDatasetName + "/dataset.xml" );
 
-			if ( storageType == StorageType.HDF5 )
+			if ( storageType == StorageFormat.HDF5 )
 				PluginHelper.addSaveAsFileField( gd, "XML_output_file (local)", defaultXMLOutURI, 80 );
 			else
 				PluginHelper.addSaveAsFileField( gd, "XML_output_file (local or cloud)", defaultXMLOutURI, 80 );
@@ -518,7 +516,7 @@ public class ExportN5Api implements ImgExport
 			}
 		}
 		*/
-		if ( storageType == StorageType.HDF5 )
+		if ( storageType == StorageFormat.HDF5 )
 		{
 			gd.addMessage(
 					"Default blocksize for HDF5: "+defaultBlocksizeX_H5+"x"+defaultBlocksizeY_H5+"x"+defaultBlocksizeZ_H5+"\n" +
@@ -555,7 +553,7 @@ public class ExportN5Api implements ImgExport
 			return false;
 		}
 
-		if ( storageType == StorageType.HDF5 && !URITools.isFile( this.path ))
+		if ( storageType == StorageFormat.HDF5 && !URITools.isFile( this.path ))
 		{
 			IOFunctions.println( "When storing as HDF5, only local paths are supported; you specified '" + this.path+ "', which appears to not be local. Stopping." );
 			return false;
@@ -579,7 +577,7 @@ public class ExportN5Api implements ImgExport
 				return false;
 			}
 
-			if ( storageType == StorageType.HDF5 && !URITools.isFile( this.xmlOut ))
+			if ( storageType == StorageFormat.HDF5 && !URITools.isFile( this.xmlOut ))
 			{
 				IOFunctions.println( "When storing as HDF5, only local paths are supported; you specified '" + this.xmlOut+ "', which appears to not be local. Stopping." );
 				return false;
@@ -607,13 +605,13 @@ public class ExportN5Api implements ImgExport
 		{
 			final GenericDialog gd2 = new GenericDialog( "Compute block sizes" );
 
-			gd2.addNumericField( "block_size_x", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeX_H5 : defaultBlocksizeX_N5, 0);
-			gd2.addNumericField( "block_size_y", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeY_H5 : defaultBlocksizeY_N5, 0);
-			gd2.addNumericField( "block_size_z", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeZ_H5 : defaultBlocksizeZ_N5, 0);
+			gd2.addNumericField( "block_size_x", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeX_H5 : defaultBlocksizeX_N5, 0);
+			gd2.addNumericField( "block_size_y", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeY_H5 : defaultBlocksizeY_N5, 0);
+			gd2.addNumericField( "block_size_z", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeZ_H5 : defaultBlocksizeZ_N5, 0);
 
-			gd2.addNumericField( "block_size_factor_x", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorX_H5 : defaultBlocksizeFactorX_N5, 0);
-			gd2.addNumericField( "block_size_factor_y", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorY_H5 : defaultBlocksizeFactorY_N5, 0);
-			gd2.addNumericField( "block_size_factor_z", ( storageType == StorageType.HDF5 ) ? defaultBlocksizeFactorZ_H5 : defaultBlocksizeFactorZ_N5, 0);
+			gd2.addNumericField( "block_size_factor_x", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeFactorX_H5 : defaultBlocksizeFactorX_N5, 0);
+			gd2.addNumericField( "block_size_factor_y", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeFactorY_H5 : defaultBlocksizeFactorY_N5, 0);
+			gd2.addNumericField( "block_size_factor_z", ( storageType == StorageFormat.HDF5 ) ? defaultBlocksizeFactorZ_H5 : defaultBlocksizeFactorZ_N5, 0);
 
 			gd2.addMessage(
 					"For smaller blocksizes (or very large images) you can define compute block sizes\n"
@@ -633,7 +631,7 @@ public class ExportN5Api implements ImgExport
 			bsFactorY = (int)Math.round( gd2.getNextNumber() );
 			bsFactorZ = (int)Math.round( gd2.getNextNumber() );
 
-			if ( storageType == StorageType.HDF5 )
+			if ( storageType == StorageFormat.HDF5 )
 			{
 				defaultBlocksizeX_H5 = bsX; defaultBlocksizeY_H5 = bsY; defaultBlocksizeZ_H5 = bsZ;
 				defaultBlocksizeFactorX_H5 = bsFactorX; defaultBlocksizeFactorY_H5 = bsFactorY; defaultBlocksizeFactorZ_H5 = bsFactorZ;
@@ -646,7 +644,7 @@ public class ExportN5Api implements ImgExport
 		}
 		else
 		{
-			if ( storageType == StorageType.HDF5 )
+			if ( storageType == StorageFormat.HDF5 )
 			{
 				bsX = defaultBlocksizeX_H5; bsY = defaultBlocksizeY_H5; bsZ = defaultBlocksizeZ_H5;
 				bsFactorX = defaultBlocksizeFactorX_H5; bsFactorY = defaultBlocksizeFactorY_H5; bsFactorZ = defaultBlocksizeFactorZ_H5;

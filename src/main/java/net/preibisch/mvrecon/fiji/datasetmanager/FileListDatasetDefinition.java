@@ -1311,6 +1311,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 					xmlURI,
 					n5DatasetURI,
 					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
+					false,
 					false ); // do not ask for paths again
 
 			if ( n5params == null )

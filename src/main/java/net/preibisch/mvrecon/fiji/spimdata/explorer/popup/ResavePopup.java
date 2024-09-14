@@ -292,6 +292,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 								panel.xml(),
 								n5DatasetURI,
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
+								true,
 								index == 5 );
 
 						if ( n5params == null )
@@ -312,8 +313,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						final SpimData2 newSpimData = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
 						// replace imgLoader
-						newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5URI, newSpimData.getSequenceDescription() ) );
-						newSpimData.setBasePathURI( basePathURI );
+						//newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5params.n5URI, newSpimData.getSequenceDescription() ) );
+						//newSpimData.setBasePathURI( basePathURI );
 
 						// make sure interestpoints are saved to the new location as well
 						if ( index == 5 && !n5params.xmlURI.equals( panel.xml() ) )

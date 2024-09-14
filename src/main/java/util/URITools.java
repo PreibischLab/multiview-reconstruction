@@ -22,6 +22,7 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
@@ -158,6 +159,8 @@ public class URITools
 				return new N5FSWriter( URITools.removeFilePrefix( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
 				return new N5ZarrWriter( URITools.removeFilePrefix( uri ) );
+			else if ( format.equals( StorageFormat.HDF5 ))
+				return new N5HDF5Writer( URITools.removeFilePrefix( uri ) );
 			else
 				throw new RuntimeException( "Format: " + format + " not supported." );
 		}

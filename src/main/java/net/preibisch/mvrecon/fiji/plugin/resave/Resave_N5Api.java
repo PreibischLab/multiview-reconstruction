@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.plugin.resave;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,9 +39,11 @@ import java.util.stream.Collectors;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
+import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
 import ij.IJ;
 import ij.ImageJ;
@@ -53,7 +56,6 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.process.export.ExportN5Api.StorageType;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
@@ -114,8 +116,10 @@ public class Resave_N5Api implements PlugIn
 			});
 		}
 
+		final StorageFormat format = (n5Params.format == 0 ) ? StorageFormat.N5 : StorageFormat.HDF5;
+
 		// save to cloud or file
-		final N5Writer n5Writer = URITools.instantiateGuessedN5Writer( n5Params.n5URI );
+		final N5Writer n5Writer = URITools.instantiateN5Writer( format, n5Params.n5URI );
 
 		final int[] blockSize = n5Params.subdivisions[ 0 ];
 		final int[] computeBlockSize = new int[ blockSize.length ];
@@ -152,14 +156,25 @@ public class Resave_N5Api implements PlugIn
 				vidsToResave.parallelStream().map(
 						viewId -> new ValuePair<>(
 								viewId,
-								N5ApiTools.setupBdvDatasetsN5(
-										n5Writer,
-										viewId,
-										dataTypes.get( viewId.getViewSetupId() ),
-										dimensions.get( viewId.getViewSetupId() ),
-										compression,
-										blockSize,
-										downsamplings ) ) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
+								( format == StorageFormat.N5 ) ?
+									N5ApiTools.setupBdvDatasetsN5(
+											n5Writer,
+											viewId,
+											dataTypes.get( viewId.getViewSetupId() ),
+											dimensions.get( viewId.getViewSetupId() ),
+											compression,
+											blockSize,
+											downsamplings )
+									:
+										N5ApiTools.setupBdvDatasetsHDF5(
+												n5Writer,
+												viewId,
+												dataTypes.get( viewId.getViewSetupId() ),
+												dimensions.get( viewId.getViewSetupId() ),
+												compression,
+												blockSize,
+												downsamplings )
+										) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		IOFunctions.println( "Number of compute blocks: " + grid.size() );
@@ -183,7 +198,7 @@ public class Resave_N5Api implements PlugIn
 							data,
 							n5Writer,
 							dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
-							N5ApiTools.gridToDatasetBdv( 0, StorageType.N5 ), // a function mapping the gridblock to the dataset name for level 0 and N5
+							N5ApiTools.gridToDatasetBdv( 0, format ), // a function mapping the gridblock to the dataset name for level 0 and N5
 							gridBlock );
 
 						IJ.showProgress( progress.incrementAndGet(), grid.size() );
@@ -191,7 +206,7 @@ public class Resave_N5Api implements PlugIn
 		}
 		catch (InterruptedException | ExecutionException e)
 		{
-			IOFunctions.println( "Failed to write s0 for N5 '" + n5Params.n5URI + "'. Error: " + e );
+			IOFunctions.println( "Failed to write s0 for " + format + " '" + n5Params.n5URI + "'. Error: " + e );
 			e.printStackTrace();
 			return null;
 		}
@@ -234,13 +249,13 @@ public class Resave_N5Api implements PlugIn
 			}
 			catch (InterruptedException | ExecutionException e)
 			{
-				IOFunctions.println( "Failed to write downsample step s" + s +" for N5 '" + n5Params.n5URI + "'. Error: " + e );
+				IOFunctions.println( "Failed to write downsample step s" + s +" for " + format + " '" + n5Params.n5URI + "'. Error: " + e );
 				e.printStackTrace();
 				return null;
 			}
 
 			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
-			IOFunctions.println( "Resaved N5 s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
+			IOFunctions.println( "Resaved " + format + " s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 
 		myPool.shutdown();
@@ -248,7 +263,13 @@ public class Resave_N5Api implements PlugIn
 
 		n5Writer.close();
 
-		sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+		if ( format == StorageFormat.N5 )
+			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+		else if ( format == StorageFormat.HDF5 )
+			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
+		else
+			throw new RuntimeException( "There is no ImgLoader available for " + format + ". Data is resaved, but we will not be able to load it" );
+
 		sdReduced.setBasePathURI( URITools.getParent( n5Params.xmlURI ) );
 
 		if ( saveXML )
