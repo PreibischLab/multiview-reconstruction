@@ -53,7 +53,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
+import net.preibisch.mvrecon.process.export.ExportN5Api.StorageType;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
@@ -70,7 +70,7 @@ public class Resave_N5Api implements PlugIn
 		if ( !xml.queryXML( "Resaving as N5", "Resave", true, true, true, true, true ) )
 			return;
 
-		final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
+		final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
 
 		if ( n5params == null )
 			return;
@@ -87,7 +87,7 @@ public class Resave_N5Api implements PlugIn
 	public static SpimData2 resaveN5(
 			final SpimData2 data,
 			final Collection<? extends ViewId> vidsToResave,
-			final ParametersResaveN5 n5Params,
+			final ParametersResaveN5Api n5Params,
 			final boolean saveXML )
 	{
 		final SpimData2 sdReduced = SpimData2Tools.reduceSpimData2( data, vidsToResave.stream().collect( Collectors.toList() ) );
@@ -106,10 +106,10 @@ public class Resave_N5Api implements PlugIn
 				ExportMipmapInfo exportMipmapInfo = n5Params.proposedMipmaps.get( k );
 				for (int[] row : exportMipmapInfo.getSubdivisions())
 				{
-					Arrays.fill( row, ParametersResaveN5.defaultBlockSize );
-					row[ 0 ] = ParametersResaveN5.defaultBlockSizeXY;
+					Arrays.fill( row, ParametersResaveN5Api.defaultBlockSize );
+					row[ 0 ] = ParametersResaveN5Api.defaultBlockSizeXY;
 					if ( row.length >= 2 )
-						row[ 1 ] = ParametersResaveN5.defaultBlockSizeXY;
+						row[ 1 ] = ParametersResaveN5Api.defaultBlockSizeXY;
 				}
 			});
 		}

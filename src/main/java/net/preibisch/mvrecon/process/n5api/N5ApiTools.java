@@ -40,7 +40,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.downsampling.lazy.LazyHalfPixelDownsample2x;
-import net.preibisch.mvrecon.process.export.ExportN5API.StorageType;
+import net.preibisch.mvrecon.process.export.ExportN5Api.StorageType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 

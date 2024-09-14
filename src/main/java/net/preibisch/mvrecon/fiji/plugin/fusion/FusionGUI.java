@@ -59,7 +59,7 @@ import net.preibisch.mvrecon.process.boundingbox.BoundingBoxTools;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.export.ExportLarge2DTIFF;
-import net.preibisch.mvrecon.process.export.ExportN5API;
+import net.preibisch.mvrecon.process.export.ExportN5Api;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.OpenSeaDragon;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
@@ -128,7 +128,7 @@ public class FusionGUI implements FusionExportInterface
 
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
-		staticImgExportAlgorithms.add( new ExportN5API() );
+		staticImgExportAlgorithms.add( new ExportN5Api() );
 		staticImgExportAlgorithms.add( new OpenSeaDragon() );
 
 		staticImgExportAlgorithms.add( new ExportLarge2DTIFF() );

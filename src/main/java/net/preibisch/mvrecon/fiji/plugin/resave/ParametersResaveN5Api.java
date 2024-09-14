@@ -46,7 +46,7 @@ import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 
-public class ParametersResaveN5
+public class ParametersResaveN5Api
 {
 	public static String[] compressions = new String[]{ "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz" };
 	public static int defaultBlockSize = 64;
@@ -69,13 +69,13 @@ public class ParametersResaveN5
 		return URI.create( xmlURI.toString().subSequence( 0, xmlURI.toString().length() - 4 ) + ".n5" );
 	}
 
-	public static ParametersResaveN5 getParamtersIJ(
+	public static ParametersResaveN5Api getParamtersIJ(
 			final Collection< ViewSetup > setupsToProcess )
 	{
 		return getParamtersIJ( null, null, setupsToProcess, false );
 	}
 
-	public static ParametersResaveN5 getParamtersIJ(
+	public static ParametersResaveN5Api getParamtersIJ(
 			final URI xmlURI,
 			final Collection< ViewSetup > setupsToProcess,
 			final boolean askForPaths )
@@ -85,13 +85,13 @@ public class ParametersResaveN5
 		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, askForPaths );
 	}
 
-	public static ParametersResaveN5 getParamtersIJ(
+	public static ParametersResaveN5Api getParamtersIJ(
 			final URI xmlURI,
 			final URI n5URI,
 			final Collection< ViewSetup > setupsToProcess,
 			final boolean askForPaths )
 	{
-		final ParametersResaveN5 n5params = new ParametersResaveN5();
+		final ParametersResaveN5Api n5params = new ParametersResaveN5Api();
 
 		final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setupsToProcess ); //xml.getViewSetupsToProcess() );
 		final int firstviewSetupId = setupsToProcess.iterator().next().getId();// xml.getData().getSequenceDescription().getViewSetupsOrdered().get( 0 ).getId();
@@ -101,9 +101,9 @@ public class ParametersResaveN5
 		for ( final int[] row : autoMipmapSettings.getSubdivisions() )
 		{
 			Arrays.fill( row, defaultBlockSize );
-			row[ 0 ] = ParametersResaveN5.defaultBlockSizeXY;
+			row[ 0 ] = ParametersResaveN5Api.defaultBlockSizeXY;
 			if ( row.length >= 2 )
-				row[ 1 ] = ParametersResaveN5.defaultBlockSizeXY;
+				row[ 1 ] = ParametersResaveN5Api.defaultBlockSizeXY;
 		}
 
 		final long[] maxDimensions = setupsToProcess.iterator().next().getSize().dimensionsAsLongArray();

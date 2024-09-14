@@ -197,7 +197,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 		gd.addNumericField( "min_intensity", defaultMinIntensity, 0);
 		gd.addNumericField( "max_intensity", defaultMaxIntensity, 0);
 
-		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, can optimize processing time)", ExportN5API.defaultAdvancedBlockSize );
+		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, can optimize processing time)", ExportN5Api.defaultAdvancedBlockSize );
 
 		if ( is2d )
 			gd.addMessage( "Note: we have a 2d-dataset, choose 1 in z.", GUIHelper.smallStatusFont, GUIHelper.neutral );
@@ -214,7 +214,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 		minIntensity = defaultMinIntensity = (int)Math.round( gd.getNextNumber() );
 		maxIntensity = defaultMaxIntensity = (int)Math.round( gd.getNextNumber() );
 
-		if ( ExportN5API.defaultAdvancedBlockSize  = gd.getNextBoolean() )
+		if ( ExportN5Api.defaultAdvancedBlockSize  = gd.getNextBoolean() )
 		{
 			final GenericDialog gd2 = new GenericDialog( "Compute block size options" );
 			

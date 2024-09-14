@@ -81,7 +81,7 @@ import net.preibisch.mvrecon.process.n5api.SpimData2Tools.InstantiateViewSetupBi
 import util.Grid;
 import util.URITools;
 
-public class ExportN5API implements ImgExport
+public class ExportN5Api implements ImgExport
 {
 	public enum StorageType { N5, ZARR, HDF5 }
 
@@ -156,7 +156,7 @@ public class ExportN5API implements ImgExport
 	public int[] computeBlocksizeFactor() { return new int[] { bsFactorX, bsFactorY, bsFactorZ }; }
 
 	@Override
-	public ImgExport newInstance() { return new ExportN5API(); }
+	public ImgExport newInstance() { return new ExportN5Api(); }
 
 	@Override
 	public String getDescription() { return "ZARR/N5/HDF5 export using N5-API"; }

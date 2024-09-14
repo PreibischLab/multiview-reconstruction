@@ -75,7 +75,7 @@ import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeB
 import net.preibisch.mvrecon.process.deconvolution.iteration.sequential.ComputeBlockSeqThreadCUDAFactory;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
-import net.preibisch.mvrecon.process.export.ExportN5API;
+import net.preibisch.mvrecon.process.export.ExportN5Api;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
@@ -95,7 +95,7 @@ public class DeconvolutionGUI implements FusionExportInterface
 
 		staticImgExportAlgorithms.add( new DisplayImage() );
 		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
-		staticImgExportAlgorithms.add( new ExportN5API() );
+		staticImgExportAlgorithms.add( new ExportN5Api() );
 
 		imgExportDescriptions = new String[ staticImgExportAlgorithms.size() ];
 

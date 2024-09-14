@@ -103,7 +103,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.NumericalFilena
 import net.preibisch.mvrecon.fiji.plugin.Apply_Transformation;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5.ParametersResaveHDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
+import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5Api;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
@@ -1307,7 +1307,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			IOFunctions.println( "N5 path: " + n5DatasetURI );
 
-			final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ(
+			final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ(
 					xmlURI,
 					n5DatasetURI,
 					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),

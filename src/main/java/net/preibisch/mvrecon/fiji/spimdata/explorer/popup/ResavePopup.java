@@ -42,7 +42,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.resave.Generic_Resave_HDF5;
-import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5;
+import net.preibisch.mvrecon.fiji.plugin.resave.ParametersResaveN5Api;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5Api;
@@ -286,9 +286,9 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					{
 						panel.saveXML();
 
-						final URI n5DatasetURI = ParametersResaveN5.createN5URIfromXMLURI( panel.xml() );
+						final URI n5DatasetURI = ParametersResaveN5Api.createN5URIfromXMLURI( panel.xml() );
 
-						final ParametersResaveN5 n5params = ParametersResaveN5.getParamtersIJ(
+						final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ(
 								panel.xml(),
 								n5DatasetURI,
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
