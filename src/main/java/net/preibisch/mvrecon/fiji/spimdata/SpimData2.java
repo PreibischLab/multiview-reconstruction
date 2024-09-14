@@ -98,10 +98,7 @@ public class SpimData2 extends SpimData
 			final StitchingResults stitchingResults,
 			final IntensityAdjustments intensityAdjustments )
 	{
-		super( null, sequenceDescription, viewRegistrations );
-
-		// work-around for the super class not having a constructor for URI
-		this.setBasePathURI(basePathUri);
+		super( basePathUri, sequenceDescription, viewRegistrations );
 
 		this.viewsInterestPoints = viewsInterestPoints;
 		this.boundingBoxes = boundingBoxes;
