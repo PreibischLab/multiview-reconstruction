@@ -72,7 +72,8 @@ public class Resave_N5Api implements PlugIn
 		if ( !xml.queryXML( "Resaving as N5", "Resave", true, true, true, true, true ) )
 			return;
 
-		final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
+		final ParametersResaveN5Api n5params =
+				ParametersResaveN5Api.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
 
 		if ( n5params == null )
 			return;

@@ -129,7 +129,13 @@ public class ParametersResaveN5Api
 
 		final GenericDialogPlus gdp = new GenericDialogPlus( "Options" );
 
-		gdp.addMessage( "N5 saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+		gdp.addMessage( "N5 API saving options", new Font( Font.SANS_SERIF, Font.BOLD, 13 ) );
+
+		if ( askForFormat )
+		{
+			final String[] options = new String[] { "N5", "HDF5" };
+			gdp.addChoice( "Format for raw data", options, options[ 0 ] );
+		}
 
 		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
 		gdp.addStringField( "Downsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
@@ -149,16 +155,13 @@ public class ParametersResaveN5Api
 			gdp.addDirectoryField( "N5_path", n5URI.toString(), 65 );
 		}
 
-		if ( askForFormat )
-		{
-			final String[] options = new String[] { "N5", "HDF5" };
-			gdp.addChoice( "Format for raw data", options, options[ 0 ] );
-		}
-
 		gdp.showDialog();
 
 		if (gdp.wasCanceled())
 			return null;
+
+		if ( askForFormat )
+			n5params.format = gdp.getNextChoiceIndex();
 
 		final int compression = defaultCompression = gdp.getNextChoiceIndex();
 
@@ -193,9 +196,6 @@ public class ParametersResaveN5Api
 			n5params.xmlURI = xmlURI;
 			n5params.n5URI = n5URI;
 		}
-
-		if ( askForFormat )
-			n5params.format = gdp.getNextChoiceIndex();
 
 		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"
 			n5params.compression = new Bzip2Compression();
