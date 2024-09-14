@@ -131,7 +131,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 	public static boolean windowsHack = true;
 
-	public static int defaultLoadChoice = 0;
+	public static int defaultLoadChoice = 1;
 	public static boolean defaultVirtual = true;
 
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
