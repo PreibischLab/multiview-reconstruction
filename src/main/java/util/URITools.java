@@ -170,16 +170,16 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying anonymous writing ..." );
-				n5w = new N5Factory().openWriter( format, uri );
+				System.out.println( "Trying writing with credentials ..." );
+				N5Factory factory = new N5Factory();
+				factory.s3UseCredentials();
+				n5w = factory.openWriter( format, uri );
 			}
 			catch ( Exception e )
 			{
 				System.out.println( "Anonymous failed; trying writing with credentials ..." );
 
-				N5Factory factory = new N5Factory();
-				factory.s3UseCredentials();
-				n5w = factory.openWriter( format, uri );
+				n5w = new N5Factory().openWriter( format, uri );
 			}
 
 			return n5w;
@@ -270,16 +270,15 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying anonymous writing ..." );
-				n5w = new N5Factory().openWriter( uri.toString() );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( "Anonymous failed; trying writing with credentials ..." );
-
+				System.out.println( "Trying writing with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( uri.toString() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "Writing with credentials failed; trying anonymous writing ..." );
+				n5w = new N5Factory().openWriter( uri.toString() );
 			}
 
 			return n5w;
