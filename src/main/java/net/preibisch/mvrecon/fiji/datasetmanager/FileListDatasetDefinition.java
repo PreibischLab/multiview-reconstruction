@@ -65,7 +65,6 @@ import javax.swing.JLabel;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
-import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.gui.GenericDialog;
@@ -108,7 +107,6 @@ import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.resave.ProgressWriterIJ;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_HDF5;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_N5Api;
-import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
@@ -1311,7 +1309,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 					xmlURI,
 					n5DatasetURI,
 					viewIds.stream().map( vid -> sd.getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
-					false,
+					false, // do not ask for format (for now)
 					false ); // do not ask for paths again
 
 			if ( n5params == null )

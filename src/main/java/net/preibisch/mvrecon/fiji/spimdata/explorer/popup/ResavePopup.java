@@ -292,7 +292,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 								panel.xml(),
 								n5DatasetURI,
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
-								true,
+								false, // do not ask for format (for now)
 								index == 5 );
 
 						if ( n5params == null )
