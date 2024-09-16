@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bigdataviewer.n5.N5CloudImageLoader;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -208,8 +209,10 @@ public class SpimData2Tools
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
 
-			if ( StorageFormat.N5.equals(storageType) )
+			if ( StorageFormat.N5.equals(storageType) && URITools.isFile( n5PathURI )) // local file
 				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
+			else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
+				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 			else if ( StorageFormat.HDF5.equals(storageType) )
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else
@@ -256,8 +259,11 @@ public class SpimData2Tools
 			final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );
 
 			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
-			if ( StorageFormat.N5.equals(storageType) )
+
+			if ( StorageFormat.N5.equals(storageType) && URITools.isFile( n5PathURI )) // local file
 				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
+			else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
+				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 			else if ( StorageFormat.HDF5.equals(storageType) )
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
 			else

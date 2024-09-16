@@ -4,6 +4,8 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.bigdataviewer.n5.N5CloudImageLoader;
+
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
@@ -81,7 +83,14 @@ public class XMLSaveAs implements PlugIn
 		IOFunctions.println( "New XML: " + newXMLPath );
 		IOFunctions.println( "New base path: " + newBaseDir );
 
-		if ( N5ImageLoader.class.isInstance( imgLoader ) )
+		if ( N5CloudImageLoader.class.isInstance( imgLoader ) )
+		{
+			final URI n5URI = ((N5CloudImageLoader)imgLoader).getN5URI();
+
+			IOFunctions.println( "Path of cloud N5 (stays in old location): " + n5URI );
+			data.getSequenceDescription().setImgLoader( new N5CloudImageLoader( null, n5URI, data.getSequenceDescription() ) );
+		}
+		else if ( N5ImageLoader.class.isInstance( imgLoader ) )
 		{
 			final URI n5URI = ((N5ImageLoader)imgLoader).getN5URI();
 

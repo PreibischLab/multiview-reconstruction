@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.bigdataviewer.n5.N5CloudImageLoader;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -264,8 +265,10 @@ public class Resave_N5Api implements PlugIn
 
 		n5Writer.close();
 
-		if ( format == StorageFormat.N5 )
+		if ( format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
 			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+		else if ( format == StorageFormat.N5 ) // some cloud location
+			sdReduced.getSequenceDescription().setImgLoader( new N5CloudImageLoader( null, n5Params.n5URI, sdReduced.getSequenceDescription() ) );
 		else if ( format == StorageFormat.HDF5 )
 			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
 		else
