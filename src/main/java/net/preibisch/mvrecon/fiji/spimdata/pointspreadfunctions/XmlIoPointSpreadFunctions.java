@@ -29,6 +29,7 @@ import static net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlKeysPo
 import static net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlKeysPointSpreadFunctions.PSF_TIMEPOINT_ATTRIBUTE_NAME;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -62,7 +63,7 @@ public class XmlIoPointSpreadFunctions extends XmlIoSingleton< PointSpreadFuncti
 		return elem;
 	}
 
-	public PointSpreadFunctions fromXml( final Element allPSFs, final File basePath ) throws SpimDataException
+	public PointSpreadFunctions fromXml( final Element allPSFs, final URI basePathURI ) throws SpimDataException
 	{
 		final PointSpreadFunctions pointSpreadFunctions = super.fromXml( allPSFs );
 
@@ -73,7 +74,7 @@ public class XmlIoPointSpreadFunctions extends XmlIoSingleton< PointSpreadFuncti
 
 			final String file = psfElement.getChildText( PSF_FILE_TAG );
 
-			pointSpreadFunctions.addPSF( new ViewId( tpId, vsId ), new PointSpreadFunction( basePath, file ) );
+			pointSpreadFunctions.addPSF( new ViewId( tpId, vsId ), new PointSpreadFunction( basePathURI, file ) );
 		}
 
 		return pointSpreadFunctions;

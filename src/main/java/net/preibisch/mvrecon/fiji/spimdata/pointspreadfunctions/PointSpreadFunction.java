@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions;
 
 import java.io.File;
+import java.net.URI;
 
 import ij.ImagePlus;
 import ij.io.FileSaver;
@@ -35,17 +36,18 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import util.URITools;
 
 public class PointSpreadFunction
 {
 	private final static String subDir = "psf";
 
-	private final File xmlBasePath;
+	private final URI xmlBasePath;
 	private final String file;
 	private Img< FloatType > img;
 	private boolean modified;
 
-	public PointSpreadFunction( final File xmlBasePath, final String file, final Img< FloatType > img )
+	public PointSpreadFunction( final URI xmlBasePath, final String file, final Img< FloatType > img )
 	{
 		this.xmlBasePath = xmlBasePath;
 		this.file = file;
@@ -58,10 +60,10 @@ public class PointSpreadFunction
 
 	public PointSpreadFunction( final SpimData2 spimData, final ViewId viewId, final Img< FloatType > img  )
 	{
-		this( spimData.getBasePath(), PointSpreadFunction.createPSFFileName( viewId ), img );
+		this( spimData.getBasePathURI(), PointSpreadFunction.createPSFFileName( viewId ), img );
 	}
 
-	public PointSpreadFunction( final File xmlBasePath, final String file )
+	public PointSpreadFunction( final URI xmlBasePath, final String file )
 	{
 		this( xmlBasePath, file, null );
 		this.modified = false;
@@ -80,20 +82,19 @@ public class PointSpreadFunction
 	public Img< FloatType > getPSFCopy()
 	{
 		if ( img == null )
-			img = IOFunctions.openAs32Bit( new File( new File( xmlBasePath, subDir ), file ), new ArrayImgFactory<>() );
+			img = IOFunctions.openAs32Bit( new File( URITools.appendName( xmlBasePath, subDir ), file ), new ArrayImgFactory<>( new FloatType() ) );
 
 		return img.copy();
 	}
 
 	// this is required for CUDA stuff
-	@SuppressWarnings("unchecked")
 	public ArrayImg< FloatType, ? > getPSFCopyArrayImg()
 	{
 		final ArrayImg< FloatType, ? > arrayImg;
 
 		if ( img == null )
 		{
-			img = arrayImg = IOFunctions.openAs32BitArrayImg( new File( new File( xmlBasePath, subDir ), file ) );
+			img = arrayImg = IOFunctions.openAs32BitArrayImg( new File( URITools.appendName( xmlBasePath, subDir ), file ) );
 		}
 		else if ( ArrayImg.class.isInstance( img ) )
 		{
@@ -104,7 +105,7 @@ public class PointSpreadFunction
 			final long[] size = new long[ img.numDimensions() ];
 			img.dimensions( size );
 
-			arrayImg = new ArrayImgFactory< FloatType >().create( size, new FloatType() );
+			arrayImg = new ArrayImgFactory<>(new FloatType()).create( size );
 
 			FusionTools.copyImg( img, arrayImg, null );
 		}
@@ -117,7 +118,7 @@ public class PointSpreadFunction
 		if ( img == null )
 			return false;
 
-		final File dir = new File( xmlBasePath, subDir );
+		final File dir = new File( URITools.appendName( xmlBasePath, subDir ) );
 
 		if ( !dir.exists() )
 			if ( !dir.mkdir() )

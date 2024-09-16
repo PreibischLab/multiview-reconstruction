@@ -295,7 +295,7 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 					for ( final ViewId viewId : views )
 					{
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' to " + Group.pvid( viewId ) );
-						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), file ) );
 					}
 
 					panel.updateContent(); // update panel

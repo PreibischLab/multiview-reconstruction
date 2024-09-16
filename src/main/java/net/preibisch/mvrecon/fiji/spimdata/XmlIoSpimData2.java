@@ -221,7 +221,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		if ( elem == null )
 			psfs = new PointSpreadFunctions();
 		else
-			psfs = xmlPointSpreadFunctions.fromXml( elem, spimData.getBasePath() );
+			psfs = xmlPointSpreadFunctions.fromXml( elem, spimData.getBasePathURI() );
 		spimData.setPointSpreadFunctions( psfs );
 
 		final StitchingResults stitchingResults;

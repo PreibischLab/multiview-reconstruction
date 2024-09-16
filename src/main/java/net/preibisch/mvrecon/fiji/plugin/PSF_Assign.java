@@ -140,7 +140,7 @@ public class PSF_Assign implements PlugIn
 			for ( final ViewId viewId : viewIds )
 			{
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' to " + Group.pvid( viewId ) );
-				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+				spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), file ) );
 				if ( saveXml )
 					new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 			}
@@ -181,7 +181,7 @@ public class PSF_Assign implements PlugIn
 				}
 				else
 				{
-					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), localFileName ) );
+					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), localFileName ) );
 					if ( saveXml )
 						new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
 				}
@@ -299,7 +299,7 @@ public class PSF_Assign implements PlugIn
 
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' from " +  Group.pvid( corresponding ) + " to " + Group.pvid( viewId ) );
 
-						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), file ) );
 						
 						if ( saveXml )
 							new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
@@ -389,7 +389,7 @@ public class PSF_Assign implements PlugIn
 
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + file + "' from " +  Group.pvid( corresponding ) + " to " + Group.pvid( viewId ) );
 
-						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), file ) );
+						spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), file ) );
 						
 						if ( saveXml )
 							new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );

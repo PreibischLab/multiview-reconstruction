@@ -124,7 +124,7 @@ public class PSF_Average implements PlugIn
 				}
 				else
 				{
-					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePath(), localFileName ) );
+					spimData.getPointSpreadFunctions().addPSF( viewId, new PointSpreadFunction( spimData.getBasePathURI(), localFileName ) );
 				}
 
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Assigning '" + localFileName + "' to " + Group.pvid( viewId ) );
