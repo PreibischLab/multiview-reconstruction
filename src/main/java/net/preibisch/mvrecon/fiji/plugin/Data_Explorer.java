@@ -41,7 +41,7 @@ import ij.plugin.PlugIn;
 
 public class Data_Explorer implements PlugIn
 {
-	public static boolean showNote = true;
+	public static boolean showNote = false;
 
 	@Override
 	public void run( String arg )

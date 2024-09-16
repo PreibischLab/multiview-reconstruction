@@ -51,6 +51,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Translation3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
@@ -375,14 +376,21 @@ public class RegularTranformHelpers
 
 		if (!PluginHelper.isHeadless())
 		{
-			final ImageIcon display = new ImageIcon( images[ lastPresetIndex ].getImage() );//.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
-			final JLabel label = gd.addImage( display );
+			try
+			{
+				final ImageIcon display = new ImageIcon( images[ lastPresetIndex ].getImage() );//.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
+				final JLabel label = gd.addImage( display );
 
-			( (Choice) gd.getChoices().get( 0 )).addItemListener( e -> {
-				int selected = ( (Choice) gd.getChoices().get( 0 )).getSelectedIndex();
-				display.setImage( images[ selected ].getImage() ); //.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
-				label.update( label.getGraphics() );
-			});
+				( (Choice) gd.getChoices().get( 0 )).addItemListener( e -> {
+					int selected = ( (Choice) gd.getChoices().get( 0 )).getSelectedIndex();
+					display.setImage( images[ selected ].getImage() ); //.getScaledInstance( 200, 200, Image.SCALE_SMOOTH ) );
+					label.update( label.getGraphics() );
+				});
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( "Warning: cannot load iteration order images.");
+			}
 		}
 
 		gd.addNumericField( "Tiles_X", suggestTiles( nTiles ).getA(), 0 );
