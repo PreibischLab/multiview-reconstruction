@@ -47,7 +47,6 @@ import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
@@ -64,15 +63,19 @@ import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.cache.img.CellLoader;
+import net.imglib2.cache.CacheLoader;
+import net.imglib2.cache.img.RandomAccessibleCacheLoader;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
-import net.imglib2.cache.img.SingleCellArrayImg;
 import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
+import net.imglib2.img.cell.Cell;
+import net.imglib2.img.cell.CellGrid;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -783,49 +786,26 @@ public class FusionTools
 		return cacheRandomAccessibleInterval( input, -1, type, cellDim );
 	}
 
-	public static < T extends NativeType< T > > RandomAccessibleInterval< T > cacheRandomAccessibleInterval(
+	public static < T extends NativeType< T >, A extends ArrayDataAccess< A > > RandomAccessibleInterval< T > cacheRandomAccessibleInterval(
 			final RandomAccessibleInterval< T > input,
 			final long maxCacheSize,
 			final T type,
 			final int... cellDim )
 	{
-		final RandomAccessibleInterval< T > in;
-
-		if ( Views.isZeroMin( input ) )
-			in = input;
-		else
-			in = Views.zeroMin( input );
-		
-		final ReadOnlyCachedCellImgOptions options;
-
-		if ( maxCacheSize > 0 )
-			options = new ReadOnlyCachedCellImgOptions().cellDimensions( cellDim ).maxCacheSize( maxCacheSize );
-		else
-			options = new ReadOnlyCachedCellImgOptions().cellDimensions( cellDim ).cacheType( CacheType.SOFTREF );
-
+		final ReadOnlyCachedCellImgOptions options = ReadOnlyCachedCellImgOptions.options()
+				.cellDimensions( cellDim )
+				.cacheType( maxCacheSize > 0 ? CacheType.BOUNDED : CacheType.SOFTREF )
+				.maxCacheSize( maxCacheSize );
 		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory( options );
 
-		final CellLoader< T > loader = new CellLoader< T >()
-		{
-			@Override
-			public void load( final SingleCellArrayImg< T, ? > cell ) throws Exception
-			{
-				final Cursor< T > cursor = cell.localizingCursor();
-				final RandomAccess< T > ra = in.randomAccess();
-				
-				while( cursor.hasNext() )
-				{
-					cursor.fwd();
-					ra.setPosition( cursor );
-					cursor.get().set( ra.get() );
-				}
-			}
-		};
+		final long[] dim = input.dimensionsAsLongArray();
+		final CacheLoader< Long, Cell< A > > loader = RandomAccessibleCacheLoader.get(
+				new CellGrid( dim, cellDim ),
+				input.view().zeroMin(),
+				AccessFlags.setOf( AccessFlags.VOLATILE ) );
+		final RandomAccessibleInterval<T> copy = factory.createWithCacheLoader( dim, type, loader );
 
-		final long[] dim = new long[ in.numDimensions() ];
-		in.dimensions( dim );
-
-		return translateIfNecessary( input, factory.create( dim, type, loader ) );
+		return translateIfNecessary( input, copy );
 	}
 
 	public static < T extends Type< T > > RandomAccessibleInterval< T > copyImg( final RandomAccessibleInterval< T > input, final ImgFactory< T > factory, final T type, final ExecutorService service  )
