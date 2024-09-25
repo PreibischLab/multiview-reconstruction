@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import static mpicbg.spim.data.XmlHelpers.loadPath;
 import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 
 import java.io.File;
@@ -33,17 +32,10 @@ import org.jdom2.Element;
 
 import mpicbg.spim.data.XmlHelpers;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
-import net.imglib2.img.planar.PlanarImgFactory;
-import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 
 @ImgLoaderIo( format = "spimreconstruction.filelist", type = FileMapImgLoaderLOCI.class )
 public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapImgLoaderLOCI >
@@ -58,36 +50,31 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 	public static final String MAPPING_FILE_TAG = "file";
 	public static final String MAPPING_SERIES_TAG = "series";
 	public static final String MAPPING_C_TAG = "channel";
-	
+
 	@Override
 	public Element toXml(FileMapImgLoaderLOCI imgLoader, File basePath)
 	{
-		Map< ViewId, Pair< File, Pair< Integer, Integer > > > fileMap = imgLoader.getFileMap();
-		
 		final Element wholeElem = new Element( "ImageLoader" );
 		wholeElem.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, this.getClass().getAnnotation( ImgLoaderIo.class ).format() );
 		wholeElem.addContent( XmlHelpers.booleanElement( ZGROUPED_TAG, imgLoader.zGrouped ) );
 
 		final Element filesElement = new Element( FILES_TAG );
-		
-		for (ViewId vid : fileMap.keySet())
-		{
-			final Pair< File, Pair< Integer, Integer > > pair = fileMap.get( vid );
+		final Map< ViewId, FileMapEntry > fileMap = imgLoader.getFileMap();
+		fileMap.forEach( ( vid, entry ) -> {
 			final Element fileMappingElement = new Element( FILE_MAPPING_TAG );
-			fileMappingElement.setAttribute( MAPPING_VS_TAG, Integer.toString( vid.getViewSetupId()) );
-			fileMappingElement.setAttribute( MAPPING_TP_TAG, Integer.toString( vid.getTimePointId()) );
-			fileMappingElement.addContent( XmlHelpers.pathElement( MAPPING_FILE_TAG, pair.getA(), basePath ) );
-			fileMappingElement.setAttribute( MAPPING_SERIES_TAG, Integer.toString(pair.getB().getA()) );
-			fileMappingElement.setAttribute( MAPPING_C_TAG, Integer.toString(pair.getB().getB()) );
-			
+			fileMappingElement.setAttribute( MAPPING_VS_TAG, Integer.toString( vid.getViewSetupId() ) );
+			fileMappingElement.setAttribute( MAPPING_TP_TAG, Integer.toString( vid.getTimePointId() ) );
+			fileMappingElement.addContent( XmlHelpers.pathElement( MAPPING_FILE_TAG, entry.file(), basePath ) );
+			fileMappingElement.setAttribute( MAPPING_SERIES_TAG, Integer.toString( entry.series() ) );
+			fileMappingElement.setAttribute( MAPPING_C_TAG, Integer.toString( entry.channel() ) );
 			filesElement.addContent( fileMappingElement );
-		}
-		
+		} );
+
 		//elem.addContent( XmlHelpers.pathElement( DIRECTORY_TAG, imgLoader.getCZIFile().getParentFile(), basePath ) );
 		//wholeElem.addContent( XmlHelpers.textElement( MASTER_FILE_TAG, imgLoader.getCZIFile().getName() ) );
-		
+
 		wholeElem.addContent( filesElement );
-		
+
 		return wholeElem;
 	}
 
@@ -98,22 +85,19 @@ public class XmlIoFileListImgLoaderLOCI implements XmlIoBasicImgLoader< FileMapI
 		//final File path = loadPath( elem, DIRECTORY_TAG, basePath );
 		final Element fileMapElement = elem.getChild( FILES_TAG );
 		final boolean zGrouped = XmlHelpers.getBoolean( elem, ZGROUPED_TAG, false );
-		
-		final HashMap< BasicViewDescription< ? >, Pair< File, Pair< Integer, Integer > > > fileMap = new HashMap<>();
-		
+
+		final Map< ViewId, FileMapEntry > fileMap = new HashMap<>();
+
 		for (Element e : fileMapElement.getChildren( FILE_MAPPING_TAG )){
 			int vs = Integer.parseInt( e.getAttribute( MAPPING_VS_TAG ).getValue());
 			int tp = Integer.parseInt( e.getAttribute( MAPPING_TP_TAG ).getValue());
 			int series = Integer.parseInt( e.getAttribute( MAPPING_SERIES_TAG ).getValue());
 			int channel = Integer.parseInt( e.getAttribute( MAPPING_C_TAG ).getValue());
 			File f = XmlHelpers.loadPath( e, MAPPING_FILE_TAG, basePath );
-			
-			BasicViewDescription< ? > vd = sequenceDescription.getViewDescriptions().get( new ViewId( tp, vs ) );
-			Pair< File, Pair< Integer, Integer > > p = new ValuePair< File, Pair<Integer,Integer> >( f, new ValuePair< Integer, Integer >( series, channel ) );
-			
-			fileMap.put( vd, p );
+
+			fileMap.put( new ViewId( tp, vs ), new FileMapEntry( f, series, channel ) );
 		}
-		
+
 		return new FileMapImgLoaderLOCI( fileMap, sequenceDescription, zGrouped );
 	}
 

@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-import ij.IJ;
 import ij.io.OpenDialog;
 import loci.formats.FormatException;
 import loci.formats.IFormatReader;
@@ -69,6 +68,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.CZITileOrAng
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.NikonND2TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.metadatarefinement.TileOrAngleRefiner;
 import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import ome.units.quantity.Length;
 
@@ -565,21 +565,21 @@ public class FileListDatasetDefinitionUtil
 
 	public static void groupZPlanes(FileListViewDetectionState state, FilenamePatternDetector patternDetector, List<Integer> variablesToUse)
 	{
-		final Map< Pair< File, Pair< Integer, Integer > >, Pair< Dimensions, VoxelDimensions > > dimensionMap = state.getDimensionMap();
+		final Map< FileMapEntry, Pair< Dimensions, VoxelDimensions > > dimensionMap = state.getDimensionMap();
 		for (final Class<? extends Entity> cl: state.getIdMap().keySet())
 		{
-			final Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > idMapForClass = state.getIdMap().get( cl );
-			for (final List< Pair< File, Pair< Integer, Integer > > > fileList : idMapForClass.values())
+			final Map< Integer, List< FileMapEntry > > idMapForClass = state.getIdMap().get( cl );
+			for (final List< FileMapEntry > fileList : idMapForClass.values())
 			{
 				// construct Map (invariant idxes, series, channel) -> (varying idxes)
-				final Map< Pair<List<Integer>, Pair<Integer, Integer>>, List<List<Integer>>> zGroupedMap = new HashMap<>();
-				final Map< Pair<List<Integer>, Pair<Integer, Integer>>, Pair< Dimensions, VoxelDimensions >> dimensionGroupedMap = new HashMap<>();
-				for (final Pair< File, Pair< Integer, Integer > > file : fileList)
+				final Map< Pair< List< Integer >, Pair< Integer, Integer > >, List< List< Integer > > > zGroupedMap = new HashMap<>();
+				final Map< Pair< List< Integer >, Pair< Integer, Integer > >, Pair< Dimensions, VoxelDimensions > > dimensionGroupedMap = new HashMap<>();
+				for (final FileMapEntry file : fileList)
 				{
-					final Pair< Integer, Integer > seriesChannel = file.getB();
+					final Pair< Integer, Integer > seriesChannel = new ValuePair<>( file.series(), file.channel() );
 					final List<Integer> variables = new ArrayList<>();
 					final List<Integer> invariants = new ArrayList<>();
-					final Matcher m = patternDetector.getPatternAsRegex().matcher( file.getA().getAbsolutePath() );
+					final Matcher m = patternDetector.getPatternAsRegex().matcher( file.file().getAbsolutePath() );
 
 					if (!m.matches())
 						IOFunctions.printErr( "ERROR grouping z planes" );
@@ -626,8 +626,9 @@ public class FileListDatasetDefinitionUtil
 					// construct pattern
 					final String patternPath = getPatternFile( patternDetector, variablesToUse, invariants, v );
 					System.out.println( patternPath );
-					fileList.add( new ValuePair<>( new File( patternPath ), k.getB() ) );
-					dimensionMap.put( new ValuePair<>( new File( patternPath ), k.getB() ), dimensionGroupedMap.get( k ) );
+					final FileMapEntry fileMapEntry = new FileMapEntry( new File( patternPath ), k.getB().getA(), k.getB().getB() );
+					fileList.add( fileMapEntry );
+					dimensionMap.put( fileMapEntry, dimensionGroupedMap.get( k ) );
 				});
 			}
 		}
@@ -684,8 +685,8 @@ public class FileListDatasetDefinitionUtil
 
 			if ( singleEntityPerFile && fileVariableToUse.get( cl ).size() > 0 )
 			{
-				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > expandedMap;
-				
+				Pair< Map< Integer, Object >, Map< Integer, List< FileMapEntry > > > expandedMap;
+
 				if (state.getGroupedFormat())
 				{
 					Map< String, Pair< File, Integer > > groupUsageMap = state.getGroupUsageMap();
@@ -709,10 +710,10 @@ public class FileListDatasetDefinitionUtil
 				// TODO: this should probably be fixed upstream
 				// At the moment, all instances of this attribute will get id 0
 				// NB: this throws away metadata
-				final ArrayList< Pair< File, Pair< Integer, Integer > > > allViews = state.getAccumulateMap( cl ).values().stream().collect(
-						ArrayList<Pair<File, Pair<Integer, Integer>>>::new,
-						(a,b) -> a.addAll(b),
-						(a,b) -> a.addAll(b) );
+				final ArrayList< FileMapEntry > allViews = state.getAccumulateMap( cl ).values().stream().collect(
+						ArrayList::new,
+						ArrayList::addAll,
+						ArrayList::addAll );
 				state.getIdMap().get( cl ).put( 0, allViews );
 			}
 
@@ -726,7 +727,7 @@ public class FileListDatasetDefinitionUtil
 
 			else if ( state.getMultiplicityMap().get( cl ) == CheckResult.MUlTIPLE_NAMED )
 			{
-				Pair< Map< Integer, Object >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > resortMapNamed = resortMapNamed(
+				Pair< Map< Integer, Object >, Map< Integer, List< FileMapEntry > > > resortMapNamed = resortMapNamed(
 						state.getAccumulateMap( cl ) );
 				state.getDetailMap().get( cl ).putAll( resortMapNamed.getA() );
 				state.getIdMap().get( cl ).putAll( resortMapNamed.getB() );
@@ -735,24 +736,26 @@ public class FileListDatasetDefinitionUtil
 		}
 		
 	}
-	
-	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> expandMapSingleFromFile(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map, FilenamePatternDetector det, List<Integer> patternIdx)
+
+	public static < T > Pair< Map< Integer, T >, Map< Integer, List< FileMapEntry > > > expandMapSingleFromFile(
+			Map< T, List< FileMapEntry > > map,
+			FilenamePatternDetector det,
+			List< Integer > patternIdx )
 	{
-		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		Map<Integer, List<FileMapEntry>> res = new HashMap<>();
 		Map<Integer, T> res2 = new HashMap<>();
-		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
-		
-		// 
+		SortedMap< FileMapEntry, T > invertedMap = invertMapSortValue( map );
+
 		Map<List<Integer>, Integer> multiIdxMap = new HashMap<>();
-		
-		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+
+		for (FileMapEntry fileInfo : invertedMap.keySet())
 		{
 			int id = -1;
 			T attribute = invertedMap.get( fileInfo );
 			//System.out.println( fileInfo.getA().getAbsolutePath() );
-			
-			Matcher m = det.getPatternAsRegex().matcher( fileInfo.getA().getAbsolutePath() );
-			
+
+			Matcher m = det.getPatternAsRegex().matcher( fileInfo.file().getAbsolutePath() );
+
 			// we have one numerical group describing this attribute -> use it as id
 			if (patternIdx.size() == 1)
 			{
@@ -783,24 +786,24 @@ public class FileListDatasetDefinitionUtil
 			res.get( id ).add( fileInfo );
 			
 		}
-		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
-			
+
+		return new ValuePair<>( res2, res );
 	}
-	
-	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> expandMapSingleFromFileGroupedFormat(
-			Map<T, List<Pair<File, Pair< Integer, Integer >>>> map,
-			FilenamePatternDetector det, 
-			List<Integer> patternIdx,
-			Map< String, Pair< File, Integer > > groupUsageMap)
+
+	public static < T > Pair< Map< Integer, T >, Map< Integer, List< FileMapEntry > > > expandMapSingleFromFileGroupedFormat(
+			Map< T, List< FileMapEntry > > map,
+			FilenamePatternDetector det,
+			List< Integer > patternIdx,
+			Map< String, Pair< File, Integer > > groupUsageMap )
 	{
-		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
+		Map< Integer, List< FileMapEntry > > res = new HashMap<>();
 		Map<Integer, T> res2 = new HashMap<>();
-		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
-		
-		// 
+		SortedMap< FileMapEntry, T > invertedMap = invertMapSortValue( map );
+
+		//
 		Map<List<Integer>, Integer> multiIdxMap = new HashMap<>();
-		
-		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+
+		for (FileMapEntry fileInfo : invertedMap.keySet())
 		{
 			int id = -1;
 			T attribute = invertedMap.get( fileInfo );
@@ -811,7 +814,7 @@ public class FileListDatasetDefinitionUtil
 			String seriesFile = null;
 			for (Entry< String, Pair< File, Integer > > e : groupUsageMap.entrySet())
 			{
-				if (new ValuePair<>( fileInfo.getA(), fileInfo.getB().getA() ).equals( e.getValue() ))
+				if (new ValuePair<>( fileInfo.file(), fileInfo.series() ).equals( e.getValue() ))
 					seriesFile = e.getKey();
 			}
 			
@@ -848,22 +851,23 @@ public class FileListDatasetDefinitionUtil
 				res.put( id, new ArrayList< >() );
 			res.get( id ).add( fileInfo );
 		}
-		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
-			
+		return new ValuePair<>( res2, res );
+
 	}
-	
-	public static <T> Pair<Map<Integer, T>, Map<Integer, List<Pair<File, Pair< Integer, Integer >>>>> resortMapNamed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map)
+
+	public static < T > Pair< Map< Integer, T >, Map< Integer, List< FileMapEntry > > > resortMapNamed(
+			Map< T, List< FileMapEntry > > map )
 	{
-		
-		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
-		Map<Integer, T> res2 = new HashMap<>();
-		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
+
+		Map< Integer, List< FileMapEntry > > res = new HashMap<>();
+		Map< Integer, T > res2 = new HashMap<>();
+		SortedMap< FileMapEntry, T > invertedMap = invertMapSortValue( map );
 		int maxId = 0;
-		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		for ( FileMapEntry fileInfo : invertedMap.keySet() )
 		{
-			int id= 0;
+			int id = 0;
 			T attribute = invertedMap.get( fileInfo );
-			if (!res2.values().contains( attribute ))
+			if ( !res2.values().contains( attribute ) )
 			{
 				res2.put( maxId, attribute );
 				id = maxId;
@@ -871,38 +875,40 @@ public class FileListDatasetDefinitionUtil
 			}
 			else
 			{
-				for (Integer i : res2.keySet())
-					if (res2.get( i ).equals( attribute ))
+				for ( Integer i : res2.keySet() )
+					if ( res2.get( i ).equals( attribute ) )
 						id = i;
 			}
-			
-			if (!res.containsKey( id ))
+
+			if ( !res.containsKey( id ) )
 				res.put( id, new ArrayList<>() );
 			res.get( id ).add( fileInfo );
 		}
-		return new ValuePair< Map<Integer,T>, Map<Integer,List<Pair<File,Pair<Integer,Integer>>>> >( res2, res );
+		return new ValuePair<>( res2, res );
 	}
-	
-	
-	public static <T> Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> expandMapIndexed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map, boolean useSeries)
+
+
+	public static < T > Map< Integer, List< FileMapEntry > > expandMapIndexed(
+			Map< T, List< FileMapEntry > > map, boolean useSeries )
 	{
-		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
-		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
-		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		Map< Integer, List< FileMapEntry > > res = new HashMap<>();
+		SortedMap< FileMapEntry, T > invertedMap = invertMapSortValue( map );
+		for ( FileMapEntry fileInfo : invertedMap.keySet() )
 		{
-			int id = useSeries ? fileInfo.getB().getA() : fileInfo.getB().getB();
+			int id = useSeries ? fileInfo.series() : fileInfo.channel();
 			if (!res.containsKey( id ))
 				res.put( id, new ArrayList<>() );
 			res.get( id ).add( fileInfo );
 		}
 		return res;
 	}
-	
-	public static <T> Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> expandTimePointMapIndexed(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map)
+
+	public static < T > Map< Integer, List< FileMapEntry > > expandTimePointMapIndexed(
+			Map< T, List< FileMapEntry > > map )
 	{
-		Map<Integer, List<Pair<File, Pair< Integer, Integer >>>> res = new HashMap<>();
-		SortedMap< Pair< File, Pair< Integer, Integer > >, T > invertedMap = invertMapSortValue( map );
-		for (Pair< File, Pair< Integer, Integer > > fileInfo : invertedMap.keySet())
+		Map< Integer, List< FileMapEntry > > res = new HashMap<>();
+		SortedMap< FileMapEntry, T > invertedMap = invertMapSortValue( map );
+		for ( FileMapEntry fileInfo : invertedMap.keySet() )
 		{
 			// TODO: can we get around this dirty cast?
 			Integer numTP = (Integer) invertedMap.get( fileInfo );
@@ -915,32 +921,32 @@ public class FileListDatasetDefinitionUtil
 		}
 		return res;
 	}
-	
-	
-	public static <T> SortedMap<Pair<File, Pair< Integer, Integer >>, T> invertMapSortValue(Map<T, List<Pair<File, Pair< Integer, Integer >>>> map )
+
+
+	public static < T > SortedMap< FileMapEntry, T > invertMapSortValue( Map< T, List< FileMapEntry > > map )
 	{
-			 
-		SortedMap<Pair<File, Pair< Integer, Integer >>, T> res = new TreeMap<Pair<File, Pair< Integer, Integer >>, T>( new Comparator< Pair<File, Pair< Integer, Integer >> >()
+
+		SortedMap< FileMapEntry, T > res = new TreeMap<>( new Comparator< FileMapEntry >()
 		{
 
 			@Override
-			public int compare(Pair< File, Pair< Integer, Integer > > o1, Pair< File, Pair< Integer, Integer > > o2)
+			public int compare(FileMapEntry o1, FileMapEntry o2)
 			{
-				int filecompare = o1.getA().getAbsolutePath().compareTo( o2.getA().getAbsolutePath() ) ;
+				int filecompare = o1.file().getAbsolutePath().compareTo( o2.file().getAbsolutePath() ) ;
 				if (filecompare != 0)
 					return filecompare;
-				
-				int seriescompare = o1.getB().getA().compareTo( o2.getB().getA() ); 
+
+				int seriescompare = Integer.compare( o1.series(), o2.series() );
 				if (seriescompare != 0)
 					return seriescompare;
-				
-				return o1.getB().getB().compareTo( o2.getB().getB() );
+
+				return Integer.compare( o1.channel(), o2.channel() );
 			}
 		} );
-		
+
 		for (T key : map.keySet())
 		{
-			for (Pair<File, Pair< Integer, Integer >> vI : map.get( key ))
+			for (FileMapEntry vI : map.get( key ))
 			{
 				//System.out.println( vI.getB().getA() + "" + vI.getB().getB() );
 				//System.out.println( key );
@@ -948,10 +954,10 @@ public class FileListDatasetDefinitionUtil
 			}
 		}
 		//System.out.println( res.size() );
-		return res;		 
+		return res;
 	}
-	
-	public static void detectDimensionsInFile(File file, Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMaps, ImageReader reader)
+
+	public static void detectDimensionsInFile( File file, Map< FileMapEntry, Pair< Dimensions, VoxelDimensions > > dimensionMaps, ImageReader reader )
 	{
 
 		//System.out.println( file );
@@ -1032,11 +1038,11 @@ public class FileListDatasetDefinitionUtil
 			FinalDimensions finalDimensions = new FinalDimensions( dimX, dimY, dimZ );
 			
 			for (int j = 0; j < reader.getSizeC(); j++)
-			{			
-				Pair<File, Pair< Integer, Integer >> key = new ValuePair< File, Pair<Integer,Integer> >( currentFile, new ValuePair< Integer, Integer >( i, j ) );
-				dimensionMaps.put( key, new ValuePair< Dimensions, VoxelDimensions >( finalDimensions, finalVoxelDimensions ) );
+			{
+				FileMapEntry key = new FileMapEntry( currentFile, i, j );
+				dimensionMaps.put( key, new ValuePair<>( finalDimensions, finalVoxelDimensions ) );
 			}
-			
+
 		}
 
 		reader.close();
@@ -1156,8 +1162,10 @@ public class FileListDatasetDefinitionUtil
 
 		// map to tileMap and angleMap
 		Pair< Map< TileInfo, List< Pair< Integer, Integer > > >, Map< AngleInfo, List< Pair< Integer, Integer > > > > mapTilesAngles = mapTilesAndAnglesToSeries( predictTilesAndAngles );
-		infoMap.put( Tile.class, mapTilesAngles.getA());
-		infoMap.put( Angle.class, mapTilesAngles.getB());
+		final Map< TileInfo, List< Pair< Integer, Integer > > > tileMap = mapTilesAngles.getA();
+		final Map< AngleInfo, List< Pair< Integer, Integer > > > angleMap = mapTilesAngles.getB();
+		infoMap.put( Tile.class, tileMap );
+		infoMap.put( Angle.class, angleMap );
 
 		// predict and map timepoints, channels, illuminations
 		List< Pair< Integer, List< ChannelOrIlluminationInfo > > > predictTPChannelsIllum = predictTimepointsChannelsAndIllums( reader );
@@ -1174,18 +1182,14 @@ public class FileListDatasetDefinitionUtil
 		multiplicity.put( Illumination.class, checkMultiplicity( infoMap.get( Illumination.class ) ));
 
 		// make Maps TileInfo -> Series (is TileInfo -> (Series, Channel) before)
-		Map< ? extends Object, List< Integer > > tileSeriesMap = infoMap.get( Tile.class ).entrySet().stream().collect(
-				Collectors.toMap(
-						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) -> e.getKey(),
-						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) ->
-							new ArrayList<>(e.getValue().stream().map(p -> p.getA()).collect(Collectors.toSet()))) );
+		Map< TileInfo, List< Integer > > tileSeriesMap = tileMap.entrySet().stream().collect(
+				Collectors.toMap( Entry::getKey,
+						e -> e.getValue().stream().map( Pair::getA ).distinct().collect( Collectors.toList() ) ) );
 
 		// same but for Angles
-		Map< ? extends Object, List< Integer > > angleSeriesMap = infoMap.get( Angle.class ).entrySet().stream().collect(
-				Collectors.toMap(
-						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) -> e.getKey(),
-						(Entry< ? extends Object, List< Pair< Integer, Integer > > > e) ->
-							new ArrayList<>(e.getValue().stream().map(p -> p.getA()).collect(Collectors.toSet()))) );
+		Map< AngleInfo, List< Integer > > angleSeriesMap = angleMap.entrySet().stream().collect(
+				Collectors.toMap( Entry::getKey,
+						e -> e.getValue().stream().map( Pair::getA ).distinct().collect( Collectors.toList() ) ) );
 
 		multiplicity.put( Angle.class, checkMultiplicity( angleSeriesMap ));
 		multiplicity.put( Tile.class, checkMultiplicity( tileSeriesMap));
@@ -1233,7 +1237,8 @@ public class FileListDatasetDefinitionUtil
 			{
 				if (!state.getAccumulateMap(cl).containsKey( id ))
 					state.getAccumulateMap(cl).put( id, new ArrayList<>() );
-				infoMap.get( cl ).get( id ).forEach( series -> state.getAccumulateMap(cl).get( id ).add( new ValuePair< File, Pair< Integer, Integer > >( currentFile, series ) ) );
+				infoMap.get( cl ).get( id ).forEach( series -> state.getAccumulateMap(cl).get( id ).add(
+						new FileMapEntry( currentFile, series.getA(), series.getB() ) ) );
 			}
 		}
 

@@ -72,49 +72,49 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import util.ImgLib2Tools;
 
 
 public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 {
-	
-	private HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
+
+	private Map< ViewId, FileMapEntry > fileMap;
 	private AbstractSequenceDescription< ?, ?, ? > sd;
 	private boolean allTimepointsInSingleFiles;
 	private boolean zGrouped;
 	private File tempDir;
 
 	public LegacyFileMapImgLoaderLOCI(
-			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
+			Map< ? extends ViewId, FileMapEntry > fileMap,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
 	{
 		this(fileMap, sequenceDescription, false);
 	}
-	
+
 	public LegacyFileMapImgLoaderLOCI(
-			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
-			final boolean zGrouped)
+			Map< ? extends ViewId, FileMapEntry > fileMap,
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
+			final boolean zGrouped )
 	{
 		super();
 
 		this.tempDir = Files.createTempDir();
 
-		this.fileMap = new HashMap<>();
-		this.fileMap.putAll( fileMap );
+		this.fileMap = new HashMap<>( fileMap );
 
 		this.sd = sequenceDescription;
 
 		allTimepointsInSingleFiles = true;
 		this.zGrouped = zGrouped;
-		
+
 		// populate map file -> {time points}
 		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
 		for ( ViewId vId : fileMap.keySet() )
 		{
 
-			final File fileForVd = fileMap.get( vId ).getA();
+			final File fileForVd = fileMap.get( vId ).file();
 			if ( !tpsPerFile.containsKey( fileForVd ) )
 				tpsPerFile.put( fileForVd, new HashSet<>() );
 
@@ -153,15 +153,15 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			final RandomAccessibleInterval< UnsignedShortType > img = openImg( new UnsignedShortType(), view );
 
 			if ( img == null )
-				throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
+				throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).file() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() );
 
-			
+
 			return img;
 		}
 		catch ( Exception e )
 		{
 			e.printStackTrace();
-			throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).getA() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
+			throw new RuntimeException( "Could not load '" + fileMap.get( sd.getViewDescriptions( ).get( view ) ).file() + "' viewId=" + view.getViewSetupId() + ", tpId=" + view.getTimePointId() + ": " + e );
 		}
 	}
 
@@ -187,7 +187,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		// load dimensions
 		loadMetaData( view );
 
-		final File fileForVId = fileMap.get( view ).getA();
+		final File fileForVId = fileMap.get( view ).file();
 
 		// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 		// use Memoizer to cache ReaderState for each File on disk
@@ -207,17 +207,17 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 		reader.setId( fileForVId.getAbsolutePath() );
 		if (zGrouped)
 			( (FileStitcher) ( (Memoizer) reader).getReader() ).setAxisTypes( new int[] {AxisGuesser.Z_AXIS} );
-		reader.setSeries( fileMap.get( view ).getB().getA() );
+		reader.setSeries( fileMap.get( view ).series() );
 
 		final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( view );
-		final BasicViewSetup vs = vd.getViewSetup();		
-		final File file = fileMap.get( vd).getA();
+		final BasicViewSetup vs = vd.getViewSetup();
+		final File file = fileMap.get( vd).file();
 
 		final TimePoint t = vd.getTimePoint();
 		final Angle a = getAngle( vd );
 		final Channel c = getChannel( vd );
 		final Illumination i = getIllumination( vd );
-		final Tile tile = getTile( vd ); 
+		final Tile tile = getTile( vd );
 
 		// we assume the size to have been set beforehand
 		final int[] dim;
@@ -252,8 +252,8 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 					" type=" + FormatTools.getPixelTypeString( reader.getPixelType()) +
 					" img=" + img.getClass().getSimpleName() + "<" + type.getClass().getSimpleName() + ">]" );
 
-			
-			int ch = fileMap.get( vd ).getB().getB();
+
+			int ch = fileMap.get( vd ).channel();
 			int tpNo = allTimepointsInSingleFiles ? 0 : t.getId();
 
 			System.out.println( "allTimepointsInSingleFiles " + allTimepointsInSingleFiles );
@@ -373,7 +373,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 	}
 
 
-	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, FileMapEntry > getFileMap()
 	{
 		return fileMap;
 	}
@@ -395,11 +395,11 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			if (!vd.isPresent())
 				return;
 
-			final File invKey = e.getValue().getA();
+			final File invKey = e.getValue().file();
 			if (!invertedMap.containsKey( invKey ))
 				invertedMap.put( invKey, new HashMap<>() );
 
-			final Integer series = e.getValue().getB().getA();
+			final Integer series = e.getValue().series();
 
 			invertedMap.get( invKey ).put( series, vd );
 		});
@@ -450,7 +450,7 @@ public class LegacyFileMapImgLoaderLOCI extends AbstractImgFactoryImgLoader
 			if (!vd.isPresent())
 				return;
 
-			final Pair< File, Integer > invKey = new ValuePair<>( e.getValue().getA(), e.getValue().getB().getA() );
+			final Pair< File, Integer > invKey = new ValuePair<>( e.getValue().file(), e.getValue().series() );
 			if (!invertedMap.containsKey( invKey ))
 				invertedMap.put( invKey, new ArrayList<>() );
 

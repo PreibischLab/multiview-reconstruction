@@ -23,15 +23,10 @@
 package net.preibisch.mvrecon.fiji.datasetmanager;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.security.auth.Destroyable;
 
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.sequence.Angle;
@@ -43,10 +38,8 @@ import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.Dimensions;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.AngleInfo;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.ChannelInfo;
 import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.CheckResult;
-import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinitionUtil.TileInfo;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 
 public class FileListViewDetectionState
 {
@@ -55,19 +48,19 @@ public class FileListViewDetectionState
 	Boolean groupedFormat;
 	Boolean wasZGrouped;
 
-	Map<Class<? extends Entity>, FileListDatasetDefinitionUtil.CheckResult> multiplicityMap;	
-	Map<Class<? extends Entity>, Map<Object, List<Pair<File, Pair< Integer, Integer >>>>> accumulativeMap;	
-	Map<Class<? extends Entity>, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > >> idMap;	
-	Map<Class<? extends Entity>, Map< Integer, Object>> detailMap;
+	Map< Class< ? extends Entity >, FileListDatasetDefinitionUtil.CheckResult > multiplicityMap;
+	Map< Class< ? extends Entity >, Map< Object, List< FileMapEntry > > > accumulativeMap;
+	Map< Class< ? extends Entity >, Map< Integer, List< FileMapEntry > > > idMap;
+	Map< Class< ? extends Entity >, Map< Integer, Object > > detailMap;
 
-	Map<Pair<File, Pair< Integer, Integer >>, Pair<Dimensions, VoxelDimensions>> dimensionMap;
-	Map<String, Pair<File, Integer>> groupUsageMap;
+	Map< FileMapEntry, Pair< Dimensions, VoxelDimensions > > dimensionMap;
+	Map< String, Pair< File, Integer > > groupUsageMap;
 
 	public FileListViewDetectionState()
 	{
-		multiplicityMap = new HashMap<>();		
-		accumulativeMap = new HashMap<>();		
-		idMap = new HashMap<>();		
+		multiplicityMap = new HashMap<>();
+		accumulativeMap = new HashMap<>();
+		idMap = new HashMap<>();
 		detailMap = new HashMap<>();
 		groupUsageMap = new HashMap<>();
 
@@ -97,12 +90,12 @@ public class FileListViewDetectionState
 		if ( state.accumulativeMap.get( Channel.class ).size() < 1 )
 			return null;
 
-		final List< Pair< File, Pair< Integer, Integer > > > channelSources = state.accumulativeMap.get( Channel.class )
+		final List< FileMapEntry > channelSources = state.accumulativeMap.get( Channel.class )
 				.values().iterator().next();
 		final Map< Pair< File, Integer >, Integer > counts = new HashMap<>();
-		for ( Pair< File, Pair< Integer, Integer > > channelSrc : channelSources )
+		for ( FileMapEntry channelSrc : channelSources )
 		{
-			Pair< File, Integer > key = new ValuePair< File, Integer >( channelSrc.getA(), channelSrc.getB().getA() );
+			Pair< File, Integer > key = new ValuePair< File, Integer >( channelSrc.file(), channelSrc.series() );
 			if ( !counts.containsKey( key ) )
 				counts.put( key, 0 );
 			counts.put( key, counts.get( key ) + 1 );
@@ -119,12 +112,12 @@ public class FileListViewDetectionState
 		if ( state.accumulativeMap.get( Tile.class ).size() < 1 )
 			return null;
 
-		final List< Pair< File, Pair< Integer, Integer > > > channelSources = state.accumulativeMap.get( Tile.class )
+		final List< FileMapEntry > channelSources = state.accumulativeMap.get( Tile.class )
 				.values().iterator().next();
 		final Map< Pair< File, Integer >, Integer > counts = new HashMap<>();
-		for ( Pair< File, Pair< Integer, Integer > > channelSrc : channelSources )
+		for ( FileMapEntry channelSrc : channelSources )
 		{
-			Pair< File, Integer > key = new ValuePair< File, Integer >( channelSrc.getA(), channelSrc.getB().getB() );
+			Pair< File, Integer > key = new ValuePair< File, Integer >( channelSrc.file(), channelSrc.channel() );
 			if ( !counts.containsKey( key ) )
 				counts.put( key, 0 );
 			counts.put( key, counts.get( key ) + 1 );
@@ -176,13 +169,13 @@ public class FileListViewDetectionState
 	{
 		return ambiguousIllumChannel;
 	}
-	
-	public Map<Object, List< Pair< File, Pair< Integer, Integer > > >> getAccumulateMap(Class<? extends Entity> cl)
+
+	public Map< Object, List< FileMapEntry > > getAccumulateMap( Class< ? extends Entity > cl )
 	{
 		return accumulativeMap.get( cl );
 	}
 
-	public Map< Pair< File, Pair< Integer, Integer > >, Pair< Dimensions, VoxelDimensions > > getDimensionMap()
+	public Map< FileMapEntry, Pair< Dimensions, VoxelDimensions > > getDimensionMap()
 	{
 		return dimensionMap;
 	}
@@ -197,7 +190,7 @@ public class FileListViewDetectionState
 		this.ambiguousIllumChannel = ambiguousIllumChannel;
 	}
 
-	public Map< Class< ? extends Entity >, Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > > getIdMap()
+	public Map< Class< ? extends Entity >, Map< Integer, List< FileMapEntry > > > getIdMap()
 	{
 		return idMap;
 	}

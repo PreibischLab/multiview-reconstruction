@@ -9,12 +9,12 @@
  * it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 2 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
@@ -31,13 +31,11 @@ import java.util.Set;
 import com.google.common.io.Files;
 
 import loci.formats.FileStitcher;
-import loci.formats.FormatTools;
 import loci.formats.IFormatReader;
 import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
-import mpicbg.spim.data.generic.sequence.ImgLoaderHints;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
@@ -48,40 +46,33 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.exception.IncompatibleTypeException;
-import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.ShortType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Pair;
+import net.imglib2.util.Cast;
 import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import util.ImgLib2Tools;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 {
-	private final HashMap<ViewId, Pair<File, Pair<Integer, Integer>>> fileMap;
+	private final Map< ViewId, FileMapEntry > fileMap;
 	private final AbstractSequenceDescription<?, ?, ?> sd;
 	private boolean allTimepointsInSingleFiles;
 	private final File tempDir;
 	public boolean zGrouped;
 
 	public FileMapImgLoaderLOCI2(
-			final Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
+			final Map< ? extends ViewId, FileMapEntry > fileMap,
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		this(fileMap, sequenceDescription, false);
+		this( fileMap, sequenceDescription, false );
 	}
-	
-	public FileMapImgLoaderLOCI2(Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
-			final boolean zGrouped)
+
+	public FileMapImgLoaderLOCI2( Map< ? extends ViewId, FileMapEntry > fileMap,
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
+			final boolean zGrouped )
 	{
 		this.fileMap = new HashMap<>();
 		this.fileMap.putAll( fileMap );
@@ -92,47 +83,43 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		this.zGrouped = zGrouped;
 		allTimepointsInSingleFiles = true;
 
-
 		// populate map file -> {time points}
-		Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
-		for ( ViewId vid : fileMap.keySet() )
+		final Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
+		for ( final Map.Entry< ? extends ViewId, FileMapEntry > entry : fileMap.entrySet() )
 		{
-
-			final File fileForVd = fileMap.get( vid ).getA();
-			if ( !tpsPerFile.containsKey( fileForVd ) )
-				tpsPerFile.put( fileForVd, new HashSet<>() );
-
-			tpsPerFile.get( fileForVd ).add( vid.getTimePointId() );
+			final ViewId vid = entry.getKey();
+			final File file = entry.getValue().file();
+			final Set< Integer > tps = tpsPerFile.computeIfAbsent( file, k -> new HashSet<>() );
+			tps.add( vid.getTimePointId() );
 
 			// the current file has more than one time point
-			if ( tpsPerFile.get( fileForVd ).size() > 1 )
+			if ( tps.size() > 1 )
 			{
 				allTimepointsInSingleFiles = false;
 				break;
 			}
-
 		}
 
 		System.out.println( allTimepointsInSingleFiles );
 	}
-	
+
 
 	@Override
 	public SetupImgLoader< ? > getSetupImgLoader(int setupId)
 	{
 		return new FileMapSetupImgLoaderLOCI2<>(setupId);
 	}
-	
-	
+
+
 	/* (non-Javadoc)
 	 * @see spim.fiji.spimdata.imgloaders.filemap2.FileMapGettable#getFileMap()
 	 */
 	@Override
-	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, FileMapEntry > getFileMap()
 	{
-		 return fileMap;
+		return fileMap;
 	}
-	
+
 	public class FileMapSetupImgLoaderLOCI2 <T extends RealType<T> & NativeType< T >> implements SetupImgLoader< T >
 	{
 		private int setupId;
@@ -166,7 +153,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints)
 		{
 			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			final Pair< File, Pair< Integer, Integer > > imageSource = fileMap.get( vd );
+			final FileMapEntry imageSource = fileMap.get( vd );
 
 			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
 
@@ -177,9 +164,9 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			RandomAccessibleInterval< T > img = null;
 			try
 			{
-				img = (RandomAccessibleInterval< T >) (Object)new VirtualRAIFactoryLOCI().createVirtualCached(
-						reader, imageSource.getA(), imageSource.getB().getA(),
-						imageSource.getB().getB(), allTimepointsInSingleFiles ? 0 : timepointId, new UnsignedShortType(), size );
+				img = Cast.unchecked( new VirtualRAIFactoryLOCI().createVirtualCached(
+						reader, imageSource.file(), imageSource.series(),
+						imageSource.channel(), allTimepointsInSingleFiles ? 0 : timepointId, new UnsignedShortType(), size ) );
 			}
 			catch ( IncompatibleTypeException e )
 			{
@@ -200,7 +187,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 
 			final IFormatReader reader = getReader();
 			VirtualRAIFactoryLOCI.setReaderFileAndSeriesIfNecessary( reader, aPair.getA(), aPair.getB().getA() );
-			
+
 			if (reader.getPixelType() == FormatTools.UINT8)
 				return (T) new UnsignedByteType();
 			else if (reader.getPixelType() == FormatTools.UINT16)
@@ -261,7 +248,7 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			srcRA.setPosition( destCursor );
 			destCursor.get().setReal( srcRA.get().getRealDouble() );
 		}
-		
+
 	}
 
 	public static BasicViewDescription< ? > getAnyPresentViewDescriptionForViewSetup(AbstractSequenceDescription< ?, ?, ? > sd, int viewSetupId)
