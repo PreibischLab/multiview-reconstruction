@@ -28,6 +28,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,16 +200,10 @@ public class ExportN5Api implements ImgExport
 			}
 		}
 
-		final T type = imgInterval.firstElement().createVariable();
-		final DataType dataType;
-
-		if ( UnsignedByteType.class.isInstance( type ) )
-			dataType = DataType.UINT8;
-		else if ( UnsignedShortType.class.isInstance( type ) )
-			dataType = DataType.UINT16;
-		else if ( FloatType.class.isInstance( type ) )
-			dataType = DataType.FLOAT32;
-		else
+		final T type = imgInterval.getType();
+		final DataType dataType = N5Utils.dataType( type );
+		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
+		if ( !supportedDataTypes.contains( dataType ) )
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
 
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );

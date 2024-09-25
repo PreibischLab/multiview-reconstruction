@@ -70,7 +70,7 @@ import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.cache.img.SingleCellArrayImg;
 import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.converter.Converters;
-import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
@@ -79,6 +79,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
 import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
@@ -441,7 +442,7 @@ public class FusionTools
 		// which views to process (use un-altered bounding box and registrations)
 		final ArrayList< ViewId > viewIdsToProcess =
 				LazyFusionTools.overlappingViewIds(
-						is2d ? bBox2d : boundingBox,
+						bb,
 						views,
 						registrations,
 						LazyFusionTools.assembleDimensions( views, viewDescriptions ),
@@ -573,20 +574,11 @@ public class FusionTools
 		//return new ValuePair<>( new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights ), bbTransform );
 	}
 
-	@SuppressWarnings("unchecked")
 	public static < T extends RealType< T > > RandomAccessibleInterval< FloatType > convertInput( final RandomAccessibleInterval< T > img )
 	{
-		if ( FloatType.class.isInstance( Views.iterable( img ).cursor().next() ) )
-		{
-			return (RandomAccessibleInterval< FloatType >)img;
-		}
-		else
-		{
-			return Views.interval( Converters.convert(
-						img,
-						new RealFloatConverter< T >(),
-						new FloatType() ), img );
-		}
+		return img.getType() instanceof FloatType
+				? Cast.unchecked( img )
+				: RealTypeConverters.convert( img, new FloatType() );
 	}
 
 	public static ImagePlus displayVirtually( final RandomAccessibleInterval< FloatType > input )
