@@ -41,7 +41,9 @@ import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
@@ -220,7 +222,7 @@ public class MultiResolutionFlatfieldCorrectionWrappedImgLoader
 					imgFactory = new CellImgFactory<T>();
 
 				Img< T > loadedImg = imgFactory.create( rai, getImageType() );
-				FileMapImgLoaderLOCI2.copy(Views.extendZero( rai ), loadedImg);
+				RealTypeConverters.copyFromTo( Views.extendZero( rai ), loadedImg );
 
 				rai = loadedImg;
 			}

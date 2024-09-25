@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 import com.google.common.io.Files;
 
@@ -35,33 +38,38 @@ import loci.formats.IFormatReader;
 import loci.formats.Memoizer;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
-import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.exception.IncompatibleTypeException;
+import net.imglib2.cache.Cache;
+import net.imglib2.cache.ref.WeakRefLoaderCache;
+import net.imglib2.converter.RealTypeConverters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Cast;
-import net.imglib2.view.Views;
+import net.imglib2.util.CloseableThreadLocal;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.util.BioformatsReaderUtils;
 import util.ImgLib2Tools;
 
 public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 {
 	private final Map< ViewId, FileMapEntry > fileMap;
-	private final AbstractSequenceDescription<?, ?, ?> sd;
-	private boolean allTimepointsInSingleFiles;
+
 	private final File tempDir;
-	public boolean zGrouped;
+
+	private final AbstractSequenceDescription< ?, ?, ? > sd;
+
+	final boolean zGrouped;
+
+	private final boolean allTimepointsInSingleFiles;
+
+	private final Map< Integer, SetupImgLoader< ? > > setupImgLoaders = new ConcurrentHashMap<>();
 
 	public FileMapImgLoaderLOCI2(
 			final Map< ? extends ViewId, FileMapEntry > fileMap,
@@ -74,17 +82,14 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
 			final boolean zGrouped )
 	{
-		this.fileMap = new HashMap<>();
-		this.fileMap.putAll( fileMap );
-
+		this.fileMap = new HashMap<>( fileMap );
 		this.tempDir = Files.createTempDir();
-
 		this.sd = sequenceDescription;
 		this.zGrouped = zGrouped;
-		allTimepointsInSingleFiles = true;
 
 		// populate map file -> {time points}
 		final Map< File, Set< Integer > > tpsPerFile = new HashMap<>();
+		boolean allTimepointsInSingleFiles = true;
 		for ( final Map.Entry< ? extends ViewId, FileMapEntry > entry : fileMap.entrySet() )
 		{
 			final ViewId vid = entry.getKey();
@@ -99,47 +104,18 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 				break;
 			}
 		}
+		this.allTimepointsInSingleFiles = allTimepointsInSingleFiles;
 
-		System.out.println( allTimepointsInSingleFiles );
-	}
-
-
-	@Override
-	public SetupImgLoader< ? > getSetupImgLoader(int setupId)
-	{
-		return new FileMapSetupImgLoaderLOCI2<>(setupId);
-	}
-
-
-	/* (non-Javadoc)
-	 * @see spim.fiji.spimdata.imgloaders.filemap2.FileMapGettable#getFileMap()
-	 */
-	@Override
-	public Map< ViewId, FileMapEntry > getFileMap()
-	{
-		return fileMap;
-	}
-
-	public class FileMapSetupImgLoaderLOCI2 <T extends RealType<T> & NativeType< T >> implements SetupImgLoader< T >
-	{
-		private int setupId;
-
-		public FileMapSetupImgLoaderLOCI2(int setupId)
-		{
-			this.setupId = setupId;
-		}
-
-		private IFormatReader getReader()
-		{
+		this.getReader = () -> {
 			// use a new ImageReader since we might be loading multi-threaded and BioFormats is not thread-save
 			// use Memoizer to cache ReaderState for each File on disk
 			// see: https://www-legacy.openmicroscopy.org/site/support/bio-formats5.1/developers/matlab-dev.html#reader-performance
 			IFormatReader reader = null;
-			if (zGrouped)
+			if ( zGrouped )
 			{
-				final FileStitcher fs = new FileStitcher(true);
+				final FileStitcher fs = new FileStitcher( true );
 				fs.setCanChangePattern( false );
-				reader = new Memoizer( fs , Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir);
+				reader = new Memoizer( fs, Memoizer.DEFAULT_MINIMUM_ELAPSED, tempDir );
 			}
 			else
 			{
@@ -147,64 +123,78 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 			}
 
 			return reader;
+		};
+	}
+
+	@Override
+	public SetupImgLoader< ? > getSetupImgLoader( int setupId )
+	{
+		return setupImgLoaders.computeIfAbsent( setupId, FileMapSetupImgLoaderLOCI2::new );
+	}
+
+	@Override
+	public Map< ViewId, FileMapEntry > getFileMap()
+	{
+		return fileMap;
+	}
+
+	private final Supplier< IFormatReader > getReader;
+
+	public class FileMapSetupImgLoaderLOCI2< T extends RealType< T > & NativeType< T > > implements SetupImgLoader< T >
+	{
+		private final int setupId;
+
+		private final CloseableThreadLocal< IFormatReader > threadLocalReader = CloseableThreadLocal.withInitial( getReader );
+
+		private final Cache< Integer, RandomAccessibleInterval< T > > images = new WeakRefLoaderCache< Integer, RandomAccessibleInterval< T > >().withLoader( this::createImage );
+
+		private final Supplier< T > type;
+
+		public FileMapSetupImgLoaderLOCI2( int setupId )
+		{
+			this.setupId = setupId;
+			this.type = lazyInit( () -> {
+				final BasicViewDescription< ? > aVd = getAnyPresentViewDescriptionForViewSetup( sd, setupId );
+				if ( aVd == null )
+					return null;
+				final FileMapEntry entry = fileMap.get( aVd );
+				return VirtualRAIFactoryLOCI.getType( threadLocalReader::get, entry.file(), entry.series() );
+			} );
+		}
+
+		private RandomAccessibleInterval< T > createImage( final int timepointId )
+		{
+			final FileMapEntry entry = fileMap.get( new ViewId( timepointId, setupId ) );
+			return VirtualRAIFactoryLOCI.createVirtualCached(
+					threadLocalReader::get,
+					entry.file(),
+					entry.series(),
+					entry.channel(),
+					allTimepointsInSingleFiles ? 0 : timepointId );
 		}
 
 		@Override
-		public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints)
+		public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints )
 		{
-			final BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			final FileMapEntry imageSource = fileMap.get( vd );
-
-			// TODO: some logging here? (reading angle .. , tp .., ... from file ...)
-
-			final Dimensions size = vd.getViewSetup().getSize();
-
-			final IFormatReader reader = getReader();
-
-			RandomAccessibleInterval< T > img = null;
 			try
 			{
-				img = Cast.unchecked( new VirtualRAIFactoryLOCI().createVirtualCached(
-						reader, imageSource.file(), imageSource.series(),
-						imageSource.channel(), allTimepointsInSingleFiles ? 0 : timepointId, new UnsignedShortType(), size ) );
+				return images.get( timepointId );
 			}
-			catch ( IncompatibleTypeException e )
+			catch ( ExecutionException e )
 			{
-				e.printStackTrace();
+				throw new RuntimeException( e );
 			}
-
-			return img;
 		}
 
 		@Override
 		public T getImageType()
 		{
-			return (T) new UnsignedShortType();
-
-			/*
-			final BasicViewDescription< ? > aVd = getAnyPresentViewDescriptionForViewSetup( sd, setupId );
-			final Pair< File, Pair< Integer, Integer > > aPair = fileMap.get( aVd );
-
-			final IFormatReader reader = getReader();
-			VirtualRAIFactoryLOCI.setReaderFileAndSeriesIfNecessary( reader, aPair.getA(), aPair.getB().getA() );
-
-			if (reader.getPixelType() == FormatTools.UINT8)
-				return (T) new UnsignedByteType();
-			else if (reader.getPixelType() == FormatTools.UINT16)
-				return (T) new UnsignedShortType();
-			else if (reader.getPixelType() == FormatTools.INT16)
-				return (T) new ShortType();
-			else if (reader.getPixelType() == FormatTools.UINT32)
-				return (T) new UnsignedIntType();
-			else if (reader.getPixelType() == FormatTools.FLOAT)
-				return (T) new FloatType();
-			return null;
-			*/
+			return type.get();
 		}
 
 		@Override
-		public RandomAccessibleInterval< FloatType > getFloatImage(int timepointId, boolean normalize,
-				ImgLoaderHint... hints)
+		public RandomAccessibleInterval< FloatType > getFloatImage( int timepointId, boolean normalize,
+				ImgLoaderHint... hints )
 		{
 			if ( normalize )
 				return ImgLib2Tools.normalizeVirtualRAI( getImage( timepointId, hints ) );
@@ -213,52 +203,69 @@ public class FileMapImgLoaderLOCI2 implements ImgLoader, FileMapGettable
 		}
 
 		@Override
-		public Dimensions getImageSize(int timepointId)
+		public Dimensions getImageSize( int timepointId )
 		{
 			// NB: in all current uses we should have size information in the sd
-			BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			return vd.getViewSetup().getSize();
+			return getViewSetup( timepointId ).getSize();
 		}
 
 		@Override
-		public VoxelDimensions getVoxelSize(int timepointId)
+		public VoxelDimensions getVoxelSize( int timepointId )
 		{
 			// NB: in all current uses we should have size information in the sd
-			BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
-			return vd.getViewSetup().getVoxelSize();
+			return getViewSetup( timepointId ).getVoxelSize();
 		}
 
-	}
-
-	/**
-	 * copy src to dest
-	 * @param src : source, will not be modified
-	 * @param dest : destiantion, will be modified
-	 * @param <T> pixel type source
-	 * @param <S> pixel type destination
-	 */
-	public static <T extends RealType<T>, S extends RealType<S>> void copy(RandomAccessible< T > src, RandomAccessibleInterval< S > dest)
-	{
-		final Cursor< S > destCursor = Views.iterable( dest ).localizingCursor();
-		final RandomAccess< T > srcRA = src.randomAccess();
-
-		while (destCursor.hasNext())
+		private BasicViewSetup getViewSetup( int timepointId )
 		{
-			destCursor.fwd();
-			srcRA.setPosition( destCursor );
-			destCursor.get().setReal( srcRA.get().getRealDouble() );
+			BasicViewDescription< ? > vd = sd.getViewDescriptions().get( new ViewId( timepointId, setupId ) );
+			return vd.getViewSetup();
 		}
-
 	}
 
-	public static BasicViewDescription< ? > getAnyPresentViewDescriptionForViewSetup(AbstractSequenceDescription< ?, ?, ? > sd, int viewSetupId)
+	private static BasicViewDescription< ? > getAnyPresentViewDescriptionForViewSetup( AbstractSequenceDescription< ?, ?, ? > sd, int viewSetupId )
 	{
-		for (final ViewId vid : sd.getViewDescriptions().keySet())
-			if (vid.getViewSetupId() == viewSetupId)
-				if (!sd.getMissingViews().getMissingViews().contains( vid ))
+		for ( final ViewId vid : sd.getViewDescriptions().keySet() )
+			if ( vid.getViewSetupId() == viewSetupId )
+				if ( !sd.getMissingViews().getMissingViews().contains( vid ) )
 					return sd.getViewDescriptions().get( vid );
 
 		return null;
 	}
 
+	private static < T > Supplier< T > lazyInit( final Supplier< T > supplier )
+	{
+		return new Supplier< T >()
+		{
+			T value = null;
+
+			@Override
+			public synchronized T get()
+			{
+				if ( value == null )
+					value = supplier.get();
+				return value;
+			}
+		};
+	}
+
+	/**
+	 * copy src to dest
+	 *
+	 * @deprecated Use {@link RealTypeConverters#copyFromTo(RandomAccessible, RandomAccessibleInterval)}.
+	 *
+	 * @param src
+	 * 		source, will not be modified
+	 * @param dest
+	 * 		destiantion, will be modified
+	 * @param <T>
+	 * 		pixel type source
+	 * @param <S>
+	 * 		pixel type destination
+	 */
+	@Deprecated
+	public static < T extends RealType< T >, S extends RealType< S > > void copy( RandomAccessible< T > src, RandomAccessibleInterval< S > dest )
+	{
+		RealTypeConverters.copyFromTo( src, dest );
+	}
 }
