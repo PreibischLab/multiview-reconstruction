@@ -58,6 +58,12 @@ public class URITools
 		public String bucket;
 		public String rootDir;
 		public String file;
+
+		@Override
+		public String toString()
+		{
+			return "protocol: '" + protocol + "', bucket: '" + bucket + "', rootdir: '" + rootDir + "', file: '" + file + "'";
+		}
 	}
 
 	public static void saveSpimData( final SpimData2 data, final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
@@ -75,42 +81,38 @@ public class URITools
 			final ParsedBucket pb;
 			final KeyValueAccess kva;
 
+			System.out.println( xmlURI );
+
 			try
 			{
 				pb = URITools.parseCloudLink( xmlURI.toString() );
-				kva = URITools.getWriteKeyValueAccessForBucket( pb );
+				kva = URITools.getKeyValueAccessForBucket( pb );
 			}
 			catch ( Exception e )
 			{
 				throw new SpimDataException( "Could not parse cloud link and setup KeyValueAccess for '" + xmlURI + "': " + e );
 			}
 
+			System.out.println( pb );
+
 			// fist make a copy of the XML and save it to not loose it
 			try
 			{
-
-				if ( kva.exists( pb.rootDir + "/" + pb.file ) )
+				final String xmlFile = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
+				if ( kva.exists( xmlFile ) )
 				{
 					int maxExistingBackup = 0;
 					for ( int i = 1; i < XmlIoSpimData2.numBackups; ++i )
-						if ( kva.exists( pb.rootDir + "/" + pb.file + "~" + i ) )
+						if ( kva.exists( xmlFile + "~" + i ) )
 							maxExistingBackup = i;
 						else
 							break;
 	
 					// copy the backups
-					try
-					{
-						for ( int i = maxExistingBackup; i >= 1; --i )
-							URITools.copy(kva, pb.rootDir + "/" + pb.file + "~" + i, pb.rootDir + "/" + pb.file + "~" + (i + 1) );
-	
-						URITools.copy(kva, pb.rootDir + "/" + pb.file, pb.rootDir + "/" + pb.file + "~1" );
-					}
-					catch ( final Exception e )
-					{
-						IOFunctions.println( "Could not save backup of XML file: " + e );
-						e.printStackTrace();
-					}
+					for ( int i = maxExistingBackup; i >= 1; --i )
+						URITools.copy(kva, xmlFile + "~" + i, xmlFile + "~" + (i + 1) );
+
+					URITools.copy(kva, xmlFile, xmlFile + "~1" );
 				}
 			}
 			catch ( Exception e )
@@ -120,16 +122,13 @@ public class URITools
 
 			try
 			{
-				final Document doc = new Document( io.toXml( data, new File( ".") ) );
+				final Document doc = new Document( io.toXml( data, getParent( xmlURI ) ) );
 				final XMLOutputter xout = new XMLOutputter( Format.getPrettyFormat() );
 				final String xmlString = xout.outputString( doc );
-				//System.out.println( xmlString );
-	
-				final OutputStream os = kva.lockForWriting( pb.rootDir + "/" + pb.file ).newOutputStream();
-				final PrintWriter pw = new PrintWriter( os );
+
+				final PrintWriter pw = openFileWriteCloud( kva, pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file );
 				pw.println( xmlString );
 				pw.close();
-				os.close();
 			}
 			catch ( Exception e )
 			{
@@ -177,7 +176,7 @@ public class URITools
 			}
 			catch ( Exception e )
 			{
-				System.out.println( "Anonymous failed; trying writing with credentials ..." );
+				System.out.println( "With credentials failed; trying anonymous ..." );
 
 				n5w = new N5Factory().openWriter( format, uri );
 			}
@@ -204,15 +203,15 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying anonymous reading ..." );
-				n5r = new N5Factory().openReader( format, uri );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( "Anonymous failed; trying reading with credentials ..." );
+				System.out.println( "Trying reading with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5r = factory.openReader( format, uri );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "With credentials failed; trying anonymous ..." );
+				n5r = new N5Factory().openReader( format, uri );
 			}
 
 			return n5r;
@@ -237,15 +236,15 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying anonymous reading ..." );
-				n5r = new N5Factory().openReader( uri.toString() );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( "Anonymous failed; trying reading with credentials ..." );
+				System.out.println( "Trying reading with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5r = factory.openReader( uri.toString() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( "With credentials failed; trying anonymous ..." );
+				n5r = new N5Factory().openReader( uri.toString() );
 			}
 
 			return n5r;
@@ -298,14 +297,15 @@ public class URITools
 			//super.load(null, xmlURI); // how do I use this?
 
 			final ParsedBucket pb = URITools.parseCloudLink( xmlURI.toString() );
-			final KeyValueAccess kva = URITools.getReadKeyValueAccessForBucket( pb );
+			final KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
 
 			final SAXBuilder sax = new SAXBuilder();
 			Document doc;
 			try
 			{
-				final InputStream is = kva.lockForReading( pb.rootDir + "/" + pb.file ).newInputStream();
+				final InputStream is = kva.lockForReading( pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file ).newInputStream();
 				doc = sax.build( is );
+				is.close();
 			}
 			catch ( final Exception e )
 			{
@@ -330,28 +330,11 @@ public class URITools
 		}
 	}
 
-	/*
-	public static KeyValueAccess getKeyValueAccessForBucket( String bucketUri )
+	public static KeyValueAccess getKeyValueAccessForBucket( final ParsedBucket pb )
 	{
-		final N5Reader n5r = new N5Factory().openReader( StorageFormat.N5, bucketUri );
-		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5r).getKeyValueAccess();
-
-		return kva;
-	}
-	*/
-
-	public static KeyValueAccess getReadKeyValueAccessForBucket( final ParsedBucket pb )
-	{
+		// we use a reader so it does not create an attributes.json; the KeyValueAccess is able to write anyways
 		final N5Reader n5r = instantiateN5Reader(StorageFormat.N5, URI.create( pb.protocol + pb.bucket ) );//new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
 		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5r).getKeyValueAccess();
-
-		return kva;
-	}
-
-	public static KeyValueAccess getWriteKeyValueAccessForBucket( final ParsedBucket pb )
-	{
-		final N5Writer n5w = instantiateN5Writer(StorageFormat.N5, URI.create( pb.protocol + pb.bucket ) );//new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
-		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5w).getKeyValueAccess();
 
 		return kva;
 	}
@@ -506,4 +489,28 @@ public class URITools
 		}
 	}
 
+	public static void main( String[] args ) throws SpimDataException
+	{
+		ParsedBucket pb = URITools.parseCloudLink( "s3://janelia-bigstitcher-spark/Stitching-test/dataset.xml" );
+		KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
+
+		System.out.println( pb );
+
+		try
+		{
+			BufferedReader reader = openFileReadCloud(kva, "s3://janelia-bigstitcher-spark/Stitching-test/test_1727295175425.txt" );
+			reader.lines().forEach( s -> System.out.println( s ) );
+			reader.close();
+
+			String path = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + "test_" + System.currentTimeMillis() + ".txt";
+
+			final PrintWriter pw = openFileWriteCloud( kva, path );
+			pw.println( "hallo " + System.currentTimeMillis() );
+			pw.close();
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not save xml '" + "': " + e );
+		}	
+	}
 }
