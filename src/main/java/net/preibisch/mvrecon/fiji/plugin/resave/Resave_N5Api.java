@@ -263,14 +263,21 @@ public class Resave_N5Api implements PlugIn
 		myPool.shutdown();
 		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
 
-		n5Writer.close();
 
 		if ( format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
+		{
 			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+			n5Writer.close();
+		}
 		else if ( format == StorageFormat.N5 ) // some cloud location
-			sdReduced.getSequenceDescription().setImgLoader( new N5CloudImageLoader( null, n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+		{
+			sdReduced.getSequenceDescription().setImgLoader( new N5CloudImageLoader( n5Writer, n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+		}
 		else if ( format == StorageFormat.HDF5 )
+		{
 			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
+			n5Writer.close();
+		}
 		else
 			throw new RuntimeException( "There is no ImgLoader available for " + format + ". Data is resaved, but we will not be able to load it" );
 
