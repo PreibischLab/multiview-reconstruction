@@ -423,24 +423,24 @@ public class N5ApiTools
 		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], type);
 	}
 
-	public static ArrayList<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
+	public static List<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
 	{
 		return assembleJobs( null, mrInfo );
 	}
 
-	public static ArrayList<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo, final int[] computeBlockSize )
+	public static List<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo, final int[] computeBlockSize )
 	{
 		return assembleJobs( null, mrInfo, computeBlockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
+	public static List<long[][]> assembleJobs(
 			final ViewId viewId,
 			final MultiResolutionLevelInfo mrInfo )
 	{
 		return assembleJobs( viewId, mrInfo.dimensions, mrInfo.blockSize, mrInfo.blockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
+	public static List<long[][]> assembleJobs(
 			final ViewId viewId,
 			final MultiResolutionLevelInfo mrInfo,
 			final int[] computeBlockSize )
@@ -448,14 +448,14 @@ public class N5ApiTools
 		return assembleJobs( viewId, mrInfo.dimensions, mrInfo.blockSize, computeBlockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
+	public static List<long[][]> assembleJobs(
 			final long[] dimensions,
 			final int[] blockSize )
 	{
 		return assembleJobs(null, dimensions, blockSize, blockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
+	public static List<long[][]> assembleJobs(
 			final long[] dimensions,
 			final int[] blockSize,
 			final int[] computeBlockSize )
@@ -463,23 +463,20 @@ public class N5ApiTools
 		return assembleJobs(null, dimensions, blockSize, computeBlockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
-			final ViewId viewId, //can be null 
+	public static List<long[][]> assembleJobs(
+			final ViewId viewId, //can be null
 			final long[] dimensions,
 			final int[] blockSize )
 	{
 		return assembleJobs(viewId, dimensions, blockSize, blockSize );
 	}
 
-	public static ArrayList<long[][]> assembleJobs(
-			final ViewId viewId, //can be null 
+	public static List<long[][]> assembleJobs(
+			final ViewId viewId, //can be null
 			final long[] dimensions,
 			final int[] blockSize,
 			final int[] computeBlockSize )
 	{
-		// all blocks (a.k.a. grids)
-		final ArrayList<long[][]> allBlocks = new ArrayList<>();
-
 		final List<long[][]> grid = Grid.create(
 				dimensions,
 				computeBlockSize,
@@ -487,6 +484,9 @@ public class N5ApiTools
 
 		if ( viewId != null )
 		{
+			// all blocks (a.k.a. grids)
+			final List<long[][]> allBlocks = new ArrayList<>();
+
 			// add timepointId and ViewSetupId & dimensions to the gridblock
 			for ( final long[][] gridBlock : grid )
 				allBlocks.add( new long[][]{
@@ -495,9 +495,12 @@ public class N5ApiTools
 					gridBlock[ 2 ].clone(),
 					new long[] { viewId.getTimePointId(), viewId.getViewSetupId() }
 				});
+			return allBlocks;
 		}
-
-		return allBlocks;
+		else
+		{
+			return grid;
+		}
 	}
 
 	public static int[] computeRelativeDownsampling(

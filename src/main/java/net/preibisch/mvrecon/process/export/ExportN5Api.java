@@ -332,7 +332,7 @@ public class ExportN5Api implements ImgExport
 		for ( int level = 1; level < mrInfo.length; ++level )
 		{
 			final int s = level;
-			final ArrayList<long[][]> allBlocks = N5ApiTools.assembleJobs( mrInfo[ level ] );
+			final List<long[][]> allBlocks = N5ApiTools.assembleJobs( mrInfo[ level ] );
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
