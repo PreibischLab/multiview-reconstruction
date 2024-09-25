@@ -78,7 +78,7 @@ public class URITools
 			try
 			{
 				pb = URITools.parseCloudLink( xmlURI.toString() );
-				kva = URITools.getKeyValueAccessForBucket( pb );
+				kva = URITools.getWriteKeyValueAccessForBucket( pb );
 			}
 			catch ( Exception e )
 			{
@@ -298,7 +298,7 @@ public class URITools
 			//super.load(null, xmlURI); // how do I use this?
 
 			final ParsedBucket pb = URITools.parseCloudLink( xmlURI.toString() );
-			final KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
+			final KeyValueAccess kva = URITools.getReadKeyValueAccessForBucket( pb );
 
 			final SAXBuilder sax = new SAXBuilder();
 			Document doc;
@@ -330,6 +330,7 @@ public class URITools
 		}
 	}
 
+	/*
 	public static KeyValueAccess getKeyValueAccessForBucket( String bucketUri )
 	{
 		final N5Reader n5r = new N5Factory().openReader( StorageFormat.N5, bucketUri );
@@ -337,11 +338,20 @@ public class URITools
 
 		return kva;
 	}
+	*/
 
-	public static KeyValueAccess getKeyValueAccessForBucket( ParsedBucket pb )
+	public static KeyValueAccess getReadKeyValueAccessForBucket( final ParsedBucket pb )
 	{
-		final N5Reader n5r = new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
+		final N5Reader n5r = instantiateN5Reader(StorageFormat.N5, URI.create( pb.protocol + pb.bucket ) );//new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
 		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5r).getKeyValueAccess();
+
+		return kva;
+	}
+
+	public static KeyValueAccess getWriteKeyValueAccessForBucket( final ParsedBucket pb )
+	{
+		final N5Writer n5w = instantiateN5Writer(StorageFormat.N5, URI.create( pb.protocol + pb.bucket ) );//new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
+		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5w).getKeyValueAccess();
 
 		return kva;
 	}
