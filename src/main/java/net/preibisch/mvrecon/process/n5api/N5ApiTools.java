@@ -1,9 +1,14 @@
 package net.preibisch.mvrecon.process.n5api;
 
+import static org.janelia.saalfeldlab.n5.DataType.FLOAT32;
+import static org.janelia.saalfeldlab.n5.DataType.UINT16;
+import static org.janelia.saalfeldlab.n5.DataType.UINT8;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +30,6 @@ import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
-import mpicbg.spim.data.sequence.VoxelDimensions;
-import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -36,10 +39,7 @@ import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
@@ -50,6 +50,8 @@ import util.Grid;
 
 public class N5ApiTools
 {
+	static final EnumSet< DataType > supportedDataTypes = EnumSet.of( UINT8, UINT16, FLOAT32 );
+
 	public static ViewId gridBlockToViewId( final long[][] gridBlock )
 	{
 		if ( gridBlock.length <= 3 )
@@ -404,7 +406,7 @@ public class N5ApiTools
 		final DataType dataType = mrInfo.dataType;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
 		final int[] blockSize = mrInfo.blockSize;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
 
-		if ( dataType != DataType.UINT16 && dataType != DataType.UINT8 && dataType != DataType.FLOAT32 )
+		if ( !supportedDataTypes.contains( dataType ) )
 		{
 			n5.close();
 			throw new RuntimeException("Unsupported pixel type: " + dataType );
@@ -520,10 +522,10 @@ public class N5ApiTools
 		final ViewId viewId = gridBlockToViewId( gridBlock );
 		final String dataset = gridBlockToDataset.apply( gridBlock );
 
-		if ( dataType != DataType.UINT16 && dataType != DataType.UINT8 && dataType != DataType.FLOAT32 )
+		if ( !supportedDataTypes.contains( dataType ) )
 		{
 			n5.close();
-			throw new RuntimeException("Unsupported pixel type: " + dataType );
+			throw new RuntimeException( "Unsupported pixel type: " + dataType );
 		}
 
 		final SetupImgLoader< ? > imgLoader = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() );
@@ -535,7 +537,7 @@ public class N5ApiTools
 	}
 
 	public static Map< Integer, DataType > assembleDataTypes(
-			final AbstractSpimData<?> data,
+			final AbstractSpimData< ? > data,
 			final Collection< Integer > viewSetupIds )
 	{
 		final HashMap< Integer, DataType > dataTypes = new HashMap<>();
@@ -543,17 +545,12 @@ public class N5ApiTools
 		for ( final int viewSetupId : viewSetupIds )
 		{
 			final Object type = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewSetupId ).getImageType();
-			final DataType dataType;
-	
-			if ( UnsignedShortType.class.isInstance( type ) )
-				dataType = DataType.UINT16;
-			else if ( UnsignedByteType.class.isInstance( type ) )
-				dataType = DataType.UINT8;
-			else if ( FloatType.class.isInstance( type ) )
-				dataType = DataType.FLOAT32;
-			else
-				throw new RuntimeException("Unsupported pixel type: " + type.getClass().getCanonicalName() );
-	
+			final DataType dataType = type instanceof NativeType ? N5Utils.dataType( Cast.unchecked( type ) ) : null;
+			if ( !supportedDataTypes.contains( dataType ) )
+			{
+				throw new RuntimeException( "Unsupported pixel type: " + type.getClass().getCanonicalName() );
+			}
+
 			dataTypes.put( viewSetupId, dataType );
 		}
 
