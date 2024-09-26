@@ -72,7 +72,11 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 			final Element fileMappingElement = new Element( FILE_MAPPING_TAG );
 			fileMappingElement.setAttribute( MAPPING_VS_TAG, Integer.toString( vid.getViewSetupId() ) );
 			fileMappingElement.setAttribute( MAPPING_TP_TAG, Integer.toString( vid.getTimePointId() ) );
-			fileMappingElement.addContent( XmlHelpers.pathElement( MAPPING_FILE_TAG, pair.getA(), basePath ) );
+			if (imgLoader.zGrouped) {
+				fileMappingElement.addContent( XmlHelpers.textElement( MAPPING_FILE_TAG, pair.getA().toString() ) );
+			} else {
+				fileMappingElement.addContent( XmlHelpers.pathElement( MAPPING_FILE_TAG, pair.getA(), basePath ) );
+			}
 			fileMappingElement.setAttribute( MAPPING_SERIES_TAG, Integer.toString( pair.getB().getA() ) );
 			fileMappingElement.setAttribute( MAPPING_C_TAG, Integer.toString( pair.getB().getB() ) );
 
