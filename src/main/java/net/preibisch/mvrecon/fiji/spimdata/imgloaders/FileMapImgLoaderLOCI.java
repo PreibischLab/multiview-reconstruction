@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import java.io.File;
 import java.util.Map;
 
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -31,22 +30,22 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 
 public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortType, LegacyFileMapImgLoaderLOCI > implements FileMapGettable
 {
 	public boolean zGrouped;
 
 	public FileMapImgLoaderLOCI(
-			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
-			final AbstractSequenceDescription<?, ?, ?> sequenceDescription)
+			Map< ? extends ViewId, FileMapEntry > fileMap,
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
 		this(fileMap, sequenceDescription, false);
 	}
 
 	public FileMapImgLoaderLOCI(
-			Map<? extends ViewId, Pair<File, Pair<Integer, Integer>>> fileMap,
+			Map< ? extends ViewId, FileMapEntry > fileMap,
 			final AbstractSequenceDescription<?, ?, ?> sequenceDescription,
 			final boolean zGrouped)
 	{
@@ -61,12 +60,12 @@ public class FileMapImgLoaderLOCI extends LegacyImgLoaderWrapper< UnsignedShortT
 	public String toString() {
 		return legacyImgLoader.toString();
 	}
-	
+
 	@Override
-	public Map< ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap()
+	public Map< ViewId, FileMapEntry > getFileMap()
 	{
 		 return ( (LegacyFileMapImgLoaderLOCI) legacyImgLoader ).getFileMap();
 	}
-	
+
 
 }

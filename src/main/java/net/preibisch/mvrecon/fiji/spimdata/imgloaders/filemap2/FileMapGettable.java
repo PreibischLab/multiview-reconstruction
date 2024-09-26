@@ -22,13 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2;
 
-import java.io.File;
 import java.util.Map;
 
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.util.Pair;
 
 public interface FileMapGettable
 {
-	public Map< ? extends ViewId, Pair< File, Pair< Integer, Integer > > > getFileMap();
+	Map< ? extends ViewId, FileMapEntry > getFileMap();
 }

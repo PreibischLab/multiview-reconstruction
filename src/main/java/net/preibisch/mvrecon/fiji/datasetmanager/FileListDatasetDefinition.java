@@ -115,6 +115,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyFileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -443,18 +444,18 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 	
 	private static SpimData2 buildSpimData( FileListViewDetectionState state, boolean withVirtualLoader )
 	{
-		
-		//final Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > fm = tileIdxMap;
+
+		//final Map< Integer, List< FileMapEntry > > fm = tileIdxMap;
 		//fm.forEach( (k,v ) -> {System.out.println( k ); v.forEach( p -> {System.out.print(p.getA() + ""); System.out.print(p.getB().getA().toString() + " "); System.out.println(p.getB().getB().toString());} );});
-		
-		
-		Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > tpIdxMap = state.getIdMap().get( TimePoint.class );
-		Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > channelIdxMap = state.getIdMap().get( Channel.class );
-		Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > illumIdxMap = state.getIdMap().get( Illumination.class );
-		Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > tileIdxMap = state.getIdMap().get( Tile.class );
-		Map< Integer, List< Pair< File, Pair< Integer, Integer > > > > angleIdxMap = state.getIdMap().get( Angle.class );
-		
-		
+
+
+		Map< Integer, List< FileMapEntry > > tpIdxMap = state.getIdMap().get( TimePoint.class );
+		Map< Integer, List< FileMapEntry > > channelIdxMap = state.getIdMap().get( Channel.class );
+		Map< Integer, List< FileMapEntry > > illumIdxMap = state.getIdMap().get( Illumination.class );
+		Map< Integer, List< FileMapEntry > > tileIdxMap = state.getIdMap().get( Tile.class );
+		Map< Integer, List< FileMapEntry > > angleIdxMap = state.getIdMap().get( Angle.class );
+
+
 		List<Integer> timepointIndexList = new ArrayList<>(tpIdxMap.keySet());
 		List<Integer> channelIndexList = new ArrayList<>(channelIdxMap.keySet());
 		List<Integer> illuminationIndexList = new ArrayList<>(illumIdxMap.keySet());
@@ -477,7 +478,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		List<ViewId> missingViewIds = new ArrayList<>();
 		List<TimePoint> timePoints = new ArrayList<>();
 
-		HashMap<Pair<Integer, Integer>, Pair<File, Pair<Integer, Integer>>> ViewIDfileMap = new HashMap<>();
+		Map< Pair< Integer, Integer >, FileMapEntry > ViewIDfileMap = new HashMap<>();
 		Integer viewSetupId = 0;
 		for (Integer c = 0; c < nChannels; c++)
 			for (Integer i = 0; i < nIlluminations; i++)
@@ -488,8 +489,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 						boolean addedViewSetup = false;
 						for (Integer tp = 0; tp < nTimepoints; tp++)
 						{
-														
-							List< Pair< File, Pair< Integer, Integer > > > viewList;
+
+							List< FileMapEntry > viewList;
 							viewList = FileListDatasetDefinitionUtil.listIntersect( channelIdxMap.get( channelIndexList.get( c ) ), angleIdxMap.get( angleIndexList.get( a ) ) );
 							viewList = FileListDatasetDefinitionUtil.listIntersect( viewList, tileIdxMap.get( tileIndexList.get( ti ) ) );
 							viewList = FileListDatasetDefinitionUtil.listIntersect( viewList, illumIdxMap.get( illuminationIndexList.get( i ) ) );
@@ -520,8 +521,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 								IOFunctions.println( "Error: more than one View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i );
 							else
 							{
-								IOFunctions.println( "Found View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i + " in file " + viewList.get( 0 ).getA().getAbsolutePath());
-								
+								IOFunctions.println( "Found View: ch" + c +" a"+ a + " ti" + ti + " tp"+ tp + " i" + i + " in file " + viewList.get( 0 ).file().getAbsolutePath());
+
 								TimePoint tpI = new TimePoint( tpId );
 								if (!timePoints.contains( tpI ))
 									timePoints.add( tpI );
@@ -610,8 +611,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		
 		
 		SequenceDescription sd = new SequenceDescription( new TimePoints( timePoints ), viewSetups , null, new MissingViews( missingViewIds ));
-		
-		HashMap<BasicViewDescription< ? >, Pair<File, Pair<Integer, Integer>>> fileMap = new HashMap<>();
+
+		Map< BasicViewDescription< ? >, FileMapEntry > fileMap = new HashMap<>();
 		for (Pair<Integer, Integer> k : ViewIDfileMap.keySet())
 		{
 			System.out.println( k.getA() + " " + k.getB() );
@@ -982,7 +983,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			final double calZ = gd.getNextNumber();
 			final String calUnit = gd.getNextString();
 
-			for (final Pair< File, Pair< Integer, Integer > > key : state.getDimensionMap().keySet())
+			for (final FileMapEntry key : state.getDimensionMap().keySet())
 			{
 				final Pair< Dimensions, VoxelDimensions > pairOld = state.getDimensionMap().get( key );
 				final Pair< Dimensions, VoxelDimensions > pairNew = new ValuePair< Dimensions, VoxelDimensions >( pairOld.getA(), new FinalVoxelDimensions( calUnit, calX, calY, calZ ) );
@@ -1093,7 +1094,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		((FileMapGettable)data.getSequenceDescription().getImgLoader() ).getFileMap().values().stream().forEach(
 				p -> 
 				{
-					filenames.add( p.getA().getAbsolutePath());
+					filenames.add( p.file().getAbsolutePath());
 				});
 		final File prefixPath;
 		if (filenames.size() > 1)
