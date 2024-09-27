@@ -25,22 +25,28 @@ package net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions;
 import java.io.File;
 import java.net.URI;
 
-import ij.ImagePlus;
-import ij.io.FileSaver;
+import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
-import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import util.URITools;
 
 public class PointSpreadFunction
 {
-	private final static String subDir = "psf";
+	private final static String subDirFile = "psf";
+	private final static String subPath = "psf.n5";
 
 	private final URI xmlBasePath;
 	private final String file;
@@ -53,14 +59,14 @@ public class PointSpreadFunction
 		this.file = file;
 
 		if ( img != null )
-			this.img = img.copy(); // avoid changes to the PSF if an actual image is provided
+			this.img = copy( img ); // avoid changes to the PSF if an actual image is provided
 
 		this.modified = true; // not initialized from disc, needs to be saved
 	}
 
-	public PointSpreadFunction( final SpimData2 spimData, final ViewId viewId, final Img< FloatType > img  )
+	public PointSpreadFunction( final SpimData2 spimData, final ViewId viewId, final Img< FloatType > img )
 	{
-		this( spimData.getBasePathURI(), PointSpreadFunction.createPSFFileName( viewId ), img );
+		this( spimData.getBasePathURI(), PointSpreadFunction.createPSFFilePath( viewId ), img );
 	}
 
 	public PointSpreadFunction( final URI xmlBasePath, final String file )
@@ -77,14 +83,14 @@ public class PointSpreadFunction
 
 	public String getFile() { return file; }
 	public boolean isModified() { return modified; }
-	public boolean isLoaded() { return img != null; }
+	public synchronized boolean isLoaded() { return img != null; }
 
 	public Img< FloatType > getPSFCopy()
 	{
 		if ( img == null )
-			img = IOFunctions.openAs32Bit( new File( URITools.appendName( xmlBasePath, subDir ), file ), new ArrayImgFactory<>( new FloatType() ) );
+			img = load();
 
-		return img.copy();
+		return copy( img );
 	}
 
 	// this is required for CUDA stuff
@@ -93,49 +99,72 @@ public class PointSpreadFunction
 		final ArrayImg< FloatType, ? > arrayImg;
 
 		if ( img == null )
-		{
-			img = arrayImg = IOFunctions.openAs32BitArrayImg( new File( URITools.appendName( xmlBasePath, subDir ), file ) );
-		}
-		else if ( ArrayImg.class.isInstance( img ) )
-		{
+			img = load();
+
+		if ( ArrayImg.class.isInstance( img ) )
 			arrayImg = (ArrayImg< FloatType, ? >)img;
-		}
 		else
-		{
-			final long[] size = new long[ img.numDimensions() ];
-			img.dimensions( size );
-
-			arrayImg = new ArrayImgFactory<>(new FloatType()).create( size );
-
-			FusionTools.copyImg( img, arrayImg, null );
-		}
+			arrayImg = copy( img );
 
 		return arrayImg;
 	}
 
-	public boolean save()
+	public synchronized Img< FloatType > load()
+	{
+		if ( file.endsWith( ".tif" ) )
+		{
+			// compatibility with old code
+			return IOFunctions.openAs32Bit( new File( URITools.appendName( xmlBasePath, subDirFile ), file ), new ArrayImgFactory<>( new FloatType() ) );
+		}
+		else
+		{
+			// load the .n5
+			final N5Reader n5Reader = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( xmlBasePath, subPath ) ) );
+			final Img<FloatType> img = Cast.unchecked( N5Utils.open( n5Reader, file ) );
+
+			n5Reader.close();
+
+			return img;
+		}
+	}
+
+	public synchronized boolean save()
 	{
 		if ( img == null )
 			return false;
 
-		final File dir = new File( URITools.appendName( xmlBasePath, subDir ) );
+		final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( xmlBasePath, subPath ) ) );
 
-		if ( !dir.exists() )
-			if ( !dir.mkdir() )
-				return false;
+		if ( n5Writer.datasetExists( file ) )
+			n5Writer.remove( file );
 
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, false, file, 0, 1 );
-		final boolean success = new FileSaver( imp ).saveAsTiffStack( new File( dir, file ).toString() );
-		imp.close();
-
-		if ( success )
+		try
+		{
+			N5Utils.save( img, n5Writer, file, new int[] { 128, 128, 128 }, new GzipCompression( 1 ) );
+			n5Writer.close();
 			modified = false;
 
-		return success;
+			return true;
+		}
+		catch ( Exception e )
+		{
+			IOFunctions.println( "Error saving PSF '" + file + "' into container '" + URITools.appendName( xmlBasePath, subPath ) + "': " + e );
+			e.printStackTrace();
+			return false;
+		}
 	}
 
-	public static String createPSFFileName( final ViewId viewId )
+	private static ArrayImg< FloatType, ? > copy( final Img< FloatType > img )
 	{
-		return "psf_t" + viewId.getTimePointId() + "_v" + viewId.getViewSetupId() + ".tif";
+		final ArrayImg< FloatType, ? > arrayImg = ArrayImgs.floats( img.dimensionsAsLongArray() );
+
+		FusionTools.copyImg( img, arrayImg, null );
+
+		return arrayImg;
+	}
+
+	private static String createPSFFilePath( final ViewId viewId )
+	{
+		return "psf_t" + viewId.getTimePointId() + "_v" + viewId.getViewSetupId();
 	}
 }
