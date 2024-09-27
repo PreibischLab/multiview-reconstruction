@@ -121,6 +121,8 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 		//elem.setText( interestPointList.getFile().toString().replace( "\\", "/" ) );
 		elem.setText( interestPointList.getXMLRepresentation() );
 
+		// TODO: save interest points if modified!!
+		// you can still save them ahead of time in parallel if necessary
 		return elem;
 	}
 }
