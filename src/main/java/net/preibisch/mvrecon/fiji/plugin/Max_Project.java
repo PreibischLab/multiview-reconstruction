@@ -149,11 +149,4 @@ public class Max_Project implements PlugIn
 		else
 			return null;
 	}
-
-	public static void main( String[] args )
-	{
-		// TODO Auto-generated method stub
-
-	}
-
 }

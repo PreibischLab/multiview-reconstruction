@@ -24,8 +24,6 @@ package net.preibisch.mvrecon.fiji.datasetmanager;
 
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 
-import mpicbg.spim.data.SpimData;
-
 public interface MultiViewDatasetDefinition
 {
 	/**

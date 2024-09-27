@@ -25,16 +25,16 @@ package net.preibisch.mvrecon.fiji.plugin.fusion;
 import java.util.Collection;
 import java.util.List;
 
-import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public interface FusionExportInterface
 {
-	SpimData getSpimData();
+	SpimData2 getSpimData();
 
 	/**
 	 * 0 == "32-bit floating point",
