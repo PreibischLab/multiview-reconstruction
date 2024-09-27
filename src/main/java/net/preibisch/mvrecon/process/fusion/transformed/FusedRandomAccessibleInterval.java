@@ -53,6 +53,7 @@ public class FusedRandomAccessibleInterval implements RandomAccessibleInterval< 
 		this.n = interval.numDimensions();
 		this.interval = interval;
 		this.images = images;
+		this.fusion = fusion;
 
 		if ( weights == null || weights.size() == 0 )
 		{
