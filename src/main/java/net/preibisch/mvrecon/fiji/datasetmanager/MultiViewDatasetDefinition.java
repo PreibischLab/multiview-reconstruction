@@ -49,7 +49,7 @@ public interface MultiViewDatasetDefinition
 	 * save it as an XML file.
 	 * 
 	 * @param xmlFileName - the filename of the XML that was selected (no path!)
-	 * @return - the saved {@link SpimData} object
+	 * @return - the saved {@link SpimData2} object
 	 */
 	public SpimData2 createDataset( final String xmlFileName );
 	
