@@ -28,7 +28,6 @@ import static net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlKeysPo
 import static net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlKeysPointSpreadFunctions.PSF_TAG;
 import static net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlKeysPointSpreadFunctions.PSF_TIMEPOINT_ATTRIBUTE_NAME;
 
-import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,7 +88,8 @@ public class XmlIoPointSpreadFunctions extends XmlIoSingleton< PointSpreadFuncti
 
 		elem.addContent( new Element( PSF_FILE_TAG ).addContent( psf.getFile() ) );
 
-		// TODO: option to save ahead of time in parallel
+		// option to save ahead of time in parallel
+		// save PSFs if modified
 		if ( psf.isModified() )
 		{
 			if ( !psf.save() )

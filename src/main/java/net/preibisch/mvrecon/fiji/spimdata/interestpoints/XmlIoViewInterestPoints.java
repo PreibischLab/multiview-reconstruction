@@ -29,11 +29,12 @@ import static net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlKeysInterest
 import static net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlKeysInterestPoints.VIEWINTERESTPOINTS_TAG;
 import static net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlKeysInterestPoints.VIEWINTERESTPOINTS_TIMEPOINT_ATTRIBUTE_NAME;
 
-import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
+
+import org.jdom2.Element;
 
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.base.XmlIoSingleton;
@@ -41,8 +42,6 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-
-import org.jdom2.Element;
 
 public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints >
 {
@@ -121,8 +120,11 @@ public class XmlIoViewInterestPoints extends XmlIoSingleton< ViewInterestPoints 
 		//elem.setText( interestPointList.getFile().toString().replace( "\\", "/" ) );
 		elem.setText( interestPointList.getXMLRepresentation() );
 
-		// TODO: save interest points if modified!!
 		// you can still save them ahead of time in parallel if necessary
+		// save interest points if modified!!
+		interestPointList.saveInterestPoints( false );
+		interestPointList.saveCorrespondingInterestPoints( false );
+
 		return elem;
 	}
 }

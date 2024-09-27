@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.regex.Pattern;
 
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
@@ -122,6 +123,24 @@ public class URITools
 
 			try
 			{
+				XmlIoSpimData2.saveInterestPointsInParallel( data );
+			}
+			catch ( Exception e )
+			{
+				throw new SpimDataException( "Could not interest points for '" + xmlURI + "' in paralell: " + e );
+			}
+
+			try
+			{
+				XmlIoSpimData2.savePSFsInParallel( data );
+			}
+			catch ( Exception e )
+			{
+				throw new SpimDataException( "Could not point spread function for '" + xmlURI + "' in paralell: " + e );
+			}
+
+			try
+			{
 				final Document doc = new Document( io.toXml( data, getParent( xmlURI ) ) );
 				final XMLOutputter xout = new XMLOutputter( Format.getPrettyFormat() );
 				final String xmlString = xout.outputString( doc );
@@ -135,15 +154,8 @@ public class URITools
 				throw new SpimDataException( "Could not save xml '" + xmlURI + "': " + e );
 			}
 
-			try
-			{
-				XmlIoSpimData2.saveInterestPoints( data );
-			}
-			catch ( Exception e )
-			{
-				throw new SpimDataException( "Could not interest points for '" + xmlURI + "': " + e );
-			}
-}
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + xmlURI + "'." );
+		}
 		else
 		{
 			throw new RuntimeException( "Unsupported URI: " + xmlURI );

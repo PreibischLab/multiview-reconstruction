@@ -24,7 +24,10 @@ package net.preibisch.mvrecon.fiji.spimdata;
 
 import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.jdom2.Element;
@@ -43,6 +46,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.XmlIoViewInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlIoPointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
@@ -127,6 +131,24 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 		try
 		{
+			XmlIoSpimData2.saveInterestPointsInParallel( spimData );
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not interest points for '" + lastURI() + "' in paralell: " + e );
+		}
+
+		try
+		{
+			XmlIoSpimData2.savePSFsInParallel( spimData );
+		}
+		catch ( Exception e )
+		{
+			throw new SpimDataException( "Could not point spread function for '" + lastURI() + "' in paralell: " + e );
+		}
+
+		try
+		{
 			super.save( spimData, xmlPath );
 
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Saved xml '" + lastURI() + "'." );
@@ -135,15 +157,6 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		{
 			e.printStackTrace();
 			throw new SpimDataException( "Could not save xml '" + lastURI() + "': " + e );
-		}
-
-		try
-		{
-			saveInterestPoints( spimData );
-		}
-		catch ( Exception e )
-		{
-			throw new SpimDataException( "Could not interest points for '" + lastURI() + "': " + e );
 		}
 	}
 
@@ -263,18 +276,36 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 		return root;
 	}
 
-	public static void saveInterestPoints( final SpimData2 spimData )
+	public static void savePSFsInParallel( final SpimData2 spimData )
 	{
-		final ViewInterestPoints vip = spimData.getViewInterestPoints();
+		IOFunctions.println( "Saving PSFs multi-threaded ... " );
 
-		for ( final ViewInterestPointLists vipl : vip.getViewInterestPoints().values() )
+		spimData.getPointSpreadFunctions().getPointSpreadFunctions().values().parallelStream().forEach( psf ->
 		{
-			for ( final String label : vipl.getHashMap().keySet() )
+			if ( psf.isModified() )
 			{
-				final InterestPoints ipl = vipl.getInterestPointList( label );
-				ipl.saveInterestPoints( false );
-				ipl.saveCorrespondingInterestPoints( false );
+				if ( !psf.save() )
+					IOFunctions.println( "ERROR: Could not save PSF '" + psf.getFile() + "'" );
+				else
+					IOFunctions.println( "Saved PSF '" + psf.getFile() + "'" );
 			}
-		}
+		});
+	}
+
+	public static void saveInterestPointsInParallel( final SpimData2 spimData )
+	{
+		IOFunctions.println( "Saving interest points multi-threaded ... " );
+
+		// collect first to avoid nested parallel streams
+		final ArrayList< InterestPoints > allIPs = new ArrayList<>();
+
+		spimData.getViewInterestPoints().getViewInterestPoints().values().forEach( vipl ->
+			allIPs.addAll( vipl.getHashMap().values() ) );
+
+		allIPs.parallelStream().forEach( ipl ->
+		{
+			ipl.saveInterestPoints( false );
+			ipl.saveCorrespondingInterestPoints( false );
+		});
 	}
 }
