@@ -161,7 +161,7 @@ public class LazyFusionTools {
 
 	public static boolean overlaps( final Interval interval1, final Interval interval2 )
 	{
-		return Intervals.isEmpty( Intervals.intersect( interval1, interval2 ) );
+		return !Intervals.isEmpty( Intervals.intersect( interval1, interval2 ) );
 	}
 
 }
