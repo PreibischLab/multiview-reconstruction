@@ -52,7 +52,7 @@ import net.imglib2.realtransform.Translation3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 

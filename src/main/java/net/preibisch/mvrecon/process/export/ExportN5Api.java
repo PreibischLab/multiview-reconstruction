@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
@@ -39,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -63,20 +61,17 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
-import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
-import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
+import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools.InstantiateViewSetupBigStitcher;
 import util.Grid;
@@ -85,7 +80,7 @@ import util.URITools;
 public class ExportN5Api implements ImgExport
 {
 	public static String defaultPathURI = null;
-	public static int defaultOption = 2;
+	public static int defaultOption = 1;
 	public static String defaultDatasetName = "fused";
 	public static String defaultBaseDataset = "/";
 	public static String defaultDatasetExtension = "/s0";
@@ -136,7 +131,7 @@ public class ExportN5Api implements ImgExport
 	int bsFactorY = defaultBlocksizeFactorY_N5;
 	int bsFactorZ = defaultBlocksizeFactorZ_N5;
 
-	final Compression compression = new GzipCompression( 1 );
+	Compression compression = null;
 	N5Writer driverVolumeWriter = null;
 
 	InstantiateViewSetupBigStitcher instantiate;
@@ -395,6 +390,8 @@ public class ExportN5Api implements ImgExport
 				+ "existing N5/ZARR-directories or HDF5-files. If a dataset inside a container already exists\n"
 				+ "export will stop and NOT overwrite existing datasets.", GUIHelper.smallStatusFont, GUIHelper.neutral );
 
+		PluginHelper.addCompression( gdInit, false );
+
 		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export (HDF5/N5 are supported)", defaultBDV );
 
 		gdInit.addMessage(
@@ -416,6 +413,7 @@ public class ExportN5Api implements ImgExport
 
 		final int previousExportOption = defaultOption;
 		this.storageType = StorageFormat.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
+		this.compression = PluginHelper.parseCompression( gdInit );
 		this.bdv = defaultBDV = gdInit.getNextBoolean();
 		final boolean multiRes = defaultMultiRes = gdInit.getNextBoolean();
 		this.splittingType = fusion.getSplittingType();
@@ -689,7 +687,7 @@ public class ExportN5Api implements ImgExport
 		}
 		else
 		{
-			this.downsampling = null; // no downsampling
+			this.downsampling = new int[][] {{1,1,1}}; // no downsampling
 		}
 
 		return true;

@@ -32,12 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.Bzip2Compression;
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.Lz4Compression;
-import org.janelia.saalfeldlab.n5.RawCompression;
-import org.janelia.saalfeldlab.n5.XzCompression;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
@@ -45,13 +40,12 @@ import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 
 public class ParametersResaveN5Api
 {
-	public static String[] compressions = new String[]{ "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz" };
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
-	public static int defaultCompression = 1;
 
 	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() - 1 );
 
@@ -137,7 +131,7 @@ public class ParametersResaveN5Api
 			gdp.addChoice( "Format for raw data", options, options[ 0 ] );
 		}
 
-		gdp.addChoice( "Compression", compressions, compressions[ defaultCompression ] );
+		PluginHelper.addCompression( gdp, true );
 		gdp.addStringField( "Downsampling_factors", ProposeMipmaps.getArrayString( autoMipmapSettings.getExportResolutions() ), 40 );
 		gdp.addStringField( "Block_size (all the same)", ProposeMipmaps.getArrayString( autoMipmapSettings.getSubdivisions() ), 40 );
 		gdp.addSlider( "Compute_block_size_factor_X", 1, 128, blockSizeFactor[ 0 ] );
@@ -163,7 +157,7 @@ public class ParametersResaveN5Api
 		if ( askForFormat )
 			n5params.format = gdp.getNextChoiceIndex();
 
-		final int compression = defaultCompression = gdp.getNextChoiceIndex();
+		n5params.compression = PluginHelper.parseCompression( gdp );
 
 		final String subsampling = gdp.getNextString();
 		final String chunkSizes = gdp.getNextString();
@@ -196,17 +190,6 @@ public class ParametersResaveN5Api
 			n5params.xmlURI = xmlURI;
 			n5params.n5URI = n5URI;
 		}
-
-		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"
-			n5params.compression = new Bzip2Compression();
-		else if ( compression == 1 )
-			n5params.compression = new GzipCompression( 1 );
-		else if ( compression == 2 )
-			n5params.compression = new Lz4Compression();
-		else if ( compression == 4 )
-			n5params.compression = new XzCompression();
-		else
-			n5params.compression = new RawCompression();
 
 		n5params.resolutions = PluginHelper.parseResolutionsString( subsampling );
 		n5params.subdivisions = PluginHelper.parseResolutionsString( chunkSizes );

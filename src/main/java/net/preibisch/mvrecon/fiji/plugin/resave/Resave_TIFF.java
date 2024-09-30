@@ -40,6 +40,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.StackImgLoaderIJ;
 import net.preibisch.mvrecon.process.export.Save3dTIFF;

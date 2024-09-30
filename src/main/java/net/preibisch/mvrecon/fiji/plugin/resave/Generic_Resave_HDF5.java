@@ -63,6 +63,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import util.URITools;
 
 public class Generic_Resave_HDF5 implements PlugIn

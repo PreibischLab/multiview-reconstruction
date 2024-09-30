@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Vector;
 
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.resave.PluginHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
+import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;

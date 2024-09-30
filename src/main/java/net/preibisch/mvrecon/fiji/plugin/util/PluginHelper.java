@@ -20,16 +20,15 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.fiji.plugin.resave;
-
-import fiji.util.gui.GenericDialogPlus;
-import ij.gui.GenericDialog;
-import net.imagej.patcher.HeadlessGenericDialog;
+package net.preibisch.mvrecon.fiji.plugin.util;
 
 import java.awt.Button;
+import java.awt.Choice;
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Label;
 import java.awt.Panel;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
@@ -43,8 +42,88 @@ import java.util.regex.Pattern;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
+import org.janelia.saalfeldlab.n5.Bzip2Compression;
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.Lz4Compression;
+import org.janelia.saalfeldlab.n5.RawCompression;
+import org.janelia.saalfeldlab.n5.XzCompression;
+import org.janelia.saalfeldlab.n5.blosc.BloscCompression;
+import org.janelia.scicomp.n5.zstandard.ZstandardCompression;
+
+import fiji.util.gui.GenericDialogPlus;
+import ij.gui.GenericDialog;
+import net.imagej.patcher.HeadlessGenericDialog;
+
 public class PluginHelper
 {
+	public static String[] compressionsString = new String[]{ "Lz4", "Gzip", "Zstandard", "Blosc", "Bzip2", "Xz", "Raw (no compression)" };
+	public static String[] compressionDescriptionsString = new String[] {
+			"Lz4: fast, established compressor with average compression rates.",
+			"Gzip: slower, established compressor with good compression rate than Lz4.",
+			"Zstandard: fast, new compressor with good compression rate (combines advantages of Lz4 and Gzip).",
+			"Blosc: standard ZARR compressor, requires native libraries to be installed (be careful).",
+			"Bzip2: supported for compatibility (slow).",
+			"Xz: supported for compatibility (slow).",
+			"Raw (no compression): raw data export, note that it is often slower than writing compressed data."
+	};
+
+	public static Color[] compressionsColors = new Color[] {
+			GUIHelper.good, GUIHelper.good, GUIHelper.good, GUIHelper.error, GUIHelper.warning, GUIHelper.warning, GUIHelper.warning
+	};
+
+	public static int gzipLevel = 1;
+	public static int zstdLevel = 3;
+	public static int xzLevel = 6;
+
+	public static int defaultCompression = 2;
+
+	public static void addCompression( final GenericDialog gd, final boolean addSpace )
+	{
+		gd.addChoice( "Compression", compressionsString, compressionsString[ defaultCompression ] );
+
+		if (!isHeadless())
+		{
+			final Choice choice = (Choice)gd.getChoices().get( gd.getChoices().size() - 1 );
+
+			gd.addMessage( compressionDescriptionsString[ defaultCompression ], GUIHelper.mediumstatusfont, GUIHelper.good );
+			final Label l = (Label)gd.getMessage();
+
+			if ( addSpace)
+				gd.addMessage(" ");
+
+			choice.addItemListener( e ->
+			{
+				l.setText( compressionDescriptionsString[ choice.getSelectedIndex() ] );
+				l.setForeground( compressionsColors[ choice.getSelectedIndex() ]);
+			});
+		}
+	}
+
+	public static Compression parseCompression( final GenericDialog gd )
+	{
+		final int compression = defaultCompression = gd.getNextChoiceIndex();
+
+		final Compression comp;
+
+		if ( compression == 0 ) //  "Lz4", "Gzip", "Zstandard", "Blosc", "Bzip2", "Xz", "Raw (no compression)"
+			comp = new Lz4Compression();
+		else if ( compression == 1 )
+			comp = new GzipCompression( gzipLevel );
+		else if ( compression == 2 )
+			comp = new ZstandardCompression( zstdLevel );
+		else if ( compression == 3 )
+			comp = new BloscCompression();
+		else if ( compression == 4 )
+			comp = new Bzip2Compression();
+		else if ( compression == 5 )
+			comp = new XzCompression( xzLevel );
+		else
+			comp = new RawCompression();
+
+		return comp;
+	}
+
 	public static boolean isHeadless() { return GenericDialog.class.getSuperclass().equals( HeadlessGenericDialog.class ); }
 
 	public static void addSaveAsFileField( final GenericDialogPlus dialog, final String label, final String defaultPath, final int columns)
