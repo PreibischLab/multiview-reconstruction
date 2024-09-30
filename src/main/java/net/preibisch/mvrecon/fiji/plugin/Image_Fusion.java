@@ -61,6 +61,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.Calibrateable;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyNonRigidFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -245,7 +246,9 @@ public class Image_Fusion implements PlugIn
 			}
 			else
 			{
-				lazy = LazyAffineFusion.init(
+				System.out.println( "Image_Fusion.fuse" );
+//				lazy = LazyAffineFusion.init(
+				lazy = BlkAffineFusion.init(
 						conv,
 						spimData.getSequenceDescription().getImgLoader(),
 						group.getViews(),
@@ -257,20 +260,6 @@ public class Image_Fusion implements PlugIn
 						fusion.getBoundingBox(),
 						(RealType & NativeType)type,
 						blocksize );
-
-				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
-				/*
-				virtual = FusionTools.fuseVirtual(
-						spimData.getSequenceDescription().getImgLoader(),
-						registrations,
-						spimData.getSequenceDescription().getViewDescriptions(),
-						group.getViews(),
-						fusion.useBlending(),
-						fusion.useContentBased(),
-						fusion.getInterpolation(),
-						fusion.getBoundingBox(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
-				*/
 			}
 
 			final String title = getTitle( fusion.getSplittingType(), group );
