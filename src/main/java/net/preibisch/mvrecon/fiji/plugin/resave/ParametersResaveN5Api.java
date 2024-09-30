@@ -200,7 +200,7 @@ public class ParametersResaveN5Api
 		if ( compression == 0 ) // "Bzip2", "Gzip", "Lz4", "Raw (no compression)", "Xz"
 			n5params.compression = new Bzip2Compression();
 		else if ( compression == 1 )
-			n5params.compression = new GzipCompression();
+			n5params.compression = new GzipCompression( 1 );
 		else if ( compression == 2 )
 			n5params.compression = new Lz4Compression();
 		else if ( compression == 4 )
