@@ -260,8 +260,6 @@ public abstract class GenericLoadParseQueryXML<
 			tryParsing( new URI( defaultXMLURI ), false );
 		} catch (URISyntaxException e) {}
 
-		final GenericDialogPlus gd;
-		
 		if ( additionalTitle != null && additionalTitle.length() > 0 )
 			gd = new GenericDialogPlus( "Select dataset for " + additionalTitle );
 		else
@@ -288,19 +286,33 @@ public abstract class GenericLoadParseQueryXML<
 			gd.addChoice( query + "_" + attribute, choices, choices[ defaultChoice ] );
 		}
 
-		this.gd = gd;
+		if ( !PluginHelper.isHeadless() )
+			addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
+
+		if ( buttonText != null && listener != null )
+		{
+			for ( int i = 0; i < buttonText.size(); ++i )
+			{
+				gd.addMessage( "", GUIHelper.smallStatusFont );
+				gd.addButton( buttonText.get( i ), listener.get( i ) );
+
+				try
+				{
+					if ( buttonText.get( i ).equals( "Define a new dataset" ) )
+						defineNewDataset = ((Button)gd.getComponent( gd.getComponentCount() - 1 ));
+				}
+				catch (Exception e) { defineNewDataset = null; }
+			}
+		}
 
 		gd.addMessage( "" );
 		GUIHelper.addCredits( gd );
 
-		if ( !PluginHelper.isHeadless() )
-			addListeners( gd, (TextField)gd.getStringFields().firstElement(), l1, l2 );
-
 		gd.showDialog();
-		
+
 		if ( gd.wasCanceled() )
 			return false;
-		
+
 		String xmlURI = defaultXMLURI = gd.getNextString();
 
 		// try to parse the file anyways
