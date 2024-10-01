@@ -9,10 +9,8 @@ import net.imglib2.type.numeric.real.FloatType;
 
 class LinearRange
 {
-	public static UnaryBlockOperator< FloatType, FloatType > linearRange( final double min, final double max )
+	public static UnaryBlockOperator< FloatType, FloatType > linearRange( final float scale, final float offset )
 	{
-		final float offset = ( float ) (-min / ( max - min ));
-		final float scale = ( float ) (1.0 / ( max - min ));
 		final FloatType type = new FloatType();
 		return new DefaultUnaryBlockOperator<>( type, type, 0, 0, new LinearRangeBlockProcessor( scale, offset ) );
 	}

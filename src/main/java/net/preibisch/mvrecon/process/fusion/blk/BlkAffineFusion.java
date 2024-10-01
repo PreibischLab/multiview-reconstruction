@@ -25,6 +25,8 @@ import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.algorithm.blocks.transform.Transform;
 import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
 import net.imglib2.converter.Converter;
+import net.imglib2.converter.RealUnsignedByteConverter;
+import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -172,11 +174,26 @@ public class BlkAffineFusion
 		{
 			return floatBlocks.andThen( Convert.convert( type, ClampType.CLAMP ) );
 		}
-		else if ( converter instanceof net.imglib2.display.LinearRange )
+		else if ( converter instanceof RealUnsignedByteConverter )
 		{
-			final net.imglib2.display.LinearRange range = ( net.imglib2.display.LinearRange ) converter;
+			final RealUnsignedByteConverter< ? > c = Cast.unchecked( converter );
+			final double min = c.getMin();
+			final double max = c.getMax();
+			final float scale = ( float ) ( 255.0 / ( max - min ) );
+			final float offset = ( float ) ( -min / ( max - min ) );
 			return floatBlocks
-					.andThen( LinearRange.linearRange( range.getMin(), range.getMax() ) )
+					.andThen( LinearRange.linearRange( scale, offset ) )
+					.andThen( Convert.convert( type, ClampType.CLAMP ) );
+		}
+		else if ( converter instanceof RealUnsignedShortConverter )
+		{
+			final RealUnsignedShortConverter< ? > c = Cast.unchecked( converter );
+			final double min = c.getMin();
+			final double max = c.getMax();
+			final float scale = ( float ) ( 65535.0 / ( max - min ) );
+			final float offset = ( float ) ( -min / ( max - min ) );
+			return floatBlocks
+					.andThen( LinearRange.linearRange( scale, offset ) )
 					.andThen( Convert.convert( type, ClampType.CLAMP ) );
 		}
 		else
