@@ -59,13 +59,13 @@ public class PluginHelper
 {
 	public static String[] compressionsString = new String[]{ "Lz4", "Gzip", "Zstandard", "Blosc", "Bzip2", "Xz", "Raw (no compression)" };
 	public static String[] compressionDescriptionsString = new String[] {
-			"Lz4: fast, established compressor with average compression rates.",
-			"Gzip: slower, established compressor with good compression rate than Lz4.",
-			"Zstandard: fast, new compressor with good compression rate (combines advantages of Lz4 and Gzip).",
+			"Lz4: fast, established compressor with average compression rate.",
+			"Gzip: slower, established compressor with good compression rate.",
+			"Zstandard: fast, new compressor with good compression rate (combines advantages of Lz4 & Gzip).",
 			"Blosc: standard ZARR compressor, requires native libraries to be installed (be careful).",
 			"Bzip2: supported for compatibility (slow).",
 			"Xz: supported for compatibility (slow).",
-			"Raw (no compression): raw data export, note that it is often slower than writing compressed data."
+			"Raw (no compression): raw data export, note it's often slower than writing compressed data."
 	};
 
 	public static Color[] compressionsColors = new Color[] {
