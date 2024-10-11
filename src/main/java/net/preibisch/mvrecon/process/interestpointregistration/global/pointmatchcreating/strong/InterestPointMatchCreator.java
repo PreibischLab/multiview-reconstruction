@@ -45,11 +45,11 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class InterestPointMatchCreator implements PointMatchCreator
 {
 	final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs;
-	final Map< ViewId, HashMap< String, Double > > labelMap;
+	final Map< ViewId, ? extends Map< String, Double > > labelMap;
 
 	public InterestPointMatchCreator(
 			final List< ? extends Pair< ? extends Pair< ViewId, ViewId >, ? extends PairwiseResult< ? > > > pairs,
-			final Map< ViewId, HashMap< String, Double > > labelMap )
+			final Map< ViewId, ? extends Map< String, Double > > labelMap )
 	{
 		this.pairs = pairs;
 		this.labelMap = labelMap;
@@ -89,8 +89,8 @@ public class InterestPointMatchCreator implements PointMatchCreator
 				for ( final PointMatchGeneric< ? > pmg : correspondences )
 				{
 					// TODO: it does not seem to assign the second label (?)
-					final HashMap<String, Double> a = labelMap.get( pair.getA().getA() );
-					final HashMap<String, Double> b = labelMap.get( pair.getA().getB() );
+					final Map<String, Double> a = labelMap.get( pair.getA().getA() );
+					final Map<String, Double> b = labelMap.get( pair.getA().getB() );
 
 					final double wA = a.get( pair.getB().getLabelA() );
 					final double wB = b.get( pair.getB().getLabelB() );
