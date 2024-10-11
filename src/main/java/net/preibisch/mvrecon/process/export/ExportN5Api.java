@@ -304,7 +304,7 @@ public class ExportN5Api implements ImgExport
 						} )
 				).get();
 
-			myPool.shutdown();
+			//myPool.shutdown();
 		}
 		catch (InterruptedException | ExecutionException e)
 		{
@@ -346,8 +346,6 @@ public class ExportN5Api implements ImgExport
 							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 						})).get();
 
-				myPool.shutdown();
-				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
 			}
 			catch (InterruptedException | ExecutionException e)
 			{
@@ -359,6 +357,9 @@ public class ExportN5Api implements ImgExport
 			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
+
+		myPool.shutdown();
+		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS); } catch (InterruptedException e) { e.printStackTrace(); }
 
 		return true;
 	}
