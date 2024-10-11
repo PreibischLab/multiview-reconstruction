@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.base.Entity;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -43,9 +43,11 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 
-public class Group< V > implements Iterable< V >
+public class Group< V > implements Iterable< V >, Serializable
 {
-	protected Set< V > views;
+	private static final long serialVersionUID = -3538287621574514991L;
+
+	protected HashSet< V > views;
 
 	public Group( final Collection< V > views )
 	{
