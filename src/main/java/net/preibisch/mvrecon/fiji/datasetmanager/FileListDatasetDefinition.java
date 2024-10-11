@@ -1318,16 +1318,6 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			data = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
-			// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
-			//final SpimData2 newSpimData = Resave_TIFF.assemblePartialSpimData2( data, viewIds, chosenPathXMLURI , new ArrayList<>() );
-
-			// replace imgLoader
-			//newSpimData.getSequenceDescription().setImgLoader( new N5ImageLoader( n5DatasetURI, newSpimData.getSequenceDescription() ) );
-			//newSpimData.setBasePathURI( chosenPathXMLURI );
-
-			// replace the spimdata object
-			//data = newSpimData;
-
 			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): N5 resave finished." );
 		}
 

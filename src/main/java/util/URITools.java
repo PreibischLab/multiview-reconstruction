@@ -467,6 +467,23 @@ public class URITools
 		return !hasScheme || FILE_SCHEME.asPredicate().test( scheme );
 	}
 
+	public static File toFile( final URI uri )
+	{
+		File f;
+		try
+		{
+			// might trigger Exception in thread "main" java.lang.IllegalArgumentException: URI is not absolute
+			// if it is like '/nrs/test.xml' and not 'file:/nrs/test.xml'
+			f = new File( uri );
+		}
+		catch ( Exception e )
+		{
+			f = new File( uri.toString() );
+		}
+
+		return f;
+	}
+
 	public static String removeFilePrefix( URI uri )
 	{
 		final String scheme = uri.getScheme();

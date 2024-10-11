@@ -117,7 +117,7 @@ public class XMLSaveAs implements PlugIn
 			final URI n5URI = ((N5ImageLoader)imgLoader).getN5URI();
 
 			IOFunctions.println( "Path of N5 (stays in old location): " + n5URI );
-			data.getSequenceDescription().setImgLoader( new N5ImageLoader( n5URI, data.getSequenceDescription() ) );
+			data.getSequenceDescription().setImgLoader( new N5ImageLoader( URITools.toFile( n5URI ), data.getSequenceDescription() ) );
 		}
 		else if ( Hdf5ImageLoader.class.isInstance( imgLoader ) )
 		{
