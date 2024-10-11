@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -237,7 +238,8 @@ public class MatcherPairwiseTools
 	}
 
 	public static void assignLoggingDescriptions(
-			final Pair< ?, ? > p, PairwiseResult< ? > pwr )
+			final Pair< ?, ? > p,
+			final PairwiseResult< ? > pwr )
 	{
 		if ( ViewId.class.isInstance( p.getA() ) && ViewId.class.isInstance( p.getB() ) )
 		{
@@ -282,66 +284,9 @@ public class MatcherPairwiseTools
 		else
 			taskExecutor = exec;
 
-		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = new ArrayList<>(); // your tasks
-
 		// each pair of Views that will be compared
-		for ( final Pair< V, V > pair : pairs )
-		{
-			// each view might have more than one labels associated with it
-			final Map<String, ? extends List<I>> mapA = interestpoints.get( pair.getA() );
-			final Map<String, ? extends List<I>> mapB = interestpoints.get( pair.getB() );
-
-			final HashMap<String, String > compared = new HashMap<>();
-
-			for ( final String labelA : mapA.keySet() )
-				for ( final String labelB : mapB.keySet() )
-				{
-					if ( !matchAcrossLabels && !labelA.equals( labelB ) )
-						continue;
-
-					if ( compared.containsKey( labelA ) && compared.get( labelA ).equals( labelB ) )
-						continue;
-
-					// remember what we already compared
-					compared.put( labelA, labelB );
-
-					// for matchAcross also the inverse (A>B means we also did B>A)
-					if ( matchAcrossLabels && !labelA.equals( labelB ) )
-						compared.put( labelB, labelA );
-
-					final List< I > listA, listB;
-
-					if ( matcher.requiresInterestPointDuplication() )
-					{
-						listA = new ArrayList<>();
-						listB = new ArrayList<>();
-
-						for ( final I ip : mapA.get( labelA ) )
-							listA.add( (I)ip.clone() );
-
-						for ( final I ip : mapB.get( labelB ) )
-							listB.add( (I)ip.clone() );
-					}
-					else
-					{
-						listA = mapA.get( labelA );
-						listB = mapB.get( labelB );
-					}
-
-					tasks.add( new Callable< Pair< Pair< V, V >, PairwiseResult< I > > >()
-					{
-						@Override
-						public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
-						{
-							final PairwiseResult< I > pwr = matcher.match( listA, listB );
-							pwr.setLabelA(labelA);
-							pwr.setLabelB(labelB);
-							assignLoggingDescriptions( pair, pwr );
-							return new ValuePair<>( pair, pwr );
-						}
-					});
-				}
-		}
+		final ArrayList<MatchingTask<V>> tasksList = getTasksList( pairs, interestpoints, matchAcrossLabels );
+		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = getCallables( tasksList, interestpoints, matcher );
 
 		final List< Pair< Pair< V, V >, PairwiseResult< I > > > r = new ArrayList<>();
 
@@ -370,5 +315,118 @@ public class MatcherPairwiseTools
 			taskExecutor.shutdown();
 
 		return r;
+	}
+
+	public static class MatchingTask< V > implements Serializable
+	{
+		private static final long serialVersionUID = -6809028286920973919L;
+
+		final public V vA, vB;
+		final public String labelA, labelB;
+
+		public MatchingTask( final V vA, final V vB, final String labelA, final String labelB )
+		{
+			this.vA = vA;
+			this.vB = vB;
+			this.labelA = labelA;
+			this.labelB = labelB;
+		}
+
+		public Pair<V,V> getPair() { return new ValuePair<>(vA, vB); }
+
+		public ArrayList<V> viewsAsList()
+		{
+			final ArrayList<V> list = new ArrayList<>();
+			list.add( vA );
+			list.add( vB );
+			return list;
+		}
+	}
+
+	public static < V, I extends InterestPoint > ArrayList< MatchingTask< V > > getTasksList(
+			final List< Pair< V, V > > pairs,
+			final Map< V, ? extends Map<String, ? > > interestpoints,
+			final boolean matchAcrossLabels )
+	{
+		final ArrayList< MatchingTask< V > > taskList = new ArrayList<>();
+
+		// each pair of Views that will be compared
+		for ( final Pair< V, V > pair : pairs )
+		{
+			// each view might have more than one labels associated with it
+			final Map<String, ?> mapA = interestpoints.get( pair.getA() );
+			final Map<String, ?> mapB = interestpoints.get( pair.getB() );
+
+			final HashMap<String, String > compared = new HashMap<>();
+
+			for ( final String labelA : mapA.keySet() )
+				for ( final String labelB : mapB.keySet() )
+				{
+					if ( !matchAcrossLabels && !labelA.equals( labelB ) )
+						continue;
+
+					if ( compared.containsKey( labelA ) && compared.get( labelA ).equals( labelB ) )
+						continue;
+
+					// remember what we already compared
+					compared.put( labelA, labelB );
+
+					// for matchAcross also the inverse (A>B means we also did B>A)
+					if ( matchAcrossLabels && !labelA.equals( labelB ) )
+						compared.put( labelB, labelA );
+
+					taskList.add( new MatchingTask<>(pair.getA(), pair.getB(), labelA, labelB ) );
+				}
+		}
+
+		return taskList;
+	}
+
+	public static < V, I extends InterestPoint > ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > getCallables(
+			final List< MatchingTask< V > > tasks,
+			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
+			final MatcherPairwise< I > matcher )
+	{
+		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > callables = new ArrayList<>(); // your tasks
+
+		for ( final MatchingTask<V> task : tasks )
+		{
+			final Map<String, ? extends List<I>> mapA = interestpoints.get( task.vA );
+			final Map<String, ? extends List<I>> mapB = interestpoints.get( task.vB );
+
+			final List< I > listA, listB;
+
+			if ( matcher.requiresInterestPointDuplication() )
+			{
+				listA = new ArrayList<>();
+				listB = new ArrayList<>();
+
+				for ( final I ip : mapA.get( task.labelA ) )
+					listA.add( (I)ip.clone() );
+
+				for ( final I ip : mapB.get( task.labelB ) )
+					listB.add( (I)ip.clone() );
+			}
+			else
+			{
+				listA = mapA.get( task.labelA );
+				listB = mapB.get( task.labelB );
+			}
+
+			callables.add( new Callable< Pair< Pair< V, V >, PairwiseResult< I > > >()
+			{
+				@Override
+				public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
+				{
+					final PairwiseResult< I > pwr = matcher.match( listA, listB );
+					pwr.setLabelA( task.labelA );
+					pwr.setLabelB( task.labelB );
+					assignLoggingDescriptions( task.getPair(), pwr );
+					return new ValuePair<>( task.getPair(), pwr );
+				}
+			});
+		}
+
+		return callables;
 	}
 }
