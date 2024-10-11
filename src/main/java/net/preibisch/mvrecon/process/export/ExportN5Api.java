@@ -170,20 +170,16 @@ public class ExportN5Api implements ImgExport
 
 			try
 			{
-				if ( storageType == StorageFormat.N5 )
-				{
-					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.N5, path );
-				}
-				else if ( storageType == StorageFormat.ZARR )
-				{
-					driverVolumeWriter = URITools.instantiateN5Writer( StorageFormat.ZARR, path );
-				}
-				else if ( storageType == StorageFormat.HDF5 )
+				if ( storageType == StorageFormat.HDF5 )
 				{
 					final File dir = new File( URITools.removeFilePrefix( path ) ).getParentFile();
 					if ( !dir.exists() )
 						dir.mkdirs();
 					driverVolumeWriter = new N5HDF5Writer( URITools.removeFilePrefix( path ) );
+				}
+				else if ( storageType == StorageFormat.N5 || storageType == StorageFormat.ZARR )
+				{
+					driverVolumeWriter = URITools.instantiateN5Writer( storageType, path );
 				}
 				else
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
