@@ -54,7 +54,14 @@ public class RGLDMParameters
 		this.model = model;
 	}
 	
-	public RGLDMParameters( final Model< ? > model, final float differenceThreshold, final float ratioOfDistance, final boolean limitSearchRadius, final double searchRadius, final int numNeighbors, final int redundancy )
+	public RGLDMParameters(
+			final Model<?> model,
+			final float differenceThreshold,
+			final float ratioOfDistance,
+			final boolean limitSearchRadius,
+			final double searchRadius,
+			final int numNeighbors,
+			final int redundancy)
 	{
 		this.model = model;
 		this.dt = differenceThreshold;
