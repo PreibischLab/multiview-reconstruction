@@ -266,7 +266,20 @@ public class Resave_N5Api implements PlugIn
 
 		if ( format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
 		{
-			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+			File f;
+			try
+			{
+				// might trigger Exception in thread "main" java.lang.IllegalArgumentException: URI is not absolute
+				f = new File( n5Params.n5URI );
+			}
+			catch ( Exception e )
+			{
+				f = new File( n5Params.n5URI.toString() );
+			}
+
+			// we need to init with File and not with URI, since otherwise the N5ImageLoader will trigger the exception above if this object is re-used
+			// this seems to not matter when opening directly from disc...
+			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( f, sdReduced.getSequenceDescription() ) );
 			n5Writer.close();
 		}
 		else if ( format == StorageFormat.N5 ) // some cloud location
