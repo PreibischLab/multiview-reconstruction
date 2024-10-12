@@ -469,6 +469,16 @@ public class URITools
 
 	public static File toFile( final URI uri )
 	{
+		if ( !isFile( uri ) )
+			throw new RuntimeException( "Cannot make a java.io.File from '" + uri + "'" );
+
+		// otherwise triggers Exception in thread "main" java.lang.IllegalArgumentException: URI is not absolute
+		if ( !uri.toString().toLowerCase().startsWith( "file:") )
+			return new File( uri.toString() );
+		else
+			return new File( uri );
+
+		/*
 		File f;
 		try
 		{
@@ -481,7 +491,7 @@ public class URITools
 			f = new File( uri.toString() );
 		}
 
-		return f;
+		return f;*/
 	}
 
 	public static String removeFilePrefix( URI uri )
