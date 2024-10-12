@@ -203,7 +203,7 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying writing with credentials ..." );
+				//System.out.println( "Trying writing with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( format, uri );
@@ -237,7 +237,7 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying reading with credentials ..." );
+				//System.out.println( "Trying reading with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5r = factory.openReader( format, uri );
@@ -270,7 +270,7 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying reading with credentials ..." );
+				//System.out.println( "Trying reading with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5r = factory.openReader( uri.toString() );
@@ -303,7 +303,7 @@ public class URITools
 
 			try
 			{
-				System.out.println( "Trying writing with credentials ..." );
+				//System.out.println( "Trying writing with credentials ..." );
 				N5Factory factory = new N5Factory();
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( uri.toString() );
