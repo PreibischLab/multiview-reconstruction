@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2;
 import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 
 import java.io.File;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
+import util.URITools;
 
 
 @ImgLoaderIo( format = "spimreconstruction.filemap2", type = FileMapImgLoaderLOCI2.class )
@@ -49,6 +51,12 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 	public static final String MAPPING_SERIES_TAG = "series";
 	public static final String MAPPING_C_TAG = "channel";
 	public static final String ZGROUPED_TAG = "ZGrouped";
+
+	@Override
+	public Element toXml( final FileMapImgLoaderLOCI2 imgLoader, final URI basePathURI )
+	{
+		return toXml(imgLoader, new File( URITools.removeFilePrefix( basePathURI ) ) );
+	}
 
 	@Override
 	public Element toXml(FileMapImgLoaderLOCI2 imgLoader, File basePath)
@@ -78,6 +86,13 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 		wholeElem.addContent( filesElement );
 		
 		return wholeElem;
+	}
+
+	@Override
+	public FileMapImgLoaderLOCI2 fromXml(Element elem, final URI basePathURI,
+			AbstractSequenceDescription< ?, ?, ? > sequenceDescription)
+	{
+		return fromXml(elem, new File( URITools.removeFilePrefix( basePathURI ) ), sequenceDescription);
 	}
 
 	@Override
