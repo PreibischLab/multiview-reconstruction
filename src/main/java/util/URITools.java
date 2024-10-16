@@ -34,6 +34,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.regex.Pattern;
@@ -94,7 +96,7 @@ public class URITools
 		if ( URITools.isFile( xmlURI ) )
 		{
 			// old code for filesystem
-			io.save( data, URITools.removeFilePrefix( xmlURI ) );
+			io.save( data, URITools.fromURI( xmlURI ) );
 		}
 		else if ( URITools.isS3( xmlURI ) || URITools.isGC( xmlURI ) )
 		{
@@ -189,11 +191,11 @@ public class URITools
 		if ( URITools.isFile( uri ) )
 		{
 			if ( format.equals( StorageFormat.N5 ))
-				return new N5FSWriter( URITools.removeFilePrefix( uri ) );
+				return new N5FSWriter( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrWriter( URITools.removeFilePrefix( uri ) );
+				return new N5ZarrWriter( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.HDF5 ))
-				return new N5HDF5Writer( URITools.removeFilePrefix( uri ) );
+				return new N5HDF5Writer( URITools.fromURI( uri ) );
 			else
 				throw new RuntimeException( "Format: " + format + " not supported." );
 		}
@@ -225,9 +227,9 @@ public class URITools
 		if ( URITools.isFile( uri ) )
 		{
 			if ( format.equals( StorageFormat.N5 ))
-				return new N5FSReader( URITools.removeFilePrefix( uri ) );
+				return new N5FSReader( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrReader( URITools.removeFilePrefix( uri ) );
+				return new N5ZarrReader( URITools.fromURI( uri ) );
 			else
 				throw new RuntimeException( "Format: " + format + " not supported." );
 		}
@@ -324,7 +326,7 @@ public class URITools
 	{
 		if ( URITools.isFile( xmlURI ) )
 		{
-			return io.load( URITools.removeFilePrefix( xmlURI ) ); // method from XmlIoAbstractSpimData
+			return io.load( URITools.fromURI( xmlURI ) ); // method from XmlIoAbstractSpimData
 		}
 		else if ( URITools.isS3( xmlURI ) || URITools.isGC( xmlURI ) )
 		{
@@ -467,6 +469,59 @@ public class URITools
 		return !hasScheme || FILE_SCHEME.asPredicate().test( scheme );
 	}
 
+	/**
+	 * @param uriString - if relative we assume it's a local path and file:/ scheme will be added
+	 * @return the URI of the String
+	 */
+	public static URI toURI( final String uriString )
+	{
+		try
+		{
+			URI uri = new URI( uriString );
+
+			if ( !uri.isAbsolute() )
+				uri = new URI( "file", null, uriString, null );
+
+			return uri;
+		}
+		catch (URISyntaxException e)
+		{
+			e.printStackTrace();
+			throw new RuntimeException( "URI couldn't be created from '" + uriString + "'. stopping: " + e );
+		}
+	}
+
+	/**
+	 * 
+	 * @param uri
+	 * @return a String representation of a URI, if it starts with file:/ it will be removed
+	 */
+	public static String fromURI( final URI uri )
+	{
+		final String scheme = uri.getScheme();
+
+		if ( scheme == null )
+			throw new RuntimeException( "URI '" + uri + "' has no scheme. stopping." );
+
+		if ( FILE_SCHEME.asPredicate().test( uri.getScheme() ) )
+		{
+			try
+			{
+				return new File( uri ).toString();
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				throw new RuntimeException( "Error converting file-URI '" + uri + "' to a path. stopping." );
+			}
+		}
+		else
+		{
+			return uri.toString();
+		}
+	}
+
+	/*
 	public static File toFile( final URI uri )
 	{
 		if ( !isFile( uri ) )
@@ -477,21 +532,6 @@ public class URITools
 			return new File( uri.toString() );
 		else
 			return new File( uri );
-
-		/*
-		File f;
-		try
-		{
-			// might trigger Exception in thread "main" java.lang.IllegalArgumentException: URI is not absolute
-			// if it is like '/nrs/test.xml' and not 'file:/nrs/test.xml'
-			f = new File( uri );
-		}
-		catch ( Exception e )
-		{
-			f = new File( uri.toString() );
-		}
-
-		return f;*/
 	}
 
 	public static String removeFilePrefix( URI uri )
@@ -504,6 +544,7 @@ public class URITools
 		else
 			return uri.toString();
 	}
+	*/
 
 	public static URI getParent( final URI uri )
 	{
@@ -550,8 +591,21 @@ public class URITools
 		}
 	}
 
-	public static void main( String[] args ) throws SpimDataException
+	public static void main( String[] args ) throws SpimDataException, IOException
 	{
+		String file = "/home/preibisch/test.xml";
+		String s3 = "s3://preibisch/test.xml";
+
+		System.out.println( toURI( file ) );
+		System.out.println( toURI( s3 ) );
+
+		System.out.println();
+
+		System.out.println( fromURI( toURI( file ) ) );
+		System.out.println( fromURI( toURI( s3 ) ) );
+
+		System.out.println();
+
 		ParsedBucket pb = URITools.parseCloudLink( "s3://janelia-bigstitcher-spark/Stitching-test/dataset.xml" );
 		KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
 
