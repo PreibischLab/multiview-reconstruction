@@ -466,7 +466,11 @@ public class URITools
 	{
 		final String scheme = uri.getScheme();
 		final boolean hasScheme = scheme != null;
-		return !hasScheme || FILE_SCHEME.asPredicate().test( scheme );
+
+		if ( !hasScheme )
+			return false;
+		else 
+			return FILE_SCHEME.asPredicate().test( scheme );
 	}
 
 	/**
