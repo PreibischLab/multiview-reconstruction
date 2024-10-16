@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.fiji.plugin.resave;
 import java.awt.Color;
 import java.awt.Font;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,7 +61,8 @@ public class ParametersResaveN5Api
 
 	public static URI createN5URIfromXMLURI( final URI xmlURI )
 	{
-		return URI.create( xmlURI.toString().subSequence( 0, xmlURI.toString().length() - 4 ) + ".n5" );
+		final String uriString = URITools.fromURI( xmlURI );
+		return URITools.toURI( uriString.subSequence( 0, uriString.length() - 4 ) + ".n5" );
 	}
 
 	public static ParametersResaveN5Api getParamtersIJ(
@@ -146,8 +146,8 @@ public class ParametersResaveN5Api
 		if ( askForPaths )
 		{
 			gdp.addMessage( "" );
-			gdp.addDirectoryField( "XML_path", xmlURI.toString(), 65 );
-			gdp.addDirectoryField( "N5_path", n5URI.toString(), 65 );
+			gdp.addDirectoryField( "XML_path", URITools.fromURI( xmlURI ), 65 );
+			gdp.addDirectoryField( "N5_path", URITools.fromURI( n5URI ), 65 );
 		}
 
 		gdp.showDialog();
