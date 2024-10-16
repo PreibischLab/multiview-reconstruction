@@ -314,7 +314,7 @@ public abstract class GenericLoadParseQueryXML<
 		// try to parse the file anyways
 		boolean success;
 
-		success = tryParsing( URITools.toURI( xmlURI ), true );
+		success = tryParsing( xmlURI.equals( "define" ) ? URI.create( "define" ) : URITools.toURI( xmlURI ), true );
 
 		if ( buttonText != null && xmlURI.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 		{
