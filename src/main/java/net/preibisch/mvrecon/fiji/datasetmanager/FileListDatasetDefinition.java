@@ -1159,16 +1159,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		URI chosenPathXMLURI, chosenPathDataURI;
 
-		try
-		{
-			chosenPathXMLURI = new URI( chosenPathXML );
-			chosenPathDataURI = new URI( chosenPathData );
-		}
-		catch ( URISyntaxException e )
-		{
-			IOFunctions.println( "Could not convert provided paths into a URI: " + e );
-			return null;
-		}
+		chosenPathXMLURI = URITools.toURI( chosenPathXML );
+		chosenPathDataURI = URITools.toURI( chosenPathData );
 
 		if ( !URITools.isKnownScheme( chosenPathDataURI ) )
 		{
@@ -1270,8 +1262,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if (params == null)
 				return null;
 
-			String dataPath = URITools.removeFilePrefix( chosenPathDataURI );
-			String xmlPath = URITools.removeFilePrefix( chosenPathXMLURI );
+			String dataPath = URITools.fromURI( chosenPathDataURI );
+			String xmlPath = URITools.fromURI( chosenPathXMLURI );
 
 			if ( !new File( dataPath ).exists() )
 			{

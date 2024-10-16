@@ -55,7 +55,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 	@Override
 	public Element toXml( final FileMapImgLoaderLOCI2 imgLoader, final URI basePathURI )
 	{
-		return toXml(imgLoader, new File( URITools.removeFilePrefix( basePathURI ) ) );
+		return toXml(imgLoader, new File( URITools.fromURI( basePathURI ) ) );
 	}
 
 	@Override
@@ -92,7 +92,7 @@ public class XmlIOFileMapImgLoaderLOCI2 implements XmlIoBasicImgLoader< FileMapI
 	public FileMapImgLoaderLOCI2 fromXml(Element elem, final URI basePathURI,
 			AbstractSequenceDescription< ?, ?, ? > sequenceDescription)
 	{
-		return fromXml(elem, new File( URITools.removeFilePrefix( basePathURI ) ), sequenceDescription);
+		return fromXml(elem, new File( URITools.fromURI( basePathURI ) ), sequenceDescription);
 	}
 
 	@Override

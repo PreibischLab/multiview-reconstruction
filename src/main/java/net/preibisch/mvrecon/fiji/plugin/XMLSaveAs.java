@@ -84,15 +84,7 @@ public class XMLSaveAs implements PlugIn
 		final String uriString = gd.getNextString();
 		final URI newXMLPath, newBaseDir;
 
-		try
-		{
-			newXMLPath = new URI( uriString );
-		}
-		catch ( URISyntaxException ex )
-		{
-			IOFunctions.println( "Could not convert provided XML path into a URI: " + ex );
-			return null;
-		}
+		newXMLPath = URITools.toURI( uriString );
 
 		if ( !URITools.isKnownScheme( newXMLPath ) )
 		{
@@ -117,7 +109,7 @@ public class XMLSaveAs implements PlugIn
 			final URI n5URI = ((N5ImageLoader)imgLoader).getN5URI();
 
 			IOFunctions.println( "Path of N5 (stays in old location): " + n5URI );
-			data.getSequenceDescription().setImgLoader( new N5ImageLoader( URITools.toFile( n5URI ), data.getSequenceDescription() ) );
+			data.getSequenceDescription().setImgLoader( new N5ImageLoader( new File( URITools.fromURI( n5URI ) ), data.getSequenceDescription() ) );
 		}
 		else if ( Hdf5ImageLoader.class.isInstance( imgLoader ) )
 		{

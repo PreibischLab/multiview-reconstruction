@@ -41,6 +41,7 @@ import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import util.URITools;
 
 public class ParametersResaveN5Api
 {
@@ -171,16 +172,8 @@ public class ParametersResaveN5Api
 
 		if ( askForPaths )
 		{
-			try
-			{
-				n5params.xmlURI = new URI( gdp.getNextString() );
-				n5params.n5URI = new URI( gdp.getNextString() );
-			}
-			catch ( URISyntaxException e )
-			{
-				IOFunctions.println( "Cannot create URIs for provided paths: " + e );
-				return null;
-			}
+			n5params.xmlURI = URITools.toURI( gdp.getNextString() );
+			n5params.n5URI = URITools.toURI( gdp.getNextString() );
 
 			IOFunctions.println( "XML & metadata path: " + n5params.xmlURI );
 			IOFunctions.println( "Image data path: " + n5params.n5URI );

@@ -192,7 +192,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						params.xmlPath = panel.xml();
 
 						// write the TIFF's
-						Resave_TIFF.writeTIFF( data, viewIds, new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParent(), params.compress, progressWriter );
+						Resave_TIFF.writeTIFF( data, viewIds, new File( URITools.fromURI( params.getXMLPath() ) ).getParent(), params.compress, progressWriter );
 	
 						// write the XML
 						final SpimData2 newSpimData = Resave_TIFF.createXMLObject( data, viewIds, params );
@@ -231,7 +231,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						File hdf5File;
 						int i = 1;
 
-						String xml = URITools.removeFilePrefix( panel.xml() );
+						String xml = URITools.fromURI( panel.xml() );
 
 						do
 						{

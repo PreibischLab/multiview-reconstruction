@@ -172,10 +172,10 @@ public class ExportN5Api implements ImgExport
 			{
 				if ( storageType == StorageFormat.HDF5 )
 				{
-					final File dir = new File( URITools.removeFilePrefix( path ) ).getParentFile();
+					final File dir = new File( URITools.fromURI( path ) ).getParentFile();
 					if ( !dir.exists() )
 						dir.mkdirs();
-					driverVolumeWriter = new N5HDF5Writer( URITools.removeFilePrefix( path ) );
+					driverVolumeWriter = new N5HDF5Writer( URITools.fromURI( path ) );
 				}
 				else if ( storageType == StorageFormat.N5 || storageType == StorageFormat.ZARR )
 				{
@@ -529,7 +529,7 @@ public class ExportN5Api implements ImgExport
 
 		try
 		{
-			this.path = new URI( defaultPathURI = gd.getNextString().trim() );
+			this.path = URITools.toURI( defaultPathURI = gd.getNextString().trim() );
 		}
 		catch ( Exception e )
 		{
@@ -553,7 +553,7 @@ public class ExportN5Api implements ImgExport
 		{
 			try
 			{
-				this.xmlOut = new URI( defaultXMLOutURI = gd.getNextString().trim() );//defaultXMLOut = gd.getNextString();
+				this.xmlOut = URITools.toURI( defaultXMLOutURI = gd.getNextString().trim() );//defaultXMLOut = gd.getNextString();
 			}
 			catch ( Exception e )
 			{

@@ -268,7 +268,7 @@ public class Resave_N5Api implements PlugIn
 		{
 			// we need to init with File and not with URI, since otherwise the N5ImageLoader will trigger the exception above if this object is re-used
 			// this seems to not matter when opening directly from disc...
-			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( URITools.toFile( n5Params.n5URI ), sdReduced.getSequenceDescription() ) );
+			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( new File( URITools.fromURI( n5Params.n5URI ) ), sdReduced.getSequenceDescription() ) );
 			n5Writer.close();
 		}
 		else if ( format == StorageFormat.N5 ) // some cloud location
@@ -277,7 +277,7 @@ public class Resave_N5Api implements PlugIn
 		}
 		else if ( format == StorageFormat.HDF5 )
 		{
-			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
+			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
 			n5Writer.close();
 		}
 		else

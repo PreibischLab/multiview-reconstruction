@@ -577,24 +577,4 @@ public class SpimData2 extends SpimData
 
 		return groupsOut;
 	}
-
-	public static void main( String[] args )
-	{
-		File f = new File( "/nrs/" );
-		URI u = f.toURI();
-		//u = URI.create( "s3://myBucket/" ) ;
-
-		URI u2 = URI.create( u.toString() + ( u.toString().endsWith( "/" ) ? "" : "/") + "test.xml" );
-
-		
-		System.out.println( u );
-		System.out.println( u2 );
-		System.out.println( URITools.getParent( u2 ) );
-		System.out.println( URITools.getParent( URI.create("/nrs/test.xml") ) );
-		System.out.println( new File( u2 ) );
-		System.out.println( new File( URI.create("file:/nrs/test.xml") ) );
-		// System.out.println( new File( URI.create("/nrs/test.xml") ) ); // FAILS
-		System.out.println( URITools.removeFilePrefix( u2 ) );
-		System.out.println( Paths.get(u2.getPath()).getFileName().toString());
-	}
 }

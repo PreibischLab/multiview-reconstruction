@@ -85,7 +85,7 @@ public class Resave_TIFF implements PlugIn
 		final SpimData2 data = lpq.getData();
 		final List< ViewId > viewIds = SpimData2.getAllViewIdsSorted( data, lpq.getViewSetupsToProcess(), lpq.getTimePointsToProcess() );
 
-		final File file = new File( URITools.removeFilePrefix( params.getXMLPath() ) );
+		final File file = new File( URITools.fromURI( params.getXMLPath() ) );
 
 		// write the TIFF's
 		writeTIFF( data, viewIds, file.getParent(), params.compress, progressWriter );
@@ -136,17 +136,7 @@ public class Resave_TIFF implements PlugIn
 		if ( !fullPath.endsWith( ".xml" ) )
 			fullPath += ".xml";
 
-		final URI uri;
-
-		try
-		{
-			uri = new URI( fullPath );
-		}
-		catch (URISyntaxException e )
-		{
-			IOFunctions.println( "Cannot interpret '" + fullPath + "' as URI. Stopping." );
-			return null;
-		}
+		final URI uri = URITools.toURI( fullPath );
 
 		if ( !URITools.isFile( uri ) )
 		{
@@ -214,7 +204,6 @@ public class Resave_TIFF implements PlugIn
 		}
 	}
 
-
 	public static SpimData2 createXMLObject( final SpimData2 spimData, final List< ViewId > viewIds, final ParametersResaveAsTIFF params )
 	{
 		int layoutTP = 0, layoutChannels = 0, layoutIllum = 0, layoutAngles = 0, layoutTiles = 0;
@@ -263,7 +252,7 @@ public class Resave_TIFF implements PlugIn
 
 		// Re-assemble a new SpimData object containing the subset of viewsetups and timepoints selected
 		final SpimData2 newSpimData;
-		final URI newBasePath = new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile().toURI();
+		final URI newBasePath = URITools.toURI( new File( URITools.fromURI( params.getXMLPath() ) ).getParentFile().toString() );
 
 		boolean isEqual = false;
 
@@ -282,7 +271,7 @@ public class Resave_TIFF implements PlugIn
 			newSpimData = SpimData2Tools.reduceSpimData2( spimData, viewIds, newBasePath );
 
 		final StackImgLoaderIJ imgLoader = new StackImgLoaderIJ(
-				new File( URITools.removeFilePrefix( params.getXMLPath() ) ).getParentFile(),
+				new File( URITools.fromURI( params.getXMLPath() ) ).getParentFile(),
 				filename,
 				layoutTP, layoutChannels, layoutIllum, layoutAngles, layoutTiles, newSpimData.getSequenceDescription() );
 		newSpimData.getSequenceDescription().setImgLoader( imgLoader );

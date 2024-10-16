@@ -236,7 +236,7 @@ public class SpimData2Tools
 			else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
 				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 			else if ( StorageFormat.HDF5.equals(storageType) )
-				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
+				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );
 
@@ -287,7 +287,7 @@ public class SpimData2Tools
 			else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
 				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 			else if ( StorageFormat.HDF5.equals(storageType) )
-				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.removeFilePrefix( n5PathURI ) ), null, sequence) );
+				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
 			else
 				throw new RuntimeException( storageType + " not supported." );
 

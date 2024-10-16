@@ -716,11 +716,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 
 		// add link to wiki
 		popups.add( new LabelPopUp( "Help" ) );
-		try
-		{
-			popups.add( new SimpleHyperlinkPopup("Browse Wiki...", new URI( "https://imagej.net/Multiview-Reconstruction" )) );
-		}
-		catch ( URISyntaxException e ) { e.printStackTrace(); }
+		popups.add( new SimpleHyperlinkPopup("Browse Wiki...", URITools.toURI( "https://imagej.net/Multiview-Reconstruction" )) );
 
 		return popups;
 	}

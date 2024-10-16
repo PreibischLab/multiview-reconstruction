@@ -64,7 +64,6 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
 import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
-import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import util.URITools;
 
 /**
@@ -255,10 +254,7 @@ public abstract class GenericLoadParseQueryXML<
 		this.attributeChoice = new HashMap< String, Integer >();
 
 		// try parsing if it ends with XML
-		try
-		{
-			tryParsing( new URI( defaultXMLURI ), false );
-		} catch (URISyntaxException e) {}
+		tryParsing( URITools.toURI( defaultXMLURI ), false );
 
 		if ( additionalTitle != null && additionalTitle.length() > 0 )
 			gd = new GenericDialogPlus( "Select dataset for " + additionalTitle );
@@ -318,14 +314,7 @@ public abstract class GenericLoadParseQueryXML<
 		// try to parse the file anyways
 		boolean success;
 
-		try
-		{
-			success = tryParsing( new URI( xmlURI ), true );
-		}
-		catch (URISyntaxException e)
-		{
-			success = false;
-		}
+		success = tryParsing( URITools.toURI( xmlURI ), true );
 
 		if ( buttonText != null && xmlURI.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 		{
@@ -906,9 +895,9 @@ public abstract class GenericLoadParseQueryXML<
 					// try parsing if it ends with XML
 					try
 					{
-						tryParsing( new URI( xmlFilename ), false );
+						tryParsing( URITools.toURI( xmlFilename ), false );
 					}
-					catch (URISyntaxException e)
+					catch (Exception e)
 					{
 						lpq.message1 = errorMsg1;
 						lpq.message2 = noMsg2;

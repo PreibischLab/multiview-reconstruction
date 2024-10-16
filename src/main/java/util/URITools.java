@@ -567,7 +567,7 @@ public class URITools
 
 	public static URI xmlFilenameToFullPath( final AbstractSpimData<?> data, final String xmlFileName )
 	{
-		return URI.create( appendName( data.getBasePathURI(), xmlFileName ) );
+		return toURI( appendName( data.getBasePathURI(), xmlFileName ) );
 	}
 
 	public static void copyFile( final File inputFile, final File outputFile ) throws IOException

@@ -147,7 +147,7 @@ public class InterestPointsTextFileList extends InterestPoints
 
 		try
 		{
-			final File dir = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().getParent() );
+			final File dir = new File( URITools.fromURI( getBaseDir() ), getFile().getParent() );
 
 			if ( !dir.exists() )
 			{
@@ -155,7 +155,7 @@ public class InterestPointsTextFileList extends InterestPoints
 				dir.mkdirs();
 			}
 
-			final File f = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getInterestPointsExt() );
+			final File f = new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getInterestPointsExt() );
 			final PrintWriter out = TextFileAccess.openFileWriteEx( f );
 
 			// header
@@ -194,7 +194,7 @@ public class InterestPointsTextFileList extends InterestPoints
 
 		try
 		{
-			final File dir = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().getParent() );
+			final File dir = new File( URITools.fromURI( getBaseDir() ), getFile().getParent() );
 			
 			if ( !dir.exists() )
 			{
@@ -202,7 +202,7 @@ public class InterestPointsTextFileList extends InterestPoints
 				dir.mkdirs();
 			}
 
-			final File f = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getCorrespondencesExt() );
+			final File f = new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getCorrespondencesExt() );
 
 			final PrintWriter out = TextFileAccess.openFileWriteEx( f );
 
@@ -241,7 +241,7 @@ public class InterestPointsTextFileList extends InterestPoints
 		{
 			final ArrayList< CorrespondingInterestPoints > correspondingInterestPoints = new ArrayList<>();
 
-			final BufferedReader in = TextFileAccess.openFileReadEx( new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getCorrespondencesExt() ) );
+			final BufferedReader in = TextFileAccess.openFileReadEx( new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getCorrespondencesExt() ) );
 
 			// the header
 			do {} while ( !in.readLine().startsWith( "id" ) );
@@ -285,7 +285,7 @@ public class InterestPointsTextFileList extends InterestPoints
 		{
 			final ArrayList< InterestPoint > interestPoints = new ArrayList<>();
 
-			final BufferedReader in = TextFileAccess.openFileReadEx( new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getInterestPointsExt() ) );
+			final BufferedReader in = TextFileAccess.openFileReadEx( new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getInterestPointsExt() ) );
 
 			// the header
 			do {} while ( !in.readLine().startsWith( "id" ) );
@@ -323,7 +323,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	@Override
 	public boolean deleteInterestPoints()
 	{
-		final File ip = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getInterestPointsExt() );
+		final File ip = new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getInterestPointsExt() );
 
 		return ip.delete();
 	}
@@ -331,7 +331,7 @@ public class InterestPointsTextFileList extends InterestPoints
 	@Override
 	public boolean deleteCorrespondingInterestPoints()
 	{
-		final File corr = new File( URITools.removeFilePrefix( getBaseDir() ), getFile().toString() + getCorrespondencesExt() );
+		final File corr = new File( URITools.fromURI( getBaseDir() ), getFile().toString() + getCorrespondencesExt() );
 
 		return corr.delete();
 	}
