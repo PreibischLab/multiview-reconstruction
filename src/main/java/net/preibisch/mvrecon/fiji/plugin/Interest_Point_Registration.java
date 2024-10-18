@@ -793,7 +793,7 @@ public class Interest_Point_Registration implements PlugIn
 			defaultLabel = -1;
 
 			for ( int i = 0; i < labels.length; ++i )
-				if ( !labels[ i ].contains( InterestPointTools.warningLabel ) )
+				if ( !labels[ i ].contains( InterestPointTools.warningLabel ) && !labels[ i ].startsWith( "Select multiple interestpoints") )
 				{
 					defaultLabel = i;
 					break;
@@ -913,6 +913,7 @@ public class Interest_Point_Registration implements PlugIn
 		}
 		else
 		{
+			/*
 			final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
 
 			if ( defaultLabelChoice == null || defaultLabelChoice.length != labels.length - 1 )
@@ -935,6 +936,9 @@ public class Interest_Point_Registration implements PlugIn
 				IOFunctions.println( "No interestpoints selected, stopping.");
 				return null;
 			}
+			*/
+
+			final ArrayList< String > labelChoices = multipleInterestPointsGUI( labels );
 
 			final GenericDialog gdLabel2 = new GenericDialog( "Select weights and other options" );
 
@@ -998,6 +1002,34 @@ public class Interest_Point_Registration implements PlugIn
 			brp.labelMap.put( viewId, labelAndWeight );
 
 		return brp;
+	}
+
+	public static ArrayList< String > multipleInterestPointsGUI( final String[] labels )
+	{
+		final GenericDialog gdLabel1 = new GenericDialog( "Select multiple labels" );
+
+		if ( defaultLabelChoice == null || defaultLabelChoice.length != labels.length - 1 )
+			defaultLabelChoice = new boolean[ labels.length - 1 ];
+
+		for ( int i = 0; i < labels.length - 1; ++i )
+			gdLabel1.addCheckbox( labels[ i ], defaultLabelChoice[ i ] );
+
+		gdLabel1.showDialog();
+		if ( gdLabel1.wasCanceled() )
+			return null;
+
+		final ArrayList< String > labelChoices = new ArrayList<>();
+		for ( int i = 0; i < labels.length - 1; ++i )
+			if ( defaultLabelChoice[ i ] = gdLabel1.getNextBoolean() )
+				labelChoices.add( InterestPointTools.getSelectedLabel( labels, i ) );
+
+		if ( labelChoices.size() == 0 )
+		{
+			IOFunctions.println( "No interestpoints selected, stopping.");
+			return null;
+		}
+
+		return labelChoices;
 	}
 
 	public GroupParameters groupingParameters( final Collection< Subset< ViewId > > subsets  )
