@@ -254,7 +254,8 @@ public abstract class GenericLoadParseQueryXML<
 		this.attributeChoice = new HashMap< String, Integer >();
 
 		// try parsing if it ends with XML
-		tryParsing( URITools.toURI( defaultXMLURI ), false );
+		// also initializes messages
+		tryParsing( defaultXMLURI.trim().length() == 0 ? URI.create( "" ) : URITools.toURI( defaultXMLURI ), false );
 
 		if ( additionalTitle != null && additionalTitle.length() > 0 )
 			gd = new GenericDialogPlus( "Select dataset for " + additionalTitle );
