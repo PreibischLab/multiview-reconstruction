@@ -52,6 +52,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.FilteredAndGroupedExplorerPanel;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import util.URITools;
 
@@ -318,9 +319,16 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 							for ( final ViewInterestPointLists vipl : data.getViewInterestPoints().getViewInterestPoints().values() )
 								vipl.getHashMap().values().forEach( ipl ->
 								{
-									ipl.getInterestPointsCopy();
-									ipl.getCorrespondingInterestPointsCopy();
-									ipl.setBaseDir( basePathURI ); // also sets 'isModified' flags
+									try
+									{
+										ipl.setBaseDir( basePathURI ); // also sets 'isModified' flags
+										ipl.getInterestPointsCopy();
+										ipl.getCorrespondingInterestPointsCopy();
+									}
+									catch ( Exception e )
+									{
+										IOFunctions.println( "Could not load interest points for (trying to skip): " + Group.pvid( vipl ) + ", " + ipl.getXMLRepresentation()  );
+									}
 								});
 
 							panel.xml = n5params.xmlURI;

@@ -51,6 +51,7 @@ import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunct
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.XmlIoPointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.XmlIoStitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.URITools;
 
 public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, SpimData2 >
@@ -304,8 +305,15 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 		allIPs.parallelStream().forEach( ipl ->
 		{
-			ipl.saveInterestPoints( false );
-			ipl.saveCorrespondingInterestPoints( false );
+			try
+			{
+				ipl.saveInterestPoints( false );
+				ipl.saveCorrespondingInterestPoints( false );
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( "Could not save interest points for (trying to skip): " + ipl.getXMLRepresentation()  );
+			}
 		});
 	}
 }
