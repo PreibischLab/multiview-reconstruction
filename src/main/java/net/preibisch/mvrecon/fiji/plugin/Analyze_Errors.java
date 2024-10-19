@@ -24,19 +24,31 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ij.ImageJ;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import mpicbg.models.Point;
+import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Pair;
+import net.imglib2.util.RealSum;
+import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Analyze_Errors implements PlugIn
 {
@@ -55,13 +67,108 @@ public class Analyze_Errors implements PlugIn
 				SpimData2.getAllViewIdsSorted( result.getData(), result.getViewSetupsToProcess(), result.getTimePointsToProcess() );
 
 		final HashMap<String, Double > labelAndWeights = getParameters(data, viewIds);
+
+		final ArrayList<Pair<Pair<ViewId, ViewId>, Double>> errors = getErrors(data, viewIds, labelAndWeights);
+
+		errors.forEach( e -> IOFunctions.println( Group.pvid( e.getA().getA() ) + " <-> " + Group.pvid( e.getA().getB() ) + ": " + e.getB() + " px.") );
 	}
 
-	public static void getErrors(
+	/**
+	 * @param data
+	 * @param viewIds
+	 * @param labelAndWeights
+	 * @return - sorted list of weighted errors between pairs of views (big to small errors)
+	 */
+	public static ArrayList< Pair< Pair< ViewId, ViewId >, Double > > getErrors(
 			final SpimData2 data,
-			final List< ViewId > viewIds )
+			final List< ViewId > viewIds,
+			final Map<String, Double > labelAndWeights )
 	{
-		
+		// load all ViewRegistrations
+		final HashMap< ViewId, AffineTransform3D > viewToModel = new HashMap<>();
+
+		viewIds.forEach( viewId -> {
+			final ViewRegistration vr = data.getViewRegistrations().getViewRegistration( viewId );
+			vr.updateModel();
+			viewToModel.put( viewId, vr.getModel() );
+		});
+
+		// load all interest points in parallel
+		viewIds.parallelStream().forEach( viewId -> {
+			final ViewInterestPointLists vip = data.getViewInterestPoints().getViewInterestPointLists( viewId );
+
+			labelAndWeights.forEach( (l,w) -> {
+				if ( vip.getInterestPointList( l ) != null )
+				{
+					vip.getInterestPointList( l ).getInterestPointsCopy();
+					vip.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
+				}
+			});
+		});
+
+		// go over all pairs of tiles and compute the error in parallel
+		final ArrayList< Pair< ViewId, ViewId > > pairs = new ArrayList<>();
+
+		for ( int i = 0; i < viewIds.size() - 1; ++i )
+			for ( int j = i + 1; j < viewIds.size(); ++j )
+				pairs.add( new ValuePair<ViewId, ViewId>( viewIds.get( i ), viewIds.get( j ) ) );
+
+		final ArrayList< Pair< Pair< ViewId, ViewId >, Double > > pairResults = new ArrayList<>();
+
+		pairs.parallelStream().forEach( pair -> {
+			final AffineTransform3D mA = viewToModel.get( pair.getA() );
+			final AffineTransform3D mB = viewToModel.get( pair.getB() );
+
+			final ViewInterestPointLists vipA = data.getViewInterestPoints().getViewInterestPointLists( pair.getA() );
+			final ViewInterestPointLists vipB = data.getViewInterestPoints().getViewInterestPointLists( pair.getB() );
+
+			final RealSum sum = new RealSum();
+			final RealSum sumWeights = new RealSum();
+
+			labelAndWeights.forEach( (l,w) -> {
+				if ( vipA.getInterestPointList( l ) != null && vipB.getInterestPointList( l ) != null )
+				{
+					final double[] tmpA = new double[ 3 ];
+					final double[] tmpB = new double[ 3 ];
+
+					final List<InterestPoint> plA = vipA.getInterestPointList( l ).getInterestPointsCopy();
+					final List<InterestPoint> plB = vipB.getInterestPointList( l ).getInterestPointsCopy();
+	
+					//System.out.println( Group.pvid( pair.getA() ) + " <-> " + Group.pvid( pair.getB() ) + ": " + pA.size() + ", " + pB.size() );
+					final List<CorrespondingInterestPoints> cA = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
+					//final List<CorrespondingInterestPoints> cB = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
+
+					//final ArrayList< PointMatch > pm = new ArrayList<>();
+					cA.forEach( cpA ->
+					{
+						if ( cpA.getCorrespondingViewId().equals( pair.getB() ) && cpA.getCorrespodingLabel().equals( l ) )
+						{
+							final InterestPoint pA = plA.get( cpA.getDetectionId() );
+							final InterestPoint pB = plB.get( cpA.getCorrespondingDetectionId() );
+
+							mA.apply( pA.getL(), tmpA );
+							mB.apply( pB.getL(), tmpB );
+
+							final double distance = Point.distance( new Point( tmpA, tmpA ), new Point( tmpB, tmpB ) );
+							sum.add( distance * w );
+							sumWeights.add( w );
+						}
+					});
+				}
+			});
+
+			if ( sumWeights.getSum() > 0 )
+			{
+				final double error = sum.getSum() / sumWeights.getSum();
+				pairResults.add( new ValuePair<>( pair, error ) );
+				//IOFunctions.println( Group.pvid( pair.getA() ) + " <-> " + Group.pvid( pair.getB() ) + ": " + error + " px.");
+			}
+		});
+
+		// sort by error
+		Collections.sort( pairResults, (o1,o2) -> o2.getB().compareTo( o1.getB() ));
+
+		return pairResults;
 	}
 
 	public static HashMap<String, Double > getParameters(

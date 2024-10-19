@@ -75,7 +75,7 @@ public class InterestPoint extends Point implements RealLocalizable, Serializabl
 	public InterestPoint duplicate() { return clone(); }
 
 	@Override
-	public InterestPoint clone() { return new InterestPoint( this.id, this.l ); }
+	public InterestPoint clone() { return new InterestPoint( this.id, this.l.clone() ); }
 
 	@Override
 	public int hashCode()
