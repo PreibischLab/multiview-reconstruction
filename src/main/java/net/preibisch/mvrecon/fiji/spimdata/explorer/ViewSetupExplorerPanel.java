@@ -126,8 +126,8 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		IOFunctions.printIJLog = true;
 	}
 
-	protected JCheckBox groupTilesCheckbox;
-	protected JCheckBox groupIllumsCheckbox;
+	public JCheckBox groupTilesCheckbox;
+	public JCheckBox groupIllumsCheckbox;
 	private static long colorOffset = 0;
 
 	@Override

@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import ij.ImageJ;
 import ij.gui.GenericDialog;
@@ -97,13 +98,14 @@ public class Analyze_Errors implements PlugIn
 		viewIds.parallelStream().forEach( viewId -> {
 			final ViewInterestPointLists vip = data.getViewInterestPoints().getViewInterestPointLists( viewId );
 
-			labelAndWeights.forEach( (l,w) -> {
-				if ( vip.getInterestPointList( l ) != null )
+			for ( final Entry<String, Double> e : labelAndWeights.entrySet() )
+			{
+				if ( vip.getInterestPointList( e.getKey() ) != null )
 				{
-					vip.getInterestPointList( l ).getInterestPointsCopy();
-					vip.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
+					vip.getInterestPointList( e.getKey() ).getInterestPointsCopy();
+					vip.getInterestPointList( e.getKey() ).getCorrespondingInterestPointsCopy();
 				}
-			});
+			}
 		});
 
 		// go over all pairs of tiles and compute the error in parallel

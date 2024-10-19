@@ -99,7 +99,7 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 
 	public JLabel xmlLabel;
 
-	final protected HashSet< List< BasicViewDescription< ? > > > selectedRows;
+	final public HashSet< List< BasicViewDescription< ? > > > selectedRows;
 	protected BasicViewDescription< ? > firstSelectedVD;
 
 	public FilteredAndGroupedExplorerPanel(final FilteredAndGroupedExplorer< AS > explorer, final AS data, final URI xml, final XmlIoSpimData2 io)
