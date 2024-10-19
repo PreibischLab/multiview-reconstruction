@@ -315,7 +315,15 @@ public abstract class GenericLoadParseQueryXML<
 		// try to parse the file anyways
 		boolean success;
 
-		success = tryParsing( xmlURI.equals( "define" ) ? URI.create( "define" ) : URITools.toURI( xmlURI ), true );
+		URI uri;
+
+		if ( xmlURI.trim().length() == 0 || xmlURI.trim().toLowerCase().equals( "beads" ) || 
+				xmlURI.trim().toLowerCase().equals( "fractal" ) || xmlURI.trim().toLowerCase().equals( "define" ) )
+			uri = URI.create( xmlURI );
+		else
+			uri = URITools.toURI( xmlURI );
+
+		success = tryParsing( uri, true );
 
 		if ( buttonText != null && xmlURI.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 		{
@@ -896,7 +904,15 @@ public abstract class GenericLoadParseQueryXML<
 					// try parsing if it ends with XML
 					try
 					{
-						tryParsing( URITools.toURI( xmlFilename ), false );
+						URI uri;
+
+						if ( xmlFilename.trim().length() == 0 || xmlFilename.trim().toLowerCase().equals( "beads" ) || 
+							 xmlFilename.trim().toLowerCase().equals( "fractal" ) || xmlFilename.trim().toLowerCase().equals( "define" ) )
+							uri = URI.create( xmlFilename );
+						else
+							uri = URITools.toURI( xmlFilename );
+
+						tryParsing( uri, false );
 					}
 					catch (Exception e)
 					{
