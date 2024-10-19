@@ -139,7 +139,7 @@ public class AnalyzeErrorPopup extends JMenuItem implements ExplorerWindowSetabl
 						// wait until the table is updated (otherwise there might be an exception thrown)
 						SimpleMultiThreading.threadWait( 100 );
 
-						// TODO: zoom into the two
+						// zoom into the two
 						if ( p != null && p.bdv != null && p.bdv.getViewerFrame().isVisible() )
 						{
 							TransformationTools.reCenterViews( p.bdv,
@@ -149,7 +149,7 @@ public class AnalyzeErrorPopup extends JMenuItem implements ExplorerWindowSetabl
 									panel.getSpimData().getViewRegistrations() );
 						}
 
-						// TODO: color both red
+						// TODO: activate overlay that shows the outlines of both stacks
 					}
 					else
 					{
