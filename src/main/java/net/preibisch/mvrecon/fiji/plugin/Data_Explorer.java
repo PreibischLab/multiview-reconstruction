@@ -112,7 +112,7 @@ public class Data_Explorer implements PlugIn
 		new ImageJ();
 
 		if ( System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			GenericLoadParseQueryXML.defaultXMLURI = "/Users/preibischs/SparkTest/IP/dataset.xml";
+			GenericLoadParseQueryXML.defaultXMLURI = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
 
 		new Data_Explorer().run( null );
 	}

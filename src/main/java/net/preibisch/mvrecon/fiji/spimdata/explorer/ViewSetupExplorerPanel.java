@@ -81,6 +81,7 @@ import net.preibisch.mvrecon.fiji.plugin.XMLSaveAs;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.bdv.ScrollableBrightnessDialog;
+import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.AnalyzeErrorPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.ApplyTransformationPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BDVPopup;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.BakeManualTransformationPopup;
@@ -704,6 +705,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 
 		popups.add( new LabelPopUp( " Interest Points" ) );
 		popups.add( new InterestPointsExplorerPopup() );
+		popups.add( new AnalyzeErrorPopup() );
 		popups.add( new RemoveDetectionsPopup() );
 		popups.add( new VisualizeDetectionsPopup() );
 		popups.add( new Separator() );
