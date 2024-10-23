@@ -377,7 +377,7 @@ public class URITools
 
 	public static ParsedBucket parseCloudLink( final String uri )
 	{
-		System.out.println( "Parsing link path for '" + uri + "':" );
+		//System.out.println( "Parsing link path for '" + uri + "':" );
 
 		final ParsedBucket pb = new ParsedBucket();
 
@@ -401,10 +401,10 @@ public class URITools
 
 		pb.file = f.getName();
 
-		System.out.println( "protocol: '" + pb.protocol + "'" );
-		System.out.println( "bucket: '" + pb.bucket + "'" );
-		System.out.println( "root dir: '" + pb.rootDir + "'" );
-		System.out.println( "xmlFile: '" + pb.file + "'" );
+		//System.out.println( "protocol: '" + pb.protocol + "'" );
+		//System.out.println( "bucket: '" + pb.bucket + "'" );
+		//System.out.println( "root dir: '" + pb.rootDir + "'" );
+		//System.out.println( "xmlFile: '" + pb.file + "'" );
 
 		return pb;
 	}
@@ -479,9 +479,23 @@ public class URITools
 	 */
 	public static URI toURI( final String uriString )
 	{
+		URI uri;
+
 		try
 		{
-			URI uri = new URI( uriString );
+			uri = new URI( uriString );
+		}
+		catch (URISyntaxException e)
+		{
+			// e.g. a space was in there, which is allowed for filepaths, but not other resources (must be %20)
+			uri = null;
+		}
+
+		try
+		{
+			// maybe it works if we assume it is a file
+			if ( uri == null )
+				uri = new File( uriString ).toURI();
 
 			if ( !uri.isAbsolute() )
 				uri = new URI( "file", null, uriString, null );
@@ -595,8 +609,17 @@ public class URITools
 		}
 	}
 
-	public static void main( String[] args ) throws SpimDataException, IOException
+	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
+		// Fails:
+		//URI uri = new URI( "/Users/preibischs/SparkTest/IP raw/spim_TL18_Angle0.tif" );
+		URI uri = new File( "/Users/preibischs/SparkTest/IP raw/spim_TL18_Angle0.tif" ).toURI();
+
+		System.out.println( new File( uri ) );
+		System.out.println( URITools.fromURI( uri ) );
+
+		System.out.println( uri );
+
 		String file = "/home/preibisch/test.xml";
 		String s3 = "s3://preibisch/test.xml";
 
@@ -617,15 +640,17 @@ public class URITools
 
 		try
 		{
-			BufferedReader reader = openFileReadCloud(kva, "s3://janelia-bigstitcher-spark/Stitching-test/test_1727295175425.txt" );
+			BufferedReader reader = openFileReadCloud(kva, "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
 			reader.lines().forEach( s -> System.out.println( s ) );
 			reader.close();
 
+			/*
 			String path = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + "test_" + System.currentTimeMillis() + ".txt";
 
 			final PrintWriter pw = openFileWriteCloud( kva, path );
 			pw.println( "hallo " + System.currentTimeMillis() );
 			pw.close();
+			*/
 		}
 		catch ( Exception e )
 		{
