@@ -32,12 +32,14 @@ import java.util.List;
 
 import mpicbg.models.Affine3D;
 import mpicbg.models.AffineModel3D;
+import mpicbg.models.ErrorStatistic;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
+import mpicbg.models.TileUtil;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -105,7 +107,10 @@ public class GlobalOpt
 			else
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
-			tc.optimize( cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
+			System.out.println( "new code ... ");
+
+			tc.optimizeSilently(new ErrorStatistic( cs.getMaxPlateauWidth() + 1 ), cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
+			//tc.optimize( cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
 
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + 
 				tc.getTiles().size() +  " view-tiles (Model=" + model.getClass().getSimpleName()  + "):" );

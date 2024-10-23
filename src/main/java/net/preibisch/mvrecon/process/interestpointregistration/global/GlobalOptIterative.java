@@ -107,9 +107,10 @@ public class GlobalOptIterative
 				else
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
-				TileUtil.optimizeConcurrently(
+				tc.optimizeSilently(new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ), ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth() );
+				/*TileUtil.optimizeConcurrently(
 						new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ),  ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth(), 1.0f,
-						tc, tc.getTiles(), tc.getFixedTiles(), Runtime.getRuntime().availableProcessors());
+						tc, tc.getTiles(), tc.getFixedTiles(), Runtime.getRuntime().availableProcessors());*/
 
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
 				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
