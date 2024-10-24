@@ -91,10 +91,41 @@ public class URITools
 		}
 	}
 
+	public static URI getParentURI( final URI uri ) throws SpimDataIOException
+	{
+		try
+		{
+			final String uriPath = uri.getPath();
+			final int parentSlash = uriPath.lastIndexOf( "/", uriPath.length() - 2 );
+			if ( parentSlash < 0 )
+			{
+				throw new SpimDataIOException( "URI is already at the root" );
+			}
+			// NB: The "+ 1" below is *very important*, so that the resultant URI
+			// ends in a trailing slash. The behaviour of URI differs depending on
+			// whether this trailing slash is present; specifically:
+			//
+			// * new URI("file:/foo/bar/").resolve(".") -> "file:/foo/bar/"
+			// * new URI("file:/foo/bar").resolve(".") -> "file:/foo/"
+			//
+			// That is: /foo/bar/ is considered to be in the directory /foo/bar,
+			// whereas /foo/bar is considered to be in the directory /foo.
+			final String parentPath = uriPath.substring( 0, parentSlash + 1 );
+			return new URI( uri.getScheme(), uri.getUserInfo(), uri.getHost(),
+				uri.getPort(), parentPath, uri.getQuery(), uri.getFragment() );
+		}
+		catch ( URISyntaxException e )
+		{
+			throw new SpimDataIOException( e );
+		}
+	}
+
 	public static void saveSpimData( final SpimData2 data, final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
 	{
 		if ( URITools.isFile( xmlURI ) )
 		{
+			data.setBasePathURI( getParentURI( xmlURI ) );
+
 			// old code for filesystem
 			io.save( data, URITools.fromURI( xmlURI ) );
 		}
