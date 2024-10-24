@@ -339,7 +339,13 @@ public class URITools
 			Document doc;
 			try
 			{
-				final InputStream is = kva.lockForReading( pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file ).newInputStream();
+				final InputStream is;
+
+				if ( URITools.isS3( xmlURI ) )
+					is = kva.lockForReading( pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file ).newInputStream();
+				else // google cloud
+					is = kva.lockForReading( pb.rootDir + "/" + pb.file ).newInputStream();
+
 				doc = sax.build( is );
 				is.close();
 			}
@@ -611,6 +617,18 @@ public class URITools
 
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
+		URI gcURI = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
+		System.out.println( "isGC: " + isGC(gcURI) + " [" + gcURI + "]" );
+		SpimData2 sdGC = loadSpimData(gcURI, new XmlIoSpimData2() );
+		System.out.println( sdGC.getBasePathURI() + ", " + sdGC.getSequenceDescription().getAllTilesOrdered() );
+
+		URI s3URI = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
+		System.out.println( "isS3: " + isS3(s3URI) + " [" + s3URI + "]" );
+		SpimData2 sdS3 = loadSpimData(s3URI, new XmlIoSpimData2() );
+		System.out.println( sdS3.getBasePathURI() + ", " + sdS3.getSequenceDescription().getAllTilesOrdered() );
+
+		System.exit( 0 );
+
 		// Fails:
 		//URI uri = new URI( "/Users/preibischs/SparkTest/IP raw/spim_TL18_Angle0.tif" );
 		URI uri = new File( "/Users/preibischs/SparkTest/IP raw/spim_TL18_Angle0.tif" ).toURI();
