@@ -123,7 +123,13 @@ public class URITools
 			// fist make a copy of the XML and save it to not loose it
 			try
 			{
-				final String xmlFile = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
+				final String xmlFile;
+
+				if ( URITools.isS3( xmlURI ) )
+					xmlFile = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
+				else
+					xmlFile = pb.rootDir + "/" + pb.file;
+
 				if ( kva.exists( xmlFile ) )
 				{
 					int maxExistingBackup = 0;
@@ -169,7 +175,13 @@ public class URITools
 				final XMLOutputter xout = new XMLOutputter( Format.getPrettyFormat() );
 				final String xmlString = xout.outputString( doc );
 
-				final PrintWriter pw = openFileWriteCloud( kva, pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file );
+				String xmlPath;
+				if ( URITools.isS3( xmlURI ) )
+					xmlPath = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
+				else
+					xmlPath = pb.rootDir + "/" + pb.file;
+
+				final PrintWriter pw = openFileWriteCloud( kva, xmlPath );
 				pw.println( xmlString );
 				pw.close();
 			}
