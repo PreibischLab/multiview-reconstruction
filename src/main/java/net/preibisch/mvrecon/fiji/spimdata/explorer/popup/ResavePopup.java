@@ -304,7 +304,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						if ( index == 5 && !n5params.xmlURI.equals( panel.xml() ) )
 						{
 							IOFunctions.println( "New location for XML selected: " + n5params.xmlURI );
-							basePathURI = URITools.getParent( n5params.xmlURI );
+							basePathURI = URITools.getParentURINoEx( n5params.xmlURI );
 						}
 						else
 						{

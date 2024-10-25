@@ -283,7 +283,7 @@ public class Resave_N5Api implements PlugIn
 		else
 			throw new RuntimeException( "There is no ImgLoader available for " + format + ". Data is resaved, but we will not be able to load it" );
 
-		sdReduced.setBasePathURI( URITools.getParent( n5Params.xmlURI ) );
+		sdReduced.setBasePathURI( URITools.getParentURINoEx( n5Params.xmlURI ) );
 
 		if ( saveXML )
 		{

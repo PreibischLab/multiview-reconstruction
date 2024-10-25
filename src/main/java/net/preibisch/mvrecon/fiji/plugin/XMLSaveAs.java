@@ -92,7 +92,7 @@ public class XMLSaveAs implements PlugIn
 			return null;
 		}
 
-		newBaseDir = URITools.getParent( newXMLPath );
+		newBaseDir = URITools.getParentURINoEx( newXMLPath );
 
 		IOFunctions.println( "New XML: " + newXMLPath );
 		IOFunctions.println( "New base path: " + newBaseDir );

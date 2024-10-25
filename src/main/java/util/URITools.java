@@ -91,6 +91,19 @@ public class URITools
 		}
 	}
 
+	public static URI getParentURINoEx( final URI uri )
+	{
+		try
+		{
+			return getParentURI(uri);
+		}
+		catch (SpimDataIOException e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 	public static URI getParentURI( final URI uri ) throws SpimDataIOException
 	{
 		try
@@ -202,7 +215,7 @@ public class URITools
 
 			try
 			{
-				final Document doc = new Document( io.toXml( data, getParent( xmlURI ) ) );
+				final Document doc = new Document( io.toXml( data, getParentURI( xmlURI ) ) );
 				final XMLOutputter xout = new XMLOutputter( Format.getPrettyFormat() );
 				final String xmlString = xout.outputString( doc );
 
@@ -611,12 +624,12 @@ public class URITools
 		else
 			return uri.toString();
 	}
-	*/
 
 	public static URI getParent( final URI uri )
 	{
 		return uri.getPath().endsWith("/") ? uri.resolve("..") : uri.resolve(".");
 	}
+	*/
 
 	public static String getFileName( final URI uri )
 	{
