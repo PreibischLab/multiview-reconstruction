@@ -77,20 +77,6 @@ public class URITools
 	public static boolean useS3CredentialsWrite = true;
 	public static boolean useS3CredentialsRead = true;
 
-	public static class ParsedBucket
-	{
-		public String protocol;
-		public String bucket;
-		public String rootDir;
-		public String file;
-
-		@Override
-		public String toString()
-		{
-			return "protocol: '" + protocol + "', bucket: '" + bucket + "', rootdir: '" + rootDir + "', file: '" + file + "'";
-		}
-	}
-
 	public static URI getParentURINoEx( final URI uri )
 	{
 		try
@@ -133,6 +119,37 @@ public class URITools
 		}
 	}
 
+	/**
+	 * A little hack to get a generic KeyValueAccess for a cloud store
+	 * 
+	 * @param uri - the full URI (even though only scheme and host/bucket will be used)
+	 * @return the KeyValueStore
+	 */
+	public static KeyValueAccess getKeyValueAccess( final URI uri )
+	{
+		if ( URITools.isS3( uri ) || URITools.isGC( uri ) )
+		{
+			try
+			{
+				final URI bucket = new URI( uri.getScheme(), uri.getHost(), null, null );
+				final N5Reader n5 = instantiateN5Reader(StorageFormat.N5, bucket );
+				return ((GsonKeyValueN5Reader)n5).getKeyValueAccess();
+			}
+			catch (URISyntaxException e)
+			{
+				e.printStackTrace();
+				throw new RuntimeException( "An unexpected URI syntax error occured for '" + uri + "': " + e );
+			}
+		}
+		else
+		{
+			if ( uri.getScheme() != null )
+				throw new RuntimeException( "Unsupported uri scheme: " + uri.getScheme() + " in '" + uri + "'." );
+			else
+				throw new RuntimeException( "Cannot get a KeyValueAccess for a relative path '" + uri + "'." );
+		}
+	}
+
 	public static void saveSpimData( final SpimData2 data, final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
 	{
 		if ( URITools.isFile( xmlURI ) )
@@ -147,32 +164,23 @@ public class URITools
 			//
 			// saving the XML to s3
 			//
-			final ParsedBucket pb;
 			final KeyValueAccess kva;
 
 			System.out.println( xmlURI );
 
 			try
 			{
-				pb = URITools.parseCloudLink( xmlURI.toString() );
-				kva = URITools.getKeyValueAccessForBucket( pb );
+				kva = URITools.getKeyValueAccess( xmlURI );
 			}
 			catch ( Exception e )
 			{
 				throw new SpimDataException( "Could not parse cloud link and setup KeyValueAccess for '" + xmlURI + "': " + e );
 			}
 
-			System.out.println( pb );
-
 			// fist make a copy of the XML and save it to not loose it
 			try
 			{
-				final String xmlFile;
-
-				if ( URITools.isS3( xmlURI ) )
-					xmlFile = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
-				else
-					xmlFile = pb.rootDir + "/" + pb.file;
+				final String xmlFile = getRelativeCloudPath( xmlURI );
 
 				if ( kva.exists( xmlFile ) )
 				{
@@ -219,13 +227,7 @@ public class URITools
 				final XMLOutputter xout = new XMLOutputter( Format.getPrettyFormat() );
 				final String xmlString = xout.outputString( doc );
 
-				String xmlPath;
-				if ( URITools.isS3( xmlURI ) )
-					xmlPath = pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file;
-				else
-					xmlPath = pb.rootDir + "/" + pb.file;
-
-				final PrintWriter pw = openFileWriteCloud( kva, xmlPath );
+				final PrintWriter pw = openFileWriteCloudWriter( kva, xmlURI );
 				pw.println( xmlString );
 				pw.close();
 			}
@@ -386,22 +388,13 @@ public class URITools
 		}
 		else if ( URITools.isS3( xmlURI ) || URITools.isGC( xmlURI ) )
 		{
-			//super.load(null, xmlURI); // how do I use this?
-
-			final ParsedBucket pb = URITools.parseCloudLink( xmlURI.toString() );
-			final KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
-
+			final KeyValueAccess kva = getKeyValueAccess( xmlURI );
 			final SAXBuilder sax = new SAXBuilder();
 			Document doc;
+
 			try
 			{
-				final InputStream is;
-
-				if ( URITools.isS3( xmlURI ) )
-					is = kva.lockForReading( pb.protocol + pb.bucket + "/" + pb.rootDir + "/" + pb.file ).newInputStream();
-				else // google cloud
-					is = kva.lockForReading( pb.rootDir + "/" + pb.file ).newInputStream();
-
+				final InputStream is = openFileReadCloudStream(kva, xmlURI);
 				doc = sax.build( is );
 				is.close();
 			}
@@ -428,65 +421,82 @@ public class URITools
 		}
 	}
 
-	public static KeyValueAccess getKeyValueAccessForBucket( final ParsedBucket pb )
+	/**
+	 * This is an abstraction that is only required because the Google cloud and AWS KeyValueAccesses behave differently
+	 *
+	 * @param uri - the URI for which to create the relative path
+	 * @return the relative path
+	 * @throws URISyntaxException
+	 */
+	public static String getRelativeCloudPath( final URI uri ) throws URISyntaxException
 	{
-		// we use a reader so it does not create an attributes.json; the KeyValueAccess is able to write anyways
-		final N5Reader n5r = instantiateN5Reader(StorageFormat.N5, URI.create( pb.protocol + pb.bucket ) );//new N5Factory().openReader( StorageFormat.N5, pb.protocol + pb.bucket );
-		final KeyValueAccess kva = ((GsonKeyValueN5Reader)n5r).getKeyValueAccess();
-
-		return kva;
-	}
-
-	public static ParsedBucket parseCloudLink( final String uri )
-	{
-		//System.out.println( "Parsing link path for '" + uri + "':" );
-
-		final ParsedBucket pb = new ParsedBucket();
-
-		final File f = new File( uri );
-		String parent = f.getParent().replace( "//", "/" ); // new File cuts // already, but just to make sure
-		parent = parent.replace(":/", "://" );
-		pb.protocol = parent.substring( 0, parent.indexOf( "://" ) + 3 );
-		parent = parent.substring( parent.indexOf( "://" ) + 3, parent.length() );
-
-		if (parent.contains( "/" ) )
-		{
-			// there is an extra path
-			pb.bucket = parent.substring(0,parent.indexOf( "/" ) );
-			pb.rootDir = parent.substring(parent.indexOf( "/" ) + 1, parent.length() );
-		}
+		if ( URITools.isGC( uri ) )
+			return new URI( null, null, uri.getPath(), null ).toString();
+		else if ( URITools.isS3( uri ) )
+			return new URI( uri.getScheme(), uri.getHost(), uri.getPath(), null ).toString(); // TODO: this is a bug
 		else
 		{
-			pb.bucket = parent;
-			pb.rootDir = "/";
+			if ( uri.getScheme() != null )
+				throw new RuntimeException( "Unsupported uri scheme: " + uri.getScheme() + " in '" + uri + "'." );
+			else
+				throw new RuntimeException( "Cannot get a relative cloud path for a relative path '" + uri + "'." );
+		}
+	}
+
+	public static BufferedReader openFileReadCloudReader( final KeyValueAccess kva, final URI uri ) throws IOException
+	{
+		return new BufferedReader(new InputStreamReader( openFileReadCloudStream( kva, uri )));
+	}
+
+	public static InputStream openFileReadCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
+	{
+		final String relativePath;
+
+		try
+		{
+			relativePath = getRelativeCloudPath( uri );
+		}
+		catch (URISyntaxException e)
+		{
+			throw new IOException( e.getMessage() );
 		}
 
-		pb.file = f.getName();
-
-		//System.out.println( "protocol: '" + pb.protocol + "'" );
-		//System.out.println( "bucket: '" + pb.bucket + "'" );
-		//System.out.println( "root dir: '" + pb.rootDir + "'" );
-		//System.out.println( "xmlFile: '" + pb.file + "'" );
-
-		return pb;
+		return kva.lockForReading( relativePath ).newInputStream();
 	}
 
-	public static BufferedReader openFileReadCloud( final KeyValueAccess kva, final String file ) throws IOException
+	public static PrintWriter openFileWriteCloudWriter( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final InputStream is = kva.lockForReading( file ).newInputStream();
-		return new BufferedReader(new InputStreamReader(is));
+		return new PrintWriter( openFileWriteCloudStream( kva, uri ) );
 	}
 
-	public static PrintWriter openFileWriteCloud( final KeyValueAccess kva, final String file ) throws IOException
+	public static OutputStream openFileWriteCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final OutputStream os = kva.lockForWriting( file ).newOutputStream();
-		return new PrintWriter( os );
+		final String relativePath;
+
+		try
+		{
+			relativePath = getRelativeCloudPath( uri );
+		}
+		catch (URISyntaxException e)
+		{
+			throw new IOException( e.getMessage() );
+		}
+
+		return kva.lockForWriting( relativePath ).newOutputStream();
 	}
 
-	public static void copy( final KeyValueAccess kva, final String src, final String dst ) throws IOException
+	/**
+	 * Note: it is up to you to create the correct relative paths using getRelativeCloudPath()
+	 *
+	 * @param kva
+	 * @param relativeSrc
+	 * @param relativeDst
+	 * @throws IOException
+	 */
+	public static void copy( final KeyValueAccess kva, final String relativeSrc, final String relativeDst ) throws IOException
 	{
-		final InputStream is = kva.lockForReading( src ).newInputStream();
-		final OutputStream os = kva.lockForWriting( dst ).newOutputStream();
+		final InputStream is = kva.lockForReading( relativeSrc ).newInputStream();
+		final OutputStream os = kva.lockForWriting( relativeDst ).newOutputStream();
 
 		final byte[] buffer = new byte[32768];
 		int len;
@@ -601,36 +611,6 @@ public class URITools
 		}
 	}
 
-	/*
-	public static File toFile( final URI uri )
-	{
-		if ( !isFile( uri ) )
-			throw new RuntimeException( "Cannot make a java.io.File from '" + uri + "'" );
-
-		// otherwise triggers Exception in thread "main" java.lang.IllegalArgumentException: URI is not absolute
-		if ( !uri.toString().toLowerCase().startsWith( "file:") )
-			return new File( uri.toString() );
-		else
-			return new File( uri );
-	}
-
-	public static String removeFilePrefix( URI uri )
-	{
-		final String scheme = uri.getScheme();
-		final boolean hasScheme = scheme != null;
-
-		if ( hasScheme && FILE_SCHEME.asPredicate().test( scheme ) )
-			return uri.toString().substring( 5, uri.toString().length() ); // cut off 'file:'
-		else
-			return uri.toString();
-	}
-
-	public static URI getParent( final URI uri )
-	{
-		return uri.getPath().endsWith("/") ? uri.resolve("..") : uri.resolve(".");
-	}
-	*/
-
 	public static String getFileName( final URI uri )
 	{
 		return Paths.get( uri.getPath() ).getFileName().toString();
@@ -744,14 +724,11 @@ public class URITools
 
 		System.out.println();
 
-		ParsedBucket pb = URITools.parseCloudLink( "s3://janelia-bigstitcher-spark/Stitching-test/dataset.xml" );
-		KeyValueAccess kva = URITools.getKeyValueAccessForBucket( pb );
-
-		System.out.println( pb );
+		KeyValueAccess kva = getKeyValueAccess( URI.create( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
 
 		try
 		{
-			BufferedReader reader = openFileReadCloud(kva, "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
+			BufferedReader reader = openFileReadCloudReader(kva, URI.create( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
 			reader.lines().forEach( s -> System.out.println( s ) );
 			reader.close();
 
