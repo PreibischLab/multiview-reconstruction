@@ -35,7 +35,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.regex.Pattern;
@@ -51,6 +50,8 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.jdom2.Document;
@@ -58,6 +59,8 @@ import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
+
+import com.google.gson.GsonBuilder;
 
 import bdv.ViewerImgLoader;
 import mpicbg.spim.data.SpimDataException;
@@ -261,10 +264,15 @@ public class URITools
 		{
 			N5Writer n5w;
 
+			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+					CoordinateTransformation.class,
+					new CoordinateTransformationAdapter() );
+
 			try
 			{
 				//System.out.println( "Trying writing with credentials ..." );
-				N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( format, uri );
 			}
@@ -272,11 +280,12 @@ public class URITools
 			{
 				System.out.println( "With credentials failed; trying anonymous ..." );
 
-				n5w = new N5Factory().openWriter( format, uri );
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
+				n5w = factory.openWriter( format, uri );
 			}
 
 			return n5w;
-			//return new N5Factory().openWriter( format, uri ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -295,21 +304,28 @@ public class URITools
 		{
 			N5Reader n5r;
 
+			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+					CoordinateTransformation.class,
+					new CoordinateTransformationAdapter() );
+
 			try
 			{
 				//System.out.println( "Trying reading with credentials ..." );
-				N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5r = factory.openReader( format, uri );
 			}
 			catch ( Exception e )
 			{
-				System.out.println( "With credentials failed; trying anonymous ..." );
-				n5r = new N5Factory().openReader( format, uri );
+				System.out.println( "With credentials failed; trying anonymous with gson builder ..." );
+
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
+				n5r = factory.openReader( format, uri );
 			}
 
 			return n5r;
-			//return new N5Factory().openReader( format, uri ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -328,21 +344,27 @@ public class URITools
 		{
 			N5Reader n5r;
 
+			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+					CoordinateTransformation.class,
+					new CoordinateTransformationAdapter() );
+
 			try
 			{
 				//System.out.println( "Trying reading with credentials ..." );
-				N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5r = factory.openReader( uri.toString() );
 			}
 			catch ( Exception e )
 			{
 				System.out.println( "With credentials failed; trying anonymous ..." );
-				n5r = new N5Factory().openReader( uri.toString() );
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
+				n5r = factory.openReader( uri.toString() );
 			}
 
 			return n5r;
-			//return new N5Factory().openReader( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -361,22 +383,27 @@ public class URITools
 		{
 			N5Writer n5w;
 
+			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+					CoordinateTransformation.class,
+					new CoordinateTransformationAdapter() );
+
 			try
 			{
 				//System.out.println( "Trying writing with credentials ..." );
-				N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( uri.toString() );
 			}
 			catch ( Exception e )
 			{
 				System.out.println( "Writing with credentials failed; trying anonymous writing ..." );
-				n5w = new N5Factory().openWriter( uri.toString() );
+				final N5Factory factory = new N5Factory();
+				factory.gsonBuilder( builder );
+				n5w = factory.openWriter( uri.toString() );
 			}
 
 			return n5w;
-
-			//return new N5Factory().openWriter( uri.toString() ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -411,6 +438,7 @@ public class URITools
 			final SpimData2 data = io.fromXml( docRoot, xmlURI );
 
 			// more threads for cloud-based fetching
+			System.out.println( "Setting num fetcher threads to " + cloudThreads + " for cloud access." );
 			( (ViewerImgLoader) data.getSequenceDescription().getImgLoader() ).setNumFetcherThreads( cloudThreads );
 
 			return data;
@@ -686,6 +714,12 @@ public class URITools
 
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
+		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr" );
+
+		System.out.println( uri1.getHost() );
+		System.out.println( uri1.getPath() );
+		System.exit( 0 );
+
 		minimalExampleTobiS3GS();
 
 		System.exit( 0 );
