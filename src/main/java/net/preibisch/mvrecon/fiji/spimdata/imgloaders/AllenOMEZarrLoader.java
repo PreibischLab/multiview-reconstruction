@@ -3,12 +3,8 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
-
-import javax.management.RuntimeErrorException;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -19,7 +15,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiSca
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 
-import bdv.ViewerImgLoader;
 import bdv.img.cache.VolatileCachedCellImg;
 import bdv.img.n5.N5ImageLoader;
 import bdv.img.n5.N5Properties;
@@ -39,8 +34,6 @@ import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
 {
-	public static boolean preFetchDatasetAttributes = true;
-
 	final HashMap< ViewId, String > viewIdToPath;
 	final HashMap< Integer, double[][] > setupIdToMultiRes = new HashMap<>();
 	final HashMap< Integer, DataType > setupIdToDataType = new HashMap<>();
@@ -52,11 +45,26 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 		this.viewIdToPath = viewIdToPath;
 
-		final HashSet< Integer > viewSetupIds = new HashSet<>();
-		viewIdToPath.keySet().forEach( viewId -> viewSetupIds.add( viewId.getViewSetupId() ) );
+		// this methods needs the assignment of viewIdToPath
+		preFetch();
+
+		seq.getViewSetupsOrdered().stream().forEach( setup ->
+			System.out.println( "ViewSetupId: " + setup.getId() + ": " + setupIdToDataType.get( setup.getId() ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setup.getId() ) ) ) );
+
+		// more threads for cloud-based fetching
+		System.out.println( "Setting num fetcher threads to " + URITools.cloudThreads + " for cloud access." );
+		setNumFetcherThreads( URITools.cloudThreads );
+	}
+
+	@Override
+	public void preFetch()
+	{
+		// this is called from the superclass constructor once, but the we cannot assign the variable yet
+		if ( this.viewIdToPath == null )
+			return;
 
 		// assemble metadata in advance in parallel (we should store this to the XML)
-		final ForkJoinPool myPool = new ForkJoinPool( URITools.cloudThreads );
+		final ForkJoinPool myPool = new ForkJoinPool( cloudThreads );
 
 		if ( preFetchDatasetAttributes )
 			System.out.println( "Loading metadata and pre-fetching all DatasetAttributes from OME-ZARR containers (in parallel) ... " );
@@ -64,17 +72,23 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			System.out.println( "Loading metadata from OME-ZARR containers (in parallel) ... " );
 
 		// fetch multiresolution info for all viewsetups
-		myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId -> setupIdToMultiRes.put( setupId, getMipMapResolutions( setupId ) ) ) ).join();
+		myPool.submit(() -> seq.getViewSetupsOrdered().parallelStream().forEach( setup ->
+			setupIdToMultiRes.put( setup.getId(), getMipMapResolutions( setup.getId() ) ) ) ).join();
 
 		if ( preFetchDatasetAttributes )
 		{
 			// fetch all DatasetAttributes
 			myPool.submit(() -> viewIdToPath.keySet().parallelStream().forEach( viewId ->
 			{
-				myPool.submit(() -> IntStream.range( 0, setupIdToMultiRes.get( viewId.getViewSetupId() ).length ).parallel().forEach( level ->
-					this.pathToDatasetAttributes.put(
+				if ( !seq.getMissingViews().getMissingViews().contains( viewId ) )
+				{
+					final int numLevels = n5properties.getMipmapResolutions( n5, viewId.getViewSetupId() ).length;
+
+					myPool.submit(() -> IntStream.range( 0, numLevels ).parallel().forEach( level ->
+						pathToDatasetAttributes.put(
 							n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), level ),
 							n5.getDatasetAttributes( n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), level ) ) ) ) ).join();
+				}
 			})).join();
 
 			// fill up DataType from pre-fetched DatasetAttributes
@@ -84,23 +98,16 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		}
 		else
 		{
-			myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId ->
+			myPool.submit(() -> seq.getViewSetupsOrdered().parallelStream().forEach( setup ->
 			{
-				final int timePointId = getFirstAvailableTimepointId( setupId );
+				final int timePointId = getFirstAvailableTimepointId( setup.getId() );
 				setupIdToDataType.put(
-						setupId,
-						n5.getDatasetAttributes( n5properties.getPath(setupId, timePointId, 0 ) ).getDataType() );
+						setup.getId(),
+						n5.getDatasetAttributes( n5properties.getPath( setup.getId(), timePointId, 0 ) ).getDataType() );
 			})).join();
 		}
 
 		myPool.shutdown();
-
-		viewSetupIds.stream().sorted().forEach( setupId ->
-			System.out.println( "ViewSetupId: " + setupId + ": " + setupIdToDataType.get( setupId ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setupId ) ) ) );
-
-		// more threads for cloud-based fetching
-		System.out.println( "Setting num fetcher threads to " + URITools.cloudThreads + " for cloud access." );
-		setNumFetcherThreads( URITools.cloudThreads );
 	}
 
 	public double[][] getMipMapResolutions( final int setupId )
@@ -223,10 +230,9 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 	public static void main( String[] args ) throws SpimDataException
 	{
-		//IntStream.range(0, 100 ).parallel().forEach( i -> System.out.println( i ));
-		//System.exit( 0 );
-
 		URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.xml" );
+		//URI xml = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
+		//URI xml = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
 		//URI xml = URITools.toURI( "/Users/preibischs/SparkTest/IP/dataset.xml" );
 
 		XmlIoSpimData2 io = new XmlIoSpimData2();
