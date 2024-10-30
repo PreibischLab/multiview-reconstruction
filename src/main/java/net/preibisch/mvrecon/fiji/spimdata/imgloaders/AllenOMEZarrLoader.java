@@ -8,6 +8,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
+import javax.management.RuntimeErrorException;
+
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -24,6 +26,7 @@ import bdv.img.n5.N5Properties;
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
+import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -39,11 +42,9 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	public static boolean preFetchDatasetAttributes = true;
 
 	final HashMap< ViewId, String > viewIdToPath;
-	final HashMap< Integer, double[][] > setupIdToMultiRes;
-	final HashMap< Integer, DataType > setupIdToDataType;
-	final HashMap< ViewId, DatasetAttributes > viewIdToDatasetAttributes;
-
-	final HashMap< String, DatasetAttributes > attributes = new HashMap<>();
+	final HashMap< Integer, double[][] > setupIdToMultiRes = new HashMap<>();
+	final HashMap< Integer, DataType > setupIdToDataType = new HashMap<>();
+	final HashMap< String, DatasetAttributes > pathToDatasetAttributes = new HashMap<>();
 
 	public AllenOMEZarrLoader( final URI n5URI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription, final HashMap< ViewId, String > viewIdToPath )
 	{
@@ -54,32 +55,42 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		final HashSet< Integer > viewSetupIds = new HashSet<>();
 		viewIdToPath.keySet().forEach( viewId -> viewSetupIds.add( viewId.getViewSetupId() ) );
 
-		this.viewIdToDatasetAttributes = new HashMap<>();
-		this.setupIdToMultiRes = new HashMap<>();
-		this.setupIdToDataType = new HashMap<>();
-
 		// assemble metadata in advance in parallel (we should store this to the XML)
 		final ForkJoinPool myPool = new ForkJoinPool( URITools.cloudThreads );
 
-		System.out.println( "Loading metadata from OME-ZARR containers (in parallel) ... " );
+		if ( preFetchDatasetAttributes )
+			System.out.println( "Loading metadata and pre-fetching all DatasetAttributes from OME-ZARR containers (in parallel) ... " );
+		else
+			System.out.println( "Loading metadata from OME-ZARR containers (in parallel) ... " );
+
+		// fetch multiresolution info for all viewsetups
+		myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId -> setupIdToMultiRes.put( setupId, getMipMapResolutions( setupId ) ) ) ).join();
 
 		if ( preFetchDatasetAttributes )
 		{
-			// fetch multiresolution info for all viewsetups
-			myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId -> setupIdToMultiRes.put( setupId, getMipMapResolutions( setupId ) ) ) ).join();
-	
 			// fetch all DatasetAttributes
 			myPool.submit(() -> viewIdToPath.keySet().parallelStream().forEach( viewId ->
 			{
 				myPool.submit(() -> IntStream.range( 0, setupIdToMultiRes.get( viewId.getViewSetupId() ).length ).parallel().forEach( level ->
-					this.viewIdToDatasetAttributes.put(
-							viewId,
+					this.pathToDatasetAttributes.put(
+							n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), level ),
 							n5.getDatasetAttributes( n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), level ) ) ) ) ).join();
 			})).join();
 
 			// fill up DataType from pre-fetched DatasetAttributes
-			for ( final Entry< ViewId, DatasetAttributes > entry : viewIdToDatasetAttributes.entrySet() )
-				setupIdToDataType.computeIfAbsent( entry.getKey().getViewSetupId(), setupId -> entry.getValue().getDataType() );
+			for ( final ViewId viewId : viewIdToPath.keySet() )
+				setupIdToDataType.computeIfAbsent( viewId.getViewSetupId(), setupId ->
+					pathToDatasetAttributes.get( n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), 0 ) ).getDataType() );
+		}
+		else
+		{
+			myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId ->
+			{
+				final int timePointId = getFirstAvailableTimepointId( setupId );
+				setupIdToDataType.put(
+						setupId,
+						n5.getDatasetAttributes( n5properties.getPath(setupId, timePointId, 0 ) ).getDataType() );
+			})).join();
 		}
 
 		myPool.shutdown();
@@ -94,7 +105,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 	public double[][] getMipMapResolutions( final int setupId )
 	{
-		final int timePointId = getFirstTimepointId( setupId );
+		final int timePointId = getFirstAvailableTimepointId( setupId );
 
 		// multiresolution pyramid
 
@@ -140,9 +151,15 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		return mipMapResolutions;
 	}
 
-	public int getFirstTimepointId( final int setupId )
+	public int getFirstAvailableTimepointId( final int setupId )
 	{
-		return seq.getTimePoints().getTimePointsOrdered().get( 0 ).getId();
+		for ( final TimePoint tp : seq.getTimePoints().getTimePointsOrdered() )
+		{
+			if ( !seq.getMissingViews().getMissingViews().contains( new ViewId( tp.getId(), setupId ) ) )
+				return tp.getId();
+		}
+
+		throw new RuntimeException( "All timepoints for setupId " + setupId + " are declared missing. Stopping." );
 	}
 
 	public N5Properties createN5PropertiesInstance()
@@ -191,8 +208,15 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			@Override
 			public DatasetAttributes getDatasetAttributes( final N5Reader n5, final String pathName )
 			{
-				// attributes are cached by the N5 API
-				return n5.getDatasetAttributes( pathName );
+				// attributes are cached by the N5 API, so this is technically not necessary ... maybe later if we store it in the XML
+				if ( preFetchDatasetAttributes )
+				{
+					return pathToDatasetAttributes.get( pathName );
+				}
+				else
+				{
+					return n5.getDatasetAttributes( pathName );
+				}
 			}
 		};
 	}
