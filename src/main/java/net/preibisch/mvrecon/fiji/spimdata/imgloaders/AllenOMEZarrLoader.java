@@ -4,7 +4,9 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -34,121 +36,113 @@ import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
 {
+	public static boolean preFetchDatasetAttributes = true;
+
 	final HashMap< ViewId, String > viewIdToPath;
 	final HashMap< Integer, double[][] > setupIdToMultiRes;
 	final HashMap< Integer, DataType > setupIdToDataType;
+	final HashMap< ViewId, DatasetAttributes > viewIdToDatasetAttributes;
+
+	final HashMap< String, DatasetAttributes > attributes = new HashMap<>();
 
 	public AllenOMEZarrLoader( final URI n5URI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription, final HashMap< ViewId, String > viewIdToPath )
 	{
-		this( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription, viewIdToPath );
-	}
-
-	public AllenOMEZarrLoader( final N5Reader n5, final URI n5URI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription, final HashMap< ViewId, String > viewIdToPath )
-	{
-		super( n5, n5URI, sequenceDescription );
+		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
 
 		this.viewIdToPath = viewIdToPath;
 
 		final HashSet< Integer > viewSetupIds = new HashSet<>();
 		viewIdToPath.keySet().forEach( viewId -> viewSetupIds.add( viewId.getViewSetupId() ) );
 
+		this.viewIdToDatasetAttributes = new HashMap<>();
 		this.setupIdToMultiRes = new HashMap<>();
 		this.setupIdToDataType = new HashMap<>();
-
-		System.out.println( "Loading metadata from OME-ZARR containers (in parallel) ... " );
 
 		// assemble metadata in advance in parallel (we should store this to the XML)
 		final ForkJoinPool myPool = new ForkJoinPool( URITools.cloudThreads );
 
-		myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId ->
+		System.out.println( "Loading metadata from OME-ZARR containers (in parallel) ... " );
+
+		if ( preFetchDatasetAttributes )
 		{
-			final int timePointId = getRandomTimepointId( setupId );
-
-			// multiresolution pyramid
-
-			//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
-			// for this to work you need to register an adapter in the N5Factory class
-			// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
-			final OmeNgffMultiScaleMetadata[] multiscales = n5.getAttribute( n5properties.getPath( setupId, timePointId ), "multiscales", OmeNgffMultiScaleMetadata[].class );
-
-			if ( multiscales == null || multiscales.length == 0 )
-				throw new RuntimeException( "Could not parse OME-ZARR multiscales object. stopping." );
-
-			if ( multiscales.length != 1 )
-				System.out.println( "This dataset has " + multiscales.length + " objects, we expected 1. Picking the first one." );
-
-			//System.out.println( "AllenOMEZarrLoader.getMipmapResolutions() for " + setupId + " using " + n5properties.getPath( setupId, timePointId ) + ": found " + multiscales[ 0 ].datasets.length + " multi-resolution levels." );
-
-			double[][] mipMapResolutions = new double[ multiscales[ 0 ].datasets.length ][ 3 ];
-			double[] firstScale = null;
-
-			for ( int i = 0; i < multiscales[ 0 ].datasets.length; ++i )
+			// fetch multiresolution info for all viewsetups
+			myPool.submit(() -> viewSetupIds.parallelStream().forEach( setupId -> setupIdToMultiRes.put( setupId, getMipMapResolutions( setupId ) ) ) ).join();
+	
+			// fetch all DatasetAttributes
+			myPool.submit(() -> viewIdToPath.keySet().parallelStream().forEach( viewId ->
 			{
-				final OmeNgffDataset ds = multiscales[ 0 ].datasets[ i ];
+				myPool.submit(() -> IntStream.range( 0, setupIdToMultiRes.get( viewId.getViewSetupId() ).length ).parallel().forEach( level ->
+					this.viewIdToDatasetAttributes.put(
+							viewId,
+							n5.getDatasetAttributes( n5properties.getPath( viewId.getViewSetupId(), viewId.getTimePointId(), level ) ) ) ) ).join();
+			})).join();
 
-				for ( final CoordinateTransformation< ? > c : ds.coordinateTransformations )
-				{
-					if ( ScaleCoordinateTransformation.class.isInstance( c ) )
-					{
-						final ScaleCoordinateTransformation s = (ScaleCoordinateTransformation)c;
-
-						if ( firstScale == null )
-							firstScale = s.getScale().clone();
-
-						for ( int d = 0; d < mipMapResolutions[ i ].length; ++d )
-						{
-							mipMapResolutions[ i ][ d ] = s.getScale()[ d ] / firstScale[ d ];
-							mipMapResolutions[ i ][ d ] = Math.round(mipMapResolutions[ i ][ d ]*10000)/10000d; // round to the 5th digit
-						}
-						//System.out.println( "AllenOMEZarrLoader.getMipmapResolutions(), level " + i + ": " + Arrays.toString( s.getScale() ) + " >> " + Arrays.toString( mipMapResolutions[ i ] ) );
-					}
-				}
-			}
-
-			setupIdToMultiRes.put( setupId, mipMapResolutions );
-
-			// data type
-			final DatasetAttributes attrib =
-					n5.getDatasetAttributes( n5properties.getPath( setupId, timePointId, 0 ) );
-
-			//System.out.println( "AllenOMEZarrLoader.getDataType() for " + setupId + " using " + n5properties.getPath( setupId, timePointId ) + ": " + attrib.getDataType() );
-
-			setupIdToDataType.put( setupId, attrib.getDataType() );
-		})).join();
+			// fill up DataType from pre-fetched DatasetAttributes
+			for ( final Entry< ViewId, DatasetAttributes > entry : viewIdToDatasetAttributes.entrySet() )
+				setupIdToDataType.computeIfAbsent( entry.getKey().getViewSetupId(), setupId -> entry.getValue().getDataType() );
+		}
 
 		myPool.shutdown();
 
 		viewSetupIds.stream().sorted().forEach( setupId ->
-		{
-			System.out.println( "ViewSetupId: " + setupId + ": " + setupIdToDataType.get( setupId ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setupId ) ) );
-		});
+			System.out.println( "ViewSetupId: " + setupId + ": " + setupIdToDataType.get( setupId ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setupId ) ) ) );
 
 		// more threads for cloud-based fetching
 		System.out.println( "Setting num fetcher threads to " + URITools.cloudThreads + " for cloud access." );
 		setNumFetcherThreads( URITools.cloudThreads );
 	}
 
-	public int getRandomTimepointId( final int setupId )
+	public double[][] getMipMapResolutions( final int setupId )
 	{
-		return getRandomTimepointId( viewIdToPath, setupId );
+		final int timePointId = getFirstTimepointId( setupId );
+
+		// multiresolution pyramid
+
+		//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+		// for this to work you need to register an adapter in the N5Factory class
+		// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+		final OmeNgffMultiScaleMetadata[] multiscales = n5.getAttribute( n5properties.getPath( setupId, timePointId ), "multiscales", OmeNgffMultiScaleMetadata[].class );
+
+		if ( multiscales == null || multiscales.length == 0 )
+			throw new RuntimeException( "Could not parse OME-ZARR multiscales object. stopping." );
+
+		if ( multiscales.length != 1 )
+			System.out.println( "This dataset has " + multiscales.length + " objects, we expected 1. Picking the first one." );
+
+		//System.out.println( "AllenOMEZarrLoader.getMipmapResolutions() for " + setupId + " using " + n5properties.getPath( setupId, timePointId ) + ": found " + multiscales[ 0 ].datasets.length + " multi-resolution levels." );
+
+		double[][] mipMapResolutions = new double[ multiscales[ 0 ].datasets.length ][ 3 ];
+		double[] firstScale = null;
+
+		for ( int i = 0; i < multiscales[ 0 ].datasets.length; ++i )
+		{
+			final OmeNgffDataset ds = multiscales[ 0 ].datasets[ i ];
+
+			for ( final CoordinateTransformation< ? > c : ds.coordinateTransformations )
+			{
+				if ( ScaleCoordinateTransformation.class.isInstance( c ) )
+				{
+					final ScaleCoordinateTransformation s = (ScaleCoordinateTransformation)c;
+
+					if ( firstScale == null )
+						firstScale = s.getScale().clone();
+
+					for ( int d = 0; d < mipMapResolutions[ i ].length; ++d )
+					{
+						mipMapResolutions[ i ][ d ] = s.getScale()[ d ] / firstScale[ d ];
+						mipMapResolutions[ i ][ d ] = Math.round(mipMapResolutions[ i ][ d ]*10000)/10000d; // round to the 5th digit
+					}
+					//System.out.println( "AllenOMEZarrLoader.getMipmapResolutions(), level " + i + ": " + Arrays.toString( s.getScale() ) + " >> " + Arrays.toString( mipMapResolutions[ i ] ) );
+				}
+			}
+		}
+
+		return mipMapResolutions;
 	}
 
-	public static int getRandomTimepointId( final HashMap< ViewId, String > viewIdToPath, final int setupId )
+	public int getFirstTimepointId( final int setupId )
 	{
-		// find any timepoint of this setupId
-		ViewId v = null;
-
-		for ( final ViewId viewId : viewIdToPath.keySet() )
-			if ( viewId.getViewSetupId() == setupId )
-			{
-				v = viewId;
-				break;
-			}
-
-		if ( v == null )
-			throw new RuntimeException( "Could not find a ViewSetup that contains SetupId: " + setupId );
-
-		return v.getTimePointId();
+		return seq.getTimePoints().getTimePointsOrdered().get( 0 ).getId();
 	}
 
 	public N5Properties createN5PropertiesInstance()
@@ -193,11 +187,21 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			{
 				return Views.hyperSlice( Views.hyperSlice( img, 4, 0 ), 3, 0 );
 			}
+
+			@Override
+			public DatasetAttributes getDatasetAttributes( final N5Reader n5, final String pathName )
+			{
+				// attributes are cached by the N5 API
+				return n5.getDatasetAttributes( pathName );
+			}
 		};
 	}
 
 	public static void main( String[] args ) throws SpimDataException
 	{
+		//IntStream.range(0, 100 ).parallel().forEach( i -> System.out.println( i ));
+		//System.exit( 0 );
+
 		URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.xml" );
 		//URI xml = URITools.toURI( "/Users/preibischs/SparkTest/IP/dataset.xml" );
 

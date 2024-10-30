@@ -141,8 +141,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 		{
 			System.out.println( "Opening N5 Zarr reader for '" + uri + "'" );
 
-			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.ZARR, uri );
-			return new AllenOMEZarrLoader( n5, uri, sequenceDescription, zgroups );
+			return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
 		}
 		catch ( Exception e )
 		{
