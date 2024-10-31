@@ -39,10 +39,19 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	final HashMap< Integer, DataType > setupIdToDataType = new HashMap<>();
 	final HashMap< String, DatasetAttributes > pathToDatasetAttributes = new HashMap<>();
 
-	public AllenOMEZarrLoader( final URI n5URI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription, final HashMap< ViewId, String > viewIdToPath )
+	final String bucket, folder;
+
+	public AllenOMEZarrLoader(
+			final URI n5URI,
+			final String bucket,
+			final String folder,
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
+			final HashMap< ViewId, String > viewIdToPath )
 	{
 		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
 
+		this.bucket = bucket;
+		this.folder = folder;
 		this.viewIdToPath = viewIdToPath;
 
 		// this methods needs the assignment of viewIdToPath
@@ -55,6 +64,10 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		System.out.println( "Setting num fetcher threads to " + URITools.cloudThreads + " for cloud access." );
 		setNumFetcherThreads( URITools.cloudThreads );
 	}
+
+	public HashMap< ViewId, String > getViewIdToPath() { return viewIdToPath; }
+	public String getBucket() { return bucket; }
+	public String getFolder() { return folder; }
 
 	@Override
 	public void preFetch()
