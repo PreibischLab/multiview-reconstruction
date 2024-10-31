@@ -1,10 +1,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.concurrent.ForkJoinPool;
-import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
@@ -50,68 +47,9 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	public String getFolder() { return folder; }
 
 	@Override
-	public AllenOMEZarrProperties getN5properties()
-	{
-		return (AllenOMEZarrProperties)n5properties;
-	}
-
-	@Override
 	public N5Properties createN5PropertiesInstance()
 	{
 		return new AllenOMEZarrProperties( this );
-	}
-
-	@Override
-	public void preFetch()
-	{
-		final AllenOMEZarrProperties n5p = getN5properties();
-
-		// assemble metadata in advance in parallel (we should store this to the XML)
-		final ForkJoinPool myPool = new ForkJoinPool( cloudThreads );
-
-		System.out.println( "Loading metadata and pre-fetching all DatasetAttributes from OME-ZARR containers (in parallel) ... " );
-
-		// fetch multiresolution info for all viewsetups
-		myPool.submit(() -> seq.getViewSetupsOrdered().parallelStream().forEach( setup ->
-			n5p.setupIdToMultiRes.put(
-				setup.getId(),
-				AllenOMEZarrProperties.getMipMapResolutions(
-					n5p,
-					n5,
-					setup.getId() ) ) ) ).join();
-
-		// fetch all DatasetAttributes
-		myPool.submit(() -> viewIdToPath.keySet().parallelStream().forEach( viewId ->
-		{
-			if ( !seq.getMissingViews().getMissingViews().contains( viewId ) )
-			{
-				final int numLevels = n5properties.getMipmapResolutions( n5, viewId.getViewSetupId() ).length;
-
-				myPool.submit(() -> IntStream.range( 0, numLevels ).parallel().forEach( level ->
-				{
-					final String path = n5properties.getPath(
-						viewId.getViewSetupId(),
-						viewId.getTimePointId(),
-						level );
-
-					n5p.pathToDatasetAttributes.put( path, n5.getDatasetAttributes( path ) );
-				}) ).join();
-			}
-		})).join();
-
-		// fill up DataType from pre-fetched DatasetAttributes
-		for ( final ViewId viewId : viewIdToPath.keySet() )
-			n5p.setupIdToDataType.computeIfAbsent( viewId.getViewSetupId(), setupId ->
-				n5p.pathToDatasetAttributes.get(
-					n5properties.getPath(
-						viewId.getViewSetupId(),
-						viewId.getTimePointId(),
-						0 ) ).getDataType() );
-
-		myPool.shutdown();
-
-		seq.getViewSetupsOrdered().stream().forEach( setup ->
-			System.out.println( "ViewSetupId: " + setup.getId() + ": " + n5p.setupIdToDataType.get( setup.getId() ) + ", " + Arrays.deepToString( n5p.setupIdToMultiRes.get( setup.getId() ) ) ) );
 	}
 
 	public static void main( String[] args ) throws SpimDataException

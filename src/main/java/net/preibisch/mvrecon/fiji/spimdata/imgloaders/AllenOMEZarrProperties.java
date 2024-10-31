@@ -1,7 +1,5 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
-import java.util.HashMap;
-
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -23,17 +21,9 @@ public class AllenOMEZarrProperties implements N5Properties
 {
 	final AllenOMEZarrLoader loader;
 
-	final HashMap< Integer, double[][] > setupIdToMultiRes;
-	final HashMap< Integer, DataType > setupIdToDataType;
-	final HashMap< String, DatasetAttributes > pathToDatasetAttributes;
-
 	public AllenOMEZarrProperties( final AllenOMEZarrLoader loader )
 	{
 		this.loader = loader;
-
-		this.setupIdToMultiRes = new HashMap<>();
-		this.setupIdToDataType = new HashMap<>();
-		this.pathToDatasetAttributes = new HashMap<>();
 	}
 
 	@Override
@@ -58,35 +48,13 @@ public class AllenOMEZarrProperties implements N5Properties
 	@Override
 	public DataType getDataType( final N5Reader n5, final int setupId )
 	{
-		if ( !setupIdToDataType.containsKey( setupId ) )
-		{
-			synchronized ( this )
-			{
-				if ( !setupIdToDataType.containsKey( setupId ) )
-				{
-					setupIdToDataType.put( setupId, getDataType( this, n5, setupId ) );
-				}
-			}
-		}
-
-		return setupIdToDataType.get( setupId );
+		return getDataType( this, n5, setupId );
 	}
 
 	@Override
 	public double[][] getMipmapResolutions( final N5Reader n5, final int setupId )
 	{
-		if ( !setupIdToMultiRes.containsKey( setupId ) )
-		{
-			synchronized ( this )
-			{
-				if ( !setupIdToMultiRes.containsKey( setupId ) )
-				{
-					setupIdToMultiRes.put( setupId, getMipMapResolutions( this, n5, setupId ) );
-				}
-			}
-		}
-
-		return setupIdToMultiRes.get( setupId );
+		return getMipMapResolutions( this, n5, setupId );
 	}
 
 	@Override
@@ -101,19 +69,7 @@ public class AllenOMEZarrProperties implements N5Properties
 	@Override
 	public DatasetAttributes getDatasetAttributes( final N5Reader n5, final String pathName )
 	{
-		// attributes are cached by the N5 API, so this is technically not necessary ... maybe later if we store it in the XML
-		if ( !pathToDatasetAttributes.containsKey( pathName ) )
-		{
-			synchronized ( this )
-			{
-				if ( !pathToDatasetAttributes.containsKey( pathName ) )
-				{
-					pathToDatasetAttributes.put( pathName, n5.getDatasetAttributes( pathName ) );
-				}
-			}
-		}
-
-		return pathToDatasetAttributes.get( pathName );
+		return n5.getDatasetAttributes( pathName );
 	}
 
 	//
@@ -184,5 +140,4 @@ public class AllenOMEZarrProperties implements N5Properties
 
 		return mipMapResolutions;
 	}
-
 }
