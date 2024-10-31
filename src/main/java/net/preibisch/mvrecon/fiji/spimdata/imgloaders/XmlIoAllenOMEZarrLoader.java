@@ -95,6 +95,8 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 			zgroupsElement.addContent( zgroupElement );
 		}
 
+		imgLoaderElement.addContent( zgroupsElement );
+
 		return imgLoaderElement;
 	}
 
