@@ -35,9 +35,9 @@ import util.URITools;
 public class AllenOMEZarrLoader extends N5ImageLoader
 {
 	final HashMap< ViewId, String > viewIdToPath;
-	final HashMap< Integer, double[][] > setupIdToMultiRes = new HashMap<>();
-	final HashMap< Integer, DataType > setupIdToDataType = new HashMap<>();
-	final HashMap< String, DatasetAttributes > pathToDatasetAttributes = new HashMap<>();
+	final HashMap< Integer, double[][] > setupIdToMultiRes;
+	final HashMap< Integer, DataType > setupIdToDataType;
+	final HashMap< String, DatasetAttributes > pathToDatasetAttributes;
 
 	final String bucket, folder;
 
@@ -56,8 +56,9 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		this.folder = folder;
 		this.viewIdToPath = viewIdToPath;
 
-		//seq.getViewSetupsOrdered().stream().forEach( setup ->
-		//	System.out.println( "ViewSetupId: " + setup.getId() + ": " + setupIdToDataType.get( setup.getId() ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setup.getId() ) ) ) );
+		this.setupIdToMultiRes = new HashMap<>();
+		this.setupIdToDataType = new HashMap<>();
+		this.pathToDatasetAttributes = new HashMap<>();
 	}
 
 	public HashMap< ViewId, String > getViewIdToPath() { return viewIdToPath; }
@@ -67,10 +68,6 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	@Override
 	public void preFetch()
 	{
-		// this is called from the superclass constructor once, but the we cannot assign the variable yet
-		if ( this.viewIdToPath == null )
-			return;
-
 		// assemble metadata in advance in parallel (we should store this to the XML)
 		final ForkJoinPool myPool = new ForkJoinPool( cloudThreads );
 
@@ -116,6 +113,9 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		}
 
 		myPool.shutdown();
+
+		seq.getViewSetupsOrdered().stream().forEach( setup ->
+			System.out.println( "ViewSetupId: " + setup.getId() + ": " + setupIdToDataType.get( setup.getId() ) + ", " + Arrays.deepToString( setupIdToMultiRes.get( setup.getId() ) ) ) );
 	}
 
 	public double[][] getMipMapResolutions( final int setupId )
