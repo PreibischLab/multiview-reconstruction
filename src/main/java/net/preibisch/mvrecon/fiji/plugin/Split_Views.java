@@ -207,11 +207,6 @@ public class Split_Views implements PlugIn
 		else
 			assignIllum = false;
 
-		gd.addMessage( "" );
-
-		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
-			gd.addCheckbox( "Assign_old_tiles_as_illuminations (great for visualization)", defaultAssignIlluminations );
-
 		final String saveAs = gd.getNextString();
 		final int choice = defaultChoice = gd.getNextChoiceIndex();
 
