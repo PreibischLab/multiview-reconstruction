@@ -35,8 +35,6 @@ import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import net.imglib2.Interval;
 import net.imglib2.cache.queue.BlockingFetchQueues;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 
 public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImgLoader
 {
@@ -94,11 +92,11 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 		if ( sil == null )
 		{
 			final ViewerSetupImgLoader setupLoader = underlyingImgLoader.getSetupImgLoader( oldSetupId );
-			final Object imgType = setupLoader.getImageType();
-			final Object volTyoe = setupLoader.getVolatileImageType();
+			//final Object imgType = setupLoader.getImageType();
+			//final Object volTyoe = setupLoader.getVolatileImageType();
 
-			if ( !imgType.getClass().isInstance( new UnsignedShortType() ) || !volTyoe.getClass().isInstance( new VolatileUnsignedShortType() ) )
-				throw new RuntimeException( "The underlying ViewerSetupImgLoader is not typed for <UnsignedShortType, VolatileUnsignedShortType>, cannot split up for BDV." );
+			//if ( !imgType.getClass().isInstance( new UnsignedShortType() ) || !volTyoe.getClass().isInstance( new VolatileUnsignedShortType() ) )
+			//	throw new RuntimeException( "The underlying ViewerSetupImgLoader is not typed for <UnsignedShortType, VolatileUnsignedShortType>, cannot split up for BDV." );
 
 			sil = createNewSetupImgLoader( (ViewerSetupImgLoader)underlyingImgLoader.getSetupImgLoader( oldSetupId ), interval );
 			splitSetupImgLoaders.put( newSetupId, sil );
@@ -107,7 +105,7 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	}
 
 	private final synchronized SplitViewerSetupImgLoader createNewSetupImgLoader(
-			final ViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType > setupImgLoader,
+			final ViewerSetupImgLoader setupImgLoader,
 			final Interval interval )
 	{
 		return new SplitViewerSetupImgLoader( setupImgLoader, interval );
