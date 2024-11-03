@@ -34,7 +34,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import util.ImgLib2Tools;
 
 public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionSetupImgLoader< T >
 {
@@ -89,22 +88,6 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	}
 
 	@Override
-	public RandomAccessibleInterval< FloatType > getFloatImage( final int timepointId, final boolean normalize, final ImgLoaderHint... hints )
-	{
-		final RandomAccessibleInterval< FloatType > img = Views.zeroMin( Views.interval( underlyingSetupImgLoader.getFloatImage( timepointId, false, hints ), interval ) );
-
-		// TODO: this is stupid, remove capablitity to get FloatType images!
-		if ( normalize )
-		{
-			return ImgLib2Tools.normalizeVirtualRAI( img );
-		}
-		else
-		{
-			return img;
-		}
-	}
-
-	@Override
 	public Dimensions getImageSize( final int timepointId )
 	{
 		return size;
@@ -119,36 +102,11 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	@Override
 	public RandomAccessibleInterval< T > getImage( final int timepointId, final int level, final ImgLoaderHint... hints )
 	{
-		/*IOFunctions.println( "requesting: " + level );
+		final RandomAccessibleInterval< T > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
 
-		for ( int l = 0; l < mipmapResolutions.length; ++l )
-		{
-			System.out.println( "level " + l + ": " + mipmapTransforms[ l ] );
-			System.out.println( "level " + l + ": " + Util.printInterval( scaledIntervals[ l ] ) );
-			System.out.print( "level " + l + ": " );
-			for ( int d = 0; d < mipmapResolutions[ l ].length; ++d )
-				System.out.print( mipmapResolutions[ l ][ d ] + "x" );
-			System.out.println();
-		}
-		/*
-		if ( level == 0 )
-		{
-			return getImage( timepointId, hints );
-		}
-		else*/
-		{
-			//final RandomAccessibleInterval img = Views.zeroMin( Views.interval(underlyingSetupImgLoader.getImage( timepointId, level, hints ), scaledIntervals[ level ] ) );
-			//DisplayImage.getImagePlusInstance( img, false, "level=" + level, 0.0, 255.0 ).show();;
+		updateScaledIntervals( this.scaledIntervals, level, n, full );
 
-			//IOFunctions.println( "size: " + Util.printInterval( img ) );
-			//IOFunctions.println( "interval: " + Util.printInterval( scaledIntervals[ level ] ) );
-
-			final RandomAccessibleInterval< T > full = underlyingSetupImgLoader.getImage( timepointId, level, hints );
-
-			updateScaledIntervals( this.scaledIntervals, level, n, full );
-
-			return Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
-		}
+		return Views.zeroMin( Views.interval( full, scaledIntervals[ level ] ) );
 	}
 
 	/**
