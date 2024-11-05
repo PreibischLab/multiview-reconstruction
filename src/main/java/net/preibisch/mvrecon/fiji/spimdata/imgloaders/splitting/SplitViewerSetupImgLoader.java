@@ -131,8 +131,6 @@ public class SplitViewerSetupImgLoader< T extends NativeType< T >, V extends Vol
 	@Override
 	public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints )
 	{
-		IOFunctions.println( "requesting full size: " );
-
 		return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, hints ), interval ) );
 	}
 
