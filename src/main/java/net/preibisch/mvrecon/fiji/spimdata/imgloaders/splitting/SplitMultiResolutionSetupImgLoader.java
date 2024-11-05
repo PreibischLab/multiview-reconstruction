@@ -33,7 +33,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
-import net.preibisch.legacy.io.IOFunctions;
 
 public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionSetupImgLoader< T >
 {
@@ -76,8 +75,6 @@ public class SplitMultiResolutionSetupImgLoader< T > implements MultiResolutionS
 	@Override
 	public RandomAccessibleInterval< T > getImage( final int timepointId, final ImgLoaderHint... hints )
 	{
-		IOFunctions.println( "requesting full size: " );
-
 		return Views.zeroMin( Views.interval( underlyingSetupImgLoader.getImage( timepointId, hints ), interval ) );
 	}
 
