@@ -35,6 +35,7 @@ import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import net.imglib2.Interval;
 import net.imglib2.cache.queue.BlockingFetchQueues;
+import net.imglib2.util.Cast;
 
 public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImgLoader
 {
@@ -58,12 +59,14 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	/**
 	 * Remembers instances of SplitSetupImgLoader
 	 */
-	private final HashMap< Integer, SplitViewerSetupImgLoader > splitSetupImgLoaders;
+	private final HashMap< Integer, SplitViewerSetupImgLoader<?,?> > splitSetupImgLoaders;
 
 	/**
 	 * Its own cell cache
 	 */
 	protected VolatileGlobalCellCache cache;
+
+	private int requestedNumFetcherThreads = -1;
 
 	public SplitViewerImgLoader(
 			final ViewerImgLoader underlyingImgLoader,
@@ -81,34 +84,33 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	private boolean isOpen = false;
 
 	@Override
-	public SplitViewerSetupImgLoader getSetupImgLoader( final int setupId )
+	public SplitViewerSetupImgLoader<?,?> getSetupImgLoader( final int setupId )
 	{
 		return getSplitViewerSetupImgLoader( underlyingImgLoader, new2oldSetupId.get( setupId ), setupId, newSetupId2Interval.get( setupId ) );
 	}
 
-	private final synchronized SplitViewerSetupImgLoader getSplitViewerSetupImgLoader( final ViewerImgLoader underlyingImgLoader, final int oldSetupId, final int newSetupId, final Interval interval )
+	private final synchronized SplitViewerSetupImgLoader<?,?> getSplitViewerSetupImgLoader( final ViewerImgLoader underlyingImgLoader, final int oldSetupId, final int newSetupId, final Interval interval )
 	{
-		SplitViewerSetupImgLoader sil = splitSetupImgLoaders.get( newSetupId );
+		SplitViewerSetupImgLoader<?,?> sil = splitSetupImgLoaders.get( newSetupId );
 		if ( sil == null )
 		{
-			final ViewerSetupImgLoader setupLoader = underlyingImgLoader.getSetupImgLoader( oldSetupId );
-			//final Object imgType = setupLoader.getImageType();
-			//final Object volTyoe = setupLoader.getVolatileImageType();
-
-			//if ( !imgType.getClass().isInstance( new UnsignedShortType() ) || !volTyoe.getClass().isInstance( new VolatileUnsignedShortType() ) )
-			//	throw new RuntimeException( "The underlying ViewerSetupImgLoader is not typed for <UnsignedShortType, VolatileUnsignedShortType>, cannot split up for BDV." );
-
-			sil = createNewSetupImgLoader( (ViewerSetupImgLoader)underlyingImgLoader.getSetupImgLoader( oldSetupId ), interval );
+			sil = createNewSetupImgLoader( (ViewerSetupImgLoader<?,?>)underlyingImgLoader.getSetupImgLoader( oldSetupId ), interval );
 			splitSetupImgLoaders.put( newSetupId, sil );
 		}
 		return sil;
 	}
 
-	private final synchronized SplitViewerSetupImgLoader createNewSetupImgLoader(
-			final ViewerSetupImgLoader setupImgLoader,
+	private final synchronized SplitViewerSetupImgLoader<?,?> createNewSetupImgLoader(
+			final ViewerSetupImgLoader<?,?> setupImgLoader,
 			final Interval interval )
 	{
-		return new SplitViewerSetupImgLoader( setupImgLoader, interval );
+		return new SplitViewerSetupImgLoader<>( Cast.unchecked( setupImgLoader ), interval );
+	}
+
+	@Override
+	public synchronized void setNumFetcherThreads( final int n )
+	{
+		requestedNumFetcherThreads = n;
 	}
 
 	private void open()
@@ -132,7 +134,7 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 						maxNumLevels = resolutions.length;
 				}
 
-				final int numFetcherThreads = 1;
+				final int numFetcherThreads = ( requestedNumFetcherThreads > 0 ) ? requestedNumFetcherThreads : Runtime.getRuntime().availableProcessors();
 				final BlockingFetchQueues< Callable< ? > > queue = new BlockingFetchQueues<>( maxNumLevels, numFetcherThreads );
 				cache = new VolatileGlobalCellCache( queue );
 			}
