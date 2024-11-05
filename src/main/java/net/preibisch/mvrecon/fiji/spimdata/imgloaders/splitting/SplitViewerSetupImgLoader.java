@@ -35,7 +35,6 @@ import net.imglib2.Volatile;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.view.Views;
-import net.preibisch.legacy.io.IOFunctions;
 
 public class SplitViewerSetupImgLoader< T extends NativeType< T >, V extends Volatile< T > & NativeType< V > > implements ViewerSetupImgLoader< T, V >, MultiResolutionSetupImgLoader< T >
 {
