@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
+import bdv.ViewerImgLoader;
 import bdv.img.n5.N5ImageLoader;
 import bdv.img.n5.N5Properties;
 import ij.ImageJ;
@@ -54,7 +55,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 	public static void main( String[] args ) throws SpimDataException
 	{
-		URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.xml" );
+		URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.split.xml" );
 		//URI xml = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
 		//URI xml = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
 		//URI xml = URITools.toURI( "/Users/preibischs/SparkTest/IP/dataset.xml" );
@@ -62,6 +63,8 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		XmlIoSpimData2 io = new XmlIoSpimData2();
 		SpimData2 data = io.load( xml );
 
+		ViewerImgLoader imgL = (ViewerImgLoader)data.getSequenceDescription().getImgLoader();
+		imgL.setNumFetcherThreads( N5ImageLoader.cloudThreads );
 		SetupImgLoader sil = (SetupImgLoader)data.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 );
 
 		final int tp = data.getSequenceDescription().getTimePoints().getTimePointsOrdered().get( 0 ).getId();
