@@ -111,6 +111,7 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 	public synchronized void setNumFetcherThreads( final int n )
 	{
 		requestedNumFetcherThreads = n;
+		underlyingImgLoader.setNumFetcherThreads( n );
 	}
 
 	private void open()
