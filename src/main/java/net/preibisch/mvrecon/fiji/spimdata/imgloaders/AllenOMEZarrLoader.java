@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
-import bdv.ViewerImgLoader;
 import bdv.ViewerSetupImgLoader;
 import bdv.img.n5.N5ImageLoader;
 import bdv.img.n5.N5Properties;
@@ -21,7 +20,6 @@ import net.imglib2.type.NativeType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
@@ -32,8 +30,6 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 	private final String bucket, folder;
 
-	private static final int cloudThreads = 256;
-
 	public AllenOMEZarrLoader(
 			final URI n5URI,
 			final String bucket,
@@ -43,8 +39,6 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	{
 		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
 		this.sequenceDescription = sequenceDescription;
-
-		setNumFetcherThreads( cloudThreads );
 
 		this.bucket = bucket;
 		this.folder = folder;
