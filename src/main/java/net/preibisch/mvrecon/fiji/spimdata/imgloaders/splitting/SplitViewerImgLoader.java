@@ -109,6 +109,11 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 		return new SplitViewerSetupImgLoader<>( Cast.unchecked( setupImgLoader ), interval );
 	}
 
+	public ViewerImgLoader getUnderlyingImgLoader()
+	{
+		return underlyingImgLoader;
+	}
+
 	public Future< Void > prefetch( final int parallelism )
 	{
 		if ( N5ImageLoader.class.isInstance( underlyingImgLoader ) )

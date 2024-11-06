@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import bdv.img.n5.N5ImageLoader;
 import fiji.util.gui.GenericDialogPlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
@@ -57,6 +58,7 @@ import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
+import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import net.preibisch.legacy.io.IOFunctions;
@@ -64,6 +66,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.EmptyEntity;
 import net.preibisch.mvrecon.fiji.spimdata.NamePattern;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import util.URITools;
 
 /**
@@ -153,9 +156,32 @@ public abstract class GenericLoadParseQueryXML<
 	 */
 	public AS getData()
 	{
-		final URI uri = getXMLURI();
+		final L loader = data.getSequenceDescription().getImgLoader();
 
-		if ( !isPrefetched && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
+		final URI uri;
+
+		if ( N5ImageLoader.class.isInstance( loader ) )
+		{
+			uri = ((N5ImageLoader)loader).getN5URI();
+		}
+		else if ( SplitViewerImgLoader.class.isInstance( loader ) )
+		{
+			BasicImgLoader underlyingLoader = loader;
+
+			while ( SplitViewerImgLoader.class.isInstance( underlyingLoader = ((SplitViewerImgLoader)underlyingLoader ).getUnderlyingImgLoader() ) ) {}
+
+			
+			if ( N5ImageLoader.class.isInstance( underlyingLoader ) )
+				uri = ((N5ImageLoader)underlyingLoader).getN5URI();
+			else
+				uri = null;
+		}
+		else
+		{
+			uri = null;
+		}
+
+		if ( uri != null && !isPrefetched && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
 		{
 			IOFunctions.println( "Setting cloud fetcher threads for '" + uri + "' to: " + URITools.cloudThreads );
 			URITools.setNumFetcherThreads( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );

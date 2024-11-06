@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 
 import java.util.HashMap;
 
+import bdv.ViewerImgLoader;
 import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.SetupImgLoader;
@@ -70,6 +71,11 @@ public class SplitImgLoader implements ImgLoader
 	public SplitSetupImgLoader< ? > getSetupImgLoader( final int setupId )
 	{
 		return getSplitSetupImgLoader( underlyingImgLoader, new2oldSetupId.get( setupId ), setupId, newSetupId2Interval.get( setupId ) );
+	}
+
+	public ImgLoader getUnderlyingImgLoader()
+	{
+		return underlyingImgLoader;
 	}
 
 	private final synchronized < T > SplitSetupImgLoader< ? > getSplitSetupImgLoader( final ImgLoader underlyingImgLoader, final int oldSetupId, final int newSetupId, final Interval interval )
