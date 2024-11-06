@@ -25,11 +25,13 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 import bdv.ViewerImgLoader;
 import bdv.ViewerSetupImgLoader;
 import bdv.cache.CacheControl;
 import bdv.img.cache.VolatileGlobalCellCache;
+import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.MultiResolutionImgLoader;
 import mpicbg.spim.data.sequence.SequenceDescription;
@@ -105,6 +107,14 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 			final Interval interval )
 	{
 		return new SplitViewerSetupImgLoader<>( Cast.unchecked( setupImgLoader ), interval );
+	}
+
+	public Future< Void > prefetch( final int parallelism )
+	{
+		if ( N5ImageLoader.class.isInstance( underlyingImgLoader ) )
+			return ((N5ImageLoader)underlyingImgLoader).prefetch( parallelism );
+		else
+			return null;
 	}
 
 	@Override

@@ -63,12 +63,15 @@ import org.jdom2.output.XMLOutputter;
 import com.google.gson.GsonBuilder;
 
 import bdv.ViewerImgLoader;
+import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.SpimDataIOException;
 import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.sequence.ImgLoader;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 
 public class URITools
 {
@@ -437,16 +440,43 @@ public class URITools
 
 			final SpimData2 data = io.fromXml( docRoot, xmlURI );
 
-			// more threads for cloud-based fetching
-			System.out.println( "Setting num fetcher threads to " + cloudThreads + " for cloud access." );
-			( (ViewerImgLoader) data.getSequenceDescription().getImgLoader() ).setNumFetcherThreads( cloudThreads );
-
 			return data;
 		}
 		else
 		{
 			throw new RuntimeException( "Unsupported URI: " + xmlURI );
 		}
+	}
+
+	public static boolean setNumFetcherThreads( final ImgLoader loader, final int threads )
+	{
+		if ( ViewerImgLoader.class.isInstance( loader ) )
+		{
+			( (ViewerImgLoader) loader ).setNumFetcherThreads( threads );
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public static boolean prefetch( final ImgLoader loader, final int threads )
+	{
+		if ( N5ImageLoader.class.isInstance( loader ) )
+		{
+			( ( N5ImageLoader ) loader ).prefetch( threads );
+			return true;
+		}
+		else if ( SplitViewerImgLoader.class.isInstance( loader ) )
+		{
+			if ( ( ( SplitViewerImgLoader ) loader ).prefetch( threads ) != null )
+				return true;
+			else
+				return false;
+		}
+		else
+			return false;
 	}
 
 	/**

@@ -6,11 +6,13 @@ import java.util.Map;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import bdv.ViewerImgLoader;
+import bdv.ViewerSetupImgLoader;
 import bdv.img.n5.N5ImageLoader;
 import bdv.img.n5.N5Properties;
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
+import mpicbg.spim.data.generic.sequence.BasicMultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.volatiles.CacheHints;
@@ -19,6 +21,7 @@ import net.imglib2.type.NativeType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
@@ -85,6 +88,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	public static void main( String[] args ) throws SpimDataException
 	{
 		URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.split.xml" );
+		//URI xml = URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/BigStitcher/Allen/bigstitcher_708373/708373.xml" );
 		//URI xml = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
 		//URI xml = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
 		//URI xml = URITools.toURI( "/Users/preibischs/SparkTest/IP/dataset.xml" );
@@ -92,15 +96,19 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		XmlIoSpimData2 io = new XmlIoSpimData2();
 		SpimData2 data = io.load( xml );
 
-		ViewerImgLoader imgL = (ViewerImgLoader)data.getSequenceDescription().getImgLoader();
-		( ( N5ImageLoader ) imgL ).prefetch( cloudThreads );
-		imgL.setNumFetcherThreads( cloudThreads );
-		SetupImgLoader sil = (SetupImgLoader)data.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 );
+		System.out.println( "Setting cloud fetcher threads to: " + URITools.cloudThreads );
+		URITools.setNumFetcherThreads( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
+
+		System.out.println( "Prefetching with threads: " + URITools.cloudThreads );
+		URITools.prefetch( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
+
+		//imgL.setNumFetcherThreads( cloudThreads );
+		ViewerSetupImgLoader sil = (ViewerSetupImgLoader)data.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 );
 
 		final int tp = data.getSequenceDescription().getTimePoints().getTimePointsOrdered().get( 0 ).getId();
 
 		//RandomAccessibleInterval img = sil.getImage( tp, sil.getMipmapResolutions().length - 1 );
-		RandomAccessibleInterval vol = sil.getVolatileImage( tp, sil.getMipmapResolutions().length - 1 );
+		RandomAccessibleInterval vol = sil.getVolatileImage( tp, ((BasicMultiResolutionSetupImgLoader)sil).getMipmapResolutions().length - 1 );
 
 		new ImageJ();
 		//ImageJFunctions.show( img );
