@@ -67,7 +67,7 @@ import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.SpimDataIOException;
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.sequence.ImgLoader;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -448,7 +448,7 @@ public class URITools
 		}
 	}
 
-	public static boolean setNumFetcherThreads( final ImgLoader loader, final int threads )
+	public static boolean setNumFetcherThreads( final BasicImgLoader loader, final int threads )
 	{
 		if ( ViewerImgLoader.class.isInstance( loader ) )
 		{
@@ -461,7 +461,7 @@ public class URITools
 		}
 	}
 
-	public static boolean prefetch( final ImgLoader loader, final int threads )
+	public static boolean prefetch( final BasicImgLoader loader, final int threads )
 	{
 		if ( N5ImageLoader.class.isInstance( loader ) )
 		{

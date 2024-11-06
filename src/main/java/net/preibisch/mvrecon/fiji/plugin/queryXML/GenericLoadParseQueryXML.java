@@ -128,6 +128,8 @@ public abstract class GenericLoadParseQueryXML<
 	protected ArrayList< ActionListener > listener = null;
 	protected GenericDialog gd = null;
 
+	protected boolean isPrefetched = false;
+
 	public Button defineNewDataset = null;
 
 	/*
@@ -149,12 +151,28 @@ public abstract class GenericLoadParseQueryXML<
 	/**
 	 * @return the SpimData object parsed from the xml
 	 */
-	public AS getData() { return data; }
+	public AS getData()
+	{
+		final URI uri = getXMLURI();
+
+		if ( !isPrefetched && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
+		{
+			IOFunctions.println( "Setting cloud fetcher threads for '" + uri + "' to: " + URITools.cloudThreads );
+			URITools.setNumFetcherThreads( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
+	
+			IOFunctions.println( "Prefetching with " + URITools.cloudThreads + " threads: for '" + uri + "'");
+			URITools.prefetch( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
+
+			isPrefetched = true;
+		}
+
+		return data;
+	}
 	
 	/**
 	 * @return The location of the xml file
 	 */
-	public URI getXMLURI() { return URITools.xmlFilenameToFullPath( getData(), xmlFileName ); }
+	public URI getXMLURI() { return URITools.xmlFilenameToFullPath( data, xmlFileName ); }
 
 	/**
 	 * @return ONLY the filename, without any path
