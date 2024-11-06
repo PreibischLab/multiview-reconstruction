@@ -1,7 +1,7 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.net.URI;
-import java.util.HashMap;
+import java.util.Map;
 
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
@@ -13,7 +13,9 @@ import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cache.volatiles.CacheHints;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.NativeType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -21,18 +23,23 @@ import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
 {
-	final HashMap< ViewId, String > viewIdToPath;
+	private final AbstractSequenceDescription< ?, ?, ? > sequenceDescription;
 
-	final String bucket, folder;
+	private final Map< ViewId, String > viewIdToPath;
+
+	private final String bucket, folder;
+
+	private static final int cloudThreads = 256;
 
 	public AllenOMEZarrLoader(
 			final URI n5URI,
 			final String bucket,
 			final String folder,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
-			final HashMap< ViewId, String > viewIdToPath )
+			final Map< ViewId, String > viewIdToPath )
 	{
 		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
+		this.sequenceDescription = sequenceDescription;
 
 		setNumFetcherThreads( cloudThreads );
 
@@ -42,15 +49,37 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		this.viewIdToPath = viewIdToPath;
 	}
 
-	public AbstractSequenceDescription< ?, ?, ? > getSequenceDescription() { return seq; }
-	public HashMap< ViewId, String > getViewIdToPath() { return viewIdToPath; }
-	public String getBucket() { return bucket; }
-	public String getFolder() { return folder; }
+	public Map< ViewId, String > getViewIdToPath()
+	{
+		return viewIdToPath;
+	}
+
+	public String getBucket()
+	{
+		return bucket;
+	}
+
+	public String getFolder()
+	{
+		return folder;
+	}
 
 	@Override
-	public N5Properties createN5PropertiesInstance()
+	protected N5Properties createN5PropertiesInstance()
 	{
-		return new AllenOMEZarrProperties( this );
+		return new AllenOMEZarrProperties( sequenceDescription, viewIdToPath );
+	}
+
+	@Override
+	protected < T extends NativeType< T > > RandomAccessibleInterval< T > prepareCachedImage(
+			final String datasetPath,
+			final int setupId, final int timepointId, final int level,
+			final CacheHints cacheHints,
+			final T type )
+	{
+		return super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ).view()
+				.slice( 4, 0 )
+				.slice( 3, 0 );
 	}
 
 	public static void main( String[] args ) throws SpimDataException
@@ -64,7 +93,8 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		SpimData2 data = io.load( xml );
 
 		ViewerImgLoader imgL = (ViewerImgLoader)data.getSequenceDescription().getImgLoader();
-		imgL.setNumFetcherThreads( N5ImageLoader.cloudThreads );
+		( ( N5ImageLoader ) imgL ).prefetch( cloudThreads );
+		imgL.setNumFetcherThreads( cloudThreads );
 		SetupImgLoader sil = (SetupImgLoader)data.getSequenceDescription().getImgLoader().getSetupImgLoader( 0 );
 
 		final int tp = data.getSequenceDescription().getTimePoints().getTimePointsOrdered().get( 0 ).getId();

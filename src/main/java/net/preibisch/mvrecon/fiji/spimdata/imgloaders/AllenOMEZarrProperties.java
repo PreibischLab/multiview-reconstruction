@@ -1,46 +1,41 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 
-import bdv.img.cache.VolatileCachedCellImg;
 import bdv.img.n5.N5Properties;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.type.NativeType;
-import net.imglib2.view.Views;
 
 public class AllenOMEZarrProperties implements N5Properties
 {
-	final AllenOMEZarrLoader loader;
+	private final AbstractSequenceDescription< ?, ?, ? > sequenceDescription;
 
-	public AllenOMEZarrProperties( final AllenOMEZarrLoader loader )
+	private final Map< ViewId, String > viewIdToPath;
+
+	public AllenOMEZarrProperties(
+			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
+			final Map< ViewId, String > viewIdToPath )
 	{
-		this.loader = loader;
+		this.sequenceDescription = sequenceDescription;
+		this.viewIdToPath = viewIdToPath;
+	}
+
+	private String getPath( final int setupId, final int timepointId )
+	{
+		return viewIdToPath.get( new ViewId( timepointId, setupId ) );
 	}
 
 	@Override
-	public String getPath( final int setupId )
-	{
-		// that does not really exist
-		return "";
-	}
-
-	@Override
-	public String getPath( final int setupId, final int timepointId )
-	{
-		return loader.viewIdToPath.get( new ViewId( timepointId, setupId ) );
-	}
-
-	@Override
-	public String getPath( final int setupId, final int timepointId, final int level )
+	public String getDatasetPath( final int setupId, final int timepointId, final int level )
 	{
 		return String.format( getPath( setupId, timepointId )+ "/%d", level );
 	}
@@ -58,25 +53,19 @@ public class AllenOMEZarrProperties implements N5Properties
 	}
 
 	@Override
-	public <T extends NativeType<T>> RandomAccessibleInterval<T> extractImg(
-			final VolatileCachedCellImg<T, ?> img,
-			final int setupId,
-			final int timepointId)
+	public long[] getDimensions( final N5Reader n5, final int setupId, final int timepointId, final int level )
 	{
-		return Views.hyperSlice( Views.hyperSlice( img, 4, 0 ), 3, 0 );
-	}
-
-	@Override
-	public DatasetAttributes getDatasetAttributes( final N5Reader n5, final String pathName )
-	{
-		return n5.getDatasetAttributes( pathName );
+		final String path = getDatasetPath( setupId, timepointId, level );
+		final long[] dimensions = n5.getDatasetAttributes( path ).getDimensions();
+		// dataset dimensions is 5D, remove the channel and time dimensions
+		return Arrays.copyOf( dimensions, 3 );
 	}
 
 	//
 	// static methods
 	//
 
-	public static int getFirstAvailableTimepointId( final AbstractSequenceDescription< ?, ?, ? > seq, final int setupId )
+	private static int getFirstAvailableTimepointId( final AbstractSequenceDescription< ?, ?, ? > seq, final int setupId )
 	{
 		for ( final TimePoint tp : seq.getTimePoints().getTimePointsOrdered() )
 		{
@@ -87,15 +76,15 @@ public class AllenOMEZarrProperties implements N5Properties
 		throw new RuntimeException( "All timepoints for setupId " + setupId + " are declared missing. Stopping." );
 	}
 
-	public static DataType getDataType( final AllenOMEZarrProperties n5properties, final N5Reader n5, final int setupId )
+	private static DataType getDataType( final AllenOMEZarrProperties n5properties, final N5Reader n5, final int setupId )
 	{
-		final int timePointId = getFirstAvailableTimepointId( n5properties.loader.getSequenceDescription(), setupId );
-		return n5.getDatasetAttributes( n5properties.getPath( setupId, timePointId, 0 ) ).getDataType();
+		final int timePointId = getFirstAvailableTimepointId( n5properties.sequenceDescription, setupId );
+		return n5.getDatasetAttributes( n5properties.getDatasetPath( setupId, timePointId, 0 ) ).getDataType();
 	}
 
-	public static double[][] getMipMapResolutions( final AllenOMEZarrProperties n5properties, final N5Reader n5, final int setupId )
+	private static double[][] getMipMapResolutions( final AllenOMEZarrProperties n5properties, final N5Reader n5, final int setupId )
 	{
-		final int timePointId = getFirstAvailableTimepointId( n5properties.loader.getSequenceDescription(), setupId );
+		final int timePointId = getFirstAvailableTimepointId( n5properties.sequenceDescription, setupId );
 
 		// multiresolution pyramid
 
@@ -121,9 +110,9 @@ public class AllenOMEZarrProperties implements N5Properties
 
 			for ( final CoordinateTransformation< ? > c : ds.coordinateTransformations )
 			{
-				if ( ScaleCoordinateTransformation.class.isInstance( c ) )
+				if ( c instanceof ScaleCoordinateTransformation )
 				{
-					final ScaleCoordinateTransformation s = (ScaleCoordinateTransformation)c;
+					final ScaleCoordinateTransformation s = ( ScaleCoordinateTransformation ) c;
 
 					if ( firstScale == null )
 						firstScale = s.getScale().clone();

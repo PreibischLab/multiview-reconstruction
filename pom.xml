@@ -114,7 +114,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<n5-imglib2.version>7.0.2</n5-imglib2.version>
 		<bigdataviewer-vistools.version>1.0.0-beta-36</bigdataviewer-vistools.version>
 -->
-		<bigdataviewer-core.version>10.6.3-SNAPSHOT</bigdataviewer-core.version>
+		<bigdataviewer-core.version>10.6.3</bigdataviewer-core.version>
 		<spim_data.version>2.3.5</spim_data.version>
 
 		<!-- from n5-universe 

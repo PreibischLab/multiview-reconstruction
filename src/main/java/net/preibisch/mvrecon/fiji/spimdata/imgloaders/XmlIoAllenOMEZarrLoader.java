@@ -35,6 +35,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.jdom2.Element;
@@ -49,8 +50,6 @@ import util.URITools;
 @ImgLoaderIo( format = "bdv.multimg.zarr", type = AllenOMEZarrLoader.class )
 public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZarrLoader >
 {
-	public static boolean PREFER_URI_FOR_LOCAL_FILES = true;
-
 	@Override
 	public Element toXml( final AllenOMEZarrLoader imgLoader, final File basePath )
 	{
@@ -69,7 +68,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 			final Element bucketElement = new Element("s3bucket");
 			bucketElement.addContent( imgLoader.getBucket() );
 			imgLoaderElement.addContent(bucketElement);
-			
+
 			final Element zarrElement = new Element("zarr");
 			zarrElement.setAttribute("type", "absolute");
 			zarrElement.addContent( imgLoader.getFolder() );
@@ -109,7 +108,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	@Override
 	public AllenOMEZarrLoader fromXml( final Element elem, final URI basePathURI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		final HashMap<ViewId, String> zgroups = new HashMap<>();
+		final Map<ViewId, String> zgroups = new HashMap<>();
 
 		final Element s3Bucket = elem.getChild( "s3bucket" );
 		final URI uri;
@@ -140,14 +139,14 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 			{
 				uri = new URI( "s3", bucket, folder, null );
 			}
-			catch (URISyntaxException e)
+			catch ( URISyntaxException e )
 			{
 				e.printStackTrace();
 				throw new RuntimeException( "Could not instantiate N5 reader for S3 bucket '" + bucket + "'." );
 			}
 
 			final Element zgroupsElem = elem.getChild( "zgroups" );
-			for (final Element c : zgroupsElem.getChildren( "zgroup" ))
+			for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
 			{
 				final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
 				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
