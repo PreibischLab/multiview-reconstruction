@@ -48,7 +48,7 @@ public class PointSpreadFunction
 	private final static String subDirFile = "psf";
 	private final static String subPath = "psf.n5";
 
-	private final URI xmlBasePath;
+	private URI xmlBasePath;
 	private final String file;
 	private Img< FloatType > img;
 	private boolean modified;
@@ -79,6 +79,13 @@ public class PointSpreadFunction
 	{
 		this.modified = true;
 		this.img = img;
+	}
+
+	public URI getBaseDir() { return xmlBasePath; }
+	public void setBaseDir( final URI baseDir )
+	{
+		this.xmlBasePath = baseDir;
+		this.modified = true;
 	}
 
 	public String getFile() { return file; }

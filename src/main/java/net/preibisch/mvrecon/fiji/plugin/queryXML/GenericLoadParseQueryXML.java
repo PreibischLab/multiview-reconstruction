@@ -131,8 +131,6 @@ public abstract class GenericLoadParseQueryXML<
 	protected ArrayList< ActionListener > listener = null;
 	protected GenericDialog gd = null;
 
-	protected boolean isPrefetched = false;
-
 	public Button defineNewDataset = null;
 
 	/*
@@ -181,15 +179,15 @@ public abstract class GenericLoadParseQueryXML<
 			uri = null;
 		}
 
-		if ( uri != null && !isPrefetched && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
+		System.out.println( "ImageLoader URI: " + uri );
+
+		if ( uri != null && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
 		{
 			IOFunctions.println( "Setting cloud fetcher threads for '" + uri + "' to: " + URITools.cloudThreads );
 			URITools.setNumFetcherThreads( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
 	
 			IOFunctions.println( "Prefetching with " + URITools.cloudThreads + " threads: for '" + uri + "'");
 			URITools.prefetch( data.getSequenceDescription().getImgLoader(), URITools.cloudThreads );
-
-			isPrefetched = true;
 		}
 
 		return data;

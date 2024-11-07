@@ -22,11 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
-import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
-
-import org.bigdataviewer.n5.N5CloudImageLoader;
 
 import bdv.img.hdf5.Hdf5ImageLoader;
 import bdv.img.n5.N5ImageLoader;
@@ -97,39 +93,29 @@ public class XMLSaveAs implements PlugIn
 		IOFunctions.println( "New XML: " + newXMLPath );
 		IOFunctions.println( "New base path: " + newBaseDir );
 
-		if ( N5CloudImageLoader.class.isInstance( imgLoader ) )
-		{
-			final URI n5URI = ((N5CloudImageLoader)imgLoader).getN5URI();
-
-			IOFunctions.println( "Path of cloud N5 (stays in old location): " + n5URI );
-			data.getSequenceDescription().setImgLoader( new N5CloudImageLoader( null, n5URI, data.getSequenceDescription() ) );
-		}
-		else if ( N5ImageLoader.class.isInstance( imgLoader ) )
-		{
-			final URI n5URI = ((N5ImageLoader)imgLoader).getN5URI();
-
-			IOFunctions.println( "Path of N5 (stays in old location): " + n5URI );
-			data.getSequenceDescription().setImgLoader( new N5ImageLoader( new File( URITools.fromURI( n5URI ) ), data.getSequenceDescription() ) );
-		}
-		else if ( Hdf5ImageLoader.class.isInstance( imgLoader ) )
-		{
-			final Hdf5ImageLoader h5ImgLoader = (Hdf5ImageLoader)imgLoader;
-			final File h5File = h5ImgLoader.getHdf5File();
-
-			IOFunctions.println( "HDF5 file (stays in old location): " + h5File );
-			data.getSequenceDescription().setImgLoader( new Hdf5ImageLoader(h5File, h5ImgLoader.getPartitions(), data.getSequenceDescription()) );
-		}
-
 		data.setBasePathURI( newBaseDir );
 
 		// make sure interestpoints are saved to the new location as well
 		for ( final ViewInterestPointLists vipl : data.getViewInterestPoints().getViewInterestPoints().values() )
 			vipl.getHashMap().values().forEach( ipl ->
 			{
+				// first load
 				ipl.getInterestPointsCopy();
 				ipl.getCorrespondingInterestPointsCopy();
+
+				// then set base dir (otherwise loading fails)
 				ipl.setBaseDir( newBaseDir ); // also sets 'isModified' flags
 			});
+
+		// make sure PSF's are saved to the new location as well
+		data.getPointSpreadFunctions().getPointSpreadFunctions().values().forEach( psf ->
+		{
+			// first load
+			psf.load();
+
+			// then set base dir (otherwise loading fails)
+			psf.setBaseDir( newBaseDir );
+		});
 
 		LoadParseQueryXML.defaultXMLURI = newXMLPath.toString();
 
