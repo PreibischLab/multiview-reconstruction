@@ -126,27 +126,23 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					final SpimData2 data = panel.getSpimData();
 
 					final List< ViewId > viewIds = ApplyTransformationPopup.getSelectedViews( panel );
-					String question;
-					
 					final boolean notAllSelected = viewIds.size() < data.getSequenceDescription().getViewDescriptions().size();
 
 					// user has not selected all views (or not all views are selectable at once)
 					// ask them whether they want to expand selection to all views in SpimData
 					if ( notAllSelected )
 					{
-						question =
-							"You have only selected " + viewIds.size() + " of " +
-							data.getSequenceDescription().getViewDescriptions().size() + " views for export.\n" +
-							"(the rest will not be visible in the new dataset - except they are missing)\n";
-						
-						final int  choice = JOptionPane.showConfirmDialog( null,
-								question + "Note: this will first save the current state of the open XML.\n"
-										+ "Do you wish to expand the selection to the whole dataset before continuing?",
+						final int choice = JOptionPane.showConfirmDialog( null,
+								"You have only selected " + viewIds.size() + " of " +
+								data.getSequenceDescription().getViewDescriptions().size() + " views for export.\n" +
+								"Do you wish to expand the selection to the whole dataset before continuing?",
 								"Warning",
 								JOptionPane.YES_NO_CANCEL_OPTION );
 						
 						if (choice == JOptionPane.CANCEL_OPTION)
+						{
 							return;
+						}
 						else if (choice == JOptionPane.YES_OPTION)
 						{
 							IOFunctions.println( "OK, saving ALL " + data.getSequenceDescription().getViewDescriptions().size() + "views." );
@@ -157,18 +153,6 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						{
 							IOFunctions.println( "Saving " + viewIds.size() + " of " + data.getSequenceDescription().getViewDescriptions().size() + " views.");
 						}
-					}
-					// all views in SpimData have been selected, ask user for confirmation before starting resave.
-					else
-					{
-						question = "Resaving all (except missing) views of the current dataset.\n";
-
-						if ( JOptionPane.showConfirmDialog(
-								null,
-								question + "Note: this will first save the current state of the open XML. Proceed?",
-								"Warning",
-								JOptionPane.YES_NO_OPTION ) == JOptionPane.NO_OPTION )
-							return;
 					}
 
 					// filter not present ViewIds
@@ -220,7 +204,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						// load all dimensions if they are not known (required for estimating the mipmap layout)
 						Resave_HDF5.loadDimensions( data, setups );
 
-						panel.saveXML();
+						//panel.saveXML();
 
 						final Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = Resave_HDF5.proposeMipmaps( setups );
 						final int firstviewSetupId = setups.get( 0 ).getId();
@@ -285,7 +269,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					// --- N5 ---
 					else if (index == 4 || index == 5) // 4 == in-place, 5 == choose path
 					{
-						panel.saveXML();
+						//panel.saveXML();
 
 						final URI n5DatasetURI = ParametersResaveN5Api.createN5URIfromXMLURI( panel.xml() );
 
