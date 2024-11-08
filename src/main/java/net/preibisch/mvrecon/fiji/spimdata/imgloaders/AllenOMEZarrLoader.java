@@ -39,6 +39,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.volatiles.CacheHints;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
+import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -96,9 +97,11 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			final CacheHints cacheHints,
 			final T type )
 	{
+		return Views.hyperSlice( Views.hyperSlice( super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ), 4, 0 ), 3, 0);
+		/*
 		return super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ).view()
 				.slice( 4, 0 )
-				.slice( 3, 0 );
+				.slice( 3, 0 );*/
 	}
 
 	public static void main( String[] args ) throws SpimDataException

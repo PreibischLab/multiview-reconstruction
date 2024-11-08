@@ -127,10 +127,9 @@ public class FusionGUI implements FusionExportInterface
 		IOFunctions.printIJLog = true;
 
 		staticImgExportAlgorithms.add( new DisplayImage() );
-		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
 		staticImgExportAlgorithms.add( new ExportN5Api() );
+		staticImgExportAlgorithms.add( new Save3dTIFF( null ) );
 		staticImgExportAlgorithms.add( new OpenSeaDragon() );
-
 		staticImgExportAlgorithms.add( new ExportLarge2DTIFF() );
 
 		//staticImgExportAlgorithms.add( new ExportSpimData2TIFF() );
