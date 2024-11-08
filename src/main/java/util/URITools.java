@@ -252,12 +252,16 @@ public class URITools
 
 	public static N5Writer instantiateN5Writer( final StorageFormat format, final URI uri )
 	{
+		final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+				CoordinateTransformation.class,
+				new CoordinateTransformationAdapter() );
+
 		if ( URITools.isFile( uri ) )
 		{
 			if ( format.equals( StorageFormat.N5 ))
 				return new N5FSWriter( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrWriter( URITools.fromURI( uri ) );
+				return new N5ZarrWriter( URITools.fromURI( uri ), builder );
 			else if ( format.equals( StorageFormat.HDF5 ))
 				return new N5HDF5Writer( URITools.fromURI( uri ) );
 			else
@@ -266,10 +270,6 @@ public class URITools
 		else
 		{
 			N5Writer n5w;
-
-			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
-					CoordinateTransformation.class,
-					new CoordinateTransformationAdapter() );
 
 			try
 			{
@@ -294,22 +294,22 @@ public class URITools
 
 	public static N5Reader instantiateN5Reader( final StorageFormat format, final URI uri )
 	{
+		final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
+				CoordinateTransformation.class,
+				new CoordinateTransformationAdapter() );
+
 		if ( URITools.isFile( uri ) )
 		{
 			if ( format.equals( StorageFormat.N5 ))
 				return new N5FSReader( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrReader( URITools.fromURI( uri ) );
+				return new N5ZarrReader( URITools.fromURI( uri ), builder );
 			else
 				throw new RuntimeException( "Format: " + format + " not supported." );
 		}
 		else
 		{
 			N5Reader n5r;
-
-			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
-					CoordinateTransformation.class,
-					new CoordinateTransformationAdapter() );
 
 			try
 			{
