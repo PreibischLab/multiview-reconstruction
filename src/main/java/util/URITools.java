@@ -35,7 +35,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.Date;
 import java.util.regex.Pattern;
 
@@ -671,7 +670,19 @@ public class URITools
 
 	public static String getFileName( final URI uri )
 	{
-		return Paths.get( uri.getPath() ).getFileName().toString();
+		int l1 = uri.toString().length();
+		int l2 = l1;
+		try
+		{
+			l2 = getParentURI( uri ).toString().length();
+		}
+		catch (SpimDataIOException e)
+		{
+			IOFunctions.println( "Error getting the parent URI for '" + uri + "' in order to extract the filename. Returning entire URI as filename, even though this is most likely wrong: " + e );
+			e.printStackTrace();
+		}
+
+		return uri.toString().substring( l2, l1 );
 	}
 
 	public static String appendName( final URI uri, final String name )
@@ -744,10 +755,12 @@ public class URITools
 
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
-		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr" );
+		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr/" );
 
 		System.out.println( uri1.getHost() );
 		System.out.println( uri1.getPath() );
+		System.out.println( getFileName( uri1 ) );
+
 		System.exit( 0 );
 
 		minimalExampleTobiS3GS();

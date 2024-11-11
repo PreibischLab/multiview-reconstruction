@@ -30,8 +30,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,7 +56,6 @@ import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
-import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import net.preibisch.legacy.io.IOFunctions;
@@ -715,7 +712,7 @@ public abstract class GenericLoadParseQueryXML<
 			{
 				this.data = parseXML( xmlURI );
 
-				this.xmlFileName = Paths.get(xmlURI.getPath()).getFileName().toString();
+				this.xmlFileName = URITools.getFileName(xmlURI); //Paths.get(xmlURI.getPath()).getFileName().toString();
 
 				// which attributes
 				this.attributes = getAttributes( data, comparator );
