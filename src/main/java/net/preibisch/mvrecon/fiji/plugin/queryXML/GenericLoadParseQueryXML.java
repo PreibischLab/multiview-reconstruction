@@ -294,7 +294,18 @@ public abstract class GenericLoadParseQueryXML<
 
 		// try parsing if it ends with XML
 		// also initializes messages
-		tryParsing( defaultXMLURI.trim().length() == 0 ? URI.create( "" ) : URITools.toURI( defaultXMLURI ), false );
+		// could be an 'easter egg', fixed by not assigned them as default below
+		URI uritmp;
+		try
+		{
+			uritmp = defaultXMLURI.trim().length() == 0 ? URI.create( "" ) : URITools.toURI( defaultXMLURI );
+		}
+		catch ( Exception e )
+		{
+			uritmp = URI.create( defaultXMLURI = "" );
+		}
+
+		tryParsing( uritmp, false );
 
 		if ( additionalTitle != null && additionalTitle.length() > 0 )
 			gd = new GenericDialogPlus( "Select dataset for " + additionalTitle );
@@ -349,7 +360,11 @@ public abstract class GenericLoadParseQueryXML<
 		if ( gd.wasCanceled() )
 			return false;
 
-		String xmlURI = defaultXMLURI = gd.getNextString();
+		String xmlURI = gd.getNextString();
+
+		// only remember XML's > easter eggs create issues down the line as they are a relative URI
+		if ( xmlURI.endsWith( ".xml" ) )
+			defaultXMLURI = xmlURI;
 
 		// try to parse the file anyways
 		boolean success;
