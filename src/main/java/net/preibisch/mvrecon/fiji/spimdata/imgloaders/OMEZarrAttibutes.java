@@ -49,19 +49,21 @@ public class OMEZarrAttibutes
 	 */
 	public static OmeNgffMultiScaleMetadata[] createOMEZarrMetadata(
 			final int n,
+			final String name, // I also saw "/"
+			final double[] resolutionS0,
+			final String unitXYZ, // e.g micrometer
 			final int numResolutionLevels,
 			final Function<Integer, String> levelToName,
-			final Function<Integer, AffineTransform3D> levelToMipmapTransform )
+			final Function<Integer, AffineTransform3D > levelToMipmapTransform )
 	{
 		final OmeNgffMultiScaleMetadata[] meta = new OmeNgffMultiScaleMetadata[ 1 ];
 
-		// dataset name
+		// dataset name and co
 		final String path = null;
-		final String name = "setup0_timepoint5"; // I also saw "/"
 		final String type = null;
 
 		// axis descriptions
-		// TODO: for some reason they are in TCZYX order
+		// TODO: seem to be TCZYX order
 		final Axis[] axes = new Axis[ n ];
 
 		int index = 0;
@@ -72,12 +74,12 @@ public class OMEZarrAttibutes
 		if ( n >= 4 )
 			axes[ index++ ] = new Axis( "channel", "c", null );
 
-		axes[ index++ ] = new Axis( "space", "z", "micrometer" );
-		axes[ index++ ] = new Axis( "space", "y", "micrometer" );
-		axes[ index++ ] = new Axis( "space", "x", "micrometer" );
+		axes[ index++ ] = new Axis( "space", "z", unitXYZ );
+		axes[ index++ ] = new Axis( "space", "y", unitXYZ );
+		axes[ index++ ] = new Axis( "space", "x", unitXYZ );
 
 		// multiresolution-pyramid
-		// TODO: for some reason in XYZCT order (but in the file it seems reversed)
+		// TODO: seem to be in XYZCT order (but in the file it seems reversed)
 		final OmeNgffDataset[] datasets = new OmeNgffDataset[ numResolutionLevels ];
 
 		for ( int s = 0; s < numResolutionLevels; ++s )
@@ -86,14 +88,37 @@ public class OMEZarrAttibutes
 
 			datasets[ s ].path = levelToName.apply( s );
 
+			final AffineTransform3D m = levelToMipmapTransform.apply( s );
+
+			final double[] translation = new double[ n ];
+			final double[] scale = new double[ n ];
+
+			for ( int d = 0; d < 3; ++d )
+			{
+				translation[ d ] = m.getTranslation()[ d ];
+				scale[ d ] = resolutionS0[ d ] * m.get( d, d );
+			}
+
+			// if 4d and 5d, add 1's for C and T
+			for ( int d = 3; d < n; ++d )
+			{
+				translation[ d ] = 1.0;
+				scale[ d ] = 1.0;
+			}
+
 			datasets[ s ].coordinateTransformations = new CoordinateTransformation[ 2 ];
-			datasets[ s ].coordinateTransformations[ 0 ] = new ScaleCoordinateTransformation( new double[] { } ); // TODO
-			datasets[ s ].coordinateTransformations[ 1 ] = new TranslationCoordinateTransformation( new double[] { } ); // TODO
+			datasets[ s ].coordinateTransformations[ 0 ] = new ScaleCoordinateTransformation( scale ); // TODO: check
+			datasets[ s ].coordinateTransformations[ 1 ] = new TranslationCoordinateTransformation( translation ); // TODO: check
 		}
+
+		final double[] scale = new double[ n ];
+
+		for ( int d = 0; d < n; ++d )
+			scale[ d ] = 1.0;
 
 		// just saw these being null everywhere
 		final DatasetAttributes[] childrenAttributes = null;
-		final CoordinateTransformation<?>[] coordinateTransformations = null; // I also saw ScaleTransform [1,1,1]
+		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation[] { new  ScaleCoordinateTransformation( scale ) }; // I also saw null
 		final OmeNgffDownsamplingMetadata metadata = null;
 		
 		meta[ 0 ] = new OmeNgffMultiScaleMetadata( n, path, name, type, "0.4", axes, datasets, childrenAttributes, coordinateTransformations, metadata );
