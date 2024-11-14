@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -50,7 +51,9 @@ import ij.IJ;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -85,6 +88,9 @@ public class ExportN5Api implements ImgExport
 	public static String defaultBaseDataset = "/";
 	public static String defaultDatasetExtension = "/s0";
 
+	public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
+	public static int defaultOmeZarrDim = 0;
+	public static boolean defaultOmeZarrOneContainer = true;
 	public static boolean defaultBDV = false;
 	public static boolean defaultMultiRes = false;
 	public static String defaultXMLOutURI = null;
@@ -112,6 +118,9 @@ public class ExportN5Api implements ImgExport
 	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
 	String baseDataset = defaultBaseDataset;
 	String datasetExtension = defaultDatasetExtension;
+
+	int omeZarrDim = defaultOmeZarrDim;
+	boolean omeZarrOneContainer = defaultOmeZarrOneContainer;
 
 	boolean bdv = defaultBDV;
 	URI xmlOut;
@@ -237,6 +246,10 @@ public class ExportN5Api implements ImgExport
 				IOFunctions.println( "Failed to write metadata for '"  + "': " + e );
 				return false;
 			}
+		}
+		else if ( storageType == StorageFormat.ZARR )
+		{
+			mrInfo = null;
 		}
 		else
 		{
@@ -411,7 +424,6 @@ public class ExportN5Api implements ImgExport
 		if ( gdInit.wasCanceled() )
 			return false;
 
-		final int previousExportOption = defaultOption;
 		this.storageType = StorageFormat.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
 		this.compression = PluginHelper.parseCompression( gdInit );
 		this.bdv = defaultBDV = gdInit.getNextBoolean();
@@ -439,6 +451,42 @@ public class ExportN5Api implements ImgExport
 		{
 			IOFunctions.println( "BDV-compatible HDF5 @ 32-bit not (yet) supported." );
 			return false;
+		}
+
+		//
+		// OME-ZARR dialog
+		//
+		if ( storageType == StorageFormat.ZARR )
+		{
+			final GenericDialog gdZarr = new GenericDialog( "OME-Zarr options" );
+
+			gdZarr.addChoice( "Preferred dimensionality of the OME-Zarr", omeZarrDimChoice, omeZarrDimChoice[ defaultOmeZarrDim ] );
+			gdZarr.addMessage( "Note: this may be overwritten by the choice to store all fusion data in a single OME-ZARR container.", GUIHelper.smallStatusFont );
+
+			if ( fusion.getSplittingType() == 0 )
+			{
+				HashSet< Channel > channels = new HashSet<>();
+				HashSet< TimePoint > tps = new HashSet<>();
+
+				for ( final Group<ViewDescription> group : fusion.getFusionGroups() )
+					for ( final ViewDescription vd : group )
+					{
+						channels.add( vd.getViewSetup().getChannel() );
+						tps.add( vd.getTimePoint() );
+					}
+
+				gdZarr.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
+				gdZarr.addMessage( "Note: " + channels.size() + " channels and " + tps.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+			}
+
+			gdZarr.showDialog();
+			if ( gdZarr.wasCanceled() )
+				return false;
+
+			omeZarrDim = defaultOmeZarrDim = gdZarr.getNextChoiceIndex();
+
+			if ( fusion.getSplittingType() == 0 )
+				omeZarrOneContainer = defaultOmeZarrOneContainer = gdZarr.getNextBoolean();
 		}
 
 		//
