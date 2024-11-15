@@ -27,6 +27,9 @@ import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import org.scijava.command.Command;
+import org.scijava.plugin.Plugin;
+
 import fiji.tool.SliceListener;
 import fiji.tool.SliceObserver;
 import fiji.util.gui.GenericDialogPlus;
@@ -44,6 +47,7 @@ import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
 import net.imglib2.type.numeric.ARGBType;
 
+@Plugin(type = Command.class, menuPath = "Plugins>Funke lab>Annotator ...")
 public class MLTool implements PlugIn
 {
 	// Done: default Mask: 0.5, red
@@ -53,7 +57,7 @@ public class MLTool implements PlugIn
 	// Done: support images: 
 	// directory a,b,m: increasing ID, no leading zeros
 	// Done: save in the parent directory
-	// TODO: first iteration a single text file
+	// Done: first iteration a single text file
 	public static final String notes = "notes.txt";
 
 	final ForkJoinPool myPool = new ForkJoinPool( Runtime.getRuntime().availableProcessors() );
@@ -274,7 +278,12 @@ public class MLTool implements PlugIn
 		return true;
 	}
 
-	public void showDialog( final int maxFrame, final double defaultMagnification, final int defaultMask, final Color defaultColor )
+	public void showDialog(
+			final int maxFrame,
+			final double defaultMagnification,
+			final int defaultMask,
+			final Color defaultColor,
+			final boolean loadExisting )
 	{
 		setColor( defaultColor );
 
@@ -405,7 +414,8 @@ public class MLTool implements PlugIn
 		dialog.add( new JScrollPane(textfield), c );
 
 		// try loading an existing notes file
-		load();
+		if ( loadExisting )
+			load();
 
 		// show dialog
 		dialog.pack();
@@ -474,6 +484,7 @@ public class MLTool implements PlugIn
 	}
 
 	public static String defaultDirectory = "";
+	public static boolean defaultLoadExisting = true;
 
 	@Override
 	public void run(String arg)
@@ -481,13 +492,14 @@ public class MLTool implements PlugIn
 		GenericDialogPlus gd = new GenericDialogPlus( "Select base directory" );
 
 		gd.addDirectoryField("Directory", defaultDirectory, 80 );
+		gd.addCheckbox( "Load existing notes", defaultLoadExisting);
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
 			return;
 
 		setup( defaultDirectory = gd.getNextString() );
-		SwingUtilities.invokeLater(() -> this.showDialog( 100, 3.0, 50, Color.orange ) );
+		SwingUtilities.invokeLater(() -> this.showDialog( 100, 3.0, 50, Color.orange, defaultLoadExisting = gd.getNextBoolean() ) );
 	}
 
 	public static void main( String[] args )
