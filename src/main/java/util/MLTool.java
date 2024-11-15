@@ -1,6 +1,7 @@
 package util;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.File;
@@ -20,16 +21,24 @@ import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import fiji.tool.SliceListener;
+import fiji.tool.SliceObserver;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.gui.OvalRoi;
+import ij.gui.Overlay;
+import ij.gui.TextRoi;
 import ij.measure.Calibration;
 import ij.plugin.Animator;
+import ij.plugin.Text;
 import ij.plugin.Zoom;
 import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.ARGBType;
+import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.ImagePlusListener;
 
 public class MLTool
 {
@@ -63,7 +72,8 @@ public class MLTool
 
 	Color color = setColor( Color.orange );
 	float r, g, b;
-
+	//final TextRoi textROIA, textROI
+	SliceObserver sliceObserver;
 	final ByteProcessor[] imgsA, imgsB, imgsM;
 
 	public MLTool( final String dir )
@@ -116,9 +126,24 @@ public class MLTool
 			final ImagePlus impB = new ImagePlus( new File( dirB.getAbsolutePath(), i + ".png" ).getAbsolutePath() );
 			final ImagePlus mask = new ImagePlus( new File( dirM.getAbsolutePath(), i + ".png" ).getAbsolutePath() );
 
-			imgsA[ i ] = (ByteProcessor)impA.getProcessor();
-			imgsB[ i ] = (ByteProcessor)impB.getProcessor();
-			imgsM[ i ] = (ByteProcessor)mask.getProcessor();
+			imgsA[ i ] = new ByteProcessor( impA.getWidth() + 32, impA.getHeight() );
+			imgsB[ i ] = new ByteProcessor( impA.getWidth() + 32, impA.getHeight() );
+			imgsM[ i ] = new ByteProcessor( impA.getWidth() + 32, impA.getHeight() );
+
+			final ByteProcessor ipTmpA = (ByteProcessor)impA.getProcessor();
+			final ByteProcessor ipTmpB = (ByteProcessor)impB.getProcessor();
+			final ByteProcessor ipTmpM = (ByteProcessor)mask.getProcessor();
+
+			for ( int y = 0; y < impA.getHeight(); ++y )
+				for ( int x = 0; x < impA.getWidth(); ++x )
+				{
+					final int i1 = y * impA.getWidth() + x;
+					final int i2 = y * imgsA[ i ].getWidth() + x;
+
+					imgsA[ i ].set( i2, ipTmpA.get( i1 ) );
+					imgsB[ i ].set( i2, ipTmpB.get( i1 ) );
+					imgsM[ i ].set( i2, ipTmpM.get( i1 ) );
+				}
 		});
 
 		IJ.log( "Done, took " + ( System.currentTimeMillis() - time ) + " ms." );
@@ -189,6 +214,7 @@ public class MLTool
 	{
 		setColor( defaultColor );
 
+		// create dialog
 		dialog = new JDialog( (JFrame)null, labelDialog + "0", false);
 		dialog.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
@@ -217,7 +243,7 @@ public class MLTool
 		c.gridx = 3;
 		c.gridy = 0;
 		c.gridwidth = 1;
-		text2 = new JButton( "Image " + imgsA.length );
+		text2 = new JButton( "Image " + ( imgsA.length - 1 ) );
 		text2.setBorderPainted( false );
 		dialog.add( text2, c );
 
@@ -296,12 +322,15 @@ public class MLTool
 		textfield = new JTextArea();
 		dialog.add( new JScrollPane(textfield), c );
 
+		// show dialog
 		dialog.pack();
 		dialog.setVisible(true);
 
+		// setup ImageJ window
 		this.main = new HashMap<>();
 		this.stack = new ImageStack();
 
+		// create empty imagestack
 		for ( int f = 0; f <= maxFrame; ++f )
 		{
 			final ColorProcessor cp = new ColorProcessor( imgsA[ 0 ].getWidth(), imgsA[ 0 ].getHeight());
@@ -309,19 +338,56 @@ public class MLTool
 			this.stack.addSlice( cp );
 		}
 
+		// create image window
 		this.mainImp = new ImagePlus( impDialog + "0", this.stack );
 
+		// setup calibration for animation
 		final Calibration cal = this.mainImp.getCalibration();
 		cal.fps = 25;
 		cal.loop = true;
 
+		// fill image stack with interpolated image data
 		interpolateMainImage();
 
+		// setup overlays, add listener
+		final Overlay ov = new Overlay();
+		this.mainImp.setOverlay( ov );
+
+		final Font font = new Font(" SansSerif", Font.PLAIN, 26);
+
+		final TextRoi textROIA = new TextRoi(135, 12, "A", font );
+		textROIA.setStrokeColor( new Color( 255, 255, 255 ) );
+		ov.add( textROIA );
+
+		final TextRoi textROIB = new TextRoi(136, 85, "B", font );
+		textROIB.setStrokeColor( new Color( 255, 0, 0 ) );
+		ov.add( textROIB );
+
+		//this.mainImp.add
+		SliceListener sliceListener = l ->
+		{
+			final int frame = this.mainImp.getZ() - 1;
+
+			final float c1 = (float)frame / (float)maxFrame;
+			final float c2 = 1.0f - c1;
+
+			textROIA.setStrokeColor( new Color( c2, c2, c2 ) );
+			textROIB.setStrokeColor( new Color( c1, c1, c1 ) );
+
+			//this.mainImp.updateAndDraw();
+		};
+		sliceObserver = new SliceObserver(this.mainImp, sliceListener );
+		//sliceObserver.unregister();
+
+		// show main window
 		this.mainImp.show();
 
 		new Thread(() ->
 		{
+			// default maginfication (is slow)
 			Zoom.set( this.mainImp, defaultMagnification );
+
+			// start animation
 			new Animator().run( "start" );
 		}).start();
 
@@ -332,13 +398,38 @@ public class MLTool
 		new ImageJ();
 
 		final MLTool tool = new MLTool( "/Users/preibischs/Documents/Janelia/Projects/Funke/phase1/" );
+		SwingUtilities.invokeLater(() -> tool.showDialog( 100, 3.0, 50, Color.orange ) );
 
-		//ImagePlus imp1 = new ImagePlus( "/Users/preibischs/Documents/Janelia/Projects/Funke/image001.png");
+		/*
+		ImagePlus imp1 = new ImagePlus( "/Users/preibischs/Documents/Janelia/Projects/Funke/image001.png");
 		//ImagePlus imp2 = new ImagePlus( "/Users/preibischs/Documents/Janelia/Projects/Funke/image002.png");
 		//ImagePlus mask = new ImagePlus( "/Users/preibischs/Documents/Janelia/Projects/Funke/image003.png");
 		//setImages( (ByteProcessor)imp1.getProcessor(), (ByteProcessor)imp2.getProcessor(), (ByteProcessor)mask.getProcessor() );
 
-		SwingUtilities.invokeLater(() -> tool.showDialog( 100, 3.0, 50, Color.orange ) );
+		Overlay ov = new Overlay();
+		imp1.setOverlay( ov );
+		
+		final Font font = new Font(" SansSerif", Font.PLAIN, 26);
+		Color color = new Color( 1.00f, 1.00f, 1.00f );
+
+		final TextRoi textROI = new TextRoi(50, 60, "A", font );
+		textROI.setStrokeColor( color );
+		ov.add( textROI );
+
+		imp1.show();
+
+		for ( int i = 128; i < 256; ++i )
+		{
+			SimpleMultiThreading.threadWait( 10 );
+			color = new Color(i, i, i);
+			textROI.setStrokeColor( color );
+			imp1.updateAndDraw();
+		}
+		//final OvalRoi or = new OvalRoi(20, 20, 30, 30 );
+		//or.setStrokeColor( Color.red );
+		//ov.add(or);
+		imp1.updateAndDraw();
+		*/
 
 	}
 }
