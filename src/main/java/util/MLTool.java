@@ -4,7 +4,12 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +21,7 @@ import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextArea;
@@ -23,24 +29,22 @@ import javax.swing.SwingUtilities;
 
 import fiji.tool.SliceListener;
 import fiji.tool.SliceObserver;
+import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.gui.OvalRoi;
 import ij.gui.Overlay;
 import ij.gui.TextRoi;
 import ij.measure.Calibration;
 import ij.plugin.Animator;
-import ij.plugin.Text;
+import ij.plugin.PlugIn;
 import ij.plugin.Zoom;
 import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.ARGBType;
-import net.preibisch.mvrecon.fiji.plugin.interestpointdetection.interactive.ImagePlusListener;
 
-public class MLTool
+public class MLTool implements PlugIn
 {
 	// Done: default Mask: 0.5, red
 	// Done: on start ask for root directory
@@ -50,7 +54,8 @@ public class MLTool
 	// directory a,b,m: increasing ID, no leading zeros
 	// Done: save in the parent directory
 	// TODO: first iteration a single text file
-	
+	public static final String notes = "notes.txt";
+
 	final ForkJoinPool myPool = new ForkJoinPool( Runtime.getRuntime().availableProcessors() );
 
 	volatile ForkJoinTask<?> task = null;
@@ -72,12 +77,15 @@ public class MLTool
 
 	Color color = setColor( Color.orange );
 	float r, g, b;
-	//final TextRoi textROIA, textROI
-	SliceObserver sliceObserver;
-	final ByteProcessor[] imgsA, imgsB, imgsM;
 
-	public MLTool( final String dir )
+	SliceObserver sliceObserver;
+	String dir;
+	ByteProcessor[] imgsA, imgsB, imgsM;
+
+	public void setup( final String dir )
 	{
+		this.dir = dir;
+
 		final File dirA = new File( dir, "A" );
 		final File dirB = new File( dir, "B" );
 		final File dirM = new File( dir, "M" );
@@ -210,6 +218,62 @@ public class MLTool
 		}
 	}
 
+	public boolean load()
+	{
+		final File f = new File( dir, notes );
+
+		if ( !f.exists() )
+			return false;
+
+		try
+		{
+			final BufferedReader inputFile = new BufferedReader(new FileReader( f ));
+
+			String concatenated = "";
+			String l = null;
+
+			while ( ( l = inputFile.readLine() ) != null )
+				concatenated += l + "\n";
+
+			concatenated = concatenated.trim();
+
+			textfield.setText( concatenated );
+
+			inputFile.close();
+		}
+		catch (Exception e)
+		{
+			IJ.log( "Couldn't load file: '" + f + "': " + e);
+			e.printStackTrace();
+			return false;
+		}
+
+		IJ.log( "Successfully LOADED file: '" + f + "'." );
+
+		return true;
+	}
+
+	public boolean save()
+	{
+		final String fn = new File( dir, notes ).getAbsolutePath();
+		try
+		{
+			final PrintWriter outputFile = new PrintWriter(new FileWriter( fn ));
+			outputFile.print( textfield.getText().trim() );
+			outputFile.close();
+		}
+		catch (IOException e)
+		{
+			IJ.log( "Couldn't save file: '" + fn + "': " + e);
+			e.printStackTrace();
+			return false;
+		}
+
+		IJ.log( "Successfully SAVED file: '" + fn + "'." );
+
+		return true;
+	}
+
 	public void showDialog( final int maxFrame, final double defaultMagnification, final int defaultMask, final Color defaultColor )
 	{
 		setColor( defaultColor );
@@ -304,12 +368,30 @@ public class MLTool
 		c.gridy = 2;
 		c.gridwidth = 1;
 		save = new JButton( "Save" );
+		save.addActionListener( e -> save() );
 		dialog.add( save, c );
 
 		c.gridx = 3;
 		c.gridy = 2;
 		c.gridwidth = 1;
 		quit = new JButton( "Quit" );
+		quit.addActionListener( e ->
+		{
+			final int choice = JOptionPane.showConfirmDialog( dialog,
+					"Do you want to save before closing?",
+					"Confirmation",
+					JOptionPane.YES_NO_CANCEL_OPTION );
+			
+			if ( choice == JOptionPane.CANCEL_OPTION )
+				return;
+			else if ( choice == JOptionPane.YES_OPTION )
+				if ( !save() )
+					return;
+
+			sliceObserver.unregister();
+			mainImp.close();
+			dialog.dispose();
+		});
 		dialog.add( quit, c );
 
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -321,6 +403,9 @@ public class MLTool
 		c.ipadx = 300;
 		textfield = new JTextArea();
 		dialog.add( new JScrollPane(textfield), c );
+
+		// try loading an existing notes file
+		load();
 
 		// show dialog
 		dialog.pack();
@@ -363,7 +448,6 @@ public class MLTool
 		textROIB.setStrokeColor( new Color( 255, 0, 0 ) );
 		ov.add( textROIB );
 
-		//this.mainImp.add
 		SliceListener sliceListener = l ->
 		{
 			final int frame = this.mainImp.getZ() - 1;
@@ -373,11 +457,8 @@ public class MLTool
 
 			textROIA.setStrokeColor( new Color( c2, c2, c2 ) );
 			textROIB.setStrokeColor( new Color( c1, c1, c1 ) );
-
-			//this.mainImp.updateAndDraw();
 		};
 		sliceObserver = new SliceObserver(this.mainImp, sliceListener );
-		//sliceObserver.unregister();
 
 		// show main window
 		this.mainImp.show();
@@ -390,15 +471,35 @@ public class MLTool
 			// start animation
 			new Animator().run( "start" );
 		}).start();
+	}
 
+	public static String defaultDirectory = "";
+
+	@Override
+	public void run(String arg)
+	{
+		GenericDialogPlus gd = new GenericDialogPlus( "Select base directory" );
+
+		gd.addDirectoryField("Directory", defaultDirectory, 80 );
+
+		gd.showDialog();
+		if ( gd.wasCanceled() )
+			return;
+
+		setup( defaultDirectory = gd.getNextString() );
+		SwingUtilities.invokeLater(() -> this.showDialog( 100, 3.0, 50, Color.orange ) );
 	}
 
 	public static void main( String[] args )
 	{
 		new ImageJ();
+		defaultDirectory = "/Users/preibischs/Documents/Janelia/Projects/Funke/phase1/";
 
-		final MLTool tool = new MLTool( "/Users/preibischs/Documents/Janelia/Projects/Funke/phase1/" );
-		SwingUtilities.invokeLater(() -> tool.showDialog( 100, 3.0, 50, Color.orange ) );
+		new MLTool().run( null );
+
+		//final MLTool tool = new MLTool();
+		//tool.setup( "/Users/preibischs/Documents/Janelia/Projects/Funke/phase1/" );
+		//SwingUtilities.invokeLater(() -> tool.showDialog( 100, 3.0, 50, Color.orange ) );
 
 		/*
 		ImagePlus imp1 = new ImagePlus( "/Users/preibischs/Documents/Janelia/Projects/Funke/image001.png");
