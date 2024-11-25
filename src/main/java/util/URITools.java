@@ -185,7 +185,7 @@ public class URITools
 			// fist make a copy of the XML and save it to not loose it
 			try
 			{
-				final String xmlFile = getRelativeCloudPath( xmlURI );
+				final String xmlFile = toNormalPath( kva, xmlURI );
 
 				if ( kva.exists( xmlFile ) )
 				{
@@ -478,28 +478,6 @@ public class URITools
 			return false;
 	}
 
-	/**
-	 * This is an abstraction that is only required because the Google cloud and AWS KeyValueAccesses behave differently
-	 *
-	 * @param uri - the URI for which to create the relative path
-	 * @return the relative path
-	 * @throws URISyntaxException
-	 */
-	public static String getRelativeCloudPath( final URI uri ) throws URISyntaxException
-	{
-		if ( URITools.isGC( uri ) )
-			return new URI( null, null, uri.getPath(), null ).toString();
-		else if ( URITools.isS3( uri ) )
-			return new URI( uri.getScheme(), uri.getHost(), uri.getPath(), null ).toString(); // TODO: this is a bug
-		else
-		{
-			if ( uri.getScheme() != null )
-				throw new RuntimeException( "Unsupported uri scheme: " + uri.getScheme() + " in '" + uri + "'." );
-			else
-				throw new RuntimeException( "Cannot get a relative cloud path for a relative path '" + uri + "'." );
-		}
-	}
-
 	public static BufferedReader openFileReadCloudReader( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
 		return new BufferedReader(new InputStreamReader( openFileReadCloudStream( kva, uri )));
@@ -507,18 +485,36 @@ public class URITools
 
 	public static InputStream openFileReadCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final String relativePath;
+		return kva.lockForReading( toNormalPath( kva, uri ) ).newInputStream();
+	}
 
+	/**
+	 * Get the "normalPath" of the given {@code URI} for the given {@code KeyValueAccess}.
+	 * <p>
+	 * The {@code URI} can be absolute or relative.
+	 * Relative {@code URI} are interpreted as relative to the root of the {@code KeyValueAccess}
+	 * (e.g. {@code 'file:/'} for {@code FileSystemKeyValueAccess},
+	 * {@code 's3://bucket-name/'} for {@code AmazonS3KeyValueAccess}, etc).
+	 *
+	 * @param kva a KeyValueAccess
+	 * @param uri absolute or relative URI
+	 * @return normalPath of {@code uri} for the given {@code KeyValueAccess}
+	 * @throws IOException
+	 */
+	static String toNormalPath( final KeyValueAccess kva, final URI uri ) throws IOException
+	{
 		try
 		{
-			relativePath = getRelativeCloudPath( uri );
+			final URI root = kva.uri( "/" );
+			final URI relativeURI = uri.isAbsolute()
+					? new URI( "/" ).resolve( root.relativize( uri ) )
+					: uri;
+			return kva.compose( root, relativeURI.getPath() );
 		}
-		catch (URISyntaxException e)
+		catch ( URISyntaxException e )
 		{
-			throw new IOException( e.getMessage() );
+			throw new IOException( e );
 		}
-
-		return kva.lockForReading( relativePath ).newInputStream();
 	}
 
 	public static PrintWriter openFileWriteCloudWriter( final KeyValueAccess kva, final URI uri ) throws IOException
@@ -528,22 +524,11 @@ public class URITools
 
 	public static OutputStream openFileWriteCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final String relativePath;
-
-		try
-		{
-			relativePath = getRelativeCloudPath( uri );
-		}
-		catch (URISyntaxException e)
-		{
-			throw new IOException( e.getMessage() );
-		}
-
-		return kva.lockForWriting( relativePath ).newOutputStream();
+		return kva.lockForWriting( toNormalPath( kva, uri ) ).newOutputStream();
 	}
 
 	/**
-	 * Note: it is up to you to create the correct relative paths using getRelativeCloudPath()
+	 * Note: it is up to you to create the correct relative paths using toNormalPath()
 	 *
 	 * @param kva
 	 * @param relativeSrc
