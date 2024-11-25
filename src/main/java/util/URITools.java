@@ -705,39 +705,6 @@ public class URITools
 		}
 	}
 
-	public static void minimalExampleTobiS3GS() throws URISyntaxException, IOException
-	{
-		URI gcURI = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
-		URI s3URI = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
-
-		// assemble scheme + bucket and location for Google Cloud
-		URI gcBucket = new URI( gcURI.getScheme(), gcURI.getHost(), null, null );
-		URI gcLocation = new URI( null, null, gcURI.getPath(), null );
-
-		System.out.println( "Google cloud: Instantiating N5Reader to grab a key-value-access for: '" + gcBucket + "'" );
-		System.out.println( "Google cloud: Lock for reading on: '" + gcLocation  + "'");
-
-		final N5Reader gcN5 = instantiateN5Reader(StorageFormat.N5, gcBucket );
-		final KeyValueAccess gcKVA = ((GsonKeyValueN5Reader)gcN5).getKeyValueAccess();
-		gcKVA.lockForReading( gcLocation.toString()).newInputStream().skip( 1000 );
-
-		// assemble scheme + bucket and location for AWS S3 (using full path for location, which should actually be relative, same as for google cloud above)
-		URI s3Bucket = new URI( s3URI.getScheme(), s3URI.getHost(), null, null );
-		URI s3Location = new URI( s3URI.getScheme(), s3URI.getHost(), s3URI.getPath(), null );
-
-		System.out.println( "AWS: Instantiating N5Reader to grab a key-value-access for: '" + s3Bucket + "'" );
-		System.out.println( "AWS: Lock for reading on: '" + s3Location  + "'");
-
-		final N5Reader s3N5 = instantiateN5Reader(StorageFormat.N5, s3Bucket );
-		final KeyValueAccess s3KVA = ((GsonKeyValueN5Reader)s3N5).getKeyValueAccess();
-		s3KVA.lockForReading( s3Location.toString() ).newInputStream().skip( 1000 );
-
-		// assemble relative location for AWS S3 (which fails)
-		s3Location = new URI( null, null, s3URI.getPath(), null );
-		System.out.println( "AWS: Lock for reading on: '" + s3Location  + "' (fails)");
-		s3KVA.lockForReading( s3Location.toString() ).newInputStream().skip( 1000 );
-	}
-
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
 		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr/" );
@@ -745,10 +712,6 @@ public class URITools
 		System.out.println( uri1.getHost() );
 		System.out.println( uri1.getPath() );
 		System.out.println( getFileName( uri1 ) );
-
-		System.exit( 0 );
-
-		minimalExampleTobiS3GS();
 
 		System.exit( 0 );
 
