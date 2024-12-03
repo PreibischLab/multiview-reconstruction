@@ -37,6 +37,8 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.management.RuntimeErrorException;
+
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -162,7 +164,10 @@ public class ExportN5Api implements ImgExport
 	public ImgExport newInstance() { return new ExportN5Api(); }
 
 	@Override
-	public String getDescription() { return "ZARR/N5/HDF5 export using N5-API"; }
+	public String getDescription() { return "OME-ZARR/N5/HDF5 export using N5-API"; }
+
+	private MultiResolutionLevelInfo[] mrInfoZarr = null;
+	private int numChannels, numTps;
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
@@ -173,6 +178,12 @@ public class ExportN5Api implements ImgExport
 			final String title,
 			final Group<? extends ViewId> fusionGroup)
 	{
+		final T type = imgInterval.getType();
+		final DataType dataType = N5Utils.dataType( type );
+		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
+		if ( !supportedDataTypes.contains( dataType ) )
+			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
+
 		if ( driverVolumeWriter == null )
 		{
 			IOFunctions.println( "Creating " + storageType + " container '" + path + "' (assuming it doesn't already exist) ... " );
@@ -189,6 +200,26 @@ public class ExportN5Api implements ImgExport
 				else if ( storageType == StorageFormat.N5 || storageType == StorageFormat.ZARR )
 				{
 					driverVolumeWriter = URITools.instantiateN5Writer( storageType, path );
+
+					// if we store all fused data in one container, we create the dataset here
+					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+					{
+						final long[] dim3d = bb.dimensionsAsLongArray();
+						final int[] blockSize3d = blocksize();
+
+						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], numChannels, numTps };
+						final int[] blockSize = new int[] { blockSize3d[ 0 ], blockSize3d[ 1 ], blockSize3d[ 2 ], 1, 1 };
+
+						// TODO: this will not work somehow, since it is 5D now
+						mrInfoZarr = N5ApiTools.setupMultiResolutionPyramid(
+								driverVolumeWriter,
+								(level) -> "/s" + level,
+								dataType,
+								dim,
+								compression,
+								blockSize,
+								this.downsampling );
+					}
 				}
 				else
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
@@ -199,12 +230,6 @@ public class ExportN5Api implements ImgExport
 				return false;
 			}
 		}
-
-		final T type = imgInterval.getType();
-		final DataType dataType = N5Utils.dataType( type );
-		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
-		if ( !supportedDataTypes.contains( dataType ) )
-			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
 
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
@@ -247,9 +272,14 @@ public class ExportN5Api implements ImgExport
 				return false;
 			}
 		}
-		else if ( storageType == StorageFormat.ZARR )
+		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer ) // OME-Zarr export into a single container
+		{
+			mrInfo = mrInfoZarr;
+		}
+		else if ( storageType == StorageFormat.ZARR ) // OME-Zarr export
 		{
 			mrInfo = null;
+			throw new RuntimeException( "not implemented yet." );
 		}
 		else
 		{
@@ -259,10 +289,21 @@ public class ExportN5Api implements ImgExport
 			// e.g. in Windows this will change it to '\s0'
 			final String datasetExtensionOS = new File( datasetExtension ).toString(); 
 
+			IOFunctions.println( "datasetExtensionOS: " +datasetExtensionOS );
+
 			// setup multi-resolution pyramid
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					(level) -> new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString(),
+					(level) -> {
+						IOFunctions.println( "lambda 1: " + dataset );
+						IOFunctions.println( "lambda 2: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) );
+						IOFunctions.println( "lambda 3: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level );
+						IOFunctions.println( "lambda 3b: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS )  + 1 ) + "s" + level );
+						IOFunctions.println( "lambda 4: " + new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString() );
+						IOFunctions.println( "lambda 4b: " + new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) + 1 ) + "s" + level ).toString() );
+
+						return new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString();
+					},
 					dataType,
 					bb.dimensionsAsLongArray(),
 					compression,
@@ -389,7 +430,7 @@ public class ExportN5Api implements ImgExport
 		final GenericDialogPlus gdInit = new GenericDialogPlus( "Save fused images as ZARR/N5/HDF5 using N5-API" );
 
 		final String[] options = 
-				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name() ).toArray(String[]::new);
+				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name().equals( "ZARR" ) ? "OME-ZARR" : s.name() ).toArray(String[]::new);
 
 		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
 
@@ -465,18 +506,11 @@ public class ExportN5Api implements ImgExport
 
 			if ( fusion.getSplittingType() == 0 )
 			{
-				HashSet< Channel > channels = new HashSet<>();
-				HashSet< TimePoint > tps = new HashSet<>();
-
-				for ( final Group<ViewDescription> group : fusion.getFusionGroups() )
-					for ( final ViewDescription vd : group )
-					{
-						channels.add( vd.getViewSetup().getChannel() );
-						tps.add( vd.getTimePoint() );
-					}
+				this.numChannels = N5ApiTools.numChannels( fusion.getFusionGroups() );
+				this.numTps = N5ApiTools.numTimepoints( fusion.getFusionGroups() );
 
 				gdZarr.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
-				gdZarr.addMessage( "Note: " + channels.size() + " channels and " + tps.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+				gdZarr.addMessage( "Note: " + numChannels + " channels and " + numTps + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
 			}
 
 			gdZarr.showDialog();
@@ -487,6 +521,8 @@ public class ExportN5Api implements ImgExport
 
 			if ( fusion.getSplittingType() == 0 )
 				omeZarrOneContainer = defaultOmeZarrOneContainer = gdZarr.getNextBoolean();
+			else
+				omeZarrOneContainer = false;
 		}
 
 		//
@@ -519,6 +555,10 @@ public class ExportN5Api implements ImgExport
 				gd.addNumericField( "ViewId_SetupId", defaultVSId);
 				gd.addMessage( "" );
 			}
+		}
+		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+		{
+			// nothing else to ask
 		}
 		else
 		{
@@ -635,6 +675,10 @@ public class ExportN5Api implements ImgExport
 				// depends on fusion group, defined during export
 				// later calling getViewIdForGroup( fusionGroup, splittingType );
 			}
+		}
+		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+		{
+			// nothing to get
 		}
 		else
 		{

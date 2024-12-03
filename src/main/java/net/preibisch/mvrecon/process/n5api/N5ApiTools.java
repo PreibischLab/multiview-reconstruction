@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -48,7 +49,9 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import bdv.export.ExportMipmapInfo;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.SetupImgLoader;
+import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
@@ -616,5 +619,27 @@ public class N5ApiTools
 		viewIds.forEach( viewId -> list.add( map.get( viewId ).getViewSetup() ) );
 
 		return list;
+	}
+
+	public static int numTimepoints( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final HashSet< TimePoint > tps = new HashSet<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+			for ( final ViewDescription vd : group )
+				tps.add( vd.getTimePoint() );
+
+		return tps.size();
+	}
+
+	public static int numChannels( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final HashSet< Channel > channels = new HashSet<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+			for ( final ViewDescription vd : group )
+				channels.add( vd.getViewSetup().getChannel() );
+
+		return channels.size();
 	}
 }

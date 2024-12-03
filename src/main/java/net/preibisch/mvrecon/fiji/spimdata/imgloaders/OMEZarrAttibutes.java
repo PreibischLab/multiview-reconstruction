@@ -23,10 +23,12 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
@@ -151,8 +153,19 @@ public class OMEZarrAttibutes
 		}
 	}
 
-	public static void main( String[] args )
+	public static void main( String[] args ) throws URISyntaxException
 	{
+		final URI uri2 = URITools.toURI("https://keller-data.int.janelia.org/s12a/samples_for_stitching/Live%20zebra%20fish%20stitched/Live%20zebra%20plane%206/dataset.n5");///setup0/time;t0/");
+		System.out.println( uri2.toString() );
+
+		//FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess( FileSystems.getDefault() );
+		
+		String s = uri2.toString();
+		N5Factory f = new N5Factory();
+		N5Reader r = f.openFileSystemReader( s );
+		r.close();
+		System.exit( 0 );
+
 		//final URI uri = URITools.toURI( "https://storage.googleapis.com/jax-public-ngff/KOMP/adult_lacZ/ndp/Moxd1/23420_K35061_FGut.zarr/0/" );
 		//final String dataset = "/";
 
