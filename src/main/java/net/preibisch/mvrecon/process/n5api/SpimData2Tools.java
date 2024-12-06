@@ -251,7 +251,8 @@ public class SpimData2Tools
 							existingSpimData.getStitchingResults(),
 							existingSpimData.getIntensityAdjustments() );
 
-			new XmlIoSpimData2().save( spimDataNew, existingSpimData.getBasePathURI() );
+			// we are overwriting it
+			new XmlIoSpimData2().save( spimDataNew, xmlOutPathURI );//existingSpimData.getBasePathURI() );
 
 			return new ValuePair<>(tpExists, viewSetupExists);
 		}

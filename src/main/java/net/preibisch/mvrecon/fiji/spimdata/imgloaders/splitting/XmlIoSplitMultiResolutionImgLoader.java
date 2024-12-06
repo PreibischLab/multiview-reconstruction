@@ -26,6 +26,7 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 import static mpicbg.spim.data.XmlKeys.IMGLOADER_TAG;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,6 +86,43 @@ public class XmlIoSplitMultiResolutionImgLoader implements XmlIoBasicImgLoader< 
 		elem.addContent( setupIds );
 
 		return elem;
+	}
+
+	@Override
+	public SplitMultiResolutionImgLoader fromXml(
+			final Element elem, URI basePath,
+			final AbstractSequenceDescription<?, ?, ?> sequenceDescription )
+	{
+		final HashMap< Integer, Integer > new2oldSetupId = new HashMap<>();
+		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
+
+		for ( final Element setup : elem.getChild( XmlIoSplitViewerImgLoader.SETUPIDS_NAME ).getChildren( XmlIoSplitViewerImgLoader.SETUPIDS_TAG ) )
+			XmlIoSplitViewerImgLoader.setupFromXML( setup, new2oldSetupId, newSetupId2Interval );
+
+		try
+		{
+			final XmlIoSequenceDescription xmlIoSequenceDescription = new XmlIoSequenceDescription();
+			final Element sdElem = elem.getChild( xmlIoSequenceDescription.getTag() );
+			if ( sdElem == null )
+				throw new SpimDataIOException( "no <" + xmlIoSequenceDescription.getTag() + "> element found." );
+			final SequenceDescription oldSD = xmlIoSequenceDescription.fromXml( sdElem, basePath );
+
+			MultiResolutionImgLoader underlyingImgLoader = null;
+
+			final Element imgLoaderElem = elem.getChild( IMGLOADER_TAG );
+			final String format = imgLoaderElem.getAttributeValue( IMGLOADER_FORMAT_ATTRIBUTE_NAME );
+			final XmlIoBasicImgLoader< ? > imgLoaderIo = ImgLoaders.createXmlIoForFormat( format );
+			underlyingImgLoader = (MultiResolutionImgLoader)imgLoaderIo.fromXml( imgLoaderElem, basePath, oldSD );
+
+			return new SplitMultiResolutionImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval, oldSD );
+		}
+		catch( Exception e )
+		{
+			IOFunctions.println( "Unable to load underlying Sequence Description & ImgLoader, stopping." );
+			e.printStackTrace();
+			System.exit( 0 );
+			return null;
+		}
 	}
 
 	@Override

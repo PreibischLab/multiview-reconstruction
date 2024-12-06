@@ -26,6 +26,7 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 import static mpicbg.spim.data.XmlKeys.IMGLOADER_TAG;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,6 +138,41 @@ public class XmlIoSplitViewerImgLoader implements XmlIoBasicImgLoader< SplitView
 	protected static < L extends BasicImgLoader > Element createImgLoaderElement( final XmlIoBasicImgLoader< L > imgLoaderIo, final BasicImgLoader imgLoader, final File basePath )
 	{
 		return imgLoaderIo.toXml( ( L ) imgLoader, basePath );
+	}
+
+	@Override
+	public SplitViewerImgLoader fromXml( final Element elem, final URI basePathURI, AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
+	{
+		final HashMap< Integer, Integer > new2oldSetupId = new HashMap<>();
+		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
+
+		for ( final Element setup : elem.getChild( SETUPIDS_NAME ).getChildren( SETUPIDS_TAG ) )
+			setupFromXML( setup, new2oldSetupId, newSetupId2Interval );
+
+		try
+		{
+			final XmlIoSequenceDescription xmlIoSequenceDescription = new XmlIoSequenceDescription();
+			final Element sdElem = elem.getChild( xmlIoSequenceDescription.getTag() );
+			if ( sdElem == null )
+				throw new SpimDataIOException( "no <" + xmlIoSequenceDescription.getTag() + "> element found." );
+			final SequenceDescription oldSD = xmlIoSequenceDescription.fromXml( sdElem, basePathURI );
+
+			ViewerImgLoader underlyingImgLoader = null;
+
+			final Element imgLoaderElem = elem.getChild( IMGLOADER_TAG );
+			final String format = imgLoaderElem.getAttributeValue( IMGLOADER_FORMAT_ATTRIBUTE_NAME );
+			final XmlIoBasicImgLoader< ? > imgLoaderIo = ImgLoaders.createXmlIoForFormat( format );
+			underlyingImgLoader = (ViewerImgLoader)imgLoaderIo.fromXml( imgLoaderElem, basePathURI, oldSD );
+
+			return new SplitViewerImgLoader( underlyingImgLoader, new2oldSetupId, newSetupId2Interval, oldSD );
+		}
+		catch( Exception e )
+		{
+			IOFunctions.println( "Unable to load underlying Sequence Description & ImgLoader, stopping." );
+			e.printStackTrace();
+			System.exit( 0 );
+			return null;
+		}
 	}
 
 	@Override

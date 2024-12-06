@@ -185,7 +185,7 @@ public class URITools
 			// fist make a copy of the XML and save it to not loose it
 			try
 			{
-				final String xmlFile = getRelativeCloudPath( xmlURI );
+				final String xmlFile = toNormalPath( kva, xmlURI );
 
 				if ( kva.exists( xmlFile ) )
 				{
@@ -478,28 +478,6 @@ public class URITools
 			return false;
 	}
 
-	/**
-	 * This is an abstraction that is only required because the Google cloud and AWS KeyValueAccesses behave differently
-	 *
-	 * @param uri - the URI for which to create the relative path
-	 * @return the relative path
-	 * @throws URISyntaxException
-	 */
-	public static String getRelativeCloudPath( final URI uri ) throws URISyntaxException
-	{
-		if ( URITools.isGC( uri ) )
-			return new URI( null, null, uri.getPath(), null ).toString();
-		else if ( URITools.isS3( uri ) )
-			return new URI( uri.getScheme(), uri.getHost(), uri.getPath(), null ).toString(); // TODO: this is a bug
-		else
-		{
-			if ( uri.getScheme() != null )
-				throw new RuntimeException( "Unsupported uri scheme: " + uri.getScheme() + " in '" + uri + "'." );
-			else
-				throw new RuntimeException( "Cannot get a relative cloud path for a relative path '" + uri + "'." );
-		}
-	}
-
 	public static BufferedReader openFileReadCloudReader( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
 		return new BufferedReader(new InputStreamReader( openFileReadCloudStream( kva, uri )));
@@ -507,18 +485,36 @@ public class URITools
 
 	public static InputStream openFileReadCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final String relativePath;
+		return kva.lockForReading( toNormalPath( kva, uri ) ).newInputStream();
+	}
 
+	/**
+	 * Get the "normalPath" of the given {@code URI} for the given {@code KeyValueAccess}.
+	 * <p>
+	 * The {@code URI} can be absolute or relative.
+	 * Relative {@code URI} are interpreted as relative to the root of the {@code KeyValueAccess}
+	 * (e.g. {@code 'file:/'} for {@code FileSystemKeyValueAccess},
+	 * {@code 's3://bucket-name/'} for {@code AmazonS3KeyValueAccess}, etc).
+	 *
+	 * @param kva a KeyValueAccess
+	 * @param uri absolute or relative URI
+	 * @return normalPath of {@code uri} for the given {@code KeyValueAccess}
+	 * @throws IOException
+	 */
+	static String toNormalPath( final KeyValueAccess kva, final URI uri ) throws IOException
+	{
 		try
 		{
-			relativePath = getRelativeCloudPath( uri );
+			final URI root = kva.uri( "/" );
+			final URI relativeURI = uri.isAbsolute()
+					? new URI( "/" ).resolve( root.relativize( uri ) )
+					: uri;
+			return kva.compose( root, relativeURI.getPath() );
 		}
-		catch (URISyntaxException e)
+		catch ( URISyntaxException e )
 		{
-			throw new IOException( e.getMessage() );
+			throw new IOException( e );
 		}
-
-		return kva.lockForReading( relativePath ).newInputStream();
 	}
 
 	public static PrintWriter openFileWriteCloudWriter( final KeyValueAccess kva, final URI uri ) throws IOException
@@ -528,22 +524,11 @@ public class URITools
 
 	public static OutputStream openFileWriteCloudStream( final KeyValueAccess kva, final URI uri ) throws IOException
 	{
-		final String relativePath;
-
-		try
-		{
-			relativePath = getRelativeCloudPath( uri );
-		}
-		catch (URISyntaxException e)
-		{
-			throw new IOException( e.getMessage() );
-		}
-
-		return kva.lockForWriting( relativePath ).newOutputStream();
+		return kva.lockForWriting( toNormalPath( kva, uri ) ).newOutputStream();
 	}
 
 	/**
-	 * Note: it is up to you to create the correct relative paths using getRelativeCloudPath()
+	 * Note: it is up to you to create the correct relative paths using toNormalPath()
 	 *
 	 * @param kva
 	 * @param relativeSrc
@@ -720,39 +705,6 @@ public class URITools
 		}
 	}
 
-	public static void minimalExampleTobiS3GS() throws URISyntaxException, IOException
-	{
-		URI gcURI = URITools.toURI( "gs://janelia-spark-test/I2K-test/dataset.xml" );
-		URI s3URI = URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" );
-
-		// assemble scheme + bucket and location for Google Cloud
-		URI gcBucket = new URI( gcURI.getScheme(), gcURI.getHost(), null, null );
-		URI gcLocation = new URI( null, null, gcURI.getPath(), null );
-
-		System.out.println( "Google cloud: Instantiating N5Reader to grab a key-value-access for: '" + gcBucket + "'" );
-		System.out.println( "Google cloud: Lock for reading on: '" + gcLocation  + "'");
-
-		final N5Reader gcN5 = instantiateN5Reader(StorageFormat.N5, gcBucket );
-		final KeyValueAccess gcKVA = ((GsonKeyValueN5Reader)gcN5).getKeyValueAccess();
-		gcKVA.lockForReading( gcLocation.toString()).newInputStream().skip( 1000 );
-
-		// assemble scheme + bucket and location for AWS S3 (using full path for location, which should actually be relative, same as for google cloud above)
-		URI s3Bucket = new URI( s3URI.getScheme(), s3URI.getHost(), null, null );
-		URI s3Location = new URI( s3URI.getScheme(), s3URI.getHost(), s3URI.getPath(), null );
-
-		System.out.println( "AWS: Instantiating N5Reader to grab a key-value-access for: '" + s3Bucket + "'" );
-		System.out.println( "AWS: Lock for reading on: '" + s3Location  + "'");
-
-		final N5Reader s3N5 = instantiateN5Reader(StorageFormat.N5, s3Bucket );
-		final KeyValueAccess s3KVA = ((GsonKeyValueN5Reader)s3N5).getKeyValueAccess();
-		s3KVA.lockForReading( s3Location.toString() ).newInputStream().skip( 1000 );
-
-		// assemble relative location for AWS S3 (which fails)
-		s3Location = new URI( null, null, s3URI.getPath(), null );
-		System.out.println( "AWS: Lock for reading on: '" + s3Location  + "' (fails)");
-		s3KVA.lockForReading( s3Location.toString() ).newInputStream().skip( 1000 );
-	}
-
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
 		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr/" );
@@ -760,10 +712,6 @@ public class URITools
 		System.out.println( uri1.getHost() );
 		System.out.println( uri1.getPath() );
 		System.out.println( getFileName( uri1 ) );
-
-		System.exit( 0 );
-
-		minimalExampleTobiS3GS();
 
 		System.exit( 0 );
 
