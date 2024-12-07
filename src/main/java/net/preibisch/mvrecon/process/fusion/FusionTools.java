@@ -228,7 +228,7 @@ public class FusionTools
 			final FusionType fusionType,
 			final Interval bb )
 	{
-		return fuseVirtual( imgloader, registrations, viewDescriptions, views, fusionType, 1, bb, null );
+		return fuseVirtual( imgloader, registrations, viewDescriptions, views, fusionType, 1, FusionTools.defaultBlendingRange, bb, null );
 	}
 
 	/**
@@ -268,7 +268,7 @@ public class FusionTools
 			final Interval bb,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
-		return fuseVirtual( spimData, viewIds, fusionType, 1, bb, intensityAdjustments );
+		return fuseVirtual( spimData, viewIds, fusionType, 1, FusionTools.defaultBlendingRange, bb, intensityAdjustments );
 	}
 
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
@@ -276,6 +276,7 @@ public class FusionTools
 			final Collection< ? extends ViewId > views,
 			final FusionType fusionType,
 			final int interpolation,
+			final float blendingRange,
 			final Interval boundingBox,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
 	{
@@ -292,7 +293,7 @@ public class FusionTools
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, fusionType, interpolation, boundingBox, intensityAdjustments );
+		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, fusionType, interpolation, blendingRange, boundingBox, intensityAdjustments );
 	}
 
 	/**
@@ -395,6 +396,7 @@ public class FusionTools
 			final Collection< ? extends ViewId > views,
 			final FusionType fusionType, // see FusionGUI.fusionTypes[]{"Avg", "Avg, Blending", "Avg, Content Based", "Avg, Blending & Content Based", "Max", "First Tile Wins"}
 			final int interpolation,
+			final float blendingRange,
 			final Interval boundingBox, // is already downsampled
 			//final double downsampling,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
@@ -503,7 +505,7 @@ public class FusionTools
 				// instantiate blending if necessary
 				if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
-					final float[] blending = Util.getArrayFromValue( defaultBlendingRange, 3 );
+					final float[] blending = Util.getArrayFromValue( blendingRange, 3 );
 					final float[] border = Util.getArrayFromValue( defaultBlendingBorder, 3 );
 
 					// TODO: this is wrong, since the blending is applied to the input images

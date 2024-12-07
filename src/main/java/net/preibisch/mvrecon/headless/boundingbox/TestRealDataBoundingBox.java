@@ -78,6 +78,6 @@ public class TestRealDataBoundingBox
 
 		service.shutdown();
 
-		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, FusionType.AVG_BLEND, 1, bb, null ), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
+		FusionTools.displayCopy( FusionTools.fuseVirtual( spimData, viewIds, FusionType.AVG_BLEND, 1, FusionTools.defaultBlendingRange, bb, null ), estimation.getMinIntensity(), estimation.getMaxIntensity() ).show();
 	}
 }
