@@ -176,7 +176,7 @@ public class ExportN5Api implements ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group<? extends ViewId> fusionGroup)
+			final Group<? extends ViewId> fusionGroup )
 	{
 		final T type = imgInterval.getType();
 		final DataType dataType = N5Utils.dataType( type );
@@ -205,20 +205,22 @@ public class ExportN5Api implements ImgExport
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
 						final long[] dim3d = bb.dimensionsAsLongArray();
-						final int[] blockSize3d = blocksize();
 
 						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], numChannels, numTps };
-						final int[] blockSize = new int[] { blockSize3d[ 0 ], blockSize3d[ 1 ], blockSize3d[ 2 ], 1, 1 };
+						final int[] blockSize = new int[] { blocksize()[ 0 ], blocksize()[ 1 ], blocksize()[ 2 ], 1, 1 };
+						final int[][] ds = new int[ this.downsampling.length ][];
+						for ( int d = 0; d < ds.length; ++d )
+							ds[ d ] = new int[] { this.downsampling[ d ][ 0 ], this.downsampling[ d ][ 1 ], this.downsampling[ d ][ 2 ], 1, 1 };
 
-						// TODO: this will not work somehow, since it is 5D now
+						// all is 5d now
 						mrInfoZarr = N5ApiTools.setupMultiResolutionPyramid(
 								driverVolumeWriter,
 								(level) -> "/s" + level,
 								dataType,
-								dim,
+								dim, //5d
 								compression,
-								blockSize,
-								this.downsampling );
+								blockSize, //5d
+								ds ); // 5d
 					}
 				}
 				else
@@ -294,16 +296,7 @@ public class ExportN5Api implements ImgExport
 			// setup multi-resolution pyramid
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					(level) -> {
-						IOFunctions.println( "lambda 1: " + dataset );
-						IOFunctions.println( "lambda 2: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) );
-						IOFunctions.println( "lambda 3: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level );
-						IOFunctions.println( "lambda 3b: " + dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS )  + 1 ) + "s" + level );
-						IOFunctions.println( "lambda 4: " + new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString() );
-						IOFunctions.println( "lambda 4b: " + new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) + 1 ) + "s" + level ).toString() );
-
-						return new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString();
-					},
+					(level) -> new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString(),
 					dataType,
 					bb.dimensionsAsLongArray(),
 					compression,
@@ -325,12 +318,24 @@ public class ExportN5Api implements ImgExport
 		final AtomicInteger progress = new AtomicInteger( 0 );
 		IJ.showProgress( progress.get(), grid.size() );
 
+		final long currentChannelIndex, currentTPIndex;
+
+		if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+		{
+			
+		}
+		else
+		{
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
+		}
+
 		//
 		// save full-resolution data (s0)
 		//
 
 		// TODO: use Tobi's code (at least for the special cases)
-		final ForkJoinPool myPool = new ForkJoinPool(  Threads.numThreads() );
+		final ForkJoinPool myPool = new ForkJoinPool( Threads.numThreads() );
 
 		long time = System.currentTimeMillis();
 
@@ -340,17 +345,32 @@ public class ExportN5Api implements ImgExport
 				grid.parallelStream().forEach(
 						gridBlock -> {
 							try {
-	
-								final Interval block =
-										Intervals.translate(
-												new FinalInterval( gridBlock[1] ), // blocksize
-												gridBlock[0] ); // block offset
-		
-								final RandomAccessibleInterval< T > source = Views.interval( img, block );
-		
-								final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+								if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+								{
+									// TODO: gridBlock is 3d
+									final long[] blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+									final long[] blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
 
+									// TODO: img is 3d
+									final Interval block =
+											Intervals.translate(
+													new FinalInterval( blockSize ), // blocksize
+													blockOffset ); // block offset
+
+									final RandomAccessibleInterval< T > source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block ); // everything is 5d
+								}
+								else
+								{
+									final Interval block =
+											Intervals.translate(
+													new FinalInterval( gridBlock[1] ), // blocksize
+													gridBlock[0] ); // block offset
+
+									final RandomAccessibleInterval< T > source = Views.interval( img, block );
+		
+									final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
+									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+								}
 								IJ.showProgress( progress.incrementAndGet(), grid.size() );
 							}
 							catch (Exception e) 

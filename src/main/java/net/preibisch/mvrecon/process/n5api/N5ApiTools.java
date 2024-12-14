@@ -224,10 +224,10 @@ public class N5ApiTools
 			final ViewId viewId,
 			final BiFunction<ViewId, Integer, String> viewIdToDataset,
 			final DataType dataType,
-			final long[] dimensionsS0,
+			final long[] dimensionsS0, // 3d by default, can be up to 5d for ome-zarr
 			final Compression compression,
-			final int[] blockSize,
-			final int[][] downsamplings )
+			final int[] blockSize, // 3d by default, can be up to 5d for ome-zarr
+			final int[][] downsamplings ) // TODO:  3d by default, can be up to 5d for ome-zarr
 	{
 		final MultiResolutionLevelInfo[] mrInfo = new MultiResolutionLevelInfo[ downsamplings.length];
 
@@ -621,6 +621,7 @@ public class N5ApiTools
 		return list;
 	}
 
+	/*
 	public static int numTimepoints( final List<? extends Group<? extends ViewDescription>> fusionGroups )
 	{
 		final HashSet< TimePoint > tps = new HashSet<>();
@@ -641,5 +642,88 @@ public class N5ApiTools
 				channels.add( vd.getViewSetup().getChannel() );
 
 		return channels.size();
+	}
+	*/
+
+	public static ArrayList< TimePoint > timepoints( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final ArrayList< TimePoint > tps = new ArrayList<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+		{
+			for ( final ViewDescription vd : group )
+			{
+				final TimePoint newT = vd.getTimePoint();
+				boolean contains = false;
+
+				for ( final TimePoint t : tps )
+					if ( t.getId() == newT.getId() )
+						contains = true;
+
+				if ( !contains )
+					tps.add( newT );
+			}
+		}
+
+		return tps;
+	}
+
+	public static ArrayList< Channel > channels( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final ArrayList< Channel > channels = new ArrayList<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+		{
+			for ( final ViewDescription vd : group )
+			{
+				final Channel newC = vd.getViewSetup().getChannel();
+				boolean contains = false;
+
+				for ( final Channel c : channels )
+					if ( c.getId() == newC.getId() )
+						contains = true;
+
+				if ( !contains )
+					channels.add( newC );
+			}
+		}
+
+		return channels;
+	}
+
+	public static int channelIndex( final Group<? extends ViewDescription> queryGroup, final ArrayList< Channel > channels )
+	{
+		if ( queryGroup.size() == 0 )
+			return -1;
+
+		final Channel firstChannel = queryGroup.iterator().next().getViewSetup().getChannel();
+
+		for ( final ViewDescription vd : queryGroup )
+			if ( vd.getViewSetup().getChannel().getId() != firstChannel.getId() )
+				throw new RuntimeException( "More than one channel in the queryGroup, cannot return a single index." );
+
+		for ( int i = 0; i < channels.size(); ++i )
+			if ( channels.get( i ).getId() == firstChannel.getId() )
+				return i;
+
+		return -1;
+	}
+
+	public static int timepointIndex( final Group<? extends ViewDescription> queryGroup, final ArrayList< TimePoint > timepoints )
+	{
+		if ( queryGroup.size() == 0 )
+			return -1;
+
+		final TimePoint firstTP = queryGroup.iterator().next().getTimePoint();
+
+		for ( final ViewDescription vd : queryGroup )
+			if ( vd.getTimePoint().getId() != firstTP.getId() )
+				throw new RuntimeException( "More than one timepoint in the queryGroup, cannot return a single index." );
+
+		for ( int i = 0; i < timepoints.size(); ++i )
+			if ( timepoints.get( i ).getId() == firstTP.getId() )
+				return i;
+
+		return -1;
 	}
 }
