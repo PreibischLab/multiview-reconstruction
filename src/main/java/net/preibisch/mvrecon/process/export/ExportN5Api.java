@@ -346,14 +346,20 @@ public class ExportN5Api implements ImgExport
 		{
 			myPool.submit(() ->
 				grid.parallelStream().forEach(
-						gridBlock -> {
-							try {
+						gridBlock ->
+						{
+							try
+							{
+								final long[] blockOffset, blockSize, gridOffset;
+								final RandomAccessibleInterval< T > source;
+
+								// 5D OME-ZARR CONTAINER
 								if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 								{
 									// gridBlock is 3d, make it 5d
-									final long[] blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
-									final long[] blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
-									final long[] gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
+									blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+									blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+									gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
 
 									// block is 5d
 									final Interval block =
@@ -363,23 +369,28 @@ public class ExportN5Api implements ImgExport
 
 									// img is 3d, make it 5d
 									// the same information is returned no matter which index is queried in C and T
-									final RandomAccessibleInterval< T > source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block );
-
-									final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, blockOffset, blockSize);
-									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
+									source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block );
 								}
 								else
 								{
+									blockOffset = gridBlock[0];
+									blockSize = gridBlock[1];
+									gridOffset = gridBlock[2];
+
 									final Interval block =
 											Intervals.translate(
 													new FinalInterval( gridBlock[1] ), // blocksize
 													gridBlock[0] ); // block offset
 
-									final RandomAccessibleInterval< T > source = Views.interval( img, block );
+									source = Views.interval( img, block );
 		
-									final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+									//final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
+									//N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
 								}
+
+								final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, blockOffset, blockSize);
+								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
+
 								IJ.showProgress( progress.incrementAndGet(), grid.size() );
 							}
 							catch (Exception e) 

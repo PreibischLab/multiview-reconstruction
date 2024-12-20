@@ -691,7 +691,7 @@ public class N5ApiTools
 		return channels;
 	}
 
-	public static int channelIndex( final Group<? extends ViewDescription> queryGroup, final ArrayList< Channel > channels )
+	public static int channelIndex( final Group<? extends ViewDescription > queryGroup, final ArrayList< Channel > channels )
 	{
 		if ( queryGroup.size() == 0 )
 			return -1;
@@ -709,7 +709,7 @@ public class N5ApiTools
 		return -1;
 	}
 
-	public static int timepointIndex( final Group<? extends ViewDescription> queryGroup, final ArrayList< TimePoint > timepoints )
+	public static int timepointIndex( final Group<? extends ViewDescription > queryGroup, final ArrayList< TimePoint > timepoints )
 	{
 		if ( queryGroup.size() == 0 )
 			return -1;
