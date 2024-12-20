@@ -36,14 +36,12 @@ import bdv.viewer.SourceAndConverter;
 import ch.epfl.biop.kheops.ometiff.OMETiffPyramidizerExporter;
 import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -99,7 +97,7 @@ public class ExportLarge2DTIFF implements ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group<? extends ViewId> fusionGroup )
+			final Group<? extends ViewDescription> fusionGroup )
 	{
 		// hack to make the interval divisable by 16 (see https://imagesc.zulipchat.com/#narrow/stream/212929-general/topic/Writing.20large.202D.20TIFFs)
 		if ( imgInterval.dimension( 0 ) % 16 != 0 || imgInterval.dimension( 1 ) % 16 != 0 )

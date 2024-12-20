@@ -36,7 +36,6 @@ import gov.nist.isg.archiver.DirectoryArchiver;
 import gov.nist.isg.pyramidio.PartialImageReader;
 import gov.nist.isg.pyramidio.ScalablePyramidBuilder;
 import mpicbg.spim.data.sequence.ViewDescription;
-import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -97,7 +96,7 @@ public class OpenSeaDragon implements ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group<? extends ViewId> fusionGroup )
+			final Group<? extends ViewDescription > fusionGroup )
 	{
 		// remember all fusiongroups
 		groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)imgInterval) );

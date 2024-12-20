@@ -22,7 +22,7 @@
  */
 package net.preibisch.mvrecon.process.export;
 
-import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
@@ -64,7 +64,7 @@ public interface ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup );
+			final Group< ? extends ViewDescription > fusionGroup );
 	
 	/*
 	 * Query the necessary parameters for the fusion (new dialog can be made)

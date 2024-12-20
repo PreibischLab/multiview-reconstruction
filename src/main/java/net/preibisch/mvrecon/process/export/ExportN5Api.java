@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
@@ -167,7 +168,8 @@ public class ExportN5Api implements ImgExport
 	public String getDescription() { return "OME-ZARR/N5/HDF5 export using N5-API"; }
 
 	private MultiResolutionLevelInfo[] mrInfoZarr = null;
-	private int numChannels, numTps;
+	private ArrayList<TimePoint> timepoints;
+	private ArrayList<Channel> channels;
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
@@ -176,7 +178,7 @@ public class ExportN5Api implements ImgExport
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group<? extends ViewId> fusionGroup )
+			final Group<? extends ViewDescription> fusionGroup )
 	{
 		final T type = imgInterval.getType();
 		final DataType dataType = N5Utils.dataType( type );
@@ -206,7 +208,7 @@ public class ExportN5Api implements ImgExport
 					{
 						final long[] dim3d = bb.dimensionsAsLongArray();
 
-						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], numChannels, numTps };
+						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], channels.size(), timepoints.size() };
 						final int[] blockSize = new int[] { blocksize()[ 0 ], blocksize()[ 1 ], blocksize()[ 2 ], 1, 1 };
 						final int[][] ds = new int[ this.downsampling.length ][];
 						for ( int d = 0; d < ds.length; ++d )
@@ -322,7 +324,8 @@ public class ExportN5Api implements ImgExport
 
 		if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 		{
-			
+			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
+			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
 		}
 		else
 		{
@@ -347,17 +350,23 @@ public class ExportN5Api implements ImgExport
 							try {
 								if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 								{
-									// TODO: gridBlock is 3d
-									final long[] blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+									// gridBlock is 3d, make it 5d
 									final long[] blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+									final long[] blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+									final long[] gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
 
-									// TODO: img is 3d
+									// block is 5d
 									final Interval block =
 											Intervals.translate(
 													new FinalInterval( blockSize ), // blocksize
 													blockOffset ); // block offset
 
-									final RandomAccessibleInterval< T > source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block ); // everything is 5d
+									// img is 3d, make it 5d
+									// the same information is returned no matter which index is queried in C and T
+									final RandomAccessibleInterval< T > source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block );
+
+									final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, blockOffset, blockSize);
+									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
 								}
 								else
 								{
@@ -368,7 +377,7 @@ public class ExportN5Api implements ImgExport
 
 									final RandomAccessibleInterval< T > source = Views.interval( img, block );
 		
-									final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
+									final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
 									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
 								}
 								IJ.showProgress( progress.incrementAndGet(), grid.size() );
@@ -526,11 +535,11 @@ public class ExportN5Api implements ImgExport
 
 			if ( fusion.getSplittingType() == 0 )
 			{
-				this.numChannels = N5ApiTools.numChannels( fusion.getFusionGroups() );
-				this.numTps = N5ApiTools.numTimepoints( fusion.getFusionGroups() );
+				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
+				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
 
 				gdZarr.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
-				gdZarr.addMessage( "Note: " + numChannels + " channels and " + numTps + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+				gdZarr.addMessage( "Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
 			}
 
 			gdZarr.showDialog();
