@@ -435,18 +435,23 @@ public class ExportN5Api implements ImgExport
 							// 5D OME-ZARR CONTAINER
 							if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 							{
-								
+								N5ApiTools.writeDownsampledBlock5dOMEZARR(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock,
+										currentChannelIndex,
+										currentTPIndex );
 							}
 							else
 							{
-								
+								N5ApiTools.writeDownsampledBlock(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock );
 							}
 
-							N5ApiTools.writeDownsampledBlock(
-								driverVolumeWriter,
-								mrInfo[ s ],
-								mrInfo[ s - 1 ],
-								gridBlock );
 
 							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 						})).get();

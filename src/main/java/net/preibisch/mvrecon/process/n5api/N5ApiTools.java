@@ -450,8 +450,8 @@ public class N5ApiTools
 			final MultiResolutionLevelInfo mrInfo,
 			final MultiResolutionLevelInfo mrInfoPreviousScale,
 			final long[][] gridBlock,
-			final int currentChannelIndex,
-			final int currentTPIndex )
+			final long currentChannelIndex,
+			final long currentTPIndex )
 	{
 		final String dataset = mrInfo.dataset;
 		final String datasetPreviousScale = mrInfoPreviousScale.dataset;
