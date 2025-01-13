@@ -64,6 +64,7 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -351,7 +352,8 @@ public class ExportN5Api implements ImgExport
 							try
 							{
 								final long[] blockOffset, blockSize, gridOffset;
-								final RandomAccessibleInterval< T > source;
+
+								final RandomAccessible< T >image;
 
 								// 5D OME-ZARR CONTAINER
 								if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
@@ -361,15 +363,9 @@ public class ExportN5Api implements ImgExport
 									blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
 									gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
 
-									// block is 5d
-									final Interval block =
-											Intervals.translate(
-													new FinalInterval( blockSize ), // blocksize
-													blockOffset ); // block offset
-
 									// img is 3d, make it 5d
 									// the same information is returned no matter which index is queried in C and T
-									source = Views.interval( Views.addDimension( Views.addDimension( img ) ), block );
+									image = Views.addDimension( Views.addDimension( img ) );
 								}
 								else
 								{
@@ -377,18 +373,20 @@ public class ExportN5Api implements ImgExport
 									blockSize = gridBlock[1];
 									gridOffset = gridBlock[2];
 
-									final Interval block =
-											Intervals.translate(
-													new FinalInterval( gridBlock[1] ), // blocksize
-													gridBlock[0] ); // block offset
-
-									source = Views.interval( img, block );
-		
-									//final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-									//N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+									image = img;
 								}
 
-								final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval(source, blockOffset, blockSize);
+								final Interval block =
+										Intervals.translate(
+												new FinalInterval( blockSize ),
+												blockOffset );
+
+								final RandomAccessibleInterval< T > source =
+										Views.interval( image, block );
+
+								final RandomAccessibleInterval< T > sourceGridBlock =
+										Views.offsetInterval(source, blockOffset, blockSize);
+
 								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
 
 								IJ.showProgress( progress.incrementAndGet(), grid.size() );
@@ -434,6 +432,16 @@ public class ExportN5Api implements ImgExport
 				myPool.submit( () -> allBlocks.parallelStream().forEach(
 						gridBlock ->
 						{
+							// 5D OME-ZARR CONTAINER
+							if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+							{
+								
+							}
+							else
+							{
+								
+							}
+
 							N5ApiTools.writeDownsampledBlock(
 								driverVolumeWriter,
 								mrInfo[ s ],

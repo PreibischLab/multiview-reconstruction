@@ -55,6 +55,7 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -420,16 +421,12 @@ public class N5ApiTools
 			final N5Writer n5,
 			final MultiResolutionLevelInfo mrInfo,
 			final MultiResolutionLevelInfo mrInfoPreviousScale,
-			//final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. for s1, s2, ...)
-			//final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. for s0 when writing s1, s1 when writing s2, ... )
-			//final int[] relativeDownsampling,
 			final long[][] gridBlock )
 	{
-		final String dataset = mrInfo.dataset;// viewIdToDataset.apply( gridBlock );
-		final String datasetPreviousScale = mrInfoPreviousScale.dataset; // viewIdToDatasetPreviousScale.apply( gridBlock );
+		final String dataset = mrInfo.dataset;
+		final String datasetPreviousScale = mrInfoPreviousScale.dataset;
 
-		final DataType dataType = mrInfo.dataType;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
-		final int[] blockSize = mrInfo.blockSize;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
+		final DataType dataType = mrInfo.dataType;
 
 		if ( !supportedDataTypes.contains( dataType ) )
 		{
@@ -446,6 +443,52 @@ public class N5ApiTools
 
 		final RandomAccessibleInterval<T> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
 		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], type);
+	}
+
+	public static < T extends NativeType< T > & RealType< T > > void writeDownsampledBlock5dOMEZARR(
+			final N5Writer n5,
+			final MultiResolutionLevelInfo mrInfo,
+			final MultiResolutionLevelInfo mrInfoPreviousScale,
+			final long[][] gridBlock,
+			final int currentChannelIndex,
+			final int currentTPIndex )
+	{
+		final String dataset = mrInfo.dataset;
+		final String datasetPreviousScale = mrInfoPreviousScale.dataset;
+
+		final DataType dataType = mrInfo.dataType;
+
+		if ( !supportedDataTypes.contains( dataType ) )
+		{
+			n5.close();
+			throw new RuntimeException("Unsupported pixel type: " + dataType );
+		}
+
+		final long[] blockOffset, blockSize, gridOffset;
+
+		// gridBlock is 3d, make it 5d
+		blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+		blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+		gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
+
+		// cut out the relevant 3D block
+		final RandomAccessibleInterval<T> previousScaleRaw = N5Utils.open(n5, datasetPreviousScale);
+		final RandomAccessibleInterval<T> previousScale = Views.hyperSlice( Views.hyperSlice( previousScaleRaw, 4, currentTPIndex ), 3, currentChannelIndex );
+		final T type = previousScale.getType().createVariable();
+
+		final BlockSupplier< T > blocks = BlockSupplier.of( previousScale ).andThen( Downsample.downsample( mrInfo.relativeDownsampling ) );
+
+		// make dimensions 3d
+		final long[] dimensionsRaw = n5.getAttribute( dataset, DatasetAttributes.DIMENSIONS_KEY, long[].class );
+		final long[] dimensions = new long[] { dimensionsRaw[ 0 ], dimensionsRaw[ 1 ], dimensionsRaw[ 2 ] };
+
+		final RandomAccessibleInterval< T > downsampled3d = BlockAlgoUtils.cellImg( blocks, dimensions, new int[] { 64 } );
+
+		// the same information is returned no matter which index is queried in C and T
+		final RandomAccessible< T > downsampled5d = Views.addDimension( Views.addDimension( downsampled3d ) );
+
+		final RandomAccessibleInterval<T> sourceGridBlock = Views.offsetInterval(downsampled5d, blockOffset, blockSize);
+		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridOffset, type);
 	}
 
 	public static List<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
