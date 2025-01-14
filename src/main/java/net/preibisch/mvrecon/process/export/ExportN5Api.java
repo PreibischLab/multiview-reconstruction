@@ -30,15 +30,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.management.RuntimeErrorException;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -93,7 +90,7 @@ public class ExportN5Api implements ImgExport
 	public static String defaultDatasetExtension = "/s0";
 
 	public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
-	public static int defaultOmeZarrDim = 0;
+	public static int defaultOmeZarrDim = 2;
 	public static boolean defaultOmeZarrOneContainer = true;
 	public static boolean defaultBDV = false;
 	public static boolean defaultMultiRes = false;
@@ -307,13 +304,15 @@ public class ExportN5Api implements ImgExport
 					this.downsampling );
 		}
 
+		// for OME-ZARR, dimensions are 5D
 		final List<long[][]> grid = N5ApiTools.assembleJobs(
-				mrInfo[ 0 ],
+				null, // no need to go across ViewIds (for now)
+				new long[] { mrInfo[ 0 ].dimensions[ 0 ], mrInfo[ 0 ].dimensions[ 1 ], mrInfo[ 0 ].dimensions[ 2 ] },
 				new int[] {
 						blocksize()[0] * computeBlocksizeFactor()[ 0 ],
 						blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-						blocksize()[2] * computeBlocksizeFactor()[ 2 ]
-				} );
+						blocksize()[2] * computeBlocksizeFactor()[ 2 ] },
+				blocksize() );
 
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
