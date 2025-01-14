@@ -236,6 +236,7 @@ public class ExportN5Api implements ImgExport
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
 		final MultiResolutionLevelInfo[] mrInfo;
+		final long currentChannelIndex, currentTPIndex;
 
 		if ( bdv )
 		{
@@ -273,9 +274,15 @@ public class ExportN5Api implements ImgExport
 				IOFunctions.println( "Failed to write metadata for '"  + "': " + e );
 				return false;
 			}
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
 		}
 		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer ) // OME-Zarr export into a single container
 		{
+			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
+			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
+
 			mrInfo = mrInfoZarr;
 		}
 		else if ( storageType == StorageFormat.ZARR ) // OME-Zarr export
@@ -302,6 +309,9 @@ public class ExportN5Api implements ImgExport
 					compression,
 					blocksize(),
 					this.downsampling );
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
 		}
 
 		// for OME-ZARR, dimensions are 5D
@@ -319,19 +329,6 @@ public class ExportN5Api implements ImgExport
 
 		final AtomicInteger progress = new AtomicInteger( 0 );
 		IJ.showProgress( progress.get(), grid.size() );
-
-		final long currentChannelIndex, currentTPIndex;
-
-		if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
-		{
-			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
-			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
-		}
-		else
-		{
-			currentChannelIndex = -1;
-			currentTPIndex = -1;
-		}
 
 		//
 		// save full-resolution data (s0)
