@@ -84,7 +84,7 @@ import util.URITools;
 public class ExportN5Api implements ImgExport
 {
 	public static String defaultPathURI = null;
-	public static int defaultOption = 1;
+	public static int defaultOption = 0;
 	public static String defaultDatasetName = "fused";
 	public static String defaultBaseDataset = "/";
 	public static String defaultDatasetExtension = "/s0";
@@ -201,6 +201,7 @@ public class ExportN5Api implements ImgExport
 				{
 					driverVolumeWriter = URITools.instantiateN5Writer( storageType, path );
 
+					// OME-ZARR single container:
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
@@ -221,10 +222,14 @@ public class ExportN5Api implements ImgExport
 								compression,
 								blockSize, //5d
 								ds ); // 5d
+
+						// TODO: save metadata
 					}
 				}
 				else
+				{
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
+				}
 			}
 			catch ( Exception e )
 			{
