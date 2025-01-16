@@ -548,30 +548,43 @@ public class ExportN5Api implements ImgExport
 		//
 		if ( storageType == StorageFormat.ZARR )
 		{
-			final GenericDialog gdZarr = new GenericDialog( "OME-Zarr options" );
-
-			gdZarr.addChoice( "Preferred dimensionality of the OME-Zarr", omeZarrDimChoice, omeZarrDimChoice[ defaultOmeZarrDim ] );
-			gdZarr.addMessage( "Note: this may be overwritten by the choice to store all fusion data in a single OME-ZARR container.", GUIHelper.smallStatusFont );
-
 			if ( fusion.getSplittingType() == 0 )
 			{
 				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
 				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
 
-				gdZarr.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
-				gdZarr.addMessage( "Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options 1" );
+
+				gdZarr1.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
+				gdZarr1.addMessage( "Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+
+				gdZarr1.showDialog();
+				if ( gdZarr1.wasCanceled() )
+					return false;
+
+				omeZarrOneContainer = defaultOmeZarrOneContainer = gdZarr1.getNextBoolean();
+			}
+			else
+			{
+				omeZarrOneContainer = false;
 			}
 
-			gdZarr.showDialog();
-			if ( gdZarr.wasCanceled() )
-				return false;
+			if ( !omeZarrOneContainer )
+			{
+				final GenericDialog gdZarr2 = new GenericDialog( "OME-Zarr options 2" );
 
-			omeZarrDim = defaultOmeZarrDim = gdZarr.getNextChoiceIndex();
+				gdZarr2.addChoice( "Dimensionality of (each of the) OME-Zarr(s)", omeZarrDimChoice, omeZarrDimChoice[ defaultOmeZarrDim ] );
 
-			if ( fusion.getSplittingType() == 0 )
-				omeZarrOneContainer = defaultOmeZarrOneContainer = gdZarr.getNextBoolean();
+				gdZarr2.showDialog();
+				if ( gdZarr2.wasCanceled() )
+					return false;
+
+				omeZarrDim = defaultOmeZarrDim = gdZarr2.getNextChoiceIndex();
+			}
 			else
-				omeZarrOneContainer = false;
+			{
+				omeZarrDim = 2;
+			}
 		}
 
 		//
