@@ -198,6 +198,16 @@ public class N5ApiTools
 			this.absoluteDownsampling = absoluteDownsampling;
 			this.blockSize = blockSize;
 		}
+
+		public double[] absoluteDownsamplingDouble()
+		{
+			return Arrays.stream( absoluteDownsampling ).asDoubleStream().toArray();
+		}
+
+		public int[] absoluteDownsamplingInt()
+		{
+			return absoluteDownsampling;
+		}
 	}
 
 	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
