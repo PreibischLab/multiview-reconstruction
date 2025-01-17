@@ -104,7 +104,7 @@ public class OMEZarrAttibutes
 			// if 4d and 5d, add 1's for C and T
 			for ( int d = 3; d < n; ++d )
 			{
-				translation[ d ] = 1.0;
+				translation[ d ] = 0.0;
 				scale[ d ] = 1.0;
 			}
 
