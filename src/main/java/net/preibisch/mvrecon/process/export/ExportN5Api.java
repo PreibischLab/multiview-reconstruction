@@ -175,6 +175,8 @@ public class ExportN5Api implements ImgExport
 	private MultiResolutionLevelInfo[] mrInfoZarr = null;
 	private ArrayList<TimePoint> timepoints;
 	private ArrayList<Channel> channels;
+	private double anisoF = Double.NaN;
+	private double downsamplingF = Double.NaN;
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
@@ -212,6 +214,8 @@ public class ExportN5Api implements ImgExport
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
+						IOFunctions.println( "Creating OME-ZARR stucture & metadata ... " );
+
 						final long[] dim3d = bb.dimensionsAsLongArray();
 
 						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], channels.size(), timepoints.size() };
@@ -235,16 +239,25 @@ public class ExportN5Api implements ImgExport
 						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
 
-						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-						
 						// TODO: this is correct if preserve anisotropy was checked
-						vx.dimensionsAsDoubleArray();
+						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+						final double[] resolutionS0 = fusionGroup.iterator().next().getViewSetup().getVoxelSize().dimensionsAsDoubleArray();
+
+						// not preserving anisotropy
+						if ( Double.isNaN( anisoF ) )
+							resolutionS0[ 2 ] = resolutionS0[ 0 ];
+
+						// downsampling
+						if ( !Double.isNaN( downsamplingF ) )
+							Arrays.setAll(resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
+
+						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 								5, // int n
 								"/", // String name, I also saw "/"
-								vx.dimensionsAsDoubleArray(), // TODO: downsampling not taken into account yet; double[] resolutionS0,
+								resolutionS0, // double[] resolutionS0,
 								vx.unit(), // String unitXYZ, // e.g micrometer
 								mrInfoZarr.length, // int numResolutionLevels,
 								levelToName,
@@ -592,6 +605,8 @@ public class ExportN5Api implements ImgExport
 			{
 				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
 				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
+				this.anisoF = fusion.getAnisotropyFactor();
+				this.downsamplingF = fusion.getDownsampling();
 
 				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options 1" );
 
