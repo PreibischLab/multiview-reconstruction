@@ -36,6 +36,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
+import bdv.img.n5.N5ImageLoader;
+import bdv.util.MipmapTransforms;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -43,6 +47,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
@@ -63,6 +68,7 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Intervals;
@@ -73,6 +79,7 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
@@ -213,17 +220,45 @@ public class ExportN5Api implements ImgExport
 						for ( int d = 0; d < ds.length; ++d )
 							ds[ d ] = new int[] { this.downsampling[ d ][ 0 ], this.downsampling[ d ][ 1 ], this.downsampling[ d ][ 2 ], 1, 1 };
 
+						final Function<Integer, String> levelToName = (level) -> "/s" + level;
+
 						// all is 5d now
 						mrInfoZarr = N5ApiTools.setupMultiResolutionPyramid(
 								driverVolumeWriter,
-								(level) -> "/s" + level,
+								levelToName,
 								dataType,
 								dim, //5d
 								compression,
 								blockSize, //5d
 								ds ); // 5d
 
-						// TODO: save metadata
+						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
+								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
+
+						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+						
+						// TODO: this is correct if preserve anisotropy was checked
+						vx.dimensionsAsDoubleArray();
+
+						// create metadata
+						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
+								5, // int n
+								"/", // String name, I also saw "/"
+								vx.dimensionsAsDoubleArray(), // TODO: downsampling not taken into account yet; double[] resolutionS0,
+								vx.unit(), // String unitXYZ, // e.g micrometer
+								mrInfoZarr.length, // int numResolutionLevels,
+								levelToName,
+								levelToMipmapTransform );
+
+						// save metadata
+
+						//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+						// for this to work you need to register an adapter in the N5Factory class
+						// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+						driverVolumeWriter.setAttribute( "/", "multiscales", meta );
+						//driverVolumeWriter.getAttribute(pathName, key, class )
+						//n5.getAttribute( n5properties.getPath( setupId, timePointId ), "multiscales", OmeNgffMultiScaleMetadata[].class );
+
 					}
 				}
 				else
