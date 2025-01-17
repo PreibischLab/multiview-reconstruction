@@ -61,7 +61,7 @@ public class OMEZarrAttibutes
 		final OmeNgffMultiScaleMetadata[] meta = new OmeNgffMultiScaleMetadata[ 1 ];
 
 		// dataset name and co
-		final String path = null;
+		final String path = "";
 		final String type = null;
 
 		// axis descriptions
