@@ -100,7 +100,7 @@ public class ExportN5Api implements ImgExport
 	public static int defaultOmeZarrDim = 2;
 	public static boolean defaultOmeZarrOneContainer = true;
 	public static boolean defaultBDV = false;
-	public static boolean defaultMultiRes = false;
+	public static boolean defaultMultiRes = true;
 	public static String defaultXMLOutURI = null;
 	public static boolean defaultManuallyAssignViewId = false;
 	public static int defaultTpId = 0;
