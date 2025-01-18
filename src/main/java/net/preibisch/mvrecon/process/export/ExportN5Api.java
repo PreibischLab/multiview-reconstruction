@@ -96,7 +96,7 @@ public class ExportN5Api implements ImgExport
 	public static String defaultBaseDataset = "/";
 	public static String defaultDatasetExtension = "/s0";
 
-	public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
+	//public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
 	public static int defaultOmeZarrDim = 2;
 	public static boolean defaultOmeZarrOneContainer = true;
 	public static boolean defaultBDV = false;
@@ -127,7 +127,7 @@ public class ExportN5Api implements ImgExport
 	String baseDataset = defaultBaseDataset;
 	String datasetExtension = defaultDatasetExtension;
 
-	int omeZarrDim = defaultOmeZarrDim;
+	//int omeZarrDim = defaultOmeZarrDim;
 	boolean omeZarrOneContainer = defaultOmeZarrOneContainer;
 
 	boolean bdv = defaultBDV;
@@ -638,10 +638,11 @@ public class ExportN5Api implements ImgExport
 				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
 				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
 
-				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options 1" );
+				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options" );
 
 				gdZarr1.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
 				gdZarr1.addMessage( "Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
+				gdZarr1.addMessage( "Note: If you do not select a single OME-ZARR, a 3D OME-ZARR will be created for each fused volume.", GUIHelper.smallStatusFont );
 
 				gdZarr1.showDialog();
 				if ( gdZarr1.wasCanceled() )
@@ -653,7 +654,7 @@ public class ExportN5Api implements ImgExport
 			{
 				omeZarrOneContainer = false;
 			}
-
+			/*
 			if ( !omeZarrOneContainer )
 			{
 				final GenericDialog gdZarr2 = new GenericDialog( "OME-Zarr options 2" );
@@ -669,7 +670,7 @@ public class ExportN5Api implements ImgExport
 			else
 			{
 				omeZarrDim = 2;
-			}
+			}*/
 		}
 
 		//
@@ -703,9 +704,9 @@ public class ExportN5Api implements ImgExport
 				gd.addMessage( "" );
 			}
 		}
-		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+		else if ( storageType == StorageFormat.ZARR ) //&& omeZarrOneContainer )
 		{
-			// nothing else to ask
+			// nothing else to ask for OME-ZARR's
 		}
 		else
 		{
@@ -823,9 +824,9 @@ public class ExportN5Api implements ImgExport
 				// later calling getViewIdForGroup( fusionGroup, splittingType );
 			}
 		}
-		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+		else if ( storageType == StorageFormat.ZARR )// && omeZarrOneContainer )
 		{
-			// nothing to get
+			// nothing to get for OME-ZARR's
 		}
 		else
 		{
