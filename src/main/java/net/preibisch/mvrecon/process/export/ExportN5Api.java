@@ -331,12 +331,10 @@ public class ExportN5Api implements ImgExport
 			final String omeZarrSubContainer = title + ".zarr";
 			IOFunctions.println( "Creating 3D OME-ZARR sub-container '" + omeZarrSubContainer + "' and metadata in '" + path + "' ... " );
 
-			final Function<Integer, String> levelToName = (level) -> "/s" + level;
-
 			// all is 3d
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					levelToName,
+					(level) -> omeZarrSubContainer + "/s" + level,
 					dataType,
 					bb.dimensionsAsLongArray(), //3d
 					compression,
@@ -360,7 +358,7 @@ public class ExportN5Api implements ImgExport
 					resolutionS0, // double[] resolutionS0,
 					vx.unit(), // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
-					levelToName,
+					(level) -> "/s" + level,
 					levelToMipmapTransform );
 
 			// save metadata
@@ -372,8 +370,6 @@ public class ExportN5Api implements ImgExport
 
 			currentChannelIndex = -1;
 			currentTPIndex = -1;
-
-			throw new RuntimeException( "not implemented yet." );
 		}
 		else
 		{
