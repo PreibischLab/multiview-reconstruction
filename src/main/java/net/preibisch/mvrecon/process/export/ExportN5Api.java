@@ -175,14 +175,12 @@ public class ExportN5Api implements ImgExport
 	private MultiResolutionLevelInfo[] mrInfoZarr = null;
 	private ArrayList<TimePoint> timepoints;
 	private ArrayList<Channel> channels;
-	private double anisoF = Double.NaN;
-	private double downsamplingF = Double.NaN;
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
 			RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
-			final double downsampling,
+			final double downsamplingF,
 			final double anisoF,
 			final String title,
 			final Group<? extends ViewDescription> fusionGroup )
@@ -242,15 +240,7 @@ public class ExportN5Api implements ImgExport
 						// extract the resolution of the s0 export
 						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-						final double[] resolutionS0 = vx.dimensionsAsDoubleArray();
-
-						// not preserving anisotropy
-						if ( Double.isNaN( anisoF ) )
-							resolutionS0[ 2 ] = resolutionS0[ 0 ];
-
-						// downsampling
-						if ( !Double.isNaN( downsamplingF ) )
-							Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
+						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
 						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
 
@@ -338,12 +328,56 @@ public class ExportN5Api implements ImgExport
 		}
 		else if ( storageType == StorageFormat.ZARR ) // OME-Zarr export
 		{
-			mrInfo = null;
+			final String omeZarrSubContainer = title + ".zarr";
+			IOFunctions.println( "Creating 3D OME-ZARR sub-container '" + omeZarrSubContainer + "' and metadata in '" + path + "' ... " );
+
+			final Function<Integer, String> levelToName = (level) -> "/s" + level;
+
+			// all is 3d
+			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
+					driverVolumeWriter,
+					levelToName,
+					dataType,
+					bb.dimensionsAsLongArray(), //3d
+					compression,
+					blocksize(), //3d
+					this.downsampling ); // 3d
+
+			final Function<Integer, AffineTransform3D> levelToMipmapTransform =
+					(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfo[level].absoluteDownsamplingDouble() );
+
+			// extract the resolution of the s0 export
+			// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+
+			IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
+
+			// create metadata
+			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
+					3, // int n
+					omeZarrSubContainer, // String name, I also saw "/"
+					resolutionS0, // double[] resolutionS0,
+					vx.unit(), // String unitXYZ, // e.g micrometer
+					mrInfo.length, // int numResolutionLevels,
+					levelToName,
+					levelToMipmapTransform );
+
+			// save metadata
+
+			//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+			// for this to work you need to register an adapter in the N5Factory class
+			// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+			driverVolumeWriter.setAttribute( omeZarrSubContainer, "multiscales", meta );
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
+
 			throw new RuntimeException( "not implemented yet." );
 		}
 		else
 		{
-			// this is the relative path to the dataset inside the Zarr/N5/HDF5 container, thus using File here seems fine
+			// this is the relative path to the dataset inside the N5/HDF5 container, thus using File here seems fine
 			final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
 
 			// e.g. in Windows this will change it to '\s0'
@@ -603,8 +637,6 @@ public class ExportN5Api implements ImgExport
 			{
 				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
 				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
-				this.anisoF = fusion.getAnisotropyFactor();
-				this.downsamplingF = fusion.getDownsampling();
 
 				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options 1" );
 
