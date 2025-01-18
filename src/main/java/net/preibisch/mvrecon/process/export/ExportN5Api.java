@@ -201,6 +201,8 @@ public class ExportN5Api implements ImgExport
 			{
 				if ( storageType == StorageFormat.HDF5 )
 				{
+					IOFunctions.println( "Creating HDF5 container at '" + path + "' ... " );
+
 					final File dir = new File( URITools.fromURI( path ) ).getParentFile();
 					if ( !dir.exists() )
 						dir.mkdirs();
@@ -214,7 +216,7 @@ public class ExportN5Api implements ImgExport
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
-						IOFunctions.println( "Creating OME-ZARR stucture & metadata ... " );
+						IOFunctions.println( "Creating OME-ZARR container & metadata '" + path + "' ... " );
 
 						final long[] dim3d = bb.dimensionsAsLongArray();
 
@@ -239,7 +241,8 @@ public class ExportN5Api implements ImgExport
 						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
 
-						// TODO: this is correct if preserve anisotropy was checked
+						// extract the resolution of the s0 export
+						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 						final double[] resolutionS0 = fusionGroup.iterator().next().getViewSetup().getVoxelSize().dimensionsAsDoubleArray();
 
@@ -249,7 +252,7 @@ public class ExportN5Api implements ImgExport
 
 						// downsampling
 						if ( !Double.isNaN( downsamplingF ) )
-							Arrays.setAll(resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
+							Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
 
 						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
 
