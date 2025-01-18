@@ -637,8 +637,9 @@ public class ExportN5Api implements ImgExport
 				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options" );
 
 				gdZarr1.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
-				gdZarr1.addMessage( "Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.", GUIHelper.smallStatusFont );
-				gdZarr1.addMessage( "Note: If you do not select a single OME-ZARR, a 3D OME-ZARR will be created for each fused volume.", GUIHelper.smallStatusFont );
+				gdZarr1.addMessage(
+						"Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.\n" + 
+						"If you do not select a single OME-ZARR, a 3D OME-ZARR will be created for each fused volume.", GUIHelper.smallStatusFont );
 
 				gdZarr1.showDialog();
 				if ( gdZarr1.wasCanceled() )
