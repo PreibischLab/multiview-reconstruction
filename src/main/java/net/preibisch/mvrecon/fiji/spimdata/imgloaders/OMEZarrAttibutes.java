@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -38,6 +39,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
+import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
 import util.URITools;
 
@@ -126,6 +128,22 @@ public class OMEZarrAttibutes
 		meta[ 0 ] = new OmeNgffMultiScaleMetadata( n, path, name, type, "0.4", axes, datasets, childrenAttributes, coordinateTransformations, metadata );
 
 		return meta;
+	}
+
+	// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+	public static double[] getResolutionS0( final VoxelDimensions vx, final double anisoF, final double downsamplingF )
+	{
+		final double[] resolutionS0 = vx.dimensionsAsDoubleArray();
+
+		// not preserving anisotropy
+		if ( Double.isNaN( anisoF ) )
+			resolutionS0[ 2 ] = resolutionS0[ 0 ];
+
+		// downsampling
+		if ( !Double.isNaN( downsamplingF ) )
+			Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
+
+		return resolutionS0;
 	}
 
 	public static void loadOMEZarr( final N5Reader n5, final String dataset )
