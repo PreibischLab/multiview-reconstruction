@@ -38,9 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import bdv.img.n5.N5ImageLoader;
-import bdv.util.MipmapTransforms;
-
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -51,6 +48,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiSca
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
+import bdv.util.MipmapTransforms;
 import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.gui.GenericDialog;
