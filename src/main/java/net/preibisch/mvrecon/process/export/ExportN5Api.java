@@ -201,8 +201,6 @@ public class ExportN5Api implements ImgExport
 			{
 				if ( storageType == StorageFormat.HDF5 )
 				{
-					IOFunctions.println( "Creating HDF5 container at '" + path + "' ... " );
-
 					final File dir = new File( URITools.fromURI( path ) ).getParentFile();
 					if ( !dir.exists() )
 						dir.mkdirs();
@@ -216,7 +214,7 @@ public class ExportN5Api implements ImgExport
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
-						IOFunctions.println( "Creating OME-ZARR container & metadata '" + path + "' ... " );
+						IOFunctions.println( "Creating 5D OME-ZARR metadata for '" + path + "' ... " );
 
 						final long[] dim3d = bb.dimensionsAsLongArray();
 
@@ -244,7 +242,7 @@ public class ExportN5Api implements ImgExport
 						// extract the resolution of the s0 export
 						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-						final double[] resolutionS0 = fusionGroup.iterator().next().getViewSetup().getVoxelSize().dimensionsAsDoubleArray();
+						final double[] resolutionS0 = vx.dimensionsAsDoubleArray();
 
 						// not preserving anisotropy
 						if ( Double.isNaN( anisoF ) )
@@ -272,9 +270,6 @@ public class ExportN5Api implements ImgExport
 						// for this to work you need to register an adapter in the N5Factory class
 						// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
 						driverVolumeWriter.setAttribute( "/", "multiscales", meta );
-						//driverVolumeWriter.getAttribute(pathName, key, class )
-						//n5.getAttribute( n5properties.getPath( setupId, timePointId ), "multiscales", OmeNgffMultiScaleMetadata[].class );
-
 					}
 				}
 				else
