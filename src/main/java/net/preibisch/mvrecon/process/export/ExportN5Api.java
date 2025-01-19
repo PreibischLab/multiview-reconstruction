@@ -319,8 +319,13 @@ public class ExportN5Api implements ImgExport
 		}
 		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer ) // OME-Zarr export into a single container
 		{
+			// TODO: timepoint in the wrong order:
+			// Prcoessing OME-ZARR sub-volume 'fused_tp_18_ch_0'. channel index=0, timepoint index=1
+			// Prcoessing OME-ZARR sub-volume 'fused_tp_30_ch_0'. channel index=0, timepoint index=0
 			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
 			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
+
+			IOFunctions.println( "Prcoessing OME-ZARR sub-volume '" + title + "'. channel index=" + currentChannelIndex + ", timepoint index=" + currentTPIndex );
 
 			mrInfo = mrInfoZarr;
 		}
@@ -631,6 +636,14 @@ public class ExportN5Api implements ImgExport
 			{
 				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
 				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
+
+				IOFunctions.println( "Channels to be added to the OME-ZARR:" );
+				for ( final Channel c : this.channels )
+					IOFunctions.println( "\tChannel " + c.getId() + ": " + c.getName() );
+
+				IOFunctions.println( "Timepoints to be added to the OME-ZARR:" );
+				for ( final TimePoint t : this.timepoints )
+					IOFunctions.println( "\tTimepoint " + t.getId() );
 
 				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options" );
 
