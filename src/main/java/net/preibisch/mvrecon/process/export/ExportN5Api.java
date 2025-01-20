@@ -91,8 +91,8 @@ public class ExportN5Api implements ImgExport
 	public static String defaultPathURI = null;
 	public static int defaultOption = 0;
 	public static String defaultDatasetName = "fused";
-	public static String defaultBaseDataset = "/";
-	public static String defaultDatasetExtension = "/s0";
+	//public static String defaultBaseDataset = "/";
+	//public static String defaultDatasetExtension = "/s0";
 
 	//public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
 	public static int defaultOmeZarrDim = 2;
@@ -122,8 +122,8 @@ public class ExportN5Api implements ImgExport
 
 	StorageFormat storageType = StorageFormat.values()[ defaultOption ];
 	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
-	String baseDataset = defaultBaseDataset;
-	String datasetExtension = defaultDatasetExtension;
+	//String baseDataset = defaultBaseDataset;
+	//String datasetExtension = defaultDatasetExtension;
 
 	//int omeZarrDim = defaultOmeZarrDim;
 	boolean omeZarrOneContainer = defaultOmeZarrOneContainer;
@@ -319,9 +319,6 @@ public class ExportN5Api implements ImgExport
 		}
 		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer ) // OME-Zarr export into a single container
 		{
-			// TODO: timepoint in the wrong order:
-			// Prcoessing OME-ZARR sub-volume 'fused_tp_18_ch_0'. channel index=0, timepoint index=1
-			// Prcoessing OME-ZARR sub-volume 'fused_tp_30_ch_0'. channel index=0, timepoint index=0
 			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
 			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
 
@@ -377,17 +374,18 @@ public class ExportN5Api implements ImgExport
 		else
 		{
 			// this is the relative path to the dataset inside the N5/HDF5 container, thus using File here seems fine
-			final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
+			//final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
 
 			// e.g. in Windows this will change it to '\s0'
-			final String datasetExtensionOS = new File( datasetExtension ).toString(); 
+			//final String datasetExtensionOS = new File( datasetExtension ).toString(); 
 
-			IOFunctions.println( "datasetExtensionOS: " +datasetExtensionOS );
+			//IOFunctions.println( "datasetExtensionOS: " +datasetExtensionOS );
+			IOFunctions.println( "Creating 3D N5 sub-container '" + title + "' in '" + path + "' ... " );
 
 			// setup multi-resolution pyramid
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					(level) -> new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString(),
+					(level) -> title + "/s" + level,
 					dataType,
 					bb.dimensionsAsLongArray(),
 					compression,
@@ -662,23 +660,6 @@ public class ExportN5Api implements ImgExport
 			{
 				omeZarrOneContainer = false;
 			}
-			/*
-			if ( !omeZarrOneContainer )
-			{
-				final GenericDialog gdZarr2 = new GenericDialog( "OME-Zarr options 2" );
-
-				gdZarr2.addChoice( "Dimensionality of (each of the) OME-Zarr(s)", omeZarrDimChoice, omeZarrDimChoice[ defaultOmeZarrDim ] );
-
-				gdZarr2.showDialog();
-				if ( gdZarr2.wasCanceled() )
-					return false;
-
-				omeZarrDim = defaultOmeZarrDim = gdZarr2.getNextChoiceIndex();
-			}
-			else
-			{
-				omeZarrDim = 2;
-			}*/
 		}
 
 		//
@@ -716,8 +697,10 @@ public class ExportN5Api implements ImgExport
 		{
 			// nothing else to ask for OME-ZARR's
 		}
-		else
+		else if ( storageType == StorageFormat.N5 )
 		{
+			// nothing else to ask for N5's
+			/*
 			gd.addStringField( name + "_base_dataset", defaultBaseDataset );
 			gd.addStringField( name + "_dataset_extension", defaultDatasetExtension );
 	
@@ -727,6 +710,7 @@ public class ExportN5Api implements ImgExport
 					+ "dataset inside the 'base dataset'. You can add a dataset extension for each volume,\n"
 					+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution. If you select multi-resolution\n"
 					+ "output the dataset extension MUST end with /s0 since it will also create /s1, /s2, ...", GUIHelper.smallStatusFont, GUIHelper.neutral );
+					*/
 		}
 
 		// export type changed or undefined
@@ -836,10 +820,11 @@ public class ExportN5Api implements ImgExport
 		{
 			// nothing to get for OME-ZARR's
 		}
-		else
+		else if ( storageType == StorageFormat.N5 )
 		{
-			this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
-			this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
+			// nothing to get for N5's
+			//this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
+			//this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
 		}
 
 		if ( defaultAdvancedBlockSize = gd.getNextBoolean() )
@@ -899,11 +884,13 @@ public class ExportN5Api implements ImgExport
 
 		if ( multiRes )
 		{
+			/*
 			if ( !bdv && !this.datasetExtension.endsWith("/s0") )
 			{
 				IOFunctions.println( "The selected dataset extension does not end with '/s0'. Cannot continue since it is unclear how to store multi-resolution levels '/s1', '/s2', ..." );
 				return false;
 			}
+			*/
 
 			final double aniso = fusion.getAnisotropyFactor();
 			final Interval bb = fusion.getDownsampledBoundingBox();
