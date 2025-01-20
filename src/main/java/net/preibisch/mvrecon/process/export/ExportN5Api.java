@@ -220,7 +220,7 @@ public class ExportN5Api implements ImgExport
 						for ( int d = 0; d < ds.length; ++d )
 							ds[ d ] = new int[] { this.downsampling[ d ][ 0 ], this.downsampling[ d ][ 1 ], this.downsampling[ d ][ 2 ], 1, 1 };
 
-						final Function<Integer, String> levelToName = (level) -> "/s" + level;
+						final Function<Integer, String> levelToName = (level) -> "/" + level;
 
 						// all is 5d now
 						mrInfoZarr = N5ApiTools.setupMultiResolutionPyramid(
@@ -240,7 +240,7 @@ public class ExportN5Api implements ImgExport
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
-						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
+						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
@@ -334,7 +334,7 @@ public class ExportN5Api implements ImgExport
 			// all is 3d
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					(level) -> omeZarrSubContainer + "/s" + level,
+					(level) -> omeZarrSubContainer + "/" + level,
 					dataType,
 					bb.dimensionsAsLongArray(), //3d
 					compression,
@@ -349,7 +349,7 @@ public class ExportN5Api implements ImgExport
 			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
-			IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
+			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
 
 			// create metadata
 			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
@@ -358,7 +358,7 @@ public class ExportN5Api implements ImgExport
 					resolutionS0, // double[] resolutionS0,
 					"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
-					(level) -> "/s" + level,
+					(level) -> "/" + level,
 					levelToMipmapTransform );
 
 			// save metadata
