@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.process.export;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
@@ -35,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
@@ -42,15 +44,19 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
+import bdv.util.MipmapTransforms;
 import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.VoxelDimensions;
@@ -58,7 +64,9 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Intervals;
@@ -69,6 +77,7 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
@@ -80,13 +89,16 @@ import util.URITools;
 public class ExportN5Api implements ImgExport
 {
 	public static String defaultPathURI = null;
-	public static int defaultOption = 1;
+	public static int defaultOption = 0;
 	public static String defaultDatasetName = "fused";
-	public static String defaultBaseDataset = "/";
-	public static String defaultDatasetExtension = "/s0";
+	//public static String defaultBaseDataset = "/";
+	//public static String defaultDatasetExtension = "/s0";
 
+	//public static String[] omeZarrDimChoice = new String[] { "3D (ZYX)", "4D (CZYX)", "5D (TCZYX)" };
+	public static int defaultOmeZarrDim = 2;
+	public static boolean defaultOmeZarrOneContainer = true;
 	public static boolean defaultBDV = false;
-	public static boolean defaultMultiRes = false;
+	public static boolean defaultMultiRes = true;
 	public static String defaultXMLOutURI = null;
 	public static boolean defaultManuallyAssignViewId = false;
 	public static int defaultTpId = 0;
@@ -110,8 +122,11 @@ public class ExportN5Api implements ImgExport
 
 	StorageFormat storageType = StorageFormat.values()[ defaultOption ];
 	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
-	String baseDataset = defaultBaseDataset;
-	String datasetExtension = defaultDatasetExtension;
+	//String baseDataset = defaultBaseDataset;
+	//String datasetExtension = defaultDatasetExtension;
+
+	//int omeZarrDim = defaultOmeZarrDim;
+	boolean omeZarrOneContainer = defaultOmeZarrOneContainer;
 
 	boolean bdv = defaultBDV;
 	URI xmlOut;
@@ -153,17 +168,27 @@ public class ExportN5Api implements ImgExport
 	public ImgExport newInstance() { return new ExportN5Api(); }
 
 	@Override
-	public String getDescription() { return "ZARR/N5/HDF5 export using N5-API"; }
+	public String getDescription() { return "OME-ZARR/N5/HDF5 export using N5-API"; }
+
+	private MultiResolutionLevelInfo[] mrInfoZarr = null;
+	private ArrayList<TimePoint> timepoints;
+	private ArrayList<Channel> channels;
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
 			RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
-			final double downsampling,
+			final double downsamplingF,
 			final double anisoF,
 			final String title,
-			final Group<? extends ViewId> fusionGroup)
+			final Group<? extends ViewDescription> fusionGroup )
 	{
+		final T type = imgInterval.getType();
+		final DataType dataType = N5Utils.dataType( type );
+		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
+		if ( !supportedDataTypes.contains( dataType ) )
+			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
+
 		if ( driverVolumeWriter == null )
 		{
 			IOFunctions.println( "Creating " + storageType + " container '" + path + "' (assuming it doesn't already exist) ... " );
@@ -180,9 +205,65 @@ public class ExportN5Api implements ImgExport
 				else if ( storageType == StorageFormat.N5 || storageType == StorageFormat.ZARR )
 				{
 					driverVolumeWriter = URITools.instantiateN5Writer( storageType, path );
+
+					// OME-ZARR single container:
+					// if we store all fused data in one container, we create the dataset here
+					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+					{
+						IOFunctions.println( "Creating 5D OME-ZARR metadata for '" + path + "' ... " );
+
+						final long[] dim3d = bb.dimensionsAsLongArray();
+
+						final long[] dim = new long[] { dim3d[ 0 ], dim3d[ 1 ], dim3d[ 2 ], channels.size(), timepoints.size() };
+						final int[] blockSize = new int[] { blocksize()[ 0 ], blocksize()[ 1 ], blocksize()[ 2 ], 1, 1 };
+						final int[][] ds = new int[ this.downsampling.length ][];
+						for ( int d = 0; d < ds.length; ++d )
+							ds[ d ] = new int[] { this.downsampling[ d ][ 0 ], this.downsampling[ d ][ 1 ], this.downsampling[ d ][ 2 ], 1, 1 };
+
+						final Function<Integer, String> levelToName = (level) -> "/" + level;
+
+						// all is 5d now
+						mrInfoZarr = N5ApiTools.setupMultiResolutionPyramid(
+								driverVolumeWriter,
+								levelToName,
+								dataType,
+								dim, //5d
+								compression,
+								blockSize, //5d
+								ds ); // 5d
+
+						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
+								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
+
+						// extract the resolution of the s0 export
+						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+
+						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
+
+						// create metadata
+						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
+								5, // int n
+								"/", // String name, I also saw "/"
+								resolutionS0, // double[] resolutionS0,
+								"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+								mrInfoZarr.length, // int numResolutionLevels,
+								levelToName,
+								levelToMipmapTransform );
+
+						// save metadata
+
+						//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+						// for this to work you need to register an adapter in the N5Factory class
+						// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+						driverVolumeWriter.setAttribute( "/", "multiscales", meta );
+					}
 				}
 				else
+				{
 					throw new RuntimeException( "storageType " + storageType + " not supported." );
+				}
 			}
 			catch ( Exception e )
 			{
@@ -191,15 +272,10 @@ public class ExportN5Api implements ImgExport
 			}
 		}
 
-		final T type = imgInterval.getType();
-		final DataType dataType = N5Utils.dataType( type );
-		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
-		if ( !supportedDataTypes.contains( dataType ) )
-			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
-
 		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
 
 		final MultiResolutionLevelInfo[] mrInfo;
+		final long currentChannelIndex, currentTPIndex;
 
 		if ( bdv )
 		{
@@ -237,33 +313,98 @@ public class ExportN5Api implements ImgExport
 				IOFunctions.println( "Failed to write metadata for '"  + "': " + e );
 				return false;
 			}
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
+		}
+		else if ( storageType == StorageFormat.ZARR && omeZarrOneContainer ) // OME-Zarr export into a single container
+		{
+			currentChannelIndex = N5ApiTools.channelIndex( fusionGroup, channels );
+			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
+
+			IOFunctions.println( "Prcoessing OME-ZARR sub-volume '" + title + "'. channel index=" + currentChannelIndex + ", timepoint index=" + currentTPIndex );
+
+			mrInfo = mrInfoZarr;
+		}
+		else if ( storageType == StorageFormat.ZARR ) // OME-Zarr export
+		{
+			final String omeZarrSubContainer = title + ".zarr";
+			IOFunctions.println( "Creating 3D OME-ZARR sub-container '" + omeZarrSubContainer + "' and metadata in '" + path + "' ... " );
+
+			// all is 3d
+			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
+					driverVolumeWriter,
+					(level) -> omeZarrSubContainer + "/" + level,
+					dataType,
+					bb.dimensionsAsLongArray(), //3d
+					compression,
+					blocksize(), //3d
+					this.downsampling ); // 3d
+
+			final Function<Integer, AffineTransform3D> levelToMipmapTransform =
+					(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfo[level].absoluteDownsamplingDouble() );
+
+			// extract the resolution of the s0 export
+			// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+
+			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
+
+			// create metadata
+			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
+					3, // int n
+					omeZarrSubContainer, // String name, I also saw "/"
+					resolutionS0, // double[] resolutionS0,
+					"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+					mrInfo.length, // int numResolutionLevels,
+					(level) -> "/" + level,
+					levelToMipmapTransform );
+
+			// save metadata
+
+			//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+			// for this to work you need to register an adapter in the N5Factory class
+			// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+			driverVolumeWriter.setAttribute( omeZarrSubContainer, "multiscales", meta );
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
 		}
 		else
 		{
-			// this is the relative path to the dataset inside the Zarr/N5/HDF5 container, thus using File here seems fine
-			final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
+			// this is the relative path to the dataset inside the N5/HDF5 container, thus using File here seems fine
+			//final String dataset = new File( new File( baseDataset , title ).toString(), datasetExtension ).toString();
 
 			// e.g. in Windows this will change it to '\s0'
-			final String datasetExtensionOS = new File( datasetExtension ).toString(); 
+			//final String datasetExtensionOS = new File( datasetExtension ).toString(); 
+
+			//IOFunctions.println( "datasetExtensionOS: " +datasetExtensionOS );
+			IOFunctions.println( "Creating 3D N5 sub-container '" + title + "' in '" + path + "' ... " );
 
 			// setup multi-resolution pyramid
 			mrInfo = N5ApiTools.setupMultiResolutionPyramid(
 					driverVolumeWriter,
-					(level) -> new File( dataset.substring(0, dataset.lastIndexOf( datasetExtensionOS ) ) + "/s" + level ).toString(),
+					(level) -> title + "/s" + level,
 					dataType,
 					bb.dimensionsAsLongArray(),
 					compression,
 					blocksize(),
 					this.downsampling );
+
+			currentChannelIndex = -1;
+			currentTPIndex = -1;
 		}
 
+		// for OME-ZARR, dimensions are 5D
 		final List<long[][]> grid = N5ApiTools.assembleJobs(
-				mrInfo[ 0 ],
+				null, // no need to go across ViewIds (for now)
+				new long[] { mrInfo[ 0 ].dimensions[ 0 ], mrInfo[ 0 ].dimensions[ 1 ], mrInfo[ 0 ].dimensions[ 2 ] },
 				new int[] {
 						blocksize()[0] * computeBlocksizeFactor()[ 0 ],
 						blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-						blocksize()[2] * computeBlocksizeFactor()[ 2 ]
-				} );
+						blocksize()[2] * computeBlocksizeFactor()[ 2 ] },
+				blocksize() );
 
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
@@ -276,7 +417,7 @@ public class ExportN5Api implements ImgExport
 		//
 
 		// TODO: use Tobi's code (at least for the special cases)
-		final ForkJoinPool myPool = new ForkJoinPool(  Threads.numThreads() );
+		final ForkJoinPool myPool = new ForkJoinPool( Threads.numThreads() );
 
 		long time = System.currentTimeMillis();
 
@@ -284,18 +425,47 @@ public class ExportN5Api implements ImgExport
 		{
 			myPool.submit(() ->
 				grid.parallelStream().forEach(
-						gridBlock -> {
-							try {
-	
+						gridBlock ->
+						{
+							try
+							{
+								final long[] blockOffset, blockSize, gridOffset;
+
+								final RandomAccessible< T >image;
+
+								// 5D OME-ZARR CONTAINER
+								if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+								{
+									// gridBlock is 3d, make it 5d
+									blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+									blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+									gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
+
+									// img is 3d, make it 5d
+									// the same information is returned no matter which index is queried in C and T
+									image = Views.addDimension( Views.addDimension( img ) );
+								}
+								else
+								{
+									blockOffset = gridBlock[0];
+									blockSize = gridBlock[1];
+									gridOffset = gridBlock[2];
+
+									image = img;
+								}
+
 								final Interval block =
 										Intervals.translate(
-												new FinalInterval( gridBlock[1] ), // blocksize
-												gridBlock[0] ); // block offset
-		
-								final RandomAccessibleInterval< T > source = Views.interval( img, block );
-		
-								final RandomAccessibleInterval sourceGridBlock = Views.offsetInterval(source, gridBlock[0], gridBlock[1]);
-								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridBlock[2]);
+												new FinalInterval( blockSize ),
+												blockOffset );
+
+								final RandomAccessibleInterval< T > source =
+										Views.interval( image, block );
+
+								final RandomAccessibleInterval< T > sourceGridBlock =
+										Views.offsetInterval(source, blockOffset, blockSize);
+
+								N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
 
 								IJ.showProgress( progress.incrementAndGet(), grid.size() );
 							}
@@ -340,11 +510,26 @@ public class ExportN5Api implements ImgExport
 				myPool.submit( () -> allBlocks.parallelStream().forEach(
 						gridBlock ->
 						{
-							N5ApiTools.writeDownsampledBlock(
-								driverVolumeWriter,
-								mrInfo[ s ],
-								mrInfo[ s - 1 ],
-								gridBlock );
+							// 5D OME-ZARR CONTAINER
+							if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+							{
+								N5ApiTools.writeDownsampledBlock5dOMEZARR(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock,
+										currentChannelIndex,
+										currentTPIndex );
+							}
+							else
+							{
+								N5ApiTools.writeDownsampledBlock(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock );
+							}
+
 
 							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 						})).get();
@@ -376,7 +561,7 @@ public class ExportN5Api implements ImgExport
 		final GenericDialogPlus gdInit = new GenericDialogPlus( "Save fused images as ZARR/N5/HDF5 using N5-API" );
 
 		final String[] options = 
-				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name() ).toArray(String[]::new);
+				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name().equals( "ZARR" ) ? "OME-ZARR" : s.name() ).toArray(String[]::new);
 
 		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
 
@@ -411,7 +596,6 @@ public class ExportN5Api implements ImgExport
 		if ( gdInit.wasCanceled() )
 			return false;
 
-		final int previousExportOption = defaultOption;
 		this.storageType = StorageFormat.values()[ defaultOption = gdInit.getNextChoiceIndex() ];
 		this.compression = PluginHelper.parseCompression( gdInit );
 		this.bdv = defaultBDV = gdInit.getNextBoolean();
@@ -439,6 +623,43 @@ public class ExportN5Api implements ImgExport
 		{
 			IOFunctions.println( "BDV-compatible HDF5 @ 32-bit not (yet) supported." );
 			return false;
+		}
+
+		//
+		// OME-ZARR dialog
+		//
+		if ( storageType == StorageFormat.ZARR )
+		{
+			if ( fusion.getSplittingType() == 0 )
+			{
+				this.channels = N5ApiTools.channels( fusion.getFusionGroups() );
+				this.timepoints = N5ApiTools.timepoints( fusion.getFusionGroups() );
+
+				IOFunctions.println( "Channels to be added to the OME-ZARR:" );
+				for ( final Channel c : this.channels )
+					IOFunctions.println( "\tChannel " + c.getId() + ": " + c.getName() );
+
+				IOFunctions.println( "Timepoints to be added to the OME-ZARR:" );
+				for ( final TimePoint t : this.timepoints )
+					IOFunctions.println( "\tTimepoint " + t.getId() );
+
+				final GenericDialog gdZarr1 = new GenericDialog( "OME-Zarr options" );
+
+				gdZarr1.addCheckbox( "Store channels and timepoints into a single OME-ZARR container", defaultOmeZarrOneContainer );
+				gdZarr1.addMessage(
+						"Note: " + this.channels.size() + " channels and " + this.timepoints.size() + " timepoints selected for fusion.\n" + 
+						"If you do not select a single OME-ZARR, a 3D OME-ZARR will be created for each fused volume.", GUIHelper.smallStatusFont );
+
+				gdZarr1.showDialog();
+				if ( gdZarr1.wasCanceled() )
+					return false;
+
+				omeZarrOneContainer = defaultOmeZarrOneContainer = gdZarr1.getNextBoolean();
+			}
+			else
+			{
+				omeZarrOneContainer = false;
+			}
 		}
 
 		//
@@ -472,8 +693,14 @@ public class ExportN5Api implements ImgExport
 				gd.addMessage( "" );
 			}
 		}
-		else
+		else if ( storageType == StorageFormat.ZARR ) //&& omeZarrOneContainer )
 		{
+			// nothing else to ask for OME-ZARR's
+		}
+		else if ( storageType == StorageFormat.N5 )
+		{
+			// nothing else to ask for N5's
+			/*
 			gd.addStringField( name + "_base_dataset", defaultBaseDataset );
 			gd.addStringField( name + "_dataset_extension", defaultDatasetExtension );
 	
@@ -483,6 +710,7 @@ public class ExportN5Api implements ImgExport
 					+ "dataset inside the 'base dataset'. You can add a dataset extension for each volume,\n"
 					+ "e.g. /base/fused_tp0_ch2/s0, where 's0' suggests it is full resolution. If you select multi-resolution\n"
 					+ "output the dataset extension MUST end with /s0 since it will also create /s1, /s2, ...", GUIHelper.smallStatusFont, GUIHelper.neutral );
+					*/
 		}
 
 		// export type changed or undefined
@@ -588,10 +816,15 @@ public class ExportN5Api implements ImgExport
 				// later calling getViewIdForGroup( fusionGroup, splittingType );
 			}
 		}
-		else
+		else if ( storageType == StorageFormat.ZARR )// && omeZarrOneContainer )
 		{
-			this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
-			this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
+			// nothing to get for OME-ZARR's
+		}
+		else if ( storageType == StorageFormat.N5 )
+		{
+			// nothing to get for N5's
+			//this.baseDataset = defaultBaseDataset  = gd.getNextString().trim();
+			//this.datasetExtension = defaultDatasetExtension = gd.getNextString().trim();
 		}
 
 		if ( defaultAdvancedBlockSize = gd.getNextBoolean() )
@@ -651,11 +884,13 @@ public class ExportN5Api implements ImgExport
 
 		if ( multiRes )
 		{
+			/*
 			if ( !bdv && !this.datasetExtension.endsWith("/s0") )
 			{
 				IOFunctions.println( "The selected dataset extension does not end with '/s0'. Cannot continue since it is unclear how to store multi-resolution levels '/s1', '/s2', ..." );
 				return false;
 			}
+			*/
 
 			final double aniso = fusion.getAnisotropyFactor();
 			final Interval bb = fusion.getDownsampledBoundingBox();

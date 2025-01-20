@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
-import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.exception.ImgLibException;
@@ -90,7 +90,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup )
+			final Group< ? extends ViewDescription > fusionGroup )
 	{
 		// do nothing in case the image is null
 		if ( img == null )

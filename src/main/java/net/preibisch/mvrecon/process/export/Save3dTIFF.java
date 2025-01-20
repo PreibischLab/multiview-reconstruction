@@ -35,7 +35,7 @@ import ij.VirtualStack;
 import ij.io.FileInfo;
 import ij.io.FileSaver;
 import ij.io.TiffEncoder;
-import mpicbg.spim.data.sequence.ViewId;
+import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
@@ -98,7 +98,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 			final double downsampling,
 			final double anisoF,
 			final String title,
-			final Group< ? extends ViewId > fusionGroup )
+			final Group< ? extends ViewDescription > fusionGroup )
 	{
 		// do nothing in case the image is null
 		if ( img == null )

@@ -30,8 +30,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -48,10 +50,13 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import bdv.export.ExportMipmapInfo;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.SetupImgLoader;
+import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -194,6 +199,16 @@ public class N5ApiTools
 			this.absoluteDownsampling = absoluteDownsampling;
 			this.blockSize = blockSize;
 		}
+
+		public double[] absoluteDownsamplingDouble()
+		{
+			return Arrays.stream( absoluteDownsampling ).asDoubleStream().toArray();
+		}
+
+		public int[] absoluteDownsamplingInt()
+		{
+			return absoluteDownsampling;
+		}
 	}
 
 	public static MultiResolutionLevelInfo[] setupMultiResolutionPyramid(
@@ -221,10 +236,10 @@ public class N5ApiTools
 			final ViewId viewId,
 			final BiFunction<ViewId, Integer, String> viewIdToDataset,
 			final DataType dataType,
-			final long[] dimensionsS0,
+			final long[] dimensionsS0, // 3d by default, can be up to 5d for ome-zarr
 			final Compression compression,
-			final int[] blockSize,
-			final int[][] downsamplings )
+			final int[] blockSize, // 3d by default, can be up to 5d for ome-zarr
+			final int[][] downsamplings ) // TODO:  3d by default, can be up to 5d for ome-zarr
 	{
 		final MultiResolutionLevelInfo[] mrInfo = new MultiResolutionLevelInfo[ downsamplings.length];
 
@@ -417,16 +432,12 @@ public class N5ApiTools
 			final N5Writer n5,
 			final MultiResolutionLevelInfo mrInfo,
 			final MultiResolutionLevelInfo mrInfoPreviousScale,
-			//final Function<long[][], String> viewIdToDataset, // gridBlock to dataset name (e.g. for s1, s2, ...)
-			//final Function<long[][], String> viewIdToDatasetPreviousScale, // gridblock to name of previous dataset (e.g. for s0 when writing s1, s1 when writing s2, ... )
-			//final int[] relativeDownsampling,
 			final long[][] gridBlock )
 	{
-		final String dataset = mrInfo.dataset;// viewIdToDataset.apply( gridBlock );
-		final String datasetPreviousScale = mrInfoPreviousScale.dataset; // viewIdToDatasetPreviousScale.apply( gridBlock );
+		final String dataset = mrInfo.dataset;
+		final String datasetPreviousScale = mrInfoPreviousScale.dataset;
 
-		final DataType dataType = mrInfo.dataType;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.DATA_TYPE_KEY, DataType.class );
-		final int[] blockSize = mrInfo.blockSize;// n5.getAttribute( datasetPreviousScale, DatasetAttributes.BLOCK_SIZE_KEY, int[].class );
+		final DataType dataType = mrInfo.dataType;
 
 		if ( !supportedDataTypes.contains( dataType ) )
 		{
@@ -443,6 +454,52 @@ public class N5ApiTools
 
 		final RandomAccessibleInterval<T> sourceGridBlock = Views.offsetInterval(downsampled, gridBlock[0], gridBlock[1]);
 		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridBlock[2], type);
+	}
+
+	public static < T extends NativeType< T > & RealType< T > > void writeDownsampledBlock5dOMEZARR(
+			final N5Writer n5,
+			final MultiResolutionLevelInfo mrInfo,
+			final MultiResolutionLevelInfo mrInfoPreviousScale,
+			final long[][] gridBlock,
+			final long currentChannelIndex,
+			final long currentTPIndex )
+	{
+		final String dataset = mrInfo.dataset;
+		final String datasetPreviousScale = mrInfoPreviousScale.dataset;
+
+		final DataType dataType = mrInfo.dataType;
+
+		if ( !supportedDataTypes.contains( dataType ) )
+		{
+			n5.close();
+			throw new RuntimeException("Unsupported pixel type: " + dataType );
+		}
+
+		final long[] blockOffset, blockSize, gridOffset;
+
+		// gridBlock is 3d, make it 5d
+		blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+		blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+		gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
+
+		// cut out the relevant 3D block
+		final RandomAccessibleInterval<T> previousScaleRaw = N5Utils.open(n5, datasetPreviousScale);
+		final RandomAccessibleInterval<T> previousScale = Views.hyperSlice( Views.hyperSlice( previousScaleRaw, 4, currentTPIndex ), 3, currentChannelIndex );
+		final T type = previousScale.getType().createVariable();
+
+		final BlockSupplier< T > blocks = BlockSupplier.of( previousScale ).andThen( Downsample.downsample( mrInfo.relativeDownsampling ) );
+
+		// make dimensions 3d
+		final long[] dimensionsRaw = n5.getAttribute( dataset, DatasetAttributes.DIMENSIONS_KEY, long[].class );
+		final long[] dimensions = new long[] { dimensionsRaw[ 0 ], dimensionsRaw[ 1 ], dimensionsRaw[ 2 ] };
+
+		final RandomAccessibleInterval< T > downsampled3d = BlockAlgoUtils.cellImg( blocks, dimensions, new int[] { 64 } );
+
+		// the same information is returned no matter which index is queried in C and T
+		final RandomAccessible< T > downsampled5d = Views.addDimension( Views.addDimension( downsampled3d ) );
+
+		final RandomAccessibleInterval<T> sourceGridBlock = Views.offsetInterval(downsampled5d, blockOffset, blockSize);
+		N5Utils.saveNonEmptyBlock(sourceGridBlock, n5, dataset, gridOffset, type);
 	}
 
 	public static List<long[][]> assembleJobs( final MultiResolutionLevelInfo mrInfo )
@@ -616,5 +673,115 @@ public class N5ApiTools
 		viewIds.forEach( viewId -> list.add( map.get( viewId ).getViewSetup() ) );
 
 		return list;
+	}
+
+	/*
+	public static int numTimepoints( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final HashSet< TimePoint > tps = new HashSet<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+			for ( final ViewDescription vd : group )
+				tps.add( vd.getTimePoint() );
+
+		return tps.size();
+	}
+
+	public static int numChannels( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final HashSet< Channel > channels = new HashSet<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+			for ( final ViewDescription vd : group )
+				channels.add( vd.getViewSetup().getChannel() );
+
+		return channels.size();
+	}
+	*/
+
+	public static ArrayList< TimePoint > timepoints( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final ArrayList< TimePoint > tps = new ArrayList<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+		{
+			for ( final ViewDescription vd : group )
+			{
+				final TimePoint newT = vd.getTimePoint();
+				boolean contains = false;
+
+				for ( final TimePoint t : tps )
+					if ( t.getId() == newT.getId() )
+						contains = true;
+
+				if ( !contains )
+					tps.add( newT );
+			}
+		}
+
+		Collections.sort( tps, ( t1, t2 ) -> t1.getId() - t2.getId() );
+
+		return tps;
+	}
+
+	public static ArrayList< Channel > channels( final List<? extends Group<? extends ViewDescription>> fusionGroups )
+	{
+		final ArrayList< Channel > channels = new ArrayList<>();
+
+		for ( final Group<? extends ViewDescription> group : fusionGroups )
+		{
+			for ( final ViewDescription vd : group )
+			{
+				final Channel newC = vd.getViewSetup().getChannel();
+				boolean contains = false;
+
+				for ( final Channel c : channels )
+					if ( c.getId() == newC.getId() )
+						contains = true;
+
+				if ( !contains )
+					channels.add( newC );
+			}
+		}
+
+		Collections.sort( channels );
+
+		return channels;
+	}
+
+	public static int channelIndex( final Group<? extends ViewDescription > queryGroup, final ArrayList< Channel > channels )
+	{
+		if ( queryGroup.size() == 0 )
+			return -1;
+
+		final Channel firstChannel = queryGroup.iterator().next().getViewSetup().getChannel();
+
+		for ( final ViewDescription vd : queryGroup )
+			if ( vd.getViewSetup().getChannel().getId() != firstChannel.getId() )
+				throw new RuntimeException( "More than one channel in the queryGroup, cannot return a single index." );
+
+		for ( int i = 0; i < channels.size(); ++i )
+			if ( channels.get( i ).getId() == firstChannel.getId() )
+				return i;
+
+		return -1;
+	}
+
+	public static int timepointIndex( final Group<? extends ViewDescription > queryGroup, final ArrayList< TimePoint > timepoints )
+	{
+		if ( queryGroup.size() == 0 )
+			return -1;
+
+		final TimePoint firstTP = queryGroup.iterator().next().getTimePoint();
+
+		for ( final ViewDescription vd : queryGroup )
+			if ( vd.getTimePoint().getId() != firstTP.getId() )
+				throw new RuntimeException( "More than one timepoint in the queryGroup, cannot return a single index." );
+
+		for ( int i = 0; i < timepoints.size(); ++i )
+			if ( timepoints.get( i ).getId() == firstTP.getId() )
+				return i;
+
+		return -1;
 	}
 }

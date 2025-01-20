@@ -23,10 +23,13 @@
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.function.Function;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
@@ -36,6 +39,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
+import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
 import util.URITools;
 
@@ -59,7 +63,7 @@ public class OMEZarrAttibutes
 		final OmeNgffMultiScaleMetadata[] meta = new OmeNgffMultiScaleMetadata[ 1 ];
 
 		// dataset name and co
-		final String path = null;
+		final String path = "";
 		final String type = null;
 
 		// axis descriptions
@@ -102,7 +106,7 @@ public class OMEZarrAttibutes
 			// if 4d and 5d, add 1's for C and T
 			for ( int d = 3; d < n; ++d )
 			{
-				translation[ d ] = 1.0;
+				translation[ d ] = 0.0;
 				scale[ d ] = 1.0;
 			}
 
@@ -124,6 +128,22 @@ public class OMEZarrAttibutes
 		meta[ 0 ] = new OmeNgffMultiScaleMetadata( n, path, name, type, "0.4", axes, datasets, childrenAttributes, coordinateTransformations, metadata );
 
 		return meta;
+	}
+
+	// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+	public static double[] getResolutionS0( final VoxelDimensions vx, final double anisoF, final double downsamplingF )
+	{
+		final double[] resolutionS0 = vx.dimensionsAsDoubleArray();
+
+		// not preserving anisotropy
+		if ( Double.isNaN( anisoF ) )
+			resolutionS0[ 2 ] = resolutionS0[ 0 ];
+
+		// downsampling
+		if ( !Double.isNaN( downsamplingF ) )
+			Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
+
+		return resolutionS0;
 	}
 
 	public static void loadOMEZarr( final N5Reader n5, final String dataset )
@@ -151,8 +171,19 @@ public class OMEZarrAttibutes
 		}
 	}
 
-	public static void main( String[] args )
+	public static void main( String[] args ) throws URISyntaxException
 	{
+		final URI uri2 = URITools.toURI("https://keller-data.int.janelia.org/s12a/samples_for_stitching/Live%20zebra%20fish%20stitched/Live%20zebra%20plane%206/dataset.n5");///setup0/time;t0/");
+		System.out.println( uri2.toString() );
+
+		//FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess( FileSystems.getDefault() );
+		
+		String s = uri2.toString();
+		N5Factory f = new N5Factory();
+		N5Reader r = f.openFileSystemReader( s );
+		r.close();
+		System.exit( 0 );
+
 		//final URI uri = URITools.toURI( "https://storage.googleapis.com/jax-public-ngff/KOMP/adult_lacZ/ndp/Moxd1/23420_K35061_FGut.zarr/0/" );
 		//final String dataset = "/";
 
