@@ -240,14 +240,14 @@ public class ExportN5Api implements ImgExport
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
-						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
+						IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 								5, // int n
 								"/", // String name, I also saw "/"
 								resolutionS0, // double[] resolutionS0,
-								vx.unit(), // String unitXYZ, // e.g micrometer
+								"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 								mrInfoZarr.length, // int numResolutionLevels,
 								levelToName,
 								levelToMipmapTransform );
@@ -349,14 +349,14 @@ public class ExportN5Api implements ImgExport
 			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
-			IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " " + vx.unit() );
+			IOFunctions.println( "Resolution of s0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
 
 			// create metadata
 			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 					3, // int n
 					omeZarrSubContainer, // String name, I also saw "/"
 					resolutionS0, // double[] resolutionS0,
-					vx.unit(), // String unitXYZ, // e.g micrometer
+					"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
 					(level) -> "/s" + level,
 					levelToMipmapTransform );
