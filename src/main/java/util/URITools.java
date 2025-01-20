@@ -260,7 +260,7 @@ public class URITools
 			if ( format.equals( StorageFormat.N5 ))
 				return new N5FSWriter( URITools.fromURI( uri ) );
 			else if ( format.equals( StorageFormat.ZARR ))
-				return new N5ZarrWriter( URITools.fromURI( uri ), builder );
+				return new N5ZarrWriter( URITools.fromURI( uri ), builder, "/", true, true );
 			else if ( format.equals( StorageFormat.HDF5 ))
 				return new N5HDF5Writer( URITools.fromURI( uri ) );
 			else
@@ -273,7 +273,7 @@ public class URITools
 			try
 			{
 				//System.out.println( "Trying writing with credentials ..." );
-				final N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory().zarrDimensionSeparator( "/" );
 				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( format, uri );
@@ -331,6 +331,7 @@ public class URITools
 		}
 	}
 
+	/*
 	public static N5Reader instantiateGuessedN5Reader( final URI uri )
 	{
 		if ( URITools.isFile( uri ) )
@@ -392,7 +393,7 @@ public class URITools
 			try
 			{
 				//System.out.println( "Trying writing with credentials ..." );
-				final N5Factory factory = new N5Factory();
+				final N5Factory factory = new N5Factory().zarrDimensionSeparator( "/" );
 				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
 				n5w = factory.openWriter( uri.toString() );
@@ -408,6 +409,7 @@ public class URITools
 			return n5w;
 		}
 	}
+	*/
 
 	public static SpimData2 loadSpimData( final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
 	{
