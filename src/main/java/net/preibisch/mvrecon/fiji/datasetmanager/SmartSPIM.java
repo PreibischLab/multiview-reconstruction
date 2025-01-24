@@ -266,14 +266,14 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 			IOFunctions.println( "resolution: " + metadata.xyRes + " x " + metadata.xyRes + " x " + metadata.zRes + " um/px." );
 
 			final Type typeTileConfig = new TypeToken<HashMap<String, SmartSPIM_Tile>>() {}.getType();
-			metadata.tiles = gson.fromJson(tile_config, typeTileConfig);
+			HashMap<String, SmartSPIM_Tile> tiles = gson.fromJson(tile_config, typeTileConfig);
 
-			IOFunctions.println( "number of tiles: " + metadata.tiles.size() );
+			IOFunctions.println( "number of tiles: " + tiles.size() );
 
-			metadata.channels = SmartSPIM_Tile.channels( metadata.tiles.values() );
-			metadata.xTileLocations = SmartSPIM_Tile.xTileLocations( metadata.tiles.values() );
-			metadata.yTileLocations = SmartSPIM_Tile.yTileLocations( metadata.tiles.values() );
-			metadata.zOffsets = SmartSPIM_Tile.zOffsets( metadata.tiles.values() );
+			metadata.channels = SmartSPIM_Tile.channels( tiles.values() );
+			metadata.xTileLocations = SmartSPIM_Tile.xTileLocations( tiles.values() );
+			metadata.yTileLocations = SmartSPIM_Tile.yTileLocations( tiles.values() );
+			metadata.zOffsets = SmartSPIM_Tile.zOffsets( tiles.values() );
 
 			IOFunctions.println( "channels: " );
 			metadata.channels.forEach( p -> IOFunctions.println( "\t" + SmartSPIM_Tile.channelToFolderName( p ) ) );
@@ -354,7 +354,6 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		public double xyRes = -1;
 		public double zRes = -1;
 
-		public HashMap<String, SmartSPIM_Tile> tiles;
 		public List<Pair<Integer, Integer>> channels;
 		public List<Long> xTileLocations;
 		public List<Long> yTileLocations;
@@ -440,7 +439,7 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		}
 	}
 
-	public static class SmartSPIM_Tile
+	private static class SmartSPIM_Tile
 	{
 		public long X;
 		public long Y;
