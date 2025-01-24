@@ -176,7 +176,7 @@ public abstract class GenericLoadParseQueryXML<
 			uri = null;
 		}
 
-		System.out.println( "ImageLoader URI: " + uri );
+		//System.out.println( "ImageLoader URI: " + uri );
 
 		if ( uri != null && ( URITools.isS3( uri ) || URITools.isGC( uri ) ) )
 		{
@@ -373,17 +373,17 @@ public abstract class GenericLoadParseQueryXML<
 
 		if ( xmlURI.trim().length() == 0 || xmlURI.trim().toLowerCase().equals( "beads" ) || 
 				xmlURI.trim().toLowerCase().equals( "fractal" ) || xmlURI.trim().toLowerCase().equals( "define" ) )
-			uri = URI.create( xmlURI );
-		else
-			uri = URITools.toURI( xmlURI );
-
-		success = tryParsing( uri, true );
-
-		if ( buttonText != null && xmlURI.toLowerCase().equals( "define" ) && buttonText.get( 0 ).equals( "Define a new dataset" ) )
 		{
+			uri = URI.create( xmlURI );
+
 			this.data = null;
 			this.attributes = null;
 			return true;
+		}
+		else
+		{
+			uri = URITools.toURI( xmlURI );
+			success = tryParsing( uri, true );
 		}
 
 		if ( !success )
