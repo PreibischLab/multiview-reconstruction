@@ -86,7 +86,11 @@ public class XmlIoSmartSPIMImgLoader implements XmlIoBasicImgLoader< SmartSPIMIm
 
 		final Element elemFileNames = new Element( Z_LAYERS );
 		for ( final String fn : imgLoader.metadata.sortedFileNames )
-			elemFileNames.addContent( fn );
+		{
+			Element eFN = new Element( "z" );
+			eFN.addContent( fn );
+			elemFileNames.addContent( eFN );
+		}
 		elem.addContent( elemFileNames );
 
 		return elem;
@@ -130,7 +134,7 @@ public class XmlIoSmartSPIMImgLoader implements XmlIoBasicImgLoader< SmartSPIMIm
 
 			metadata.sortedFileNames = new ArrayList<>();
 			final Element elemFileNames = elem.getChild( Z_LAYERS );
-			elemFileNames.getChildren().forEach( child -> metadata.sortedFileNames.add( child.getValue() ) );
+			elemFileNames.getChildren().forEach( child -> metadata.sortedFileNames.add( child.getText() ) );
 
 			return new SmartSPIMImgLoader( metadata, sequenceDescription );
 		}
