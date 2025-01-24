@@ -43,6 +43,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 import net.preibisch.mvrecon.fiji.datasetmanager.MultiViewDatasetDefinition;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimView;
+import net.preibisch.mvrecon.fiji.datasetmanager.SmartSPIM;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackList;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListImageJ;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackListLOCI;
@@ -69,6 +70,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 		staticDatasetDefinitions.add( new FileListDatasetDefinition() );
 		staticDatasetDefinitions.add( new StackListLOCI() );
 		staticDatasetDefinitions.add( new StackListImageJ() );
+		staticDatasetDefinitions.add( new SmartSPIM() );
 		staticDatasetDefinitions.add( new LightSheetZ1() );
 		staticDatasetDefinitions.add( new SimView() );
 		staticDatasetDefinitions.add( new MicroManager() );

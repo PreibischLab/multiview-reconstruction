@@ -22,10 +22,12 @@ import com.google.gson.stream.JsonReader;
 import fiji.util.gui.GenericDialogPlus;
 import ij.ImagePlus;
 import mpicbg.spim.data.SpimDataIOException;
+import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.Illumination;
+import mpicbg.spim.data.sequence.ImgLoader;
 import mpicbg.spim.data.sequence.MissingViews;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.Tile;
@@ -41,6 +43,12 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.SmartSPIMImgLoader;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
+import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
 import util.URITools;
 
 public class SmartSPIM implements MultiViewDatasetDefinition
@@ -78,37 +86,31 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 
 		// assemble timepints, viewsetups, missingviews and the imgloader
 		final TimePoints timepoints = this.createTimePoints( metadata );
-		final ArrayList< ViewSetup > setups = this.createViewSetups( metadata );
+		final ArrayList< ViewSetup > setups = this.createViewSetups( metadata, 1.0/10.0 );
 		final MissingViews missingViews = null;
 
 		// instantiate the sequencedescription
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, setups, null, missingViews );
-/*		final ImgLoader imgLoader = new SmartSPIMImgLoader( mmFile, sequenceDescription );
+		final ImgLoader imgLoader = new SmartSPIMImgLoader( metadata, sequenceDescription );
 		sequenceDescription.setImgLoader( imgLoader );
 
 		// get the minimal resolution of all calibrations
-		final double minResolution = Math.min( Math.min( reader.calX(), reader.calY() ), reader.calZ() );
+		final double minResolution = Math.min( metadata.xyRes, metadata.zRes );
 
 		IOFunctions.println( "Minimal resolution in all dimensions is: " + minResolution );
 		IOFunctions.println( "(The smallest resolution in any dimension; the distance between two pixels in the output image will be that wide)" );
 
 		// create calibration + translation view registrations
-		final ViewRegistrations viewRegistrations = DatasetCreationUtils.createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
+		final ViewRegistrations viewRegistrations =
+				DatasetCreationUtils.createViewRegistrations( sequenceDescription.getViewDescriptions(), minResolution );
 		
 		// create the initial view interest point object
 		final ViewInterestPoints viewInterestPoints = new ViewInterestPoints();
-		//viewInterestPoints.createViewInterestPoints( sequenceDescription.getViewDescriptions() );
 
 		// finally create the SpimData itself based on the sequence description and the view registration
-		final SpimData2 spimData = new SpimData2( new File( directory ).toURI(), sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
+		final SpimData2 spimData = new SpimData2( metadata.dir, sequenceDescription, viewRegistrations, viewInterestPoints, new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 
-		if ( reader.applyAxis() )
-			Apply_Transformation.applyAxis( spimData );
-
-		try { reader.close(); } catch (IOException e) { IOFunctions.println( "Could not close file '" + mmFile.getAbsolutePath() + "': " + e ); }
-
-		return spimData;*/
-		return null;
+		return spimData;
 	}
 
 	/*
@@ -121,7 +123,13 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		return new TimePoints( timepoints );
 	}
 
-	protected ArrayList< ViewSetup > createViewSetups( final SmartSPIMMetaData meta )
+	/**
+	 * 
+	 * @param meta the metadata object
+	 * @param scaleFactor somehow the foldernames are not in um but 1/10 of um, so we need to scale by 1/10 to get approx positions
+	 * @return
+	 */
+	protected ArrayList< ViewSetup > createViewSetups( final SmartSPIMMetaData meta, final double scaleFactor )
 	{
 		final ArrayList< Channel > channels = new ArrayList< Channel >();
 		for ( int c = 0; c < meta.channels.size(); ++c )
@@ -133,7 +141,7 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 			for ( int y = 0; y < meta.yTileLocations.size(); ++y )
 			{
 				final Tile tile = new Tile( i, "x" + x + "_y" + y );
-				tile.setLocation( new double[] { meta.xTileLocations.get( x ), meta.yTileLocations.get( y ), 0 } );
+				tile.setLocation( new double[] { meta.xTileLocations.get( x ) * scaleFactor, meta.yTileLocations.get( y ) * scaleFactor, 0 } );
 
 				tiles.add( tile );
 				++i;
