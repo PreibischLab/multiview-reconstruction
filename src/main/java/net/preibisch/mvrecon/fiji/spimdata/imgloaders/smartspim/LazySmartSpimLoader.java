@@ -39,7 +39,7 @@ public class LazySmartSpimLoader implements Consumer<RandomAccessibleInterval<Un
 	@Override
 	public void accept( final RandomAccessibleInterval< UnsignedShortType > output )
 	{
-		System.out.println( "loading z=" + output.min( 2 ));
+		//System.out.println( "loading z=" + output.min( 2 ));
 
 		final ImagePlus imp = metadata.loadImage(
 				metadata.channels.get( channel ),
