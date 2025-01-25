@@ -137,8 +137,8 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 
 		final ArrayList< Tile > tiles = new ArrayList<>();
 		int i = 0;
-		for ( int x = 0; x < meta.xTileLocations.size(); ++x )
-			for ( int y = 0; y < meta.yTileLocations.size(); ++y )
+		for ( int y = 0; y < meta.yTileLocations.size(); ++y )
+			for ( int x = 0; x < meta.xTileLocations.size(); ++x )
 			{
 				final Tile tile = new Tile( i, "x" + x + "_y" + y );
 				tile.setLocation( new double[] { meta.xTileLocations.get( x ) * scaleFactor, meta.yTileLocations.get( y ) * scaleFactor, 0 } );
@@ -482,6 +482,6 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		SmartSPIMMetaData metadata =
 				parseMetaDataFile( URITools.toURI( "/Volumes/johnsonlab/LM/20241031_11_59_44_RJ_mouse_2_vDisco_hindleg_right_Destripe_DONE/metadata.json") );
 
-		populateImageSize( metadata, true );
+		//populateImageSize( metadata, true );
 	}
 }
