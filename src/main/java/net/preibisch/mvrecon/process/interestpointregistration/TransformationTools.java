@@ -899,13 +899,11 @@ public class TransformationTools
 				final double y = vx.dimension( 1 );
 				final double z = vx.dimension( 2 );
 
-				if ( x == y )
-				{
-					avgFactor += z / (( x + y ) / 2 );
-					++count;
+				avgFactor += z / (( x + y ) / 2 );
+				++count;
 
+				if ( x != y )
 					IOFunctions.println( "Warning: Voxelsize in x and y is different.");
-				}
 			}
 		}
 
