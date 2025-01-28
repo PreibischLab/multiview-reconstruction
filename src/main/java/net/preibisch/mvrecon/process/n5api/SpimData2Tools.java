@@ -261,20 +261,13 @@ public class SpimData2Tools
 			System.out.println( "New XML.");
 
 			final ArrayList< ViewSetup > setups = new ArrayList<>();
-
 			setups.add( instantiateViewSetup.instantiate( viewId, false, new FinalDimensions( dimensions ), setups ) );
-			/*
-			final Channel c0 = new Channel( 0 );
-			final Angle a0 = new Angle( 0 );
-			final Illumination i0 = new Illumination( 0 );
-			final Tile t0 = new Tile( 0 );
-
-			final Dimensions d0 = new FinalDimensions( dimensions );
-			final VoxelDimensions vd0 = new FinalVoxelDimensions( "px", 1, 1, 1 );
-			setups.add( new ViewSetup( viewId.getViewSetupId(), "setup " + viewId.getViewSetupId(), d0, vd0, t0, c0, a0, i0 ) );*/
 
 			final ArrayList< TimePoint > tps = new ArrayList<>();
 			tps.add( new TimePoint( viewId.getTimePointId() ) );
+
+			final SpimData2 spimData = createNewSpimDataForFusion( storageType, n5PathURI, xmlOutPathURI, setups, tps );
+			/*
 			final TimePoints timepoints = new TimePoints( tps );
 
 			final HashMap< ViewId, ViewRegistration > registrations = new HashMap<>();
@@ -293,12 +286,44 @@ public class SpimData2Tools
 				throw new RuntimeException( storageType + " not supported." );
 
 			final SpimData2 spimData = new SpimData2( xmlOutPathURI, sequence, viewRegistrations, new ViewInterestPoints(), new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
-
+			*/
 			new XmlIoSpimData2().save( spimData, xmlOutPathURI );
 
 			return new ValuePair<>(false, false);
 		}
-		
+	}
+
+	public static SpimData2 createNewSpimDataForFusion(
+			final StorageFormat storageType,
+			final URI n5PathURI,
+			final URI xmlOutPathURI,
+			final ArrayList< ViewSetup > setups,
+			final ArrayList< TimePoint > tps )
+	{
+		final TimePoints timepoints = new TimePoints( tps );
+
+		final HashMap< ViewId, ViewRegistration > registrations = new HashMap<>();
+		final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );	
+
+		for ( int s = 0; s < setups.size(); ++s )
+			for ( int t = 0; t < tps.size(); ++t )
+			{
+				final ViewId viewId = new ViewId( tps.get( t ).getId(), setups.get( s ).getId() );
+				registrations.put( viewId, new ViewRegistration( viewId.getTimePointId(), viewId.getViewSetupId() ) );
+			}
+
+		final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
+
+		if ( StorageFormat.N5.equals(storageType) && URITools.isFile( n5PathURI )) // local file
+			sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
+		else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
+			sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
+		else if ( StorageFormat.HDF5.equals(storageType) )
+			sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
+		else
+			throw new RuntimeException( storageType + " not supported." );
+
+		return new SpimData2( xmlOutPathURI, sequence, viewRegistrations, new ViewInterestPoints(), new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
 	}
 
 	@FunctionalInterface
