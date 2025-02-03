@@ -1,6 +1,6 @@
-[![](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build-main.yml/badge.svg)](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build-main.yml)
+[![Build Status](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build.yml/badge.svg)](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build.yml)
 
-#  Introduction & Overview
+##  Introduction & Overview
 
 Selective Plane Illumination Microscopy
 ([SPIM, Science, 305(5686):1007-9](http://www.sciencemag.org/content/305/5686/1007))
@@ -9,7 +9,7 @@ multiple angles. However, to realize the full potential of these acquisitions
 the data needs to be reconstructed. This project implements several algorithms
 for the registration and fusion of multi-angle SPIM acquisitions.
 
-# Installation
+## Installation
 
 The easiest is to use the multi-view reconstruction is as part of [Fiji](http://fiji.sc/), it is part of [BigStitcher](https://www.google.com/search?rls=en&q=BigStitcher&ie=UTF-8&oe=UTF-8).
 
@@ -21,7 +21,7 @@ me an email: preibischs@janelia.hhmi.org
 
 If you want to **build the code** you can use Maven calling `mvn clean package` on the command line after checking the project out. Important: you will need to install Java with JavaFX, for example available here in the [Azul JDK](https://www.azul.com/downloads/?version=java-8-lts&package=jdk-fx#zulu).
 
-# Citation
+## Citation
 
 Please note that the Multiview-Reconstruction/BigStitcher plugin available through Fiji, is
 based on publications. If you use it successfully for your research please be
