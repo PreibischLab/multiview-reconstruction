@@ -198,7 +198,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 
 	public SpimData2 load( final URI xmlURI ) throws SpimDataException
 	{
-		IOFunctions.println( "Loading: " + xmlURI.toString() );
+		//IOFunctions.println( "Loading: " + xmlURI.toString() );
 
 		return URITools.loadSpimData( xmlURI, this );
 	}
