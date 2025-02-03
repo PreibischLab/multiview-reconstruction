@@ -239,15 +239,15 @@ public class DisplayImage implements ImgExport, Calibrateable
 
 			if ( virtualDisplay )
 			{
-				bsX = defaultBlocksizeVirtualX = (int)Math.round( gd.getNextNumber() );
-				bsY = defaultBlocksizeVirtualY = (int)Math.round( gd.getNextNumber() );
-				bsZ = defaultBlocksizeVirtualZ = (int)Math.round( gd.getNextNumber() );
+				bsX = defaultBlocksizeVirtualX = (int)Math.round( gd2.getNextNumber() );
+				bsY = defaultBlocksizeVirtualY = (int)Math.round( gd2.getNextNumber() );
+				bsZ = defaultBlocksizeVirtualZ = (int)Math.round( gd2.getNextNumber() );
 			}
 			else
 			{
-				bsX = defaultBlocksizePrecomputeX = (int)Math.round( gd.getNextNumber() );
-				bsY = defaultBlocksizePrecomputeY = (int)Math.round( gd.getNextNumber() );
-				bsZ = defaultBlocksizePrecomputeZ = (int)Math.round( gd.getNextNumber() );
+				bsX = defaultBlocksizePrecomputeX = (int)Math.round( gd2.getNextNumber() );
+				bsY = defaultBlocksizePrecomputeY = (int)Math.round( gd2.getNextNumber() );
+				bsZ = defaultBlocksizePrecomputeZ = (int)Math.round( gd2.getNextNumber() );
 			}
 		}
 		else
