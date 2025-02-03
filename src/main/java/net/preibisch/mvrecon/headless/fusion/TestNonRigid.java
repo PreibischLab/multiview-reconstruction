@@ -154,6 +154,7 @@ public class TestNonRigid
 		labels.add( "nuclei" );
 
 		final int interpolation = 1;
+		final float blendingRange = 40;
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
 		final boolean virtualGrid = false;
@@ -192,6 +193,7 @@ public class TestNonRigid
 						alpha,
 						virtualGrid,
 						interpolation,
+						blendingRange,
 						boundingBox,
 						null,
 						service );
