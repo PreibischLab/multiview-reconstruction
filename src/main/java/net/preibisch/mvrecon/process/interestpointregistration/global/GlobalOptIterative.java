@@ -94,6 +94,12 @@ public class GlobalOptIterative
 		// add and fix tiles as defined in the GlobalOptimizationType
 		final TileConfiguration tc = GlobalOpt.addAndFixTiles( views, map, fixedViews, groups );
 
+		if ( tc.getTiles().size() == 0 )
+		{
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): No connected tiles, cannot compute optimization." );
+			return map;
+		}
+
 		// now perform the global optimization
 		boolean finished = false;
 
