@@ -29,8 +29,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.imglib2.Interval;
 import net.imglib2.algorithm.blocks.AbstractBlockSupplier;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.blocks.BlockInterval;
 import net.imglib2.blocks.TempArray;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
@@ -84,8 +86,12 @@ class WeightedAverage
 		}
 
 		@Override
-		public void copy( final long[] srcPos, final Object dest, final int[] size )
+		public void copy( final Interval interval, final Object dest )
 		{
+			final BlockInterval blockInterval = BlockInterval.asBlockInterval( interval );
+			final long[] srcPos = blockInterval.min();
+			final int[] size = blockInterval.size();
+
 			final int len = safeInt( Intervals.numElements( size ) );
 			final float[] tmpI = tempArrays[ 0 ].get( len );
 			final float[] tmpW = tempArrays[ 1 ].get( len );
@@ -100,8 +106,8 @@ class WeightedAverage
 			final int[] overlapping = overlap.getOverlappingViewIndices( srcPos, srcMax );
 			for ( int i : overlapping )
 			{
-				images.get( i ).copy( srcPos, tmpI, size );
-				weights.get( i ).copy( srcPos, tmpW, size );
+				images.get( i ).copy( interval, tmpI );
+				weights.get( i ).copy( interval, tmpW );
 				for ( int x = 0; x < len; ++x )
 				{
 					sumI[ x ] += tmpW[ x ] * tmpI[ x ];

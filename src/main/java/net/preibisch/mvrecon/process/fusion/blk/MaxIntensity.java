@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.imglib2.Interval;
 import net.imglib2.algorithm.blocks.AbstractBlockSupplier;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.blocks.BlockInterval;
 import net.imglib2.blocks.TempArray;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -88,8 +90,12 @@ class MaxIntensity
 		}
 
 		@Override
-		public void copy( final long[] srcPos, final Object dest, final int[] size )
+		public void copy( final Interval interval, final Object dest )
 		{
+			final BlockInterval blockInterval = BlockInterval.asBlockInterval( interval );
+			final long[] srcPos = blockInterval.min();
+			final int[] size = blockInterval.size();
+
 			final int len = safeInt( Intervals.numElements( size ) );
 
 			final byte[] tmpM = tempArrayM.get( len );
@@ -102,8 +108,8 @@ class MaxIntensity
 			boolean first = true;
 			for ( int i : overlapping )
 			{
-				masks.get( i ).copy( srcPos, tmpM, size );
-				images.get( i ).copy( srcPos, tmpI, size );
+				masks.get( i ).copy( blockInterval, tmpM );
+				images.get( i ).copy( blockInterval, tmpI );
 				if ( first )
 				{
 					first = false;
