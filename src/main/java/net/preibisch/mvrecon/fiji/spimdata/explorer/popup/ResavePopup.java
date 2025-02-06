@@ -35,9 +35,10 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
-import bdv.img.n5.N5ImageLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
@@ -65,7 +66,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 
 	protected static String[] types = new String[]{
 			"As TIFF (in place) ...", "As compressed TIFF (in place) ...", "As HDF5 (in place) ...",
-			"As compressed HDF5 (in place) ...", "As N5 (in place ) ...", "As N5 (local, cloud) ..." };
+			"As compressed HDF5 (in place) ...", "As N5 (in place ) ...", "As N5 (local, cloud) ...",
+			"As OME-ZARR (in place ) ...", "As OME-ZARR (local, cloud) ..."};
 
 	public ResavePopup()
 	{
@@ -77,6 +79,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 		final JMenuItem deflatehdf5 = new JMenuItem( types[ 3 ] );
 		final JMenuItem n5 = new JMenuItem( types[ 4 ] );
 		final JMenuItem n5wPath = new JMenuItem( types[ 5 ] );
+		final JMenuItem omeZarr = new JMenuItem( types[ 6 ] );
+		final JMenuItem omeZarrPath = new JMenuItem( types[ 7 ] );
 
 		tiff.addActionListener( new MyActionListener( 0 ) );
 		zippedTiff.addActionListener( new MyActionListener( 1 ) );
@@ -84,6 +88,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 		deflatehdf5.addActionListener( new MyActionListener( 3 ) );
 		n5.addActionListener( new MyActionListener( 4 ) );
 		n5wPath.addActionListener( new MyActionListener( 5 ) );
+		omeZarr.addActionListener( new MyActionListener( 6 ) );
+		omeZarrPath.addActionListener( new MyActionListener( 7 ) );
 
 		this.add( tiff );
 		this.add( zippedTiff );
@@ -91,6 +97,8 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 		this.add( deflatehdf5 );
 		this.add( n5 );
 		this.add( n5wPath );
+		this.add( omeZarr );
+		this.add( omeZarrPath );
 	}
 
 	@Override
@@ -266,22 +274,28 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						progressWriter.out().println( "done" );
 					}
 
-					// --- N5 ---
-					else if (index == 4 || index == 5) // 4 == in-place, 5 == choose path
+					// --- N5 / OME-ZARR ---
+					else if (index == 4 || index == 5) // 4 == in-place, 5 == choose path N5, 6 == in-place OME-ZARR, 7 == choose path OME-ZARR
 					{
 						//panel.saveXML();
 
-						final URI n5DatasetURI = ParametersResaveN5Api.createN5URIfromXMLURI( panel.xml() );
+						final URI n5DatasetURI = (index <= 5) ? 
+								ParametersResaveN5Api.createN5URIfromXMLURI( panel.xml() ) : ParametersResaveN5Api.createOMEZARRURIfromXMLURI( panel.xml() ) ;
 
 						final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ(
 								panel.xml(),
 								n5DatasetURI,
 								viewIds.stream().map( vid -> data.getSequenceDescription().getViewSetups().get( vid.getViewSetupId() ) ).collect( Collectors.toSet() ),
 								false, // do not ask for format (for now)
-								index == 5 );
+								index == 5 || index == 7 );
 
 						if ( n5params == null )
 							return;
+
+						if (index <= 5)
+							n5params.format = StorageFormat.N5;
+						else
+							n5params.format = StorageFormat.ZARR;
 
 						final URI basePathURI;
 

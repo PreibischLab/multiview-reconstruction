@@ -68,6 +68,12 @@ public class ParametersResaveN5Api
 		return URITools.toURI( uriString.subSequence( 0, uriString.length() - 4 ) + ".n5" );
 	}
 
+	public static URI createOMEZARRURIfromXMLURI( final URI xmlURI )
+	{
+		final String uriString = URITools.fromURI( xmlURI );
+		return URITools.toURI( uriString.subSequence( 0, uriString.length() - 4 ) + ".ome.zarr" );
+	}
+
 	public static ParametersResaveN5Api getParamtersIJ(
 			final Collection< ViewSetup > setupsToProcess )
 	{
