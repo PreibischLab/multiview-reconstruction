@@ -71,11 +71,11 @@ public class Resave_N5Api implements PlugIn
 	{
 		final LoadParseQueryXML xml = new LoadParseQueryXML();
 
-		if ( !xml.queryXML( "Resaving as N5", "Resave", true, true, true, true, true ) )
+		if ( !xml.queryXML( "Resaving using N5-API (ZARR, N5, HDF5)", "Resave", true, true, true, true, true ) )
 			return;
 
 		final ParametersResaveN5Api n5params =
-				ParametersResaveN5Api.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true );
+				ParametersResaveN5Api.getParamtersIJ( xml.getXMLURI(), xml.getViewSetupsToProcess(), true, true );
 
 		if ( n5params == null )
 			return;

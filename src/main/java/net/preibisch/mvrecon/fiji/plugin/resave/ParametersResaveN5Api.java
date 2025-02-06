@@ -83,11 +83,12 @@ public class ParametersResaveN5Api
 	public static ParametersResaveN5Api getParamtersIJ(
 			final URI xmlURI,
 			final Collection< ViewSetup > setupsToProcess,
+			final boolean askForFormat,
 			final boolean askForPaths )
 	{
 		final URI n5URI = createN5URIfromXMLURI( xmlURI );
 
-		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, false, askForPaths );
+		return getParamtersIJ( xmlURI, n5URI, setupsToProcess, askForFormat, askForPaths );
 	}
 
 	public static ParametersResaveN5Api getParamtersIJ(
