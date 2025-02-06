@@ -55,23 +55,23 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	{
 		final Element imgLoaderElement = new Element( "ImageLoader" );
 		imgLoaderElement.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.multimg.zarr" );
-		imgLoaderElement.setAttribute( "version", "1.0" );
+		imgLoaderElement.setAttribute( "version", "2.0" );
 
+		/*
 		if ( URITools.isS3( imgLoader.getN5URI() ) || URITools.isGC( imgLoader.getN5URI() ) )
 		{
 			final Element bucketElement = new Element("s3bucket");
-			bucketElement.addContent( imgLoader.getBucket() );
+			//bucketElement.addContent( imgLoader.getBucket() );
 			imgLoaderElement.addContent(bucketElement);
 
 			final Element zarrElement = new Element("zarr");
 			zarrElement.setAttribute("type", "absolute");
-			zarrElement.addContent( imgLoader.getFolder() );
+			//zarrElement.addContent( imgLoader.getFolder() );
 			imgLoaderElement.addContent( zarrElement );
 		}
 		else
-		{
-			imgLoaderElement.addContent( XmlHelpers.pathElement( "zarr", new File( imgLoader.getN5URI() ), null));
-		}
+		*/
+		imgLoaderElement.addContent( XmlHelpers.pathElementURI( "zarr", imgLoader.getN5URI(), basePathURI ));
 
 		final Element zgroupsElement = new Element( "zgroups" );
 
@@ -104,56 +104,66 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	{
 		final Map<ViewId, String> zgroups = new HashMap<>();
 
-		final Element s3Bucket = elem.getChild( "s3bucket" );
+		final String version = elem.getAttribute( "version" ).toString();
+
 		final URI uri;
-		String bucket, folder;
 
-		if (s3Bucket == null)
+		if ( version.equals( "1.0" ) )
 		{
-			uri = XmlHelpers.loadPathURI( elem, "zarr", basePathURI );
-
-			bucket = null;
-			folder = null;
+			final Element s3Bucket = elem.getChild( "s3bucket" );
+			String bucket, folder;
+	
+			if (s3Bucket == null)
+			{
+				uri = XmlHelpers.loadPathURI( elem, "zarr", basePathURI );
+	
+				bucket = null;
+				folder = null;
+			}
+			else
+			{
+				// `File` class should not be used for uri manipulation as it replaces slashes
+				// with backslashes on Windows
+				bucket = s3Bucket.getText();
+	
+				folder = elem.getChildText( "zarr" );
+	
+				if ( !folder.endsWith( "/" ) )
+					folder = folder + "/";
+	
+				if ( !folder.startsWith( "/" ) )
+					folder = "/" + folder;
+	
+				try
+				{
+					uri = new URI( "s3", bucket, folder, null );
+				}
+				catch ( URISyntaxException e )
+				{
+					e.printStackTrace();
+					throw new RuntimeException( "Could not instantiate OME-ZARR reader for S3 bucket '" + bucket + "'." );
+				}
+			}
 		}
 		else
 		{
-			// `File` class should not be used for uri manipulation as it replaces slashes
-			// with backslashes on Windows
-			bucket = s3Bucket.getText();
+			uri = XmlHelpers.loadPathURI( elem, "zarr", basePathURI );
+		}
 
-			folder = elem.getChildText( "zarr" );
-
-			if ( !folder.endsWith( "/" ) )
-				folder = folder + "/";
-
-			if ( !folder.startsWith( "/" ) )
-				folder = "/" + folder;
-
-			try
-			{
-				uri = new URI( "s3", bucket, folder, null );
-			}
-			catch ( URISyntaxException e )
-			{
-				e.printStackTrace();
-				throw new RuntimeException( "Could not instantiate N5 reader for S3 bucket '" + bucket + "'." );
-			}
-
-			final Element zgroupsElem = elem.getChild( "zgroups" );
-			for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
-			{
-				final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
-				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
-				final String path = c.getChild( "path" ).getText();
-				zgroups.put( new ViewId( timepointId, setupId ), path );
-			}
+		final Element zgroupsElem = elem.getChild( "zgroups" );
+		for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
+		{
+			final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
+			final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
+			final String path = c.getChild( "path" ).getText();
+			zgroups.put( new ViewId( timepointId, setupId ), path );
 		}
 
 		try
 		{
-			System.out.println( "Opening N5 Zarr reader for '" + uri + "'" );
+			System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
 
-			return new AllenOMEZarrLoader( uri, bucket, folder, sequenceDescription, zgroups );
+			return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
 		}
 		catch ( Exception e )
 		{
