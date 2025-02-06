@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -560,8 +559,8 @@ public class ExportN5Api implements ImgExport
 		//
 		final GenericDialogPlus gdInit = new GenericDialogPlus( "Save fused images as ZARR/N5/HDF5 using N5-API" );
 
-		final String[] options = 
-				Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name().equals( "ZARR" ) ? "OME-ZARR" : s.name() ).toArray(String[]::new);
+		final String[] options = N5ApiTools.exportOptions();
+		//Arrays.asList( StorageFormat.values() ).stream().map( s -> s.name().equals( "ZARR" ) ? "OME-ZARR" : s.name() ).toArray(String[]::new);
 
 		gdInit.addChoice( "Export as ...", options, options[ defaultOption ] );
 

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProposeMipmaps;
@@ -40,6 +41,7 @@ import mpicbg.spim.data.sequence.ViewSetup;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import util.URITools;
 
 public class ParametersResaveN5Api
@@ -47,6 +49,7 @@ public class ParametersResaveN5Api
 	public static int defaultBlockSize = 64;
 	public static int defaultBlockSizeXY = 128;
 
+	public static int defaultFormat = 0; // ZARR
 	public static int defaultNumThreads = Math.max( 1, Runtime.getRuntime().availableProcessors() - 1 );
 
 	public URI xmlURI, n5URI;
@@ -56,7 +59,7 @@ public class ParametersResaveN5Api
 	public Map< Integer, ExportMipmapInfo > proposedMipmaps;
 
 	public Compression compression;
-	public int format = 0; // 0 == N5, 1 == HDF5
+	public StorageFormat format = StorageFormat.ZARR;
 	public int numCellCreatorThreads = 1;
 
 	public static URI createN5URIfromXMLURI( final URI xmlURI )
@@ -128,8 +131,9 @@ public class ParametersResaveN5Api
 
 		if ( askForFormat )
 		{
-			final String[] options = new String[] { "N5", "HDF5" };
-			gdp.addChoice( "Format for raw data", options, options[ 0 ] );
+			//final String[] options = new String[] { "N5", "HDF5" };
+			final String[] options = N5ApiTools.exportOptions();
+			gdp.addChoice( "Format for raw data", options, options[ defaultFormat ] );
 		}
 
 		PluginHelper.addCompression( gdp, true );
@@ -147,7 +151,7 @@ public class ParametersResaveN5Api
 		{
 			gdp.addMessage( "" );
 			gdp.addDirectoryField( "XML_path", URITools.fromURI( xmlURI ), 65 );
-			gdp.addDirectoryField( "N5_path", URITools.fromURI( n5URI ), 65 );
+			gdp.addDirectoryField( "Dataset_path", URITools.fromURI( n5URI ), 65 );
 		}
 
 		gdp.showDialog();
@@ -156,7 +160,7 @@ public class ParametersResaveN5Api
 			return null;
 
 		if ( askForFormat )
-			n5params.format = gdp.getNextChoiceIndex();
+			n5params.format = StorageFormat.values()[ defaultFormat = gdp.getNextChoiceIndex() ];
 
 		n5params.compression = PluginHelper.parseCompression( gdp );
 

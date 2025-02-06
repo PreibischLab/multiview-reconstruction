@@ -57,6 +57,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
@@ -118,10 +119,8 @@ public class Resave_N5Api implements PlugIn
 			});
 		}
 
-		final StorageFormat format = (n5Params.format == 0 ) ? StorageFormat.N5 : StorageFormat.HDF5;
-
 		// save to cloud or file
-		final N5Writer n5Writer = URITools.instantiateN5Writer( format, n5Params.n5URI );
+		final N5Writer n5Writer = URITools.instantiateN5Writer( n5Params.format, n5Params.n5URI );
 
 		final int[] blockSize = n5Params.subdivisions[ 0 ];
 		final int[] computeBlockSize = new int[ blockSize.length ];
@@ -156,27 +155,47 @@ public class Resave_N5Api implements PlugIn
 
 		final Map< ViewId, MultiResolutionLevelInfo[] > viewIdToMrInfo =
 				vidsToResave.parallelStream().map(
-						viewId -> new ValuePair<>(
-								viewId,
-								( format == StorageFormat.N5 ) ?
-									N5ApiTools.setupBdvDatasetsN5(
-											n5Writer,
-											viewId,
-											dataTypes.get( viewId.getViewSetupId() ),
-											dimensions.get( viewId.getViewSetupId() ),
-											compression,
-											blockSize,
-											downsamplings )
-									:
-										N5ApiTools.setupBdvDatasetsHDF5(
-												n5Writer,
-												viewId,
-												dataTypes.get( viewId.getViewSetupId() ),
-												dimensions.get( viewId.getViewSetupId() ),
-												compression,
-												blockSize,
-												downsamplings )
-										) ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
+						viewId ->
+						{
+							final MultiResolutionLevelInfo[] mrInfo;
+
+							if ( n5Params.format == StorageFormat.N5 )
+							{
+								mrInfo = N5ApiTools.setupBdvDatasetsN5(
+										n5Writer,
+										viewId,
+										dataTypes.get( viewId.getViewSetupId() ),
+										dimensions.get( viewId.getViewSetupId() ),
+										compression,
+										blockSize,
+										downsamplings );
+							}
+							else if ( n5Params.format == StorageFormat.N5 )
+							{
+								mrInfo = N5ApiTools.setupBdvDatasetsHDF5(
+										n5Writer,
+										viewId,
+										dataTypes.get( viewId.getViewSetupId() ),
+										dimensions.get( viewId.getViewSetupId() ),
+										compression,
+										blockSize,
+										downsamplings );
+							}
+							else
+							{
+								mrInfo = N5ApiTools.setupBdvDatasetsOMEZARR(
+										n5Writer,
+										viewId,
+										dataTypes.get( viewId.getViewSetupId() ),
+										dimensions.get( viewId.getViewSetupId() ),
+										data.getSequenceDescription().getViewDescription( viewId ).getViewSetup().getVoxelSize().dimensionsAsDoubleArray(),
+										compression,
+										blockSize,
+										downsamplings);
+							}
+
+							return new ValuePair<>( viewId, mrInfo );
+						} ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		IOFunctions.println( "Number of compute blocks: " + grid.size() );
@@ -200,7 +219,7 @@ public class Resave_N5Api implements PlugIn
 							data,
 							n5Writer,
 							dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
-							N5ApiTools.gridToDatasetBdv( 0, format ), // a function mapping the gridblock to the dataset name for level 0 and N5
+							N5ApiTools.gridToDatasetBdv( 0, n5Params.format ), // a function mapping the gridblock to the dataset name for level 0 and N5
 							gridBlock );
 
 						IJ.showProgress( progress.incrementAndGet(), grid.size() );
@@ -208,7 +227,7 @@ public class Resave_N5Api implements PlugIn
 		}
 		catch (InterruptedException | ExecutionException e)
 		{
-			IOFunctions.println( "Failed to write s0 for " + format + " '" + n5Params.n5URI + "'. Error: " + e );
+			IOFunctions.println( "Failed to write s0 for " + n5Params.format + " '" + n5Params.n5URI + "'. Error: " + e );
 			e.printStackTrace();
 			return null;
 		}
@@ -251,37 +270,52 @@ public class Resave_N5Api implements PlugIn
 			}
 			catch (InterruptedException | ExecutionException e)
 			{
-				IOFunctions.println( "Failed to write downsample step s" + s +" for " + format + " '" + n5Params.n5URI + "'. Error: " + e );
+				IOFunctions.println( "Failed to write downsample step s" + s +" for " + n5Params.format + " '" + n5Params.n5URI + "'. Error: " + e );
 				e.printStackTrace();
 				return null;
 			}
 
 			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
-			IOFunctions.println( "Resaved " + format + " s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
+			IOFunctions.println( "Resaved " + n5Params.format + " s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 
 		myPool.shutdown();
 		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
 
 
-		if ( format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
+		if ( n5Params.format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
 		{
 			// we need to init with File and not with URI, since otherwise the N5ImageLoader will trigger the exception above if this object is re-used
 			// this seems to not matter when opening directly from disc...
 			sdReduced.getSequenceDescription().setImgLoader( new N5ImageLoader( new File( URITools.fromURI( n5Params.n5URI ) ), sdReduced.getSequenceDescription() ) );
 			n5Writer.close();
 		}
-		else if ( format == StorageFormat.N5 ) // some cloud location
+		else if ( n5Params.format == StorageFormat.N5 ) // some cloud location
 		{
-			sdReduced.getSequenceDescription().setImgLoader( new N5CloudImageLoader( n5Writer, n5Params.n5URI, sdReduced.getSequenceDescription() ) );
+			sdReduced.getSequenceDescription().setImgLoader(
+					new N5CloudImageLoader( n5Writer, n5Params.n5URI, sdReduced.getSequenceDescription() ) );
 		}
-		else if ( format == StorageFormat.HDF5 )
+		else if ( n5Params.format == StorageFormat.ZARR )
 		{
-			sdReduced.getSequenceDescription().setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
+			final Map< ViewId, String > viewIdToPath = new HashMap<>();
+
+			viewIdToMrInfo.forEach( (viewId, mrInfo ) ->
+				viewIdToPath.put(
+						viewId,
+						mrInfo[ 0 ].dataset.substring(0,  mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ) )
+			);
+
+			sdReduced.getSequenceDescription().setImgLoader(
+					new AllenOMEZarrLoader( n5Params.n5URI, sdReduced.getSequenceDescription(), viewIdToPath ) );
+		}
+		else if ( n5Params.format == StorageFormat.HDF5 )
+		{
+			sdReduced.getSequenceDescription().setImgLoader(
+					new Hdf5ImageLoader( new File( URITools.fromURI( n5Params.n5URI ) ), null, sdReduced.getSequenceDescription() ) );
 			n5Writer.close();
 		}
 		else
-			throw new RuntimeException( "There is no ImgLoader available for " + format + ". Data is resaved, but we will not be able to load it" );
+			throw new RuntimeException( "There is no ImgLoader available for " + n5Params.format + ". Data is resaved, but we will not be able to load it" );
 
 		sdReduced.setBasePathURI( URITools.getParentURINoEx( n5Params.xmlURI ) );
 
