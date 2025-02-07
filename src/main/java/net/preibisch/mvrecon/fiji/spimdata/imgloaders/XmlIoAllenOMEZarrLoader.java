@@ -41,7 +41,6 @@ import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
-import util.URITools;
 
 @ImgLoaderIo( format = "bdv.multimg.zarr", type = AllenOMEZarrLoader.class )
 public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZarrLoader >
@@ -57,7 +56,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	{
 		final Element imgLoaderElement = new Element( "ImageLoader" );
 		imgLoaderElement.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.multimg.zarr" );
-		imgLoaderElement.setAttribute( "version", "2.0" );
+		imgLoaderElement.setAttribute( "version", "2.1" );
 
 		/*
 		if ( URITools.isS3( imgLoader.getN5URI() ) || URITools.isGC( imgLoader.getN5URI() ) )
@@ -81,11 +80,14 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 		{
 			final Element zgroupElement = new Element("zgroup");
 			zgroupElement.setAttribute( "setup", String.valueOf( entry.getKey().getViewSetupId() ) );
-			zgroupElement.setAttribute( "timepoint", String.valueOf( entry.getKey().getTimePointId() ) );
+			zgroupElement.setAttribute( "tp", String.valueOf( entry.getKey().getTimePointId() ) );
+			zgroupElement.setAttribute( "path", String.valueOf( entry.getValue() ) );
 
+			/*
 			final Element pathElement = new Element( "path" );
 			pathElement.addContent( entry.getValue() );
 			zgroupElement.addContent( pathElement );
+			*/
 
 			zgroupsElement.addContent( zgroupElement );
 		}
@@ -161,9 +163,10 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 		final Element zgroupsElem = elem.getChild( "zgroups" );
 		for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
 		{
-			final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
+			final int timepointId = Integer.parseInt( c.getAttributeValue( "tp" ) );
 			final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
-			final String path = c.getChild( "path" ).getText();
+			final String path = c.getAttributeValue( "path" );
+			//final String path = c.getChild( "path" ).getText();
 			zgroups.put( new ViewId( timepointId, setupId ), path );
 		}
 
