@@ -275,7 +275,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 					}
 
 					// --- N5 / OME-ZARR ---
-					else if (index == 4 || index == 5) // 4 == in-place, 5 == choose path N5, 6 == in-place OME-ZARR, 7 == choose path OME-ZARR
+					else if (index == 4 || index == 5 || index == 6 || index == 7 ) // 4 == in-place, 5 == choose path N5, 6 == in-place OME-ZARR, 7 == choose path OME-ZARR
 					{
 						//panel.saveXML();
 

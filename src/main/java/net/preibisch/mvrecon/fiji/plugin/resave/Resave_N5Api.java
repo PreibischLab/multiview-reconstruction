@@ -218,6 +218,7 @@ public class Resave_N5Api implements PlugIn
 						N5ApiTools.resaveS0Block(
 							data,
 							n5Writer,
+							n5Params.format,
 							dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
 							N5ApiTools.gridToDatasetBdv( 0, n5Params.format ), // a function mapping the gridblock to the dataset name for level 0 and N5
 							gridBlock );
@@ -259,11 +260,25 @@ public class Resave_N5Api implements PlugIn
 				myPool.submit(() -> allBlocks.parallelStream().forEach(
 						gridBlock -> 
 						{
-							N5ApiTools.writeDownsampledBlock(
-								n5Writer,
-								viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
-								viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
-								gridBlock );
+							// 5D OME-ZARR CONTAINER
+							if ( n5Params.format == StorageFormat.ZARR )
+							{
+								N5ApiTools.writeDownsampledBlock5dOMEZARR(
+										n5Writer,
+										viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
+										viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
+										gridBlock,
+										0,
+										0 );
+							}
+							else
+							{
+								N5ApiTools.writeDownsampledBlock(
+									n5Writer,
+									viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
+									viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
+									gridBlock );
+							}
 
 							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 						} ) ).get();

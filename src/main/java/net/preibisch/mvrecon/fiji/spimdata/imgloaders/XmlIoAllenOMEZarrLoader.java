@@ -39,6 +39,7 @@ import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.legacy.io.IOFunctions;
 import util.URITools;
 
 @ImgLoaderIo( format = "bdv.multimg.zarr", type = AllenOMEZarrLoader.class )
@@ -163,7 +164,15 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 		{
 			System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
 
-			return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
+			try
+			{
+				return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
+			}
+			catch ( Exception e )
+			{
+				IOFunctions.println( "ERROR: cannot instantiate OMEZarrLoader: " + e );
+				return null;
+			}
 		}
 		catch ( Exception e )
 		{

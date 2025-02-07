@@ -158,7 +158,7 @@ public class N5ApiTools
 		}
 		else if ( StorageFormat.ZARR.equals( storageType ) )
 		{
-			path = "setup" + viewId.getViewSetupId() + "_" + "timepoint" + viewId.getTimePointId() + ".zarr/" + level;
+			path = "s" + viewId.getViewSetupId() + "-t" + viewId.getTimePointId() + ".zarr/" + level;
 		}
 		else
 		{
@@ -673,6 +673,7 @@ public class N5ApiTools
 	public static <T extends NativeType<T>> void resaveS0Block(
 			final SpimData2 data,
 			final N5Writer n5,
+			final StorageFormat storageType,
 			final DataType dataType,
 			final Function<long[][], String> gridBlockToDataset, // gridBlock to dataset name for s0
 			final long[][] gridBlock )
@@ -688,10 +689,35 @@ public class N5ApiTools
 
 		final SetupImgLoader< ? > imgLoader = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() );
 		final RandomAccessibleInterval< T > img = Cast.unchecked( imgLoader.getImage( viewId.getTimePointId() ) );
-		final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval( img, gridBlock[ 0 ], gridBlock[ 1 ] );
-		N5Utils.saveNonEmptyBlock( sourceGridBlock, n5, dataset, gridBlock[ 2 ], img.getType().createVariable() );
 
-		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( gridBlock[0] ) + ", dimension=" + Util.printCoordinates( gridBlock[1] ) );
+		final long[] blockOffset, blockSize, gridOffset;
+		final RandomAccessible< T >image;
+
+		// 5D OME-ZARR CONTAINER
+		if ( storageType == StorageFormat.ZARR )
+		{
+			// gridBlock is 3d, make it 5d
+			blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], 0, 0 };
+			blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+			gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], 0, 0 }; // because blocksize in C & T is 1
+
+			// img is 3d, make it 5d
+			// the same information is returned no matter which index is queried in C and T
+			image = Views.addDimension( Views.addDimension( img ) );
+		}
+		else
+		{
+			blockOffset = gridBlock[0];
+			blockSize = gridBlock[1];
+			gridOffset = gridBlock[2];
+
+			image = img;
+		}
+
+		final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval( image, blockOffset, blockSize );
+		N5Utils.saveNonEmptyBlock( sourceGridBlock, n5, dataset, gridOffset, image.getType().createVariable() );
+
+		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( blockOffset ) + ", dimension=" + Util.printCoordinates( blockSize ) );
 	}
 
 	public static Map< Integer, DataType > assembleDataTypes(
