@@ -170,7 +170,7 @@ public class Resave_N5Api implements PlugIn
 										blockSize,
 										downsamplings );
 							}
-							else if ( n5Params.format == StorageFormat.N5 )
+							else if ( n5Params.format == StorageFormat.HDF5 )
 							{
 								mrInfo = N5ApiTools.setupBdvDatasetsHDF5(
 										n5Writer,
