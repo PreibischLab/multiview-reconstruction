@@ -46,8 +46,10 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
 
 import bdv.export.ExportMipmapInfo;
+import bdv.util.MipmapTransforms;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.Channel;
@@ -56,6 +58,7 @@ import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
+import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
@@ -63,6 +66,7 @@ import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.downsample.Downsample;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
@@ -72,6 +76,7 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.Grid;
 
@@ -150,6 +155,10 @@ public class N5ApiTools
 		else if ( StorageFormat.HDF5.equals(storageType) )
 		{
 			path = "t" + String.format("%05d", viewId.getTimePointId()) + "/" + "s" + String.format("%02d", viewId.getViewSetupId()) + "/" + level + "/cells";
+		}
+		else if ( StorageFormat.ZARR.equals( storageType ) )
+		{
+			path = "s" + viewId.getViewSetupId() + "-t" + viewId.getTimePointId() + ".zarr/" + level;
 		}
 		else
 		{
@@ -286,6 +295,12 @@ public class N5ApiTools
 		return mrInfo;
 	}
 
+	public static String[] exportOptions()
+	{
+		return Arrays.asList(StorageFormat.values()).stream().map(s -> s.name().equals("ZARR") ? "OME-ZARR" : s.name())
+				.toArray(String[]::new);
+	}
+
 	public static MultiResolutionLevelInfo[] setupBdvDatasetsHDF5(
 			final N5Writer driverVolumeWriter,
 			final ViewId viewId,
@@ -359,6 +374,67 @@ public class N5ApiTools
 		return mrInfo;
 	}
 
+	public static MultiResolutionLevelInfo[] setupBdvDatasetsOMEZARR(
+			final N5Writer driverVolumeWriter,
+			final ViewId viewId,
+			final DataType dataType,
+			final long[] dimensions,
+			final double[] resolutionS0,
+			final Compression compression,
+			final int[] blockSize,
+			int[][] downsamplings )
+	{
+		final String s0Dataset = viewIdToDatasetBdv( StorageFormat.ZARR ).apply( viewId, 0 );
+		final String baseDataset = s0Dataset.substring(0, s0Dataset.lastIndexOf( "/" ) + 1);
+
+		IOFunctions.println( "Creating 5D OME-ZARR metadata for '" + baseDataset + "' ... " );
+
+		final long[] dim5d = new long[] { dimensions[ 0 ], dimensions[ 1 ], dimensions[ 2 ], 1, 1 };
+		final int[] blockSize5d = new int[] { blockSize[ 0 ], blockSize[ 1 ], blockSize[ 2 ], 1, 1 };
+		final int[][] ds5d = new int[ downsamplings.length ][];
+		for ( int d = 0; d < ds5d.length; ++d )
+			ds5d[ d ] = new int[] { downsamplings[ d ][ 0 ], downsamplings[ d ][ 1 ], downsamplings[ d ][ 2 ], 1, 1 };
+
+		final Function<Integer, String> levelToName = (level) -> "/" + level;
+
+		// all is 5d now
+		final MultiResolutionLevelInfo[] mrInfo = N5ApiTools.setupMultiResolutionPyramid(
+				driverVolumeWriter,
+				viewId,
+				viewIdToDatasetBdv( StorageFormat.ZARR ),
+				dataType,
+				dim5d, //5d
+				compression,
+				blockSize5d, //5d
+				ds5d ); // 5d
+
+		final Function<Integer, AffineTransform3D> levelToMipmapTransform =
+				(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfo[level].absoluteDownsamplingDouble() );
+
+		// extract the resolution of the s0 export
+		//final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
+		//final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+
+		// create metadata
+		final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
+				5, // int n
+				"/", // String name, I also saw "/"
+				resolutionS0, // double[] resolutionS0,
+				"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+				mrInfo.length, // int numResolutionLevels,
+				levelToName,
+				levelToMipmapTransform );
+
+		// save metadata
+
+		//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
+		// for this to work you need to register an adapter in the N5Factory class
+		// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
+		driverVolumeWriter.setAttribute( baseDataset, "multiscales", meta );
+
+		return mrInfo;
+	}
+
 	public static MultiResolutionLevelInfo[] setupBdvDatasetsN5(
 			final N5Writer driverVolumeWriter,
 			final ViewId viewId,
@@ -368,10 +444,6 @@ public class N5ApiTools
 			final int[] blockSize,
 			int[][] downsamplings )
 	{
-		final String s0Dataset = createBDVPath( viewId, 0, StorageFormat.N5 );
-		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
-		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
-
 		final MultiResolutionLevelInfo[] mrInfo = setupMultiResolutionPyramid(
 				driverVolumeWriter,
 				viewId,
@@ -381,6 +453,10 @@ public class N5ApiTools
 				compression,
 				blockSize,
 				downsamplings);
+
+		final String s0Dataset = createBDVPath( viewId, 0, StorageFormat.N5 );
+		final String setupDataset = s0Dataset.substring(0, s0Dataset.indexOf( "/timepoint" ));
+		final String timepointDataset = s0Dataset.substring(0, s0Dataset.indexOf("/s0" ));
 
 		final Map<String, Class<?>> attribs = driverVolumeWriter.listAttributes( setupDataset );
 
@@ -597,6 +673,7 @@ public class N5ApiTools
 	public static <T extends NativeType<T>> void resaveS0Block(
 			final SpimData2 data,
 			final N5Writer n5,
+			final StorageFormat storageType,
 			final DataType dataType,
 			final Function<long[][], String> gridBlockToDataset, // gridBlock to dataset name for s0
 			final long[][] gridBlock )
@@ -612,10 +689,35 @@ public class N5ApiTools
 
 		final SetupImgLoader< ? > imgLoader = data.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() );
 		final RandomAccessibleInterval< T > img = Cast.unchecked( imgLoader.getImage( viewId.getTimePointId() ) );
-		final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval( img, gridBlock[ 0 ], gridBlock[ 1 ] );
-		N5Utils.saveNonEmptyBlock( sourceGridBlock, n5, dataset, gridBlock[ 2 ], img.getType().createVariable() );
 
-		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( gridBlock[0] ) + ", dimension=" + Util.printCoordinates( gridBlock[1] ) );
+		final long[] blockOffset, blockSize, gridOffset;
+		final RandomAccessible< T >image;
+
+		// 5D OME-ZARR CONTAINER
+		if ( storageType == StorageFormat.ZARR )
+		{
+			// gridBlock is 3d, make it 5d
+			blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], 0, 0 };
+			blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+			gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], 0, 0 }; // because blocksize in C & T is 1
+
+			// img is 3d, make it 5d
+			// the same information is returned no matter which index is queried in C and T
+			image = Views.addDimension( Views.addDimension( img ) );
+		}
+		else
+		{
+			blockOffset = gridBlock[0];
+			blockSize = gridBlock[1];
+			gridOffset = gridBlock[2];
+
+			image = img;
+		}
+
+		final RandomAccessibleInterval< T > sourceGridBlock = Views.offsetInterval( image, blockOffset, blockSize );
+		N5Utils.saveNonEmptyBlock( sourceGridBlock, n5, dataset, gridOffset, image.getType().createVariable() );
+
+		System.out.println( "ViewId " + Group.pvid( viewId ) + ", written block: offset=" + Util.printCoordinates( blockOffset ) + ", dimension=" + Util.printCoordinates( blockSize ) );
 	}
 
 	public static Map< Integer, DataType > assembleDataTypes(

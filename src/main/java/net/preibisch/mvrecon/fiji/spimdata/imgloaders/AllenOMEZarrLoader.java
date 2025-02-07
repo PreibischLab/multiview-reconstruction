@@ -51,20 +51,20 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 
 	private final Map< ViewId, String > viewIdToPath;
 
-	private final String bucket, folder;
+	//private final String bucket, folder;
 
 	public AllenOMEZarrLoader(
 			final URI n5URI,
-			final String bucket,
-			final String folder,
+			//final String bucket,
+			//final String folder,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
 			final Map< ViewId, String > viewIdToPath )
 	{
 		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
 		this.sequenceDescription = sequenceDescription;
 
-		this.bucket = bucket;
-		this.folder = folder;
+		//this.bucket = bucket;
+		//this.folder = folder;
 
 		this.viewIdToPath = viewIdToPath;
 	}
@@ -73,7 +73,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	{
 		return viewIdToPath;
 	}
-
+	/*
 	public String getBucket()
 	{
 		return bucket;
@@ -83,7 +83,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 	{
 		return folder;
 	}
-
+	*/
 	@Override
 	protected N5Properties createN5PropertiesInstance()
 	{
