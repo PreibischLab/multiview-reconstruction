@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.jdom2.Attribute;
 import org.jdom2.Element;
 
 import mpicbg.spim.data.XmlHelpers;
@@ -105,7 +106,13 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	{
 		final Map<ViewId, String> zgroups = new HashMap<>();
 
-		final String version = elem.getAttribute( "version" ).toString();
+		final Attribute ver = elem.getAttribute( "version" );
+
+		final String version;
+		if ( ver != null )
+			version = ver.getValue();
+		else
+			version = "";
 
 		final URI uri;
 
