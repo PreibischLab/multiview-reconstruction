@@ -63,6 +63,8 @@ import java.util.stream.Collectors;
 
 import javax.swing.JLabel;
 
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;
 import fiji.util.gui.GenericDialogPlus;
@@ -127,12 +129,12 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 {
 	public static final String[] GLOB_SPECIAL_CHARS = new String[] {"{", "}", "[", "]", "*", "?"};
 	//public static final String[] loadChoices = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data virtually (with caching)", "Load raw data"};
-	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly (no resaving)"};
+	public static final String[] loadChoicesNew = new String[] { "Re-save as multiresolution OME-ZARR", "Re-save as multiresolution HDF5", "Re-save as multiresolution N5", "Load raw data directly (no resaving)"};
 	public static final String Z_VARIABLE_CHOICE = "Z-Planes (experimental)";
 
 	public static boolean windowsHack = true;
 
-	public static int defaultLoadChoice = 1;
+	public static int defaultLoadChoice = 0;
 	public static boolean defaultVirtual = true;
 
 	private static ArrayList<FileListChooser> fileListChoosers = new ArrayList<>();
@@ -1143,7 +1145,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		final String chosenPathXML = gdSave.getNextString(); // where the XML and interest points live
 		final String chosenPathData;
 
-		if ( loadChoice == 2 )
+		if ( loadChoice == 3 )
 		{
 			gdSave.getNextString(); // << goes to void
 			chosenPathData = prefixPath.getAbsolutePath(); // the data is where it is if not resaved
@@ -1154,8 +1156,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			chosenPathData = gdSave.getNextString(); // will be stored in the img loader (if identical to chosenPathXML then relative, otherwise absolute)
 		}
 
-		final boolean resaveAsHDF5 = (loadChoice == 0);
-		final boolean resaveAsN5 = (loadChoice == 1);
+		final boolean resaveAsOMEZARR = (loadChoice == 0);
+		final boolean resaveAsHDF5 = (loadChoice == 1);
+		final boolean resaveAsN5 = (loadChoice == 2);
 
 		URI chosenPathXMLURI, chosenPathDataURI;
 
@@ -1286,7 +1289,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			// ensure progressbar is gone
 			progressWriter.setProgress( 1.0 );
 		}
-		else if (resaveAsN5)
+		else if (resaveAsN5 || resaveAsOMEZARR )
 		{
 			final ArrayList< ViewDescription > viewIds = new ArrayList<>( data.getSequenceDescription().getViewDescriptions().values() );
 			Collections.sort( viewIds );
@@ -1294,9 +1297,9 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			final SequenceDescription sd = data.getSequenceDescription();
 
 			final URI xmlURI = URI.create( URITools.appendName(chosenPathXMLURI, xmlFileName ) );
-			final URI n5DatasetURI = URI.create( URITools.appendName(chosenPathDataURI, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + ".n5" ) );
+			final URI n5DatasetURI = URI.create( URITools.appendName(chosenPathDataURI, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + (resaveAsN5 ? ".n5" : ".ome.zarr" ) ) );
 
-			IOFunctions.println( "N5 path: " + n5DatasetURI );
+			IOFunctions.println( (resaveAsN5 ? "N5" : "OME-ZARR" ) + " path: " + n5DatasetURI );
 
 			final ParametersResaveN5Api n5params = ParametersResaveN5Api.getParamtersIJ(
 					xmlURI,
@@ -1308,9 +1311,14 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			if ( n5params == null )
 				return null;
 
+			if ( resaveAsN5 )
+				n5params.format = StorageFormat.N5;
+			else
+				n5params.format = StorageFormat.ZARR;
+
 			data = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
-			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): N5 resave finished." );
+			IOFunctions.println( "(" + new Date(  System.currentTimeMillis() ) + "): " + (resaveAsN5 ? "N5" : "OME-ZARR" ) +" resave finished." );
 		}
 
 		if (gridMoveType == 1)
