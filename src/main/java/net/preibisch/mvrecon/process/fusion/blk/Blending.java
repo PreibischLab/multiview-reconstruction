@@ -26,6 +26,7 @@ import java.util.Arrays;
 
 import net.imglib2.Interval;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.blocks.BlockInterval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -140,17 +141,18 @@ class Blending
 		}
 
 		/**
-		 *
-		 * @param srcPos
-		 * 		min coordinate of the block to copy
+		 * @param interval
+		 * 		the block to copy
 		 * @param dest
-		 *      {@code float[]} array to copy into.
-		 * @param size
-		 * 		the size of the block to copy
+		 *        {@code float[]} array to copy into.
 		 */
 		@Override
-		public void copy( final long[] srcPos, final Object dest, final int[] size )
+		public void copy( final Interval interval, final Object dest )
 		{
+			final BlockInterval blockInterval = BlockInterval.asBlockInterval( interval );
+			final long[] srcPos = blockInterval.min();
+			final int[] size = blockInterval.size();
+
 			final float[] weights = ( float[] ) dest;
 			final long x0 = srcPos[ 0 ];
 			final long y0 = srcPos[ 1 ];

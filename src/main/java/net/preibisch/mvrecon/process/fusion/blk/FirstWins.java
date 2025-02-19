@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.imglib2.Interval;
 import net.imglib2.algorithm.blocks.AbstractBlockSupplier;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.blocks.BlockInterval;
 import net.imglib2.blocks.TempArray;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -92,8 +94,12 @@ class FirstWins
 		}
 
 		@Override
-		public void copy( final long[] srcPos, final Object dest, final int[] size )
+		public void copy( final Interval interval, final Object dest )
 		{
+			final BlockInterval blockInterval = BlockInterval.asBlockInterval( interval );
+			final long[] srcPos = blockInterval.min();
+			final int[] size = blockInterval.size();
+
 			final int len = safeInt( Intervals.numElements( size ) );
 
 			final byte[] tmpM = tempArrayM.get( len );
@@ -156,7 +162,7 @@ class FirstWins
 			int remaining = len;
 			for ( int i : overlapping )
 			{
-				masks.get( i ).copy( srcPos, tmpM, size );
+				masks.get( i ).copy( blockInterval, tmpM );
 				final byte flag = ( byte ) ( i + 1 );
 				final int remainingBefore = remaining;
 				for ( int x = 0; x < len; ++x )
@@ -169,7 +175,7 @@ class FirstWins
 				}
 				if ( remaining != remainingBefore )
 				{
-					images.get( i ).copy( srcPos, tmpI, size );
+					images.get( i ).copy( blockInterval, tmpI );
 					for ( int x = 0; x < len; ++x )
 					{
 						if ( accM[ x ] == flag )
