@@ -39,6 +39,7 @@ import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.Interval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -56,6 +57,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
+import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
@@ -224,17 +226,38 @@ public class BlkAffineFusion
 		}
 	}
 
-
 	private static < T extends NativeType< T > > BlockSupplier< FloatType > transformedBlocks(
 			final RandomAccessibleInterval< T > inputImg,
 			final AffineTransform3D transform,
 			final Interpolation interpolation )
 	{
-		return BlockSupplier.of( Views.extendBorder( ( inputImg ) ) )
+		return BlockSupplier.of( extendInput( inputImg ) )
 				.andThen( Convert.convert( new FloatType() ) )
 				.andThen( Transform.affine( transform, interpolation ) );
 	}
 
+	private static < T extends NativeType< T > > RandomAccessible< T > extendInput(
+			final RandomAccessible< T > input )
+	{
+		if ( input instanceof IntervalView )
+		{
+			return extendInput( ( ( IntervalView< T > ) input ).getSource() );
+		}
+//		else if ( input instanceof MixedTransformView )
+//		{
+//			final MixedTransformView< T > view = ( MixedTransformView< T > ) input;
+//			return new MixedTransformView<>( extendInput( view.getSource() ), view.getTransformToSource() );
+//		}
+		else if ( input instanceof RandomAccessibleInterval )
+		{
+			return Views.extendBorder( ( RandomAccessibleInterval< T > ) input );
+		}
+		else
+		{
+			// must already be extended then ...
+			return input;
+		}
+	}
 
 	private static AffineTransform3D concatenateBoundingBoxOffset(
 			final AffineTransform3D transformFromSource,
@@ -250,7 +273,7 @@ public class BlkAffineFusion
 	}
 
 
-	private static < T extends RealType< T > & NativeType< T > > boolean supports(
+	private static boolean supports(
 			final boolean is2d,
 			final FusionType fusionType,
 			final Map< ViewId, AffineModel1D > intensityAdjustments )
