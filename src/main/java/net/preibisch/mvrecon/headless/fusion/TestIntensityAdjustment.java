@@ -150,14 +150,14 @@ public class TestIntensityAdjustment
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						viewIds, FusionType.AVG, 1, bb, intensityMapping );
+						viewIds, FusionType.AVG, 1, FusionTools.defaultBlendingRange, bb, intensityMapping );
 
 		final RandomAccessibleInterval< FloatType > virtual =
 				FusionTools.fuseVirtual(
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
-						viewIds, FusionType.AVG, 1, bb, null );
+						viewIds, FusionType.AVG, 1, FusionTools.defaultBlendingRange, bb, null );
 
 		//
 		// actually fuse into an image multithreaded
