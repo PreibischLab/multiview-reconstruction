@@ -154,20 +154,29 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 					throw new RuntimeException( "Could not instantiate OME-ZARR reader for S3 bucket '" + bucket + "'." );
 				}
 			}
+
+			final Element zgroupsElem = elem.getChild( "zgroups" );
+			for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
+			{
+				final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
+				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
+				final String path = c.getChild( "path" ).getText();
+				zgroups.put( new ViewId( timepointId, setupId ), path );
+			}
 		}
 		else
 		{
 			uri = XmlHelpers.loadPathURI( elem, "zarr", basePathURI );
-		}
 
-		final Element zgroupsElem = elem.getChild( "zgroups" );
-		for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
-		{
-			final int timepointId = Integer.parseInt( c.getAttributeValue( "tp" ) );
-			final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
-			final String path = c.getAttributeValue( "path" );
-			//final String path = c.getChild( "path" ).getText();
-			zgroups.put( new ViewId( timepointId, setupId ), path );
+			final Element zgroupsElem = elem.getChild( "zgroups" );
+			for ( final Element c : zgroupsElem.getChildren( "zgroup" ) )
+			{
+				final int timepointId = Integer.parseInt( c.getAttributeValue( "tp" ) );
+				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
+				final String path = c.getAttributeValue( "path" );
+				//final String path = c.getChild( "path" ).getText();
+				zgroups.put( new ViewId( timepointId, setupId ), path );
+			}
 		}
 
 		try
