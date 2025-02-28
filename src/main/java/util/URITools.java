@@ -78,6 +78,7 @@ public class URITools
 	private final static Pattern FILE_SCHEME = Pattern.compile( "file", Pattern.CASE_INSENSITIVE );
 
 	public static int cloudThreads = 256;
+	public static String s3Region = null;
 
 	public static boolean useS3CredentialsWrite = true;
 	public static boolean useS3CredentialsRead = true;
@@ -276,6 +277,8 @@ public class URITools
 				final N5Factory factory = new N5Factory().zarrDimensionSeparator( "/" );
 				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
+				if ( s3Region != null )
+					factory.s3Region( s3Region );
 				n5w = factory.openWriter( format, uri );
 			}
 			catch ( Exception e )
@@ -284,6 +287,8 @@ public class URITools
 
 				final N5Factory factory = new N5Factory();
 				factory.gsonBuilder( builder );
+				if ( s3Region != null )
+					factory.s3Region( s3Region );
 				n5w = factory.openWriter( format, uri );
 			}
 
@@ -316,6 +321,8 @@ public class URITools
 				final N5Factory factory = new N5Factory();
 				factory.gsonBuilder( builder );
 				factory.s3UseCredentials();
+				if ( s3Region != null )
+					factory.s3Region( s3Region );
 				n5r = factory.openReader( format, uri );
 			}
 			catch ( Exception e )
@@ -324,92 +331,14 @@ public class URITools
 
 				final N5Factory factory = new N5Factory();
 				factory.gsonBuilder( builder );
+				if ( s3Region != null )
+					factory.s3Region( s3Region );
 				n5r = factory.openReader( format, uri );
 			}
 
 			return n5r;
 		}
 	}
-
-	/*
-	public static N5Reader instantiateGuessedN5Reader( final URI uri )
-	{
-		if ( URITools.isFile( uri ) )
-		{
-			if ( uri.toString().toLowerCase().endsWith( ".zarr" ) )
-				return instantiateN5Reader( StorageFormat.ZARR, uri );
-			else if ( uri.toString().toLowerCase().endsWith( ".n5" ) )
-				return instantiateN5Reader( StorageFormat.N5, uri );
-			else
-				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
-		}
-		else
-		{
-			N5Reader n5r;
-
-			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
-					CoordinateTransformation.class,
-					new CoordinateTransformationAdapter() );
-
-			try
-			{
-				//System.out.println( "Trying reading with credentials ..." );
-				final N5Factory factory = new N5Factory();
-				factory.gsonBuilder( builder );
-				factory.s3UseCredentials();
-				n5r = factory.openReader( uri.toString() );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( "With credentials failed; trying anonymous ..." );
-				final N5Factory factory = new N5Factory();
-				factory.gsonBuilder( builder );
-				n5r = factory.openReader( uri.toString() );
-			}
-
-			return n5r;
-		}
-	}
-
-	public static N5Writer instantiateGuessedN5Writer( final URI uri )
-	{
-		if ( URITools.isFile( uri ) )
-		{
-			if ( uri.toString().toLowerCase().endsWith( ".zarr" ) )
-				return instantiateN5Writer( StorageFormat.ZARR, uri );
-			else if ( uri.toString().toLowerCase().endsWith( ".n5" ) )
-				return instantiateN5Writer( StorageFormat.N5, uri );
-			else
-				throw new RuntimeException( "Format for local storage of: " + uri + " could not be guessed (make it end in .n5 or .zarr)." );
-		}
-		else
-		{
-			N5Writer n5w;
-
-			final GsonBuilder builder = new GsonBuilder().registerTypeAdapter(
-					CoordinateTransformation.class,
-					new CoordinateTransformationAdapter() );
-
-			try
-			{
-				//System.out.println( "Trying writing with credentials ..." );
-				final N5Factory factory = new N5Factory().zarrDimensionSeparator( "/" );
-				factory.gsonBuilder( builder );
-				factory.s3UseCredentials();
-				n5w = factory.openWriter( uri.toString() );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( "Writing with credentials failed; trying anonymous writing ..." );
-				final N5Factory factory = new N5Factory();
-				factory.gsonBuilder( builder );
-				n5w = factory.openWriter( uri.toString() );
-			}
-
-			return n5w;
-		}
-	}
-	*/
 
 	public static SpimData2 loadSpimData( final URI xmlURI, final XmlIoSpimData2 io ) throws SpimDataException
 	{
