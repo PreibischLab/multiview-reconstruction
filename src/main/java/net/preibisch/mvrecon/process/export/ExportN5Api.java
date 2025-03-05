@@ -399,11 +399,12 @@ public class ExportN5Api implements ImgExport
 		final List<long[][]> grid = N5ApiTools.assembleJobs(
 				null, // no need to go across ViewIds (for now)
 				new long[] { mrInfo[ 0 ].dimensions[ 0 ], mrInfo[ 0 ].dimensions[ 1 ], mrInfo[ 0 ].dimensions[ 2 ] },
+				blocksize(),
 				new int[] {
 						blocksize()[0] * computeBlocksizeFactor()[ 0 ],
 						blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-						blocksize()[2] * computeBlocksizeFactor()[ 2 ] },
-				blocksize() );
+						blocksize()[2] * computeBlocksizeFactor()[ 2 ] }
+				);
 
 		IOFunctions.println( "num blocks = " + Grid.create( bb.dimensionsAsLongArray(), blocksize() ).size() + ", size = " + bsX + "x" + bsY + "x" + bsZ );
 		IOFunctions.println( "num compute blocks = " + grid.size() + ", size = " + bsX*bsFactorX + "x" + bsY*bsFactorY + "x" + bsZ*bsFactorZ );
@@ -495,7 +496,13 @@ public class ExportN5Api implements ImgExport
 		for ( int level = 1; level < mrInfo.length; ++level )
 		{
 			final int s = level;
-			final List<long[][]> allBlocks = N5ApiTools.assembleJobs( mrInfo[ level ] );
+			final List<long[][]> allBlocks =
+					N5ApiTools.assembleJobs(
+							mrInfo[ level ],
+							new int[] {
+									blocksize()[0] * computeBlocksizeFactor()[ 0 ],
+									blocksize()[1] * computeBlocksizeFactor()[ 1 ],
+									blocksize()[2] * computeBlocksizeFactor()[ 2 ] });
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );

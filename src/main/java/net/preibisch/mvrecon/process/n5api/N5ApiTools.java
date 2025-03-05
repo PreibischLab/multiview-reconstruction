@@ -42,6 +42,7 @@ import java.util.function.Function;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -352,23 +353,23 @@ public class N5ApiTools
 				subdivisions = ArrayImgs.ints( blocksizes, new long[] { 3, downsamplings.length } ); // blocksize
 				resolutions = ArrayImgs.doubles( downsamples, new long[] { 3, downsamplings.length } ); // downsampling
 			}
-			
+
 			driverVolumeWriter.createDataset(
 					subdivisionsDatasets,
 					subdivisions.dimensionsAsLongArray(),// new long[] { 3, 1 },
-					new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
+					Arrays.stream( subdivisions.dimensionsAsLongArray() ).mapToInt(i -> (int) i).toArray(),//new int[] { (int)subdivisions.dimension( 0 ), (int)subdivisions.dimension( 1 ) }, //new int[] { 3, 1 },
 					DataType.INT32,
 					new RawCompression() );
 	
 			driverVolumeWriter.createDataset(
 					resolutionsDatasets,
 					resolutions.dimensionsAsLongArray(),// new long[] { 3, 1 },
-					new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
+					Arrays.stream( resolutions.dimensionsAsLongArray() ).mapToInt(i -> (int) i).toArray(),//new int[] { (int)resolutions.dimension( 0 ), (int)resolutions.dimension( 1 ) },//new int[] { 3, 1 },
 					DataType.FLOAT64,
 					new RawCompression() );
-	
-			N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0,0} );
-			N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0,0} );
+			
+			N5Utils.saveBlock(subdivisions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/subdivisions", new long[] {0,0} );
+			N5Utils.saveBlock(resolutions, driverVolumeWriter, "s" + String.format("%02d", viewId.getViewSetupId()) + "/resolutions", new long[] {0,0} );
 		}
 
 		return mrInfo;
