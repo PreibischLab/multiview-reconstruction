@@ -106,9 +106,9 @@ public class ExportN5Api implements ImgExport
 	public static int defaultBlocksizeX_N5 = 128;
 	public static int defaultBlocksizeY_N5 = 128;
 	public static int defaultBlocksizeZ_N5 = 64;
-	public static int defaultBlocksizeX_H5 = 32;
-	public static int defaultBlocksizeY_H5 = 32;
-	public static int defaultBlocksizeZ_H5 = 16;
+	public static int defaultBlocksizeX_H5 = 64;
+	public static int defaultBlocksizeY_H5 = 64;
+	public static int defaultBlocksizeZ_H5 = 32;
 
 	public static boolean defaultAdvancedBlockSize = false;
 
