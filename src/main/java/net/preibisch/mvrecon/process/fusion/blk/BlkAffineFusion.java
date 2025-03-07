@@ -151,7 +151,10 @@ public class BlkAffineFusion
 				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
 			case MAX:
-			case FIRST:
+			case FIRST_LOW:
+				masks.add( Masking.create( inputImg, border, transform ) );
+				break;
+			case FIRST_HIGH:
 				masks.add( Masking.create( inputImg, border, transform ) );
 				break;
 			case AVG_CONTENT:
@@ -172,8 +175,11 @@ public class BlkAffineFusion
 		case MAX:
 			floatBlocks = MaxIntensity.of( images, masks, overlap );
 			break;
-		case FIRST:
+		case FIRST_LOW:
 			floatBlocks = FirstWins.of( images, masks, overlap );
+			break;
+		case FIRST_HIGH:
+			floatBlocks = FirstWinsHighest.of( images, masks, overlap );
 			break;
 		case AVG_CONTENT:
 		case AVG_BLEND_CONTENT:
@@ -284,7 +290,8 @@ public class BlkAffineFusion
 		switch ( fusionType )
 		{
 		case AVG_BLEND:
-		case FIRST:
+		case FIRST_LOW:
+		case FIRST_HIGH:
 		case MAX:
 		case AVG:
 			break;

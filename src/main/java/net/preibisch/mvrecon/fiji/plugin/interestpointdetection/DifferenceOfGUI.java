@@ -694,7 +694,7 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 				registrationsAdjusted,
 				viewDescriptions,
 				group.getViews(),
-				FusionType.FIRST,
+				FusionType.FIRST_LOW,
 				DisplayFusedImagesPopup.defaultInterpolation,
 				bbDS,
 				null );
