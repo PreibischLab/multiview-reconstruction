@@ -395,7 +395,7 @@ public class ExportN5Api implements ImgExport
 			currentTPIndex = -1;
 		}
 
-		// for OME-ZARR, dimensions are 5D
+		// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
 		final List<long[][]> grid = N5ApiTools.assembleJobs(
 				null, // no need to go across ViewIds (for now)
 				new long[] { mrInfo[ 0 ].dimensions[ 0 ], mrInfo[ 0 ].dimensions[ 1 ], mrInfo[ 0 ].dimensions[ 2 ] },
@@ -496,13 +496,25 @@ public class ExportN5Api implements ImgExport
 		for ( int level = 1; level < mrInfo.length; ++level )
 		{
 			final int s = level;
-			final List<long[][]> allBlocks =
+
+			// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
+			final List<long[][]> allBlocks = 
 					N5ApiTools.assembleJobs(
+							null, // no need to go across ViewIds (for now)
+							new long[] { mrInfo[ level ].dimensions[ 0 ], mrInfo[ level ].dimensions[ 1 ], mrInfo[ level ].dimensions[ 2 ] },
+							blocksize(),
+							new int[] {
+									blocksize()[0] * computeBlocksizeFactor()[ 0 ],
+									blocksize()[1] * computeBlocksizeFactor()[ 1 ],
+									blocksize()[2] * computeBlocksizeFactor()[ 2 ] }
+							);
+
+					/*N5ApiTools.assembleJobs(
 							mrInfo[ level ],
 							new int[] {
 									blocksize()[0] * computeBlocksizeFactor()[ 0 ],
 									blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-									blocksize()[2] * computeBlocksizeFactor()[ 2 ] });
+									blocksize()[2] * computeBlocksizeFactor()[ 2 ] });*/
 
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
