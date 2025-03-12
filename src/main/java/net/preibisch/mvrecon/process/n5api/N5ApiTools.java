@@ -290,6 +290,8 @@ public class N5ApiTools
 					dataType,
 					compression );
 
+			driverVolumeWriter.setAttribute( datasetLevel, "downsamplingFactors", downsamplings[ level ] );
+
 			previousDim = dim;
 		}
 
