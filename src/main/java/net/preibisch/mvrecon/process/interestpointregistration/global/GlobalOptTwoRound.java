@@ -156,12 +156,13 @@ public class GlobalOptTwoRound
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Identified the following (dis)connected groups:" );
 
 		final ArrayList< Group< ViewId > > groupsNew = new ArrayList<>();
+		int i = 0;
 		for ( final Set< Tile< ? > > connected : sets )
 		{
 			final Group< ViewId > group = assembleViews( connected, models1 );
 			groupsNew.add( group );
 
-			IOFunctions.println( group );
+			IOFunctions.println( "Group " + i++ + ": [" + group + "]" );
 		}
 
 		// compute the weak links using the new groups and the results of the first run
