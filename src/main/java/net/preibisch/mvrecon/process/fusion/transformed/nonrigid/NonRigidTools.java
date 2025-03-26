@@ -96,6 +96,7 @@ public class NonRigidTools
 			final double alpha,
 			final boolean virtualGrid,
 			final int interpolation,
+			final float blendingRange,
 			final Interval boundingBox1,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
@@ -134,6 +135,7 @@ public class NonRigidTools
 				alpha,
 				virtualGrid,
 				interpolation,
+				blendingRange,
 				boundingBox1,
 				intensityAdjustments,
 				service );
@@ -153,6 +155,7 @@ public class NonRigidTools
 			final double alpha,
 			final boolean virtualGrid,
 			final int interpolation,
+			final float blendingRange,
 			final Interval boundingBox,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
@@ -200,6 +203,7 @@ public class NonRigidTools
 						fusionType,
 						displayDistances,
 						interpolation,
+						blendingRange,
 						intensityAdjustments,
 						defaultOverlapExpansion( uniquePointsData.getB() ) );
 
@@ -313,6 +317,7 @@ public class NonRigidTools
 			final FusionType fusionType,
 			final boolean displayDistances,
 			final int interpolation,
+			final float blendingRange,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final int overlapExpansion )
 	{
@@ -411,7 +416,7 @@ public class NonRigidTools
 				// instantiate blending if necessary
 				if ( fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT )
 				{
-					final float[] blending = Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
+					final float[] blending = Util.getArrayFromValue( (float) blendingRange, 3 );
 					final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
