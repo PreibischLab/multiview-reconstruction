@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 
 import javax.swing.JLabel;
 
-import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
 import bdv.export.ExportMipmapInfo;
 import bdv.export.ProgressWriter;

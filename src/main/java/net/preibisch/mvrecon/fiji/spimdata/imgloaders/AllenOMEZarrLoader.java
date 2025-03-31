@@ -25,7 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 import java.net.URI;
 import java.util.Map;
 
-import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
 import bdv.ViewerSetupImgLoader;
 import bdv.img.n5.N5ImageLoader;
