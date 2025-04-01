@@ -121,6 +121,8 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<n5-aws-s3.version>4.1.1</n5-aws-s3.version>-->
 
 		<n5-universe.version>2.1.0</n5-universe.version>
+		<n5-version>3.4.1</n5-version>
+		<n5-zarr-version>1.5.0</n5-zarr-version>
 
 	</properties>
 
