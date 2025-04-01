@@ -181,7 +181,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 
 		try
 		{
-			System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
+			//System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
 
 			try
 			{

@@ -83,7 +83,7 @@ public class BDVFlyThrough
 	public static int interpolateSteps = 100;
 	public static double defaultSigma = 0;
 	public static boolean goBackToInitialTransform = true;
-	public static String defaultJSON = new File( "transformns.json" ).getAbsolutePath();
+	public static String defaultJSON = new File( "transforms.json" ).getAbsolutePath();
 
 	public static String[] interpolationMethods = new String[] { "Linear",  "Linear with Smoothing", "Cubic Spline" };
 	public static int defaultMethod = 1;
@@ -122,6 +122,9 @@ public class BDVFlyThrough
 	{
 		final GenericDialogPlus gd = new GenericDialogPlus( "Select JSON file" );
 		gd.addFileField( "JSON file", defaultJSON );
+
+		gd.showDialog();
+
 		if ( gd.wasCanceled() )
 			return null;
 		else
