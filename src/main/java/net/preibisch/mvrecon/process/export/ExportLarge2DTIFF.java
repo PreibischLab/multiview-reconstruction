@@ -23,6 +23,8 @@
 package net.preibisch.mvrecon.process.export;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -33,7 +35,8 @@ import bdv.util.ConstantRandomAccessible;
 import bdv.util.RandomAccessibleIntervalSource;
 import bdv.viewer.Source;
 import bdv.viewer.SourceAndConverter;
-import ch.epfl.biop.kheops.ometiff.OMETiffPyramidizerExporter;
+import ch.epfl.biop.kheops.ometiff.OMETiffExporter.OMETiffExporterBuilder;
+import ch.epfl.biop.kheops.ometiff.OMETiffExporter.OMETiffExporterBuilder.Data.DataBuilder;
 import fiji.util.gui.GenericDialogPlus;
 import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.FinalInterval;
@@ -89,7 +92,7 @@ public class ExportLarge2DTIFF implements ImgExport
 	@Override
 	public boolean finish() { return true; }
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	//@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
 			RandomAccessibleInterval<T> imgInterval,
@@ -143,6 +146,24 @@ public class ExportLarge2DTIFF implements ImgExport
 
 		try
 		{
+			final DataBuilder<ARGBType> dataBuilder = new OMETiffExporterBuilder.Data.DataBuilder<ARGBType>();
+			//final OMETiffExporter.OMETiffExporterBuilder.Data.DataBuilder dataBuilder = OMETiffExporter.builder();
+
+			dataBuilder.putXYZRAI(0, 0, rgb);
+
+			dataBuilder.defineMetaData( "Image" )
+			.defineWriteOptions()
+			.tileSize(1024, 1024)
+			.lzw()
+			.nResolutionLevels(1)
+			//.monitor(ij.get(TaskService.class))
+			.savePath(path.getAbsolutePath())
+			.nThreads(Threads.numThreads())
+			.maxTilesInQueue(60) // Number of blocks computed in advanced, default 10
+			.create()
+			.export();
+
+			/*
 			OMETiffPyramidizerExporter.builder()
 				.tileSize(1024, 1024)
 				.lzw()
@@ -154,7 +175,7 @@ public class ExportLarge2DTIFF implements ImgExport
 				.nThreads(Threads.numThreads())
 				.micrometer()
 				.create(createSourceAndConverter(rgb))
-				.export();
+				.export();*/
 		}
 		catch (Exception e)
 		{
@@ -307,6 +328,30 @@ public class ExportLarge2DTIFF implements ImgExport
 		//SourceAndConverter sac = new SourceAndConverter(null, converter);
 
 		try {
+			Instant start = Instant.now();
+
+			final DataBuilder<ARGBType> dataBuilder = new OMETiffExporterBuilder.Data.DataBuilder<ARGBType>();
+			//DataBuilder<ARGBType> dataBuilder = OMETiffExporter.builder();
+
+			dataBuilder.putXYZRAI(0, 0, img);
+
+			dataBuilder.defineMetaData( "Image" )
+			.defineWriteOptions()
+			.tileSize(Math.min(1024,(int)img.dimension(0)), Math.min(1024,(int)img.dimension(1)))
+			.lzw()
+			.nResolutionLevels(1)
+			//.monitor(ij.get(TaskService.class))
+			.savePath("/Users/preibischs/Downloads/test24a.tiff")
+			.nThreads(Threads.numThreads())
+			.maxTilesInQueue(60) // Number of blocks computed in advanced, default 10
+			.create()
+			.export();
+
+			Instant end = Instant.now();
+
+            System.out.println("Export time (ms) \t" + Duration.between(start, end).toMillis());
+
+			/*
 			OMETiffPyramidizerExporter.builder()
 				.tileSize(Math.min(1024,(int)img.dimension(0)), Math.min(1024,(int)img.dimension(1)))
 				.lzw()
@@ -319,6 +364,7 @@ public class ExportLarge2DTIFF implements ImgExport
 				.micrometer()
 				.create(createSourceAndConverter(img))
 				.export();
+			*/
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
