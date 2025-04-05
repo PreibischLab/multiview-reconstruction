@@ -506,7 +506,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 				if ( !seqFilename.endsWith( ".xml" ) )
 					seqFilename += ".xml";
 
-				if ( !URITools.isFile( URI.create( seqFilename ) ) )
+				if ( !URITools.isFile( URITools.toURI( seqFilename ) ) )
 				{
 					IOFunctions.println( "Provided URI '" + seqFilename + "' is not on a local file system. Re-saving to HDF5 only works on locally mounted file systems. Stopping." );
 					return null;
@@ -521,6 +521,7 @@ public class Generic_Resave_HDF5 implements PlugIn
 				}
 				final String hdf5Filename = seqFilename.substring( 0, seqFilename.length() - 4 ) + ".h5";
 				hdf5File = new File( hdf5Filename );
+				
 			}
 			else
 			{
