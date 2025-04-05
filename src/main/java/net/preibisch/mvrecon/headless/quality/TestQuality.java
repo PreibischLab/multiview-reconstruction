@@ -50,6 +50,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
 import net.preibisch.mvrecon.process.quality.FRCTools;
+import util.URITools;
 
 public class TestQuality
 {
@@ -65,7 +66,7 @@ public class TestQuality
 		for ( int run = 2; run <= 3; ++run )
 		{
 			// load drosophila
-			spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
+			spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 			for ( final ViewId viewId : spimData.getSequenceDescription().getViewDescriptions().values() )
 				System.out.println( Group.pvid( viewId ) );

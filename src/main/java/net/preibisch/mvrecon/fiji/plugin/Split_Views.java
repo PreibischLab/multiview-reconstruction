@@ -47,6 +47,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
 import net.preibisch.mvrecon.process.splitting.SplittingTools;
+import util.URITools;
 
 public class Split_Views implements PlugIn
 {
@@ -219,7 +220,7 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, URI.create( saveAs ), new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
+		return split( data, URITools.toURI( saveAs ), new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )

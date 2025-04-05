@@ -72,6 +72,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
+import util.URITools;
 
 public class TestDeconvolutionMul
 {
@@ -80,7 +81,7 @@ public class TestDeconvolutionMul
 		new ImageJ();
 
 		// load drosophila
-		SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "Z:/Betzig/dataset.xml" ) );
+		SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "Z:/Betzig/dataset.xml" ) );
 		Collection< Group< ViewDescription > >groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		BoundingBox bb = BoundingBoxTools.maximalBoundingBox( spimData, new ArrayList<>( spimData.getSequenceDescription().getViewDescriptions().values() ), "All Views" );

@@ -42,6 +42,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMinFilterThreshold;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import util.URITools;
 
 public class TestRealDataBoundingBox
 {
@@ -53,7 +54,7 @@ public class TestRealDataBoundingBox
 		final ExecutorService service = DeconViews.createExecutorService();
 
 		// test a real scenario
-		final SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
+		final SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 		final List< ViewId > viewIds = new ArrayList< ViewId >();
 		viewIds.addAll( spimData.getSequenceDescription().getViewDescriptions().values() );

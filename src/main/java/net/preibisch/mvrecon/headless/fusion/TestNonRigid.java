@@ -54,6 +54,7 @@ import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
+import util.URITools;
 
 public class TestNonRigid
 {
@@ -64,7 +65,7 @@ public class TestNonRigid
 		SpimData2 spimData;
 
 		// load drosophila
-		spimData = new XmlIoSpimData2( ).load( URI.create( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
+		spimData = new XmlIoSpimData2( ).load( URITools.toURI( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 
 		Pair< List< ViewId >, Interval > fused = testInterpolation( spimData, "My Bounding Box" );
 		// for bounding box1111 test 128,128,128 vs 256,256,256 (no blocks), there are differences at the edges

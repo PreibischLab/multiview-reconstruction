@@ -46,6 +46,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import util.URITools;
 
 public class Rewrite_LuxendoXML implements Callable<Void>, PlugIn
 {
@@ -126,7 +127,7 @@ public class Rewrite_LuxendoXML implements Callable<Void>, PlugIn
 			XmlIoSpimData2.initN5Writing = false;
 
 			final XmlIoSpimData2 io2 = new XmlIoSpimData2();
-			io2.save(spimDataOut, URI.create( output ) );
+			io2.save(spimDataOut, URITools.toURI( output ) );
 
 			IOFunctions.println( "done.");
 		}

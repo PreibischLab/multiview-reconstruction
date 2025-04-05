@@ -126,7 +126,7 @@ public class PointSpreadFunction
 		else
 		{
 			// load the .n5
-			final N5Reader n5Reader = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( xmlBasePath, subPath ) ) );
+			final N5Reader n5Reader = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( xmlBasePath, subPath ) ) );
 			final Img<FloatType> img = Cast.unchecked( N5Utils.open( n5Reader, file ) );
 
 			n5Reader.close();
@@ -140,7 +140,7 @@ public class PointSpreadFunction
 		if ( img == null )
 			return false;
 
-		final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( xmlBasePath, subPath ) ) );
+		final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( xmlBasePath, subPath ) ) );
 
 		if ( n5Writer.datasetExists( file ) )
 			n5Writer.remove( file );

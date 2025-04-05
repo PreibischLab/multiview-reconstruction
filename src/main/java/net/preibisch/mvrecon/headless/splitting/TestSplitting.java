@@ -31,6 +31,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
 import net.preibisch.mvrecon.process.splitting.SplittingTools;
+import util.URITools;
 
 public class TestSplitting
 {
@@ -49,9 +50,9 @@ public class TestSplitting
 		 */
 
 		//final String file = "/Volumes/home/Data/Expansion Microscopy/dataset.xml";
-		final URI uri = URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
+		final URI uri = URITools.toURI( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" );
 
-		final URI uriOut = URI.create( uri.toString().replace( ".xml", ".split.xml" ) );
+		final URI uriOut = URITools.toURI( uri.toString().replace( ".xml", ".split.xml" ) );
 
 		System.out.println( "in: " + uri );
 		System.out.println( "out: " + uriOut );

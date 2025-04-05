@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.fusion.lazy;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -64,12 +63,13 @@ import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
-import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
+import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.CorrespondingIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.NonRigidTools;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.SimpleReferenceIP;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
+import util.URITools;
 
 public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implements Consumer<RandomAccessibleInterval<T>>
 {
@@ -245,7 +245,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	{
 		new ImageJ();
 
-		final SpimData2 spimData = new XmlIoSpimData2().load( URI.create("/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml") );
+		final SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI("/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml") );
 
 		Interval boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
 		IOFunctions.println( BoundingBox.getBoundingBoxDescription( (BoundingBox)boundingBox ) );

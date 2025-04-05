@@ -67,6 +67,7 @@ import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.OpenSeaDragon.OpenSeaDragonImgLib2;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
+import util.URITools;
 
 public class OpenSeaDragonExport
 {
@@ -99,7 +100,7 @@ public class OpenSeaDragonExport
 
 		new ImageJ();
 
-		SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Downloads/troy eberhardt/dataset.xml" ) );
+		SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/preibischs/Downloads/troy eberhardt/dataset.xml" ) );
 
 		testOpenSeaDragonExport( spimData, 0, 1, 2 );
 	}

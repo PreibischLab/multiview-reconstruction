@@ -104,7 +104,7 @@ public class XmlIoSpimData2 extends XmlIoAbstractSpimData< SequenceDescription, 
 	public void save( final SpimData2 spimData, String xmlPath ) throws SpimDataException
 	{
 		// old loading code with copying files
-		this.lastURI = URITools.toURI( xmlPath ); //URI.create( xmlPath );
+		this.lastURI = URITools.toURI( xmlPath );
 
 		try
 		{

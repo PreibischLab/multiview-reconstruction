@@ -53,6 +53,7 @@ import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjustmentTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 public class TestIntensityAdjustment
 {
@@ -94,7 +95,7 @@ public class TestIntensityAdjustment
 		// generate 4 views with 1000 corresponding beads, single timepoint
 		// 
 		//SpimData2 spimData = SpimData2.convert( SimulatedBeadsImgLoader.spimdataExample( new int[]{ 0, 90, 135 } ) );
-		SpimData2 spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" ) );
+		SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Big Data Sticher/Neubias_preibisch/GridBalance/dataset.xml" ) );
 
 		System.out.println( "Views present:" );
 

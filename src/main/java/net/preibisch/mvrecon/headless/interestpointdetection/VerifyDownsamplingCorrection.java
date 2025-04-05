@@ -43,6 +43,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoG;
 import net.preibisch.mvrecon.process.interestpointdetection.methods.dog.DoGParameters;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.URITools;
 
 public class VerifyDownsamplingCorrection
 {
@@ -51,8 +52,8 @@ public class VerifyDownsamplingCorrection
 		new ImageJ();
 		IOFunctions.printIJLog = true;
 
-		final SpimData2 sdTiff = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/TIF/dataset.xml" ) );
-		final SpimData2 sdHdf5 = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/HDF5/dataset.xml" ) );
+		final SpimData2 sdTiff = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/TIF/dataset.xml" ) );
+		final SpimData2 sdHdf5 = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/Grants and CV/BIMSB/Projects/Big Data Sticher/TestDownsampling/HDF5/dataset.xml" ) );
 
 		//String label = "beads4x";
 		//testLoad( sdTiff, sdHdf5, label );

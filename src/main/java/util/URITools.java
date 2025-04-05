@@ -680,11 +680,11 @@ public class URITools
 
 		System.out.println();
 
-		KeyValueAccess kva = getKeyValueAccess( URI.create( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
+		KeyValueAccess kva = getKeyValueAccess( URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
 
 		try
 		{
-			BufferedReader reader = openFileReadCloudReader(kva, URI.create( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
+			BufferedReader reader = openFileReadCloudReader(kva, URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
 			reader.lines().forEach( s -> System.out.println( s ) );
 			reader.close();
 

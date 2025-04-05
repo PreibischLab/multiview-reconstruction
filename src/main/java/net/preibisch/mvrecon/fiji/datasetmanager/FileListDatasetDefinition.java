@@ -1296,8 +1296,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 			final SequenceDescription sd = data.getSequenceDescription();
 
-			final URI xmlURI = URI.create( URITools.appendName(chosenPathXMLURI, xmlFileName ) );
-			final URI n5DatasetURI = URI.create( URITools.appendName(chosenPathDataURI, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + (resaveAsN5 ? ".n5" : ".ome.zarr" ) ) );
+			final URI xmlURI = URITools.toURI( URITools.appendName(chosenPathXMLURI, xmlFileName ) );
+			final URI n5DatasetURI = URITools.toURI( URITools.appendName(chosenPathDataURI, xmlFileName.subSequence( 0, xmlFileName.length() - 4 ) + (resaveAsN5 ? ".n5" : ".ome.zarr" ) ) );
 
 			IOFunctions.println( (resaveAsN5 ? "N5" : "OME-ZARR" ) + " path: " + n5DatasetURI );
 

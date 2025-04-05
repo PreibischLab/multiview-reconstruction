@@ -23,7 +23,6 @@
 
 package net.preibisch.mvrecon.process.fusion.lazy;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -56,6 +55,7 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
+import util.URITools;
 
 /**
  * BigStitcher Affine Fusion in blocks
@@ -198,7 +198,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	{
 		new ImageJ();
 
-		final SpimData2 data = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Documents/Microscopy/Stitching/Truman/standard/dataset.xml" ) );
+		final SpimData2 data = new XmlIoSpimData2().load( URITools.toURI( "/Users/preibischs/Documents/Microscopy/Stitching/Truman/standard/dataset.xml" ) );
 
 		final ArrayList< ViewId > viewIds = new ArrayList<>();
 

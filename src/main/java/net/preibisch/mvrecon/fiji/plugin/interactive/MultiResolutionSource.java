@@ -57,6 +57,7 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.headless.boundingbox.TestBoundingBox;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import util.URITools;
 
 public class MultiResolutionSource implements Source< VolatileFloatType >
 {
@@ -141,9 +142,9 @@ public class MultiResolutionSource implements Source< VolatileFloatType >
 
 		// load drosophila
 		if ( System.getProperty("os.name").toLowerCase().contains( "mac" ) )
-			spimData = new XmlIoSpimData2().load( URI.create( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
+			spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/preibischs/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 		else
-			spimData = new XmlIoSpimData2().load( URI.create( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" ) );
+			spimData = new XmlIoSpimData2().load( URITools.toURI( "/home/steffi/Desktop/HisYFP-SPIM/dataset.xml" ) );
 
 		final BoundingBox boundingBox = TestBoundingBox.getBoundingBox( spimData, "My Bounding Box" );
 

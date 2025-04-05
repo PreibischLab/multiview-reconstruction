@@ -148,7 +148,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			/*
 			if ( URITools.isFile( baseDir ) )
@@ -248,7 +248,7 @@ public class InterestPointsN5 extends InterestPoints
 
 		try
 		{
-			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			/*
 			if ( URITools.isFile( baseDir ) )
@@ -365,7 +365,7 @@ public class InterestPointsN5 extends InterestPoints
 		try
 		{
 			
-			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
+			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			/*
 			if ( URITools.isFile( baseDir ) )
@@ -474,7 +474,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );;
+			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );;
 
 			/*
 			if ( URITools.isFile( baseDir ) )
@@ -601,7 +601,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			/*
 			if ( URITools.isFile( baseDir ) )
@@ -631,7 +631,7 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URI.create( URITools.appendName( baseDir, baseN5 ) ) );
+			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			/*
 			if ( URITools.isFile( baseDir ) )

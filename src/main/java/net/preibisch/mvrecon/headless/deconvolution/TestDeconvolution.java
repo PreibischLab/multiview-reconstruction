@@ -69,6 +69,7 @@ import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.Combin
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
 import net.preibisch.simulation.imgloader.SimulatedBeadsImgLoader;
+import util.URITools;
 
 public class TestDeconvolution
 {
@@ -84,7 +85,7 @@ public class TestDeconvolution
 		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 
 		// load drosophila
-		spimData = new XmlIoSpimData2().load( URI.create( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
+		spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/dataset.xml" ) );
 		groups = selectViews( spimData.getSequenceDescription().getViewDescriptions().values() );
 		groups = Group.toGroups( spimData.getSequenceDescription().getViewDescriptions().values() );
 

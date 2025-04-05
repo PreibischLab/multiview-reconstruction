@@ -374,7 +374,7 @@ public abstract class GenericLoadParseQueryXML<
 		if ( xmlURI.trim().length() == 0 || xmlURI.trim().toLowerCase().equals( "beads" ) || 
 				xmlURI.trim().toLowerCase().equals( "fractal" ) || xmlURI.trim().toLowerCase().equals( "define" ) )
 		{
-			uri = URI.create( xmlURI );
+			uri = URI.create( xmlURI ); // URI.create is necessary here
 
 			this.data = null;
 			this.attributes = null;

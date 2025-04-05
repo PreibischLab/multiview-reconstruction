@@ -120,7 +120,7 @@ public class ExportN5Api implements ImgExport
 	public static int defaultBlocksizeFactorZ_H5 = 4;
 
 	StorageFormat storageType = StorageFormat.values()[ defaultOption ];
-	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URI.create( defaultPathURI ) : null;
+	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URITools.toURI( defaultPathURI ) : null;
 	//String baseDataset = defaultBaseDataset;
 	//String datasetExtension = defaultDatasetExtension;
 
