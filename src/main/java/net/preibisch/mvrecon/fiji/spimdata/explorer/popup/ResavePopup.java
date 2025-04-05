@@ -312,7 +312,7 @@ public class ResavePopup extends JMenu implements ExplorerWindowSetable
 						final SpimData2 newSpimData = Resave_N5Api.resaveN5( data, viewIds, n5params, false );
 
 						// make sure interestpoints are saved to the new location as well
-						if ( index == 5 && !n5params.xmlURI.equals( panel.xml() ) )
+						if ( (index == 5 || index ==7) && !n5params.xmlURI.equals( panel.xml() ) )
 						{
 							for ( final ViewInterestPointLists vipl : data.getViewInterestPoints().getViewInterestPoints().values() )
 								vipl.getHashMap().values().forEach( ipl ->
