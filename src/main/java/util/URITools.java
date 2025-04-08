@@ -480,6 +480,7 @@ public class URITools
 		os.close();
 	}
 
+	// TODO: does not work for Windows
 	public static boolean isKnownScheme( URI uri )
 	{
 		return isFile( uri ) || isS3( uri ) || isGC( uri );
