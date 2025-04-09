@@ -28,7 +28,6 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -181,28 +180,18 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 				{
 					indicies = null;
 				}
-				//final String path = c.getChild( "path" ).getText();
+
 				zgroups.put( new ViewId( timepointId, setupId ), new OMEZARREntry(path, indicies) );
 			}
 		}
 
 		try
 		{
-			//System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
-
-			try
-			{
-				return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
-			}
-			catch ( Exception e )
-			{
-				IOFunctions.println( "ERROR: cannot instantiate OMEZarrLoader: " + e );
-				return null;
-			}
+			return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
 		}
 		catch ( Exception e )
 		{
-			e.printStackTrace();
+			IOFunctions.println( "ERROR: cannot instantiate OMEZarrLoader: " + e );
 			return null;
 		}
 	}
