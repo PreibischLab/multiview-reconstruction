@@ -58,6 +58,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
@@ -183,6 +184,7 @@ public class Resave_N5Api implements PlugIn
 							}
 							else
 							{
+								// 5d OME-ZARR with dimension=1 in c and t
 								mrInfo = N5ApiTools.setupBdvDatasetsOMEZARR(
 										n5Writer,
 										viewId,
@@ -312,12 +314,14 @@ public class Resave_N5Api implements PlugIn
 		}
 		else if ( n5Params.format == StorageFormat.ZARR )
 		{
-			final Map< ViewId, String > viewIdToPath = new HashMap<>();
+			final Map< ViewId, OMEZARREntry > viewIdToPath = new HashMap<>();
 
 			viewIdToMrInfo.forEach( (viewId, mrInfo ) ->
 				viewIdToPath.put(
 						viewId,
-						mrInfo[ 0 ].dataset.substring(0,  mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ) )
+						new OMEZARREntry(
+								mrInfo[ 0 ].dataset.substring(0,  mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ),
+								new int[] { 0, 0 } ) )
 			);
 
 			sdReduced.getSequenceDescription().setImgLoader(
