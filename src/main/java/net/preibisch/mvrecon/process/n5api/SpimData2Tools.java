@@ -72,6 +72,8 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
@@ -162,6 +164,7 @@ public class SpimData2Tools
 			final long[] dimensions,
 			final URI n5PathURI,
 			final URI xmlOutPathURI,
+			final OMEZARREntry omeZarrEntry, // only required for OME-ZARR export (for N5 and HDF5 it is implicitly defined)
 			final InstantiateViewSetup instantiateViewSetup ) throws SpimDataException
 	{
 		SpimData2 existingSpimData;
@@ -174,6 +177,11 @@ public class SpimData2Tools
 		{
 			existingSpimData = null;
 		}
+
+		final Map< ViewId, OMEZARREntry > viewIdToPath = new HashMap<>();
+
+		if ( StorageFormat.ZARR.equals( storageType ))
+			viewIdToPath.put( viewId, omeZarrEntry );
 
 		if ( existingSpimData != null ) //xmlOutPath.exists() )
 		{
@@ -237,6 +245,11 @@ public class SpimData2Tools
 				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 			else if ( StorageFormat.HDF5.equals(storageType) )
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
+			else if ( StorageFormat.ZARR.equals(storageType ) )// OME-ZARR
+			{
+				// TODO: add old OMEZARREntries
+				sequence.setImgLoader( new AllenOMEZarrLoader( n5PathURI, sequence, viewIdToPath) );
+			}
 			else
 				throw new RuntimeException( storageType + " not supported." );
 
@@ -266,27 +279,9 @@ public class SpimData2Tools
 			final ArrayList< TimePoint > tps = new ArrayList<>();
 			tps.add( new TimePoint( viewId.getTimePointId() ) );
 
-			final SpimData2 spimData = createNewSpimDataForFusion( storageType, n5PathURI, xmlOutPathURI, setups, tps );
-			/*
-			final TimePoints timepoints = new TimePoints( tps );
+			final SpimData2 spimData =
+					createNewSpimDataForFusion( storageType, n5PathURI, xmlOutPathURI, viewIdToPath, setups, tps );
 
-			final HashMap< ViewId, ViewRegistration > registrations = new HashMap<>();
-			registrations.put( viewId, new ViewRegistration( viewId.getTimePointId(), viewId.getViewSetupId() ) );
-			final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );
-
-			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
-
-			if ( StorageFormat.N5.equals(storageType) && URITools.isFile( n5PathURI )) // local file
-				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
-			else if ( StorageFormat.N5.equals(storageType) ) // some cloud location
-				sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
-			else if ( StorageFormat.HDF5.equals(storageType) )
-				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
-			else
-				throw new RuntimeException( storageType + " not supported." );
-
-			final SpimData2 spimData = new SpimData2( xmlOutPathURI, sequence, viewRegistrations, new ViewInterestPoints(), new BoundingBoxes(), new PointSpreadFunctions(), new StitchingResults(), new IntensityAdjustments() );
-			*/
 			new XmlIoSpimData2().save( spimData, xmlOutPathURI );
 
 			return new ValuePair<>(false, false);
@@ -297,6 +292,7 @@ public class SpimData2Tools
 			final StorageFormat storageType,
 			final URI n5PathURI,
 			final URI xmlOutPathURI,
+			final Map< ViewId, OMEZARREntry > viewIdToPath,  // only required for OME-ZARR export (for N5 and HDF5 it is implicitly defined)
 			final ArrayList< ViewSetup > setups,
 			final ArrayList< TimePoint > tps )
 	{
@@ -320,6 +316,8 @@ public class SpimData2Tools
 			sequence.setImgLoader( new N5CloudImageLoader( null, n5PathURI, sequence) );
 		else if ( StorageFormat.HDF5.equals(storageType) )
 			sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
+		else if ( StorageFormat.ZARR.equals(storageType ) )// OME-ZARR
+			sequence.setImgLoader( new AllenOMEZarrLoader( n5PathURI, sequence, viewIdToPath) );
 		else
 			throw new RuntimeException( storageType + " not supported." );
 

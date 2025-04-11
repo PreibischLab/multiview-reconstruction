@@ -209,6 +209,7 @@ public class ExportN5Api implements ImgExport
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
+						// TODO: this code is very similar to N5APITools.setupBdvDatasetsOMEZARR
 						IOFunctions.println( "Creating 5D OME-ZARR metadata for '" + path + "' ... " );
 
 						final long[] dim3d = bb.dimensionsAsLongArray();
@@ -276,17 +277,24 @@ public class ExportN5Api implements ImgExport
 		final MultiResolutionLevelInfo[] mrInfo;
 		final long currentChannelIndex, currentTPIndex;
 
+		final ViewId viewId;
+
 		if ( bdv )
 		{
-			final ViewId viewId;
-
 			if ( manuallyAssignViewId )
 				viewId = new ViewId( tpId, vsId );
 			else
 				viewId = getViewIdForGroup( fusionGroup, splittingType );
 
 			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
-
+		}
+		else
+		{
+			viewId = null;
+		}
+			
+		if ( bdv && (storageType == StorageFormat.N5 || storageType == StorageFormat.HDF5 ) )
+		{
 			try
 			{
 				// create or extend XML, setup s0 and multiresolution pyramid
@@ -393,6 +401,12 @@ public class ExportN5Api implements ImgExport
 
 			currentChannelIndex = -1;
 			currentTPIndex = -1;
+		}
+
+		if ( bdv && storageType == StorageFormat.ZARR )
+		{
+			// create/update the XML
+			
 		}
 
 		// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
@@ -595,7 +609,7 @@ public class ExportN5Api implements ImgExport
 
 		PluginHelper.addCompression( gdInit, false );
 
-		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export (HDF5/N5 are supported)", defaultBDV );
+		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export", defaultBDV );
 
 		gdInit.addMessage(
 				"HDF5/BDV currently only supports 8-bit, 16-bit\n"

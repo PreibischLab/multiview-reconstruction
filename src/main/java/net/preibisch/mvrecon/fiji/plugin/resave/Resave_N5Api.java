@@ -320,7 +320,7 @@ public class Resave_N5Api implements PlugIn
 				viewIdToPath.put(
 						viewId,
 						new OMEZARREntry(
-								mrInfo[ 0 ].dataset.substring(0,  mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ),
+								mrInfo[ 0 ].dataset.substring(0, mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ),
 								new int[] { 0, 0 } ) )
 			);
 
