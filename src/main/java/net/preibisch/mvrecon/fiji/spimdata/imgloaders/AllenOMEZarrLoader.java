@@ -95,7 +95,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		public OMEZARREntry( final String path, final int[] higherDimensionIndicies )
 		{
 			this.path = path;
-			this.higherDimensionIndicies = higherDimensionIndicies.clone();
+			this.higherDimensionIndicies = higherDimensionIndicies == null ? null : higherDimensionIndicies.clone();
 		}
 
 		public String getPath() { return path; }

@@ -76,6 +76,7 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
@@ -278,6 +279,7 @@ public class ExportN5Api implements ImgExport
 		final long currentChannelIndex, currentTPIndex;
 
 		final ViewId viewId;
+		OMEZARREntry omeZarrEntry = null;
 
 		if ( bdv )
 		{
@@ -331,6 +333,10 @@ public class ExportN5Api implements ImgExport
 
 			IOFunctions.println( "Prcoessing OME-ZARR sub-volume '" + title + "'. channel index=" + currentChannelIndex + ", timepoint index=" + currentTPIndex );
 
+			omeZarrEntry = new OMEZARREntry(
+					mrInfoZarr[ 0 ].dataset.substring(0, mrInfoZarr[ 0 ].dataset.lastIndexOf( "/" ) ),
+					new int[] { (int)currentChannelIndex, (int)currentTPIndex } );
+
 			mrInfo = mrInfoZarr;
 		}
 		else if ( storageType == StorageFormat.ZARR ) // OME-Zarr export
@@ -375,6 +381,10 @@ public class ExportN5Api implements ImgExport
 			// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
 			driverVolumeWriter.setAttribute( omeZarrSubContainer, "multiscales", meta );
 
+			omeZarrEntry = new OMEZARREntry(
+					mrInfo[ 0 ].dataset.substring(0, mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ),
+					null );
+
 			currentChannelIndex = -1;
 			currentTPIndex = -1;
 		}
@@ -405,8 +415,15 @@ public class ExportN5Api implements ImgExport
 
 		if ( bdv && storageType == StorageFormat.ZARR )
 		{
-			// create/update the XML
-			
+			// TODO: create/update the XML
+			/*SpimData2Tools.writeSpimData(
+					viewId,
+					storageType,
+					bb.dimensionsAsLongArray(),
+					path,
+					xmlOut,
+					omeZarrEntry, // TODO new OMEZARREntry()
+					instantiate );*/
 		}
 
 		// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D

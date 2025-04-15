@@ -114,6 +114,7 @@ public class SpimData2Tools
 					dimensions,
 					n5PathURI,
 					xmlOutPathURI,
+					null,
 					instantiateViewSetup );
 
 			if ( exists == null )
@@ -138,6 +139,7 @@ public class SpimData2Tools
 					dimensions,
 					n5PathURI,
 					xmlOutPathURI,
+					null,
 					instantiateViewSetup );
 
 			if ( exists == null )
@@ -177,11 +179,6 @@ public class SpimData2Tools
 		{
 			existingSpimData = null;
 		}
-
-		final Map< ViewId, OMEZARREntry > viewIdToPath = new HashMap<>();
-
-		if ( StorageFormat.ZARR.equals( storageType ))
-			viewIdToPath.put( viewId, omeZarrEntry );
 
 		if ( existingSpimData != null ) //xmlOutPath.exists() )
 		{
@@ -247,7 +244,12 @@ public class SpimData2Tools
 				sequence.setImgLoader( new Hdf5ImageLoader( new File( URITools.fromURI( n5PathURI ) ), null, sequence) );
 			else if ( StorageFormat.ZARR.equals(storageType ) )// OME-ZARR
 			{
-				// TODO: add old OMEZARREntries
+				final AllenOMEZarrLoader oldLoader =
+						(AllenOMEZarrLoader)existingSpimData.getSequenceDescription().getImgLoader();
+
+				final Map<ViewId, OMEZARREntry> viewIdToPath = new HashMap<>( oldLoader.getViewIdToPath() );
+				viewIdToPath.put( viewId, omeZarrEntry );
+
 				sequence.setImgLoader( new AllenOMEZarrLoader( n5PathURI, sequence, viewIdToPath) );
 			}
 			else
@@ -278,6 +280,11 @@ public class SpimData2Tools
 
 			final ArrayList< TimePoint > tps = new ArrayList<>();
 			tps.add( new TimePoint( viewId.getTimePointId() ) );
+
+			final Map< ViewId, OMEZARREntry > viewIdToPath = new HashMap<>();
+
+			if ( StorageFormat.ZARR.equals( storageType ))
+				viewIdToPath.put( viewId, omeZarrEntry );
 
 			final SpimData2 spimData =
 					createNewSpimDataForFusion( storageType, n5PathURI, xmlOutPathURI, viewIdToPath, setups, tps );
