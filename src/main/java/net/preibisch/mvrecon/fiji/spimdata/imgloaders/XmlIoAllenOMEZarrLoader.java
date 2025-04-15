@@ -189,7 +189,9 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 			}
 			catch ( Exception e )
 			{
+				IOFunctions.println( "URI: " + uri );
 				IOFunctions.println( "ERROR: cannot instantiate OMEZarrLoader: " + e );
+				e.printStackTrace();
 				return null;
 			}
 		}
