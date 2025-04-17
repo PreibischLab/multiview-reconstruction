@@ -3,21 +3,31 @@ package net.preibisch.mvrecon.process.fusion.intensity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
+import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
+import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.position.FunctionRandomAccessible;
+import net.imglib2.position.transform.Floor;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.util.Cast;
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.LinAlgHelpers;
@@ -30,7 +40,8 @@ import static net.imglib2.util.Intervals.isEmpty;
 import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
-public class IntensityMatcher {
+// TODO: Should generics rather be on match method? (after we don't need rendered1 field anymore)
+public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	private final SpimData spimData;
 
@@ -38,10 +49,11 @@ public class IntensityMatcher {
 
 	private final int numCoefficients;
 
-	FunctionRandomAccessible<IntType> tempCoefficientsMask;
+	RandomAccessible<IntType> tempCoefficientsMask1;
+	RandomAccessible<IntType> tempCoefficientsMask2;
 
-	RandomAccessibleInterval<?> rendered1;
-	RandomAccessibleInterval<?> rendered2;
+	RandomAccessibleInterval<T> rendered1;
+	RandomAccessibleInterval<T> rendered2;
 
 	IntensityMatcher(
 			final SpimData spimData,
@@ -69,8 +81,6 @@ public class IntensityMatcher {
 		//      Maybe in global coordinates scaled by renderscale. I think that makes sense.
 		//      So a 64x64x64 bounding box means that this many pixels are computed...
 
-
-
 		final TileInfo t1 = new TileInfo(numCoefficients, spimData, p1);
 		final TileInfo t2 = new TileInfo(numCoefficients, spimData, p2);
 
@@ -96,10 +106,8 @@ public class IntensityMatcher {
 
 
 		// Next steps:
-		// [ ] Find best source resolution to render overlap at renderScale.
-
-
-		// [ ] Render tile image and visualize result.
+		// [+] Find best source resolution to render overlap at renderScale.
+		// [+] Render tile image and visualize result.
 		// [ ] Render coefficient mask for 1 particular coefficient and visualize result
 		// [ ] Render both tile image and coefficient mask int coefficient pair intersection only.
 		// [ ] Iterate coefficient masks from both tiles and count overlapping voxels.
@@ -138,9 +146,13 @@ public class IntensityMatcher {
 		final FinalRealInterval scaledBounds = scale.estimateBounds(overlap);
 		final Interval renderBounds = Intervals.smallestContainingInterval(scaledBounds);
 
-		rendered1 = scaleTile(scale, t1).view().interval(renderBounds);
-		rendered2 = scaleTile(scale, t2).view().interval(renderBounds);
+		rendered1 = Cast.unchecked(scaleTile(scale, t1).view().interval(renderBounds));
+		rendered2 = Cast.unchecked(scaleTile(scale, t2).view().interval(renderBounds));
 
+		tempCoefficientsMask1 = scaleTileCoefficients(scale, t1);
+		tempCoefficientsMask2 = scaleTileCoefficients(scale, t2);
+
+//		final BlockSupplier<T> block = BlockSupplier.of(rendered1);
 //		RealViews.affine(t1.getImage(l).view().extend(zero()).interpolate(nLinear()), render);
 
 		System.out.println("overlap = " + overlap);
@@ -158,6 +170,44 @@ public class IntensityMatcher {
 //			System.out.println(Intervals.numElements(intIntersection));
 		}
 	}
+
+
+
+
+	private static RandomAccessible<IntType> scaleTileCoefficients(final AffineTransform3D renderScale, final TileInfo tile) {
+		final AffineTransform3D scaleToGrid = new AffineTransform3D();
+		scaleToGrid.set(tile.coeffBoundsToWorldTransform.inverse());
+		scaleToGrid.concatenate(renderScale.inverse());
+		final Supplier<BiConsumer<Localizable, ? super IntType>> supplier = () -> {
+			final int[] cpos = new int[ 3 ];
+			final BiConsumer<Localizable, int[]> toCoeffGrid = toGrid(scaleToGrid);
+			return 	(pos, value) -> {
+				toCoeffGrid.accept(pos, cpos);
+				for ( int d = 0; d < 3; ++d ) {
+					if (cpos[d] < 0 || cpos[d] >= tile.numCoeffs[d]) {
+						value.set(-1);
+						return;
+					}
+				}
+				final int ci = IntervalIndexer.positionToIndex(cpos, tile.numCoeffs);
+				value.set(ci);
+			};
+		};
+		return new FunctionRandomAccessible<>(3, supplier, IntType::new);
+	}
+
+	private static BiConsumer<Localizable, int[]> toGrid(AffineTransform3D toGridTransform) {
+		final RealPoint gridRealPos = new RealPoint(3);
+		return (pos, cpos) -> {
+			toGridTransform.apply(pos, gridRealPos);
+			cpos[0] = (int) Math.floor(gridRealPos.getDoublePosition(0));
+			cpos[1] = (int) Math.floor(gridRealPos.getDoublePosition(1));
+			cpos[2] = (int) Math.floor(gridRealPos.getDoublePosition(2));
+		};
+	}
+
+
+
 
 	// TODO: maybe we should force all tiles to be rendered from the same mipmap level?
 
@@ -229,6 +279,9 @@ public class IntensityMatcher {
 		}
 		return size;
 	}
+
+
+
 
 	/**
 	 * Loop over num of coefficient regions.

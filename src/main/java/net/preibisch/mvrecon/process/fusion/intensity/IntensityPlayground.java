@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.RandomAccessibleInterval;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 
@@ -36,11 +37,16 @@ public class IntensityPlayground {
 		BdvFunctions.show(soc0, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
 		BdvFunctions.show(soc1, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
 
-//		final RandomAccessibleInterval<?> interval = soc0.getSpimSource().getSource(0, 0);
-//		BdvFunctions.show(matcher.tempCoefficientsMask, interval, "mask", Bdv.options().addTo(bdv));
+		final RandomAccessibleInterval<?> interval = matcher.rendered1;
+		BdvFunctions.show(matcher.tempCoefficientsMask1, interval, "mask 1",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 512);
+		BdvFunctions.show(matcher.tempCoefficientsMask2, interval, "mask 2",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 512);
 
-		BdvFunctions.show(matcher.rendered1, "rendered 1", Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
-		BdvFunctions.show(matcher.rendered2, "rendered 2", Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
+		BdvFunctions.show(matcher.rendered1, "rendered 1",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
+		BdvFunctions.show(matcher.rendered2, "rendered 2",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
 
 
 
