@@ -3,15 +3,27 @@ package net.preibisch.mvrecon.process.fusion.intensity;
 import java.util.Arrays;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ImgLoader;
+import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.Cast;
 
 class TileInfo {
 
 	final int[] numCoeffs;
+
+	/**
+	 * Image dimensions (at full resolution)
+	 */
 	final Dimensions dimensions;
+
+	/**
+	 * Image-to-world transform (at full resolution)
+	 */
 	final AffineTransform3D model;
 
 	/**
@@ -24,12 +36,26 @@ class TileInfo {
 	 */
 	final AffineTransform3D coeffBoundsTransform;
 
+	/**
+	 * coefficient coordinate to min bound of coefficient region center in world coordinates
+	 * (i.e., {@code model * coeffBoundsTransform})
+	 */
+	final AffineTransform3D coeffBoundsToWorldTransform;
+
+	private final MultiResolutionSetupImgLoader<?> setupImgLoader;
+	private final int timepointId;
+
 	TileInfo(final int numCoefficients, final SpimData spimData, final ViewId view) {
 		this.numCoeffs = new int[] {numCoefficients, numCoefficients, numCoefficients};
 
 		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
-		final SetupImgLoader<?> setupImgLoader = imgLoader.getSetupImgLoader(view.getViewSetupId());
-		this.dimensions = setupImgLoader.getImageSize(view.getTimePointId());
+		final SetupImgLoader<?> sil = imgLoader.getSetupImgLoader(view.getViewSetupId());
+		if (!(sil instanceof MultiResolutionSetupImgLoader)) {
+			throw new IllegalArgumentException();
+		}
+		setupImgLoader = Cast.unchecked(sil);
+		timepointId = view.getTimePointId();
+		this.dimensions = setupImgLoader.getImageSize(timepointId);
 		this.model = spimData.getViewRegistrations().getViewRegistration(view).getModel();
 
 		final double[] scale = new double[numCoeffs.length];
@@ -37,9 +63,9 @@ class TileInfo {
 
 		coeffCenterTransform = new AffineTransform3D();
 		coeffCenterTransform.set(
-				scale[0], 0, 0, scale[0] * 0.5,
-				0, scale[1], 0, scale[1] * 0.5,
-				0, 0, scale[2], scale[2] * 0.5
+				scale[0], 0, 0, scale[0] * 0.5 - 0.5,
+				0, scale[1], 0, scale[1] * 0.5 - 0.5,
+				0, 0, scale[2], scale[2] * 0.5 - 0.5
 		);
 
 		coeffBoundsTransform = new AffineTransform3D();
@@ -48,5 +74,44 @@ class TileInfo {
 				0, scale[1], 0, -0.5,
 				0, 0, scale[2], -0.5
 		);
+
+		coeffBoundsToWorldTransform = new AffineTransform3D();
+		coeffBoundsToWorldTransform.set(model);
+		coeffBoundsToWorldTransform.concatenate(coeffBoundsTransform);
+	}
+
+	/**
+	 * Get the subsampling factors, indexed by resolution level and dimension.
+	 * For example, a subsampling factor of 2 means the respective resolution
+	 * level is scaled by 0.5 in the respective dimension.
+	 *
+	 * @return subsampling factors, indexed by resolution level and dimension.
+	 */
+	double[][] getMipmapResolutions() {
+		return setupImgLoader.getMipmapResolutions();
+	}
+
+	/**
+	 * Get the transformation from coordinates of the sub-sampled image of a a
+	 * resolution level to coordinates of the full resolution image. The array
+	 * of transforms is indexed by resolution level.
+	 *
+	 * @return array with one transformation for each mipmap level.
+	 */
+	AffineTransform3D[] getMipmapTransforms() {
+		return setupImgLoader.getMipmapTransforms();
+	}
+
+	/**
+	 * Get number of resolution levels.
+	 *
+	 * @return number of resolution levels.
+	 */
+	int numMipmapLevels() {
+		return setupImgLoader.numMipmapLevels();
+	}
+
+	<T extends RealType<T>> RandomAccessibleInterval<T> getImage(final int mipmapLevel) {
+		return Cast.unchecked(setupImgLoader.getImage(timepointId, mipmapLevel));
 	}
 }

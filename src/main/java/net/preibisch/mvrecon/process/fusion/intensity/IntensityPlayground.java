@@ -1,27 +1,19 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import bdv.BigDataViewer;
-import bdv.ViewerSetupImgLoader;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvHandle;
 import bdv.viewer.SourceAndConverter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import mpicbg.spim.data.sequence.ViewSetup;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.util.Cast;
-import net.imglib2.util.Pair;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 
-public class InstensityPlayground {
+public class IntensityPlayground {
 
 	public static void main(String[] args) throws URISyntaxException, SpimDataException {
 		final URI xml = new URI("file:/Users/pietzsch/Desktop/data/Janelia/keller-shadingcorrected/dataset.xml");
@@ -34,16 +26,25 @@ public class InstensityPlayground {
 		final ViewId id1 = new ViewId(0, 1);
 
 
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, 0.1, 8);
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, 1. / 4, 8);
 		matcher.match(id0, id1);
 
-/*
 		// show in BDV
 		final BdvHandle bdv = BdvFunctions.show();
 		final SourceAndConverter<?> soc0 = BigDataViewer.createSetupSourceNumericType(spimData, 0, "setup 0", bdv.getResourceManager());
 		final SourceAndConverter<?> soc1 = BigDataViewer.createSetupSourceNumericType(spimData, 1, "setup 1", bdv.getResourceManager());
 		BdvFunctions.show(soc0, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
 		BdvFunctions.show(soc1, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
+
+//		final RandomAccessibleInterval<?> interval = soc0.getSpimSource().getSource(0, 0);
+//		BdvFunctions.show(matcher.tempCoefficientsMask, interval, "mask", Bdv.options().addTo(bdv));
+
+		BdvFunctions.show(matcher.rendered1, "rendered 1", Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
+		BdvFunctions.show(matcher.rendered2, "rendered 2", Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
+
+
+
+	/*
 
 		final double[] factors = new double[ 3 ];
 		final AffineTransform3D model = new AffineTransform3D();
@@ -55,7 +56,6 @@ public class InstensityPlayground {
 
 //		final SequenceDescription seq = spimData.getSequenceDescription();
 //		final ViewerSetupImgLoader<?, ?> sil = Cast.unchecked( seq.getImgLoader().getSetupImgLoader(0) );
-
 
 		// --- figuring stuff out ------------
 
