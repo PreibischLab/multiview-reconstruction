@@ -27,6 +27,7 @@ import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.util.Intervals;
@@ -51,6 +52,9 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	RandomAccessible<IntType> tempCoefficientsMask1;
 	RandomAccessible<IntType> tempCoefficientsMask2;
+
+	RandomAccessible<UnsignedByteType> tempCoefficientMask1;
+	RandomAccessible<UnsignedByteType> tempCoefficientMask2;
 
 	RandomAccessibleInterval<T> rendered1;
 	RandomAccessibleInterval<T> rendered2;
@@ -152,6 +156,13 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 		tempCoefficientsMask1 = scaleTileCoefficients(scale, t1);
 		tempCoefficientsMask2 = scaleTileCoefficients(scale, t2);
 
+		tempCoefficientMask1 = scaleTileCoefficient(scale, t1, 0);
+		tempCoefficientMask2 = scaleTileCoefficient(scale, t2, 7);
+
+		// render coefficient mask to ArrayImg
+		{
+		}
+
 //		final BlockSupplier<T> block = BlockSupplier.of(rendered1);
 //		RealViews.affine(t1.getImage(l).view().extend(zero()).interpolate(nLinear()), render);
 
@@ -167,12 +178,33 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
 			final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
 			final Interval intIntersection = Intervals.largestContainedInterval(scaledIntersection);
-//			System.out.println(Intervals.numElements(intIntersection));
+			System.out.println(Intervals.numElements(intIntersection));
+			System.out.println( "  r1.index = " + r1.index );
+			System.out.println( "  r2.index = " + r2.index );
 		}
 	}
 
-
-
+	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
+		final int[] cpos = new int[ 3 ];
+		IntervalIndexer.indexToPosition( coeff, tile.numCoeffs, cpos );
+		final AffineTransform3D scaleToGrid = new AffineTransform3D();
+		scaleToGrid.set(tile.coeffBoundsToWorldTransform.inverse());
+		scaleToGrid.concatenate(renderScale.inverse());
+		final Supplier<BiConsumer<Localizable, ? super UnsignedByteType>> supplier = () -> {
+			final RealPoint gridRealPos = new RealPoint(3);
+			return 	(pos, value) -> {
+				scaleToGrid.apply(pos, gridRealPos);
+				for ( int d = 0; d < 3; ++d ) {
+					if (cpos[d] != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
+						value.set(0);
+						return;
+					}
+				}
+				value.set(1);
+			};
+		};
+		return new FunctionRandomAccessible<>(3, supplier, UnsignedByteType::new);
+	}
 
 	private static RandomAccessible<IntType> scaleTileCoefficients(final AffineTransform3D renderScale, final TileInfo tile) {
 		final AffineTransform3D scaleToGrid = new AffineTransform3D();

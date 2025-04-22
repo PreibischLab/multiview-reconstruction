@@ -43,6 +43,11 @@ public class IntensityPlayground {
 		BdvFunctions.show(matcher.tempCoefficientsMask2, interval, "mask 2",
 				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 512);
 
+		BdvFunctions.show(matcher.tempCoefficientMask1, interval, "mask 1 (0)",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
+		BdvFunctions.show(matcher.tempCoefficientMask2, interval, "mask 2 (7)",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
+
 		BdvFunctions.show(matcher.rendered1, "rendered 1",
 				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
 		BdvFunctions.show(matcher.rendered2, "rendered 2",
