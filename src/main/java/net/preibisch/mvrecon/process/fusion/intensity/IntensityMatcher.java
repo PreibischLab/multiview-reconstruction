@@ -20,6 +20,7 @@ import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.blocks.BlockInterval;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.position.transform.Floor;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -55,6 +56,9 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	RandomAccessible<UnsignedByteType> tempCoefficientMask1;
 	RandomAccessible<UnsignedByteType> tempCoefficientMask2;
+
+	RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1Array;
+	RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask2Array;
 
 	RandomAccessibleInterval<T> rendered1;
 	RandomAccessibleInterval<T> rendered2;
@@ -161,11 +165,35 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 		// render coefficient mask to ArrayImg
 		{
+			final CoefficientRegion r1 = r1s.get(0);
+			final CoefficientRegion r2 = r2s.get(0);
+
+			final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
+			final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
+			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
+
+			final int numElements = (int) Intervals.numElements(renderInterval);
+
+			{
+				final byte[] bytes = new byte[numElements];
+				BlockSupplier.of(tempCoefficientMask1).copy(renderInterval, bytes);
+				tempCoefficientMask1Array = ArrayImgs.unsignedBytes(bytes, renderInterval.dimensionsAsLongArray())
+						.view().translate(renderInterval.minAsLongArray());
+			}
+
+			{
+				final byte[] bytes = new byte[numElements];
+				BlockSupplier.of(tempCoefficientMask2).copy(renderInterval, bytes);
+				tempCoefficientMask2Array = ArrayImgs.unsignedBytes(bytes, renderInterval.dimensionsAsLongArray())
+						.view().translate(renderInterval.minAsLongArray());
+			}
 		}
+
 
 //		final BlockSupplier<T> block = BlockSupplier.of(rendered1);
 //		RealViews.affine(t1.getImage(l).view().extend(zero()).interpolate(nLinear()), render);
 
+		/*
 		System.out.println("overlap = " + overlap);
 		System.out.println("renderScale = " + renderScale);
 		System.out.println("scaledBounds = " + scaledBounds);
@@ -182,6 +210,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			System.out.println( "  r1.index = " + r1.index );
 			System.out.println( "  r2.index = " + r2.index );
 		}
+	 	*/
 	}
 
 	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
@@ -245,7 +274,6 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	private static RandomAccessible<?> scaleTile(final AffineTransform3D renderScale, final TileInfo tile) {
 		final int l = bestMipmapLevel(renderScale, tile);
-		System.out.println("l = " + l);
 		final AffineTransform3D transform = new AffineTransform3D();
 		transform.set(renderScale);
 		transform.concatenate(tile.model);
