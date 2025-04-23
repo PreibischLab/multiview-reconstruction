@@ -7,6 +7,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
+
+import bdv.util.Bdv;
+import bdv.util.BdvFunctions;
+import mpicbg.models.AffineModel1D;
+import mpicbg.models.Point;
+import mpicbg.models.PointMatch;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
@@ -21,6 +27,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.position.transform.Floor;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -188,6 +195,81 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 						.view().translate(renderInterval.minAsLongArray());
 			}
 		}
+
+
+		{
+			final RandomAccessible<T> scaledTile1 = Cast.unchecked(scaleTile(scale, t1));
+			final RandomAccessible<T> scaledTile2 = Cast.unchecked(scaleTile(scale, t2));
+
+//			final CoefficientRegion r1 = r1s.get(0);
+//			final CoefficientRegion r2 = r2s.get(0);
+			int j = 0;
+			for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
+				final CoefficientRegion r1 = pair.getA();
+				final CoefficientRegion r2 = pair.getB();
+
+				final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
+				final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
+				final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
+				final int numElements = (int) Intervals.numElements(renderInterval);
+				final List<PointMatch> candidates = new ArrayList<>(numElements);
+
+				final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(scale, t1, r1.index);
+				final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(scale, t2, r2.index);
+
+				LoopBuilder.setImages(
+						mask1.view().interval(renderInterval),
+						mask2.view().interval(renderInterval),
+						scaledTile1.view().interval(renderInterval),
+						scaledTile2.view().interval(renderInterval)
+				).forEachPixel((m1, m2, v1, v2) -> {
+					if (m1.get() != 0 && m2.get() != 0) {
+						final double p = v1.getRealDouble() / 255.0;
+						final double q = v2.getRealDouble() / 255.0;
+						final PointMatch pq = new PointMatch(new Point(new double[]{p}), new Point(new double[]{q}), 1);
+						candidates.add(pq);
+					}
+				});
+
+				if (candidates.size() > 1000) {
+
+//					if (j == 101) {
+//						Bdv bdv = BdvFunctions.show(mask1.view().interval(renderInterval), "mask1", Bdv.options());
+//						BdvFunctions.show(mask1.view().interval(renderInterval), "mask2", Bdv.options().addTo(bdv));
+//						BdvFunctions.show(scaledTile1.view().interval(renderInterval), "scaledTile1", Bdv.options().addTo(bdv));
+//						BdvFunctions.show(scaledTile2.view().interval(renderInterval), "scaledTile2", Bdv.options().addTo(bdv));
+//					}
+
+					// also try 93
+					if (j == 93) {
+						final StringBuilder sp = new StringBuilder("final int[] p = {");
+						final StringBuilder sq = new StringBuilder("final int[] q = {");
+						for (PointMatch candidate : candidates) {
+							final double p = candidate.getP1().getL()[0];
+							final double q = candidate.getP2().getL()[0];
+							sp.append(String.format("%.0f, ", p * 255.0));
+							sq.append(String.format("%.0f, ", q * 255.0));
+						}
+						sp.append("};");
+						sq.append("};");
+						System.out.println(sp);
+						System.out.println(sq);
+					}
+
+					final AffineModel1D model = new AffineModel1D();
+					final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
+					final List<PointMatch> inliers = new ArrayList<>();
+					filter.filter(candidates, inliers);
+					System.out.println("j = " + j + ", model = " + model);
+				}
+				++j;
+//				if (j == 300) {
+//					break;
+//				}
+			}
+		}
+
+
 
 
 //		final BlockSupplier<T> block = BlockSupplier.of(rendered1);
