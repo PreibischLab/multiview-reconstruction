@@ -240,8 +240,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 //						BdvFunctions.show(scaledTile2.view().interval(renderInterval), "scaledTile2", Bdv.options().addTo(bdv));
 //					}
 
-					// also try 93
-					if (j == 93) {
+/*					if (j == 93) {
 						final StringBuilder sp = new StringBuilder("final int[] p = {");
 						final StringBuilder sq = new StringBuilder("final int[] q = {");
 						for (PointMatch candidate : candidates) {
@@ -255,8 +254,8 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 						System.out.println(sp);
 						System.out.println(sq);
 					}
-
-					final AffineModel1D model = new AffineModel1D();
+*/
+					final AffineModel1D model = new RansacBenchmark.ModAffineModel1D();
 					final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
 					final List<PointMatch> inliers = new ArrayList<>();
 					filter.filter(candidates, inliers);

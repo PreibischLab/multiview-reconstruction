@@ -113,6 +113,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<n5-version>3.4.1</n5-version>
 		<n5-zarr-version>1.5.0</n5-zarr-version>
 
+		<mpicbg.mpicbg.version>1.6.2-SNAPSHOT</mpicbg.mpicbg.version>
 	</properties>
 
 	<repositories>
