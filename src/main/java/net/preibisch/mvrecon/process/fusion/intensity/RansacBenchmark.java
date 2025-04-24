@@ -84,8 +84,6 @@ public class RansacBenchmark {
 			}
 		}
 
-		int numFits = 0;
-
 		void fit( FlattenedMatches matches, MatchIndices indices ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
 			final double[] p = matches.p;
@@ -105,7 +103,6 @@ public class RansacBenchmark {
 				qsX[ i ] = q[ sample ];
 				ws[ i ] = w[ sample ];
 			}
-			System.out.println( "numFits = " + ++numFits );
 
 			fit( new double[][] { psX }, new double[][] { qsX }, ws );
 		}
@@ -142,9 +139,6 @@ public class RansacBenchmark {
 			final MatchIndices bestInliers = new MatchIndices( numCandidates );
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
 
-			int numFits1 = 0;
-			int numFits2 = 0;
-
 			int i = 0;
 			A:
 			while ( i < iterations )
@@ -153,7 +147,6 @@ public class RansacBenchmark {
 				distinctRandomInts( rnd, numCandidates, samples.indices );
 				try
 				{
-					System.out.println( "numFits1 = " + ++numFits1 );
 					m.fit( flatCandidates, samples );
 				}
 				catch ( final IllDefinedDataPointsException e )
@@ -170,7 +163,6 @@ public class RansacBenchmark {
 					numInliers = tempInliers.size();
 					try
 					{
-						System.out.println( "numFits2 = " + ++numFits2 );
 						m.fit( flatCandidates, tempInliers );
 					}
 					catch ( final IllDefinedDataPointsException e )
