@@ -110,8 +110,8 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<bigdataviewer-core.version>10.6.4</bigdataviewer-core.version>
 
 		<n5-universe.version>2.1.0</n5-universe.version>
-		<n5-version>3.4.1</n5-version>
-		<n5-zarr-version>1.5.0</n5-zarr-version>
+		<n5.version>3.4.1</n5.version>
+		<n5-zarr.version>1.5.0</n5-zarr.version>
 
 	</properties>
 
@@ -248,7 +248,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5</artifactId>
-			<!-- <version>3.1.3</version> -->
+			<!-- version>3.41.3/version> -->
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
