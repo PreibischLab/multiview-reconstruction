@@ -28,6 +28,7 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -169,21 +170,23 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 
 				if ( version.equals( "3.0" ))
 				{
-					try
-					{
-						indicies = XmlHelpers.getIntArray( c, "indicies" );
-					}
-					catch ( Exception e )
-					{
-						indicies = null;
-					}
-					/*
 					final String indiciesString = c.getAttributeValue( "indicies" );
 
 					if ( indiciesString.equals( "[]" ) )
+					{
 						indicies = null;
+					}
 					else
-						indicies = XmlHelpers.getIntArray( c, "indicies" );*/
+					{
+						String[] split = indiciesString.split( " " );
+						indicies = new int[ split.length ];
+
+						for ( int i = 0; i < split.length; ++i )
+							indicies[ i ] = Integer.parseInt( split[ i ] );
+						//indicies = XmlHelpers.getIntArray( c, "indicies" );
+					}
+
+					System.out.println( "Loaded indicies: " + Arrays.toString( indicies ));
 				}
 				else
 				{

@@ -92,7 +92,7 @@ public class AllenOMEZarrProperties implements N5Properties
 	{
 		for ( final TimePoint tp : seq.getTimePoints().getTimePointsOrdered() )
 		{
-			if ( !seq.getMissingViews().getMissingViews().contains( new ViewId( tp.getId(), setupId ) ) )
+			if ( seq.getMissingViews() == null || seq.getMissingViews().getMissingViews() == null || !seq.getMissingViews().getMissingViews().contains( new ViewId( tp.getId(), setupId ) ) )
 				return tp.getId();
 		}
 

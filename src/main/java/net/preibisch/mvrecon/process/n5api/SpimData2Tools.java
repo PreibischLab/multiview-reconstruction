@@ -234,7 +234,7 @@ public class SpimData2Tools
 			registrations.put( viewId, new ViewRegistration( viewId.getTimePointId(), viewId.getViewSetupId() ) );
 			final ViewRegistrations viewRegistrations = new ViewRegistrations( registrations );
 
-			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null);
+			final SequenceDescription sequence = new SequenceDescription(timepoints, setups, null, new MissingViews( new ArrayList<>() ));
 
 			if ( StorageFormat.N5.equals(storageType) && URITools.isFile( n5PathURI )) // local file
 				sequence.setImgLoader( new N5ImageLoader( n5PathURI, sequence) );
