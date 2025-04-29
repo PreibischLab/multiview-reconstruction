@@ -36,16 +36,17 @@ import bdv.img.n5.N5Properties;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 
 public class AllenOMEZarrProperties implements N5Properties
 {
 	private final AbstractSequenceDescription< ?, ?, ? > sequenceDescription;
 
-	private final Map< ViewId, String > viewIdToPath;
+	private final Map< ViewId, OMEZARREntry > viewIdToPath;
 
 	public AllenOMEZarrProperties(
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
-			final Map< ViewId, String > viewIdToPath )
+			final Map< ViewId, OMEZARREntry > viewIdToPath )
 	{
 		this.sequenceDescription = sequenceDescription;
 		this.viewIdToPath = viewIdToPath;
@@ -53,7 +54,7 @@ public class AllenOMEZarrProperties implements N5Properties
 
 	private String getPath( final int setupId, final int timepointId )
 	{
-		return viewIdToPath.get( new ViewId( timepointId, setupId ) );
+		return viewIdToPath.get( new ViewId( timepointId, setupId ) ).getPath();
 	}
 
 	@Override
@@ -91,7 +92,7 @@ public class AllenOMEZarrProperties implements N5Properties
 	{
 		for ( final TimePoint tp : seq.getTimePoints().getTimePointsOrdered() )
 		{
-			if ( !seq.getMissingViews().getMissingViews().contains( new ViewId( tp.getId(), setupId ) ) )
+			if ( seq.getMissingViews() == null || seq.getMissingViews().getMissingViews() == null || !seq.getMissingViews().getMissingViews().contains( new ViewId( tp.getId(), setupId ) ) )
 				return tp.getId();
 		}
 

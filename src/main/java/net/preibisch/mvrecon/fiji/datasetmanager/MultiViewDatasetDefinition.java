@@ -57,4 +57,9 @@ public interface MultiViewDatasetDefinition
 	 * @return - a new instance of this implementation
 	 */
 	public MultiViewDatasetDefinition newInstance();
+
+	/**
+	 * @return if the XML can be stored somewhere else but where the data is located
+	 */
+	public default boolean supportsRemoteXMLLocation() { return false; }
 }

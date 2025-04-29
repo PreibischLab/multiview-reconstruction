@@ -28,6 +28,7 @@ import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 
 @ImgLoaderIo( format = "bdv.multimg.zarr", type = AllenOMEZarrLoader.class )
 public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZarrLoader >
@@ -56,32 +58,22 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	{
 		final Element imgLoaderElement = new Element( "ImageLoader" );
 		imgLoaderElement.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.multimg.zarr" );
-		imgLoaderElement.setAttribute( "version", "2.1" );
+		imgLoaderElement.setAttribute( "version", "3.0" );
 
-		/*
-		if ( URITools.isS3( imgLoader.getN5URI() ) || URITools.isGC( imgLoader.getN5URI() ) )
-		{
-			final Element bucketElement = new Element("s3bucket");
-			//bucketElement.addContent( imgLoader.getBucket() );
-			imgLoaderElement.addContent(bucketElement);
-
-			final Element zarrElement = new Element("zarr");
-			zarrElement.setAttribute("type", "absolute");
-			//zarrElement.addContent( imgLoader.getFolder() );
-			imgLoaderElement.addContent( zarrElement );
-		}
-		else
-		*/
 		imgLoaderElement.addContent( XmlHelpers.pathElementURI( "zarr", imgLoader.getN5URI(), basePathURI ));
 
 		final Element zgroupsElement = new Element( "zgroups" );
 
-		for ( final Entry<ViewId, String > entry : imgLoader.getViewIdToPath().entrySet() )
+		for ( final Entry<ViewId, OMEZARREntry > entry : imgLoader.getViewIdToPath().entrySet() )
 		{
 			final Element zgroupElement = new Element("zgroup");
 			zgroupElement.setAttribute( "setup", String.valueOf( entry.getKey().getViewSetupId() ) );
 			zgroupElement.setAttribute( "tp", String.valueOf( entry.getKey().getTimePointId() ) );
-			zgroupElement.setAttribute( "path", String.valueOf( entry.getValue() ) );
+			zgroupElement.setAttribute( "path", String.valueOf( entry.getValue().getPath() ) );
+			if ( entry.getValue().getHigherDimensionIndicies() == null || entry.getValue().getHigherDimensionIndicies().length == 0 )
+				zgroupElement.setAttribute( "indicies", "[]" );
+			else
+				zgroupElement.setAttribute( "indicies", XmlHelpers.intArrayElement( "tmp", entry.getValue().getHigherDimensionIndicies()).getText() );
 
 			/*
 			final Element pathElement = new Element( "path" );
@@ -106,7 +98,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 	@Override
 	public AllenOMEZarrLoader fromXml( final Element elem, final URI basePathURI, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
 	{
-		final Map<ViewId, String> zgroups = new HashMap<>();
+		final Map<ViewId, OMEZARREntry> zgroups = new HashMap<>();
 
 		final Attribute ver = elem.getAttribute( "version" );
 
@@ -161,7 +153,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 				final int timepointId = Integer.parseInt( c.getAttributeValue( "timepoint" ) );
 				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
 				final String path = c.getChild( "path" ).getText();
-				zgroups.put( new ViewId( timepointId, setupId ), path );
+				zgroups.put( new ViewId( timepointId, setupId ), new OMEZARREntry(path, null) );
 			}
 		}
 		else
@@ -174,15 +166,39 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 				final int timepointId = Integer.parseInt( c.getAttributeValue( "tp" ) );
 				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
 				final String path = c.getAttributeValue( "path" );
-				//final String path = c.getChild( "path" ).getText();
-				zgroups.put( new ViewId( timepointId, setupId ), path );
+				int[] indicies;
+
+				if ( version.equals( "3.0" ))
+				{
+					final String indiciesString = c.getAttributeValue( "indicies" );
+
+					if ( indiciesString.equals( "[]" ) )
+					{
+						indicies = null;
+					}
+					else
+					{
+						String[] split = indiciesString.split( " " );
+						indicies = new int[ split.length ];
+
+						for ( int i = 0; i < split.length; ++i )
+							indicies[ i ] = Integer.parseInt( split[ i ] );
+						//indicies = XmlHelpers.getIntArray( c, "indicies" );
+					}
+
+					//System.out.println( "Loaded indicies: " + Arrays.toString( indicies ));
+				}
+				else
+				{
+					indicies = null;
+				}
+
+				zgroups.put( new ViewId( timepointId, setupId ), new OMEZARREntry(path, indicies) );
 			}
 		}
 
 		try
 		{
-			//System.out.println( "Opening N5 OME-Zarr reader for '" + uri + "'" );
-
 			try
 			{
 				return new AllenOMEZarrLoader( uri, sequenceDescription, zgroups );
@@ -197,7 +213,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 		}
 		catch ( Exception e )
 		{
-			e.printStackTrace();
+			IOFunctions.println( "ERROR: cannot instantiate OMEZarrLoader: " + e );
 			return null;
 		}
 	}

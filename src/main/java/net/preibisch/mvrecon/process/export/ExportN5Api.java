@@ -76,6 +76,7 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
@@ -209,6 +210,7 @@ public class ExportN5Api implements ImgExport
 					// if we store all fused data in one container, we create the dataset here
 					if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 					{
+						// TODO: this code is very similar to N5APITools.setupBdvDatasetsOMEZARR
 						IOFunctions.println( "Creating 5D OME-ZARR metadata for '" + path + "' ... " );
 
 						final long[] dim3d = bb.dimensionsAsLongArray();
@@ -276,17 +278,25 @@ public class ExportN5Api implements ImgExport
 		final MultiResolutionLevelInfo[] mrInfo;
 		final long currentChannelIndex, currentTPIndex;
 
+		final ViewId viewId;
+		OMEZARREntry omeZarrEntry = null;
+
 		if ( bdv )
 		{
-			final ViewId viewId;
-
 			if ( manuallyAssignViewId )
 				viewId = new ViewId( tpId, vsId );
 			else
 				viewId = getViewIdForGroup( fusionGroup, splittingType );
 
 			IOFunctions.println( "Assigning ViewId " + Group.pvid( viewId ) );
-
+		}
+		else
+		{
+			viewId = null;
+		}
+			
+		if ( bdv && (storageType == StorageFormat.N5 || storageType == StorageFormat.HDF5 ) )
+		{
 			try
 			{
 				// create or extend XML, setup s0 and multiresolution pyramid
@@ -322,6 +332,10 @@ public class ExportN5Api implements ImgExport
 			currentTPIndex = N5ApiTools.timepointIndex( fusionGroup, timepoints );
 
 			IOFunctions.println( "Prcoessing OME-ZARR sub-volume '" + title + "'. channel index=" + currentChannelIndex + ", timepoint index=" + currentTPIndex );
+
+			omeZarrEntry = new OMEZARREntry(
+					mrInfoZarr[ 0 ].dataset.substring(0, mrInfoZarr[ 0 ].dataset.lastIndexOf( "/" ) ),
+					new int[] { (int)currentChannelIndex, (int)currentTPIndex } );
 
 			mrInfo = mrInfoZarr;
 		}
@@ -367,6 +381,10 @@ public class ExportN5Api implements ImgExport
 			// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
 			driverVolumeWriter.setAttribute( omeZarrSubContainer, "multiscales", meta );
 
+			omeZarrEntry = new OMEZARREntry(
+					mrInfo[ 0 ].dataset.substring(0, mrInfo[ 0 ].dataset.lastIndexOf( "/" ) ),
+					null );
+
 			currentChannelIndex = -1;
 			currentTPIndex = -1;
 		}
@@ -393,6 +411,27 @@ public class ExportN5Api implements ImgExport
 
 			currentChannelIndex = -1;
 			currentTPIndex = -1;
+		}
+
+		if ( bdv && storageType == StorageFormat.ZARR )
+		{
+			// TODO: create/update the XML
+			try
+			{
+				SpimData2Tools.writeSpimData(
+						viewId,
+						storageType,
+						bb.dimensionsAsLongArray(),
+						path,
+						xmlOut,
+						omeZarrEntry,
+						instantiate );
+			}
+			catch (SpimDataException e)
+			{
+				IOFunctions.println("Failed to write XML: " + e );
+				e.printStackTrace();
+			}
 		}
 
 		// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
@@ -595,11 +634,11 @@ public class ExportN5Api implements ImgExport
 
 		PluginHelper.addCompression( gdInit, false );
 
-		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export (HDF5/N5 are supported)", defaultBDV );
+		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export", defaultBDV );
 
 		gdInit.addMessage(
 				"HDF5/BDV currently only supports 8-bit, 16-bit\n"
-				+ "N5/BDV supports 8-bit, 16-bit & 32-bit",
+				+ "N5/BDV & OME-ZARR/BDV supports 8-bit, 16-bit & 32-bit",
 				GUIHelper.smallStatusFont, GUIHelper.warning );
 
 		gdInit.addMessage(
@@ -630,12 +669,6 @@ public class ExportN5Api implements ImgExport
 			ext = ".n5";
 		else
 			ext = ".zarr";
-
-		if ( bdv && storageType == StorageFormat.ZARR )
-		{
-			IOFunctions.println( "BDV-compatible ZARR file not (yet) supported." );
-			return false;
-		}
 
 		if ( bdv && storageType == StorageFormat.HDF5 && fusion.getPixelType() == 0 )
 		{

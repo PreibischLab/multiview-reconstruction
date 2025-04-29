@@ -22,7 +22,9 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
+import java.io.Serializable;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
@@ -43,51 +45,96 @@ import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
 {
 	private final AbstractSequenceDescription< ?, ?, ? > sequenceDescription;
 
-	private final Map< ViewId, String > viewIdToPath;
-
-	//private final String bucket, folder;
+	private final Map< ViewId, OMEZARREntry > viewIdToPath;
 
 	public AllenOMEZarrLoader(
 			final URI n5URI,
 			//final String bucket,
 			//final String folder,
 			final AbstractSequenceDescription< ?, ?, ? > sequenceDescription,
-			final Map< ViewId, String > viewIdToPath )
+			final Map< ViewId, OMEZARREntry > viewIdToPath )
 	{
 		super( URITools.instantiateN5Reader( StorageFormat.ZARR, n5URI ), n5URI, sequenceDescription );
 		this.sequenceDescription = sequenceDescription;
 
-		//this.bucket = bucket;
-		//this.folder = folder;
-
 		this.viewIdToPath = viewIdToPath;
 	}
 
-	public Map< ViewId, String > getViewIdToPath()
+	public Map< ViewId, OMEZARREntry > getViewIdToPath()
 	{
 		return viewIdToPath;
 	}
-	/*
-	public String getBucket()
-	{
-		return bucket;
-	}
 
-	public String getFolder()
-	{
-		return folder;
-	}
-	*/
 	@Override
 	protected N5Properties createN5PropertiesInstance()
 	{
 		return new AllenOMEZarrProperties( sequenceDescription, viewIdToPath );
+	}
+
+	public static class OMEZARREntry implements Serializable
+	{
+		private static final long serialVersionUID = -709235111470115483L;
+
+		private final String path;
+		private final int[] higherDimensionIndicies;
+
+		/**
+		 * @param path                    - path of the individual OME-ZARR
+		 * @param higherDimensionIndicies - an index for extracting the correct 3d
+		 *                                volume if dimensionality is greater than 3,
+		 *                                e.g [1,2] could mean channel 1, timepoint 2 of
+		 *                                a 5d OME-ZARR. It can be null if the volume is
+		 *                                3d, or if it is 4d/5d and the size in both
+		 *                                dimensions is 1
+		 */
+		public OMEZARREntry( final String path, final int[] higherDimensionIndicies )
+		{
+			this.path = path;
+			this.higherDimensionIndicies = higherDimensionIndicies == null ? null : higherDimensionIndicies.clone();
+		}
+
+		public String getPath() { return path; }
+		public int[] getHigherDimensionIndicies() { return higherDimensionIndicies == null ? null : higherDimensionIndicies.clone(); }
+
+		public < T extends NativeType< T > > RandomAccessibleInterval< T > extract3DVolume( final RandomAccessibleInterval< T > omeZarrVolume )
+		{
+			if ( omeZarrVolume.numDimensions() <= 3 ) // 3d volume, return 3d volume
+				return omeZarrVolume;
+
+			if ( higherDimensionIndicies == null || higherDimensionIndicies.length == 0 )
+			{
+				if ( omeZarrVolume.numDimensions() == 4 && omeZarrVolume.dimension( 3 ) == 1 ) // 4d volume with size 1, return 3d volume
+					return Views.hyperSlice( omeZarrVolume, 4, 0 );
+				else if ( omeZarrVolume.numDimensions() == 5 && omeZarrVolume.dimension( 4 ) == 1 && omeZarrVolume.dimension( 3 ) == 1 )  // 5d volume with size 1 in c and t, return 3d volume
+					return Views.hyperSlice( Views.hyperSlice( omeZarrVolume, 4, 0 ), 3, 0 );
+				else
+				{
+					throw new RuntimeException( "Cannot handle OME-ZARR with dimensionality " + omeZarrVolume.numDimensions() + " without specifying which hyperslice to extract." );
+				}
+			}
+			else
+			{
+				RandomAccessibleInterval< T > out = omeZarrVolume;
+
+				for ( int d = 3 + higherDimensionIndicies.length - 1; d >= 3; --d )
+					out = Views.hyperSlice( out, d, higherDimensionIndicies[ d - 3 ] );
+
+				return out; //Views.hyperSlice( Views.hyperSlice( omeZarrVolume, 4, 0 ), 3, 0 );
+			}
+		}
+
+		@Override
+		public String toString()
+		{
+			return path + " " + (higherDimensionIndicies == null ? "[0,0]" : Arrays.toString( higherDimensionIndicies ) );
+		}
 	}
 
 	@Override
@@ -97,7 +144,8 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			final CacheHints cacheHints,
 			final T type )
 	{
-		return Views.hyperSlice( Views.hyperSlice( super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ), 4, 0 ), 3, 0);
+		return viewIdToPath.get( new ViewId(timepointId, setupId) ).extract3DVolume( super.prepareCachedImage( datasetPath, setupId, timepointId, level, cacheHints, type ) );
+		//return Views.hyperSlice( Views.hyperSlice( super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ), 4, 0 ), 3, 0);
 		/*
 		return super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ).view()
 				.slice( 4, 0 )

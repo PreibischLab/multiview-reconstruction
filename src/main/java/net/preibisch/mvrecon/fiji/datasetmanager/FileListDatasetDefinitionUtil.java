@@ -1099,10 +1099,7 @@ public class FileListDatasetDefinitionUtil
 			}
 		}
 	}
-	
-	
-	
-	
+
 	public static void detectViewsInFile(final File file,
 										 Map<File, Map<Class<? extends Entity>, CheckResult>> multiplicityMap,
 										 FileListViewDetectionState state,

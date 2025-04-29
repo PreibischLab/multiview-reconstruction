@@ -42,6 +42,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinition;
 import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 import net.preibisch.mvrecon.fiji.datasetmanager.MultiViewDatasetDefinition;
+import net.preibisch.mvrecon.fiji.datasetmanager.OMEZARR;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimView;
 import net.preibisch.mvrecon.fiji.datasetmanager.SmartSPIM;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackList;
@@ -52,6 +53,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.MyMultiLineLabel;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import util.URITools;
 
 public class Define_Multi_View_Dataset implements PlugIn
 {
@@ -60,6 +62,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 	public static int defaultDatasetDef = 0;
 
 	public static String defaultXMLName = "dataset.xml";
+	public static boolean defaultQueryPath = false;
 
 	final int numLinesDocumentation = 15;
 	final int numCharacters = 80;
@@ -68,6 +71,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 	{
 		IOFunctions.printIJLog = true;
 		staticDatasetDefinitions.add( new FileListDatasetDefinition() );
+		staticDatasetDefinitions.add( new OMEZARR() );
 		staticDatasetDefinitions.add( new StackListLOCI() );
 		staticDatasetDefinitions.add( new StackListImageJ() );
 		staticDatasetDefinitions.add( new SmartSPIM() );
@@ -115,6 +119,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 		gd1.addChoice( "Define_Dataset using:", titles, titles[ defaultDatasetDef ] );
 		//Choice choice = (Choice)gd1.getChoices().lastElement();
 		gd1.addStringField( "Project_filename (will be created):", defaultXMLName, 30 );
+		gd1.addCheckbox( "Query_XML_path (if supported by the Loader)", defaultQueryPath );
 
 		gd1.addMessage(
 				"We recommend using the AutoLoader for dataset definition. Please note that only one\n"
@@ -137,14 +142,13 @@ public class Define_Multi_View_Dataset implements PlugIn
 		
 		defaultDatasetDef = gd1.getNextChoiceIndex();
 		final String xmlFileName = defaultXMLName = gd1.getNextString();
+		final boolean queryPath = defaultQueryPath = gd1.getNextBoolean();
 		
 		// run the definition
 		final MultiViewDatasetDefinition def = datasetDefinitions.get( defaultDatasetDef );
-		
-		IOFunctions.println( defaultDatasetDef );
-		
+
 		final SpimData2 spimData = def.createDataset( xmlFileName );
-		
+
 		if ( spimData == null )
 		{
 			IOFunctions.println( "Defining multi-view dataset failed." );
@@ -152,7 +156,27 @@ public class Define_Multi_View_Dataset implements PlugIn
 		}
 		else
 		{
-			final URI xml = new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
+			final URI xml;
+
+			if ( queryPath && def.supportsRemoteXMLLocation() )
+			{
+				final GenericDialogPlus gd = new GenericDialogPlus( "XML Location" );
+				gd.addDirectoryField( "XML_location", spimData.getBasePathURI().toString(), 80 );
+
+				gd.showDialog();
+
+				if ( gd.wasCanceled() )
+					return null;
+
+				final URI xmlLocation = URITools.toURI( gd.getNextString() );
+				xml = URITools.toURI( URITools.appendName( xmlLocation, xmlFileName ) );
+
+				new XmlIoSpimData2().save( spimData, xml );
+			}
+			else
+			{
+				xml = new XmlIoSpimData2().saveWithFilename( spimData, xmlFileName );
+			}
 
 			if ( xml != null )
 			{
