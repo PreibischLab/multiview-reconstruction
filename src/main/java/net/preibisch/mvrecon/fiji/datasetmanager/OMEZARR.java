@@ -60,7 +60,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.FinalDimensions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
@@ -90,6 +89,9 @@ public class OMEZARR implements MultiViewDatasetDefinition
 		uriListChoosers.add( new WildcardDirectoryListChooser() );
 		uriListChoosers.add( new MultipleOMEZARRListChooser() );
 	}
+
+	@Override
+	public boolean supportsRemoteXMLLocation() { return true; }
 
 	@Override
 	public String getTitle()

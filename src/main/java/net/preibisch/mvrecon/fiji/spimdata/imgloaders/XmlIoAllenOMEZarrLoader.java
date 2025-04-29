@@ -186,7 +186,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 						//indicies = XmlHelpers.getIntArray( c, "indicies" );
 					}
 
-					System.out.println( "Loaded indicies: " + Arrays.toString( indicies ));
+					//System.out.println( "Loaded indicies: " + Arrays.toString( indicies ));
 				}
 				else
 				{
