@@ -416,14 +416,22 @@ public class ExportN5Api implements ImgExport
 		if ( bdv && storageType == StorageFormat.ZARR )
 		{
 			// TODO: create/update the XML
-			/*SpimData2Tools.writeSpimData(
-					viewId,
-					storageType,
-					bb.dimensionsAsLongArray(),
-					path,
-					xmlOut,
-					omeZarrEntry, // TODO new OMEZARREntry()
-					instantiate );*/
+			try
+			{
+				SpimData2Tools.writeSpimData(
+						viewId,
+						storageType,
+						bb.dimensionsAsLongArray(),
+						path,
+						xmlOut,
+						omeZarrEntry,
+						instantiate );
+			}
+			catch (SpimDataException e)
+			{
+				IOFunctions.println("Failed to write XML: " + e );
+				e.printStackTrace();
+			}
 		}
 
 		// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
@@ -630,7 +638,7 @@ public class ExportN5Api implements ImgExport
 
 		gdInit.addMessage(
 				"HDF5/BDV currently only supports 8-bit, 16-bit\n"
-				+ "N5/BDV supports 8-bit, 16-bit & 32-bit",
+				+ "N5/BDV & OME-ZARR/BDV supports 8-bit, 16-bit & 32-bit",
 				GUIHelper.smallStatusFont, GUIHelper.warning );
 
 		gdInit.addMessage(
@@ -661,12 +669,6 @@ public class ExportN5Api implements ImgExport
 			ext = ".n5";
 		else
 			ext = ".zarr";
-
-		if ( bdv && storageType == StorageFormat.ZARR )
-		{
-			IOFunctions.println( "BDV-compatible ZARR file not (yet) supported." );
-			return false;
-		}
 
 		if ( bdv && storageType == StorageFormat.HDF5 && fusion.getPixelType() == 0 )
 		{

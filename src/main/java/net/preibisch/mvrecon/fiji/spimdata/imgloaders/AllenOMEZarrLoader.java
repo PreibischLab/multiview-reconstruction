@@ -101,7 +101,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 		}
 
 		public String getPath() { return path; }
-		public int[] getHigherDimensionIndicies() { return higherDimensionIndicies.clone(); }
+		public int[] getHigherDimensionIndicies() { return higherDimensionIndicies == null ? null : higherDimensionIndicies.clone(); }
 
 		public < T extends NativeType< T > > RandomAccessibleInterval< T > extract3DVolume( final RandomAccessibleInterval< T > omeZarrVolume )
 		{
