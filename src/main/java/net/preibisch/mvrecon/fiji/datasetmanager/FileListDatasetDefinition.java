@@ -144,16 +144,15 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		//fileListChoosers.add( new SimpleDirectoryFileListChooser() );
 	}
 	
-	private static interface FileListChooser
+	protected static interface FileListChooser
 	{
 		public List<File> getFileList();
 		public String getDescription();
 		public FileListChooser getNewInstance();
 	}
-	
-	private static class WildcardFileListChooser implements FileListChooser
-	{
 
+	protected static class WildcardFileListChooser implements FileListChooser
+	{
 		private static long KB_FACTOR = 1024;
 		private static int minNumLines = 10;
 		private static String info = "<html> <h1> Select files via wildcard expression </h1> <br /> "
@@ -290,8 +289,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		public FileListChooser getNewInstance() {return new WildcardFileListChooser();}
 		
 	}
-	
-	private static class SimpleDirectoryFileListChooser implements FileListChooser
+
+	protected static class SimpleDirectoryFileListChooser implements FileListChooser
 	{
 
 		@Override
@@ -689,7 +688,7 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		List<String> choices = new ArrayList<>();
 
 		FilenamePatternDetector patternDetector = new NumericalFilenamePatternDetector();
-		patternDetector.detectPatterns( files );
+		patternDetector.detectPatterns( files.stream().map( File::getAbsolutePath ).collect( Collectors.toList() ) );
 		int numVariables = patternDetector.getNumVariables();
 
 		StringBuilder inFileSummarySB = new StringBuilder();
@@ -837,7 +836,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 			patternDetectorOld = patternDetector;
 			patternDetector = new NumericalFilenamePatternDetector();
 			// detect in all unique master files in groupUsageMap := actual file -> (master file, series)
-			patternDetector.detectPatterns( state.getGroupUsageMap().values().stream().map( p -> p.getA() ).collect( Collectors.toSet() ).stream().collect( Collectors.toList() ) );
+			List< File > f = state.getGroupUsageMap().values().stream().map( p -> p.getA() ).collect( Collectors.toSet() ).stream().collect( Collectors.toList() );
+			patternDetector.detectPatterns( f.stream().map( File::getAbsolutePath ).collect( Collectors.toList() ) );
 			numVariables = patternDetector.getNumVariables();
 		}
 
@@ -883,13 +883,13 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		gd.addNumericField( "Voxel_size_X", someCalib.dimension( 0 ), 4 );
 		gd.addNumericField( "Voxel_size_Y", someCalib.dimension( 1 ), 4 );
 		gd.addNumericField( "Voxel_size_Z", someCalib.dimension( 2 ), 4 );
-		gd.addStringField( "Voxel_size_unit", someCalib.unit() );
+		gd.addStringField( "Voxel_size_unit", someCalib.unit(), 20 );
 
 		// try to guess if we need to move to grid
 		// we suggest move if: we have no tile metadata
 		addMessageAsJLabel(  "<html> <h2> Move to Grid </h2> </html> ", gd );
 		boolean haveTileLoc = state.getAccumulateMap( Tile.class ).keySet().stream().filter( t -> ((TileInfo)t).locationX != null && ((TileInfo)t).locationX != 0.0 ).findAny().isPresent();
-		
+
 		String[] choicesGridMove = new String[] {"Do not move Tiles to Grid (use Metadata if available)",
 				"Move Tiles to Grid (interactive)", "Move Tile to Grid (Macro-scriptable)"};
 		gd.addChoice( "Move_Tiles_to_Grid_(per_Angle)?", choicesGridMove, choicesGridMove[!haveTileLoc ? 1 : 0] );

@@ -109,7 +109,7 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		// assemble timepints, viewsetups, missingviews and the imgloader
 		final TimePoints timepoints = this.createTimePoints( metadata );
 		final ArrayList< ViewSetup > setups = this.createViewSetups( metadata, 1.0/10.0 );
-		final MissingViews missingViews = null;
+		final MissingViews missingViews = new MissingViews( new ArrayList<>() );
 
 		// instantiate the sequencedescription
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, setups, null, missingViews );

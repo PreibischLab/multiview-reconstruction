@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.fiji.datasetmanager.patterndetector;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,16 +36,16 @@ import java.util.stream.Stream;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.preibisch.mvrecon.fiji.datasetmanager.patterndetector.FilenamePatternDetector;
 
 public class NumericalFilenamePatternDetector implements FilenamePatternDetector
 {
 	private List<String> invariants;
 	private List<List<String>> variables;
+
 	@Override
-	public void detectPatterns(List< File > files)
+	public void detectPatterns(List< String > files)
 	{
-		Pair< List< String >, List< List< String > > > res = detectNumericPatterns( files.stream().map( File::getAbsolutePath ).collect( Collectors.toList() ) );
+		Pair< List< String >, List< List< String > > > res = detectNumericPatterns( files );
 		invariants = res.getA();
 		variables = res.getB();
 	}

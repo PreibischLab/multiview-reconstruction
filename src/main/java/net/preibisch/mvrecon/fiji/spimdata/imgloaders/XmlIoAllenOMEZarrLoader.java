@@ -72,7 +72,7 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 			if ( entry.getValue().getHigherDimensionIndicies() == null || entry.getValue().getHigherDimensionIndicies().length == 0 )
 				zgroupElement.setAttribute( "indicies", "[]" );
 			else
-				zgroupElement.setAttribute( "indicies", XmlHelpers.intArrayElement("", entry.getValue().getHigherDimensionIndicies()).getText() );
+				zgroupElement.setAttribute( "indicies", XmlHelpers.intArrayElement( "tmp", entry.getValue().getHigherDimensionIndicies()).getText() );
 
 			/*
 			final Element pathElement = new Element( "path" );
@@ -165,16 +165,25 @@ public class XmlIoAllenOMEZarrLoader implements XmlIoBasicImgLoader< AllenOMEZar
 				final int timepointId = Integer.parseInt( c.getAttributeValue( "tp" ) );
 				final int setupId = Integer.parseInt( c.getAttributeValue( "setup" ) );
 				final String path = c.getAttributeValue( "path" );
-				final int[] indicies;
+				int[] indicies;
 
 				if ( version.equals( "3.0" ))
 				{
+					try
+					{
+						indicies = XmlHelpers.getIntArray( c, "indicies" );
+					}
+					catch ( Exception e )
+					{
+						indicies = null;
+					}
+					/*
 					final String indiciesString = c.getAttributeValue( "indicies" );
 
 					if ( indiciesString.equals( "[]" ) )
 						indicies = null;
 					else
-						indicies = XmlHelpers.getIntArray( c, "indicies" );
+						indicies = XmlHelpers.getIntArray( c, "indicies" );*/
 				}
 				else
 				{

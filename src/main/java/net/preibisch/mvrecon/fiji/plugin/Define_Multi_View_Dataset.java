@@ -42,6 +42,7 @@ import net.preibisch.mvrecon.fiji.datasetmanager.FileListDatasetDefinition;
 import net.preibisch.mvrecon.fiji.datasetmanager.LightSheetZ1;
 import net.preibisch.mvrecon.fiji.datasetmanager.MicroManager;
 import net.preibisch.mvrecon.fiji.datasetmanager.MultiViewDatasetDefinition;
+import net.preibisch.mvrecon.fiji.datasetmanager.OMEZARR;
 import net.preibisch.mvrecon.fiji.datasetmanager.SimView;
 import net.preibisch.mvrecon.fiji.datasetmanager.SmartSPIM;
 import net.preibisch.mvrecon.fiji.datasetmanager.StackList;
@@ -68,6 +69,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 	{
 		IOFunctions.printIJLog = true;
 		staticDatasetDefinitions.add( new FileListDatasetDefinition() );
+		staticDatasetDefinitions.add( new OMEZARR() );
 		staticDatasetDefinitions.add( new StackListLOCI() );
 		staticDatasetDefinitions.add( new StackListImageJ() );
 		staticDatasetDefinitions.add( new SmartSPIM() );
@@ -140,9 +142,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 		
 		// run the definition
 		final MultiViewDatasetDefinition def = datasetDefinitions.get( defaultDatasetDef );
-		
-		IOFunctions.println( defaultDatasetDef );
-		
+
 		final SpimData2 spimData = def.createDataset( xmlFileName );
 		
 		if ( spimData == null )

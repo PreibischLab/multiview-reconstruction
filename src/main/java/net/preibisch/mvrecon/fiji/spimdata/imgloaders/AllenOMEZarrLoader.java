@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.spimdata.imgloaders;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
@@ -44,6 +45,7 @@ import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import util.URITools;
 
 public class AllenOMEZarrLoader extends N5ImageLoader
@@ -127,6 +129,12 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 				return out; //Views.hyperSlice( Views.hyperSlice( omeZarrVolume, 4, 0 ), 3, 0 );
 			}
 		}
+
+		@Override
+		public String toString()
+		{
+			return path + " " + (higherDimensionIndicies == null ? "[0,0]" : Arrays.toString( higherDimensionIndicies ) );
+		}
 	}
 
 	@Override
@@ -136,7 +144,7 @@ public class AllenOMEZarrLoader extends N5ImageLoader
 			final CacheHints cacheHints,
 			final T type )
 	{
-		return viewIdToPath.get( new ViewId(timepointId, setupId) ).extract3DVolume( super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ) );
+		return viewIdToPath.get( new ViewId(timepointId, setupId) ).extract3DVolume( super.prepareCachedImage( datasetPath, setupId, timepointId, level, cacheHints, type ) );
 		//return Views.hyperSlice( Views.hyperSlice( super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ), 4, 0 ), 3, 0);
 		/*
 		return super.prepareCachedImage( datasetPath, setupId, 0, level, cacheHints, type ).view()
