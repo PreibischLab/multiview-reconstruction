@@ -35,7 +35,6 @@ import java.awt.event.TextListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -115,9 +114,9 @@ import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBoxes;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.util.ColorStream;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.FileMapImgLoaderLOCI;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.LegacyFileMapImgLoaderLOCI;
+import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapGettable;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapImgLoaderLOCI2;
-import net.preibisch.mvrecon.fiji.spimdata.imgloaders.filemap2.FileMapEntry;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
@@ -143,7 +142,10 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 		fileListChoosers.add( new WildcardFileListChooser() );
 		//fileListChoosers.add( new SimpleDirectoryFileListChooser() );
 	}
-	
+
+	@Override
+	public boolean supportsRemoteXMLLocation() { return true; }
+
 	protected static interface FileListChooser
 	{
 		public List<File> getFileList();

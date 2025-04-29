@@ -62,7 +62,7 @@ public class Define_Multi_View_Dataset implements PlugIn
 	public static int defaultDatasetDef = 0;
 
 	public static String defaultXMLName = "dataset.xml";
-	public static boolean defaultQueryPath = true;
+	public static boolean defaultQueryPath = false;
 
 	final int numLinesDocumentation = 15;
 	final int numCharacters = 80;
