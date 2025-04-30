@@ -124,8 +124,19 @@ public class NonRigidParametersGUI extends NonRigidParameters
 
 	public void addQuery( final GenericDialog gd )
 	{
-		final HashMap< String, Integer > corrMap = InterestPointTools.getAllCorrespondingInterestPointMap( spimData.getViewInterestPoints(), viewIds );
+		HashMap< String, Integer > corrMap;
 
+		try
+		{
+			corrMap = InterestPointTools.getAllCorrespondingInterestPointMap( spimData.getViewInterestPoints(), viewIds );
+		}
+		catch ( Exception e )
+		{
+			IOFunctions.println( "Could not load interest points for non-rigid options: " + e );
+			e.printStackTrace();
+			corrMap = new HashMap<>();
+		}
+		
 		if ( corrMap.keySet().size() == 0 )
 			IOFunctions.println( "No corresponding interest points available.\n"
 					+ "To enable non-rigid please run Interest Point Detection followed by Intererst Point Registration (e.g. ICP) first" ); 
