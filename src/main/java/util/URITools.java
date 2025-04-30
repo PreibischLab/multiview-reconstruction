@@ -139,7 +139,7 @@ public class URITools
 			try
 			{
 				final URI bucket = new URI( uri.getScheme(), uri.getHost() + "/.", null, null );
-				final N5Reader n5 = instantiateN5Reader( StorageFormat.N5, URITools.toURI( bucket.toString() + "/." ) );
+				final N5Reader n5 = instantiateN5Reader( StorageFormat.N5, bucket );
 				return ((GsonKeyValueN5Reader)n5).getKeyValueAccess();
 			}
 			catch (URISyntaxException e)
