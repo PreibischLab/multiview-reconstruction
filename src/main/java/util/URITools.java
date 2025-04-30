@@ -138,8 +138,8 @@ public class URITools
 		{
 			try
 			{
-				final URI bucket = new URI( uri.getScheme(), uri.getHost(), null, null );
-				final N5Reader n5 = instantiateN5Reader(StorageFormat.N5, bucket );
+				final URI bucket = new URI( uri.getScheme(), uri.getHost() + "/.", null, null );
+				final N5Reader n5 = instantiateN5Reader( StorageFormat.N5, URITools.toURI( bucket.toString() + "/." ) );
 				return ((GsonKeyValueN5Reader)n5).getKeyValueAccess();
 			}
 			catch (URISyntaxException e)
@@ -642,6 +642,8 @@ public class URITools
 
 	public static void main( String[] args ) throws SpimDataException, IOException, URISyntaxException
 	{
+		final KeyValueAccess kva1 = URITools.getKeyValueAccess( URITools.toURI( "s3://janelia-bigstitcher-spark/Stitching/dataset.xml" ) );
+
 		URI uri1 = URITools.toURI( "s3://aind-open-data/exaSPIM_708373_2024-04-02_19-49-38/SPIM.ome.zarr/" );
 
 		System.out.println( uri1.getHost() );
