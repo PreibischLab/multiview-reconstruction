@@ -1,5 +1,13 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -8,15 +16,6 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.flat.FlattenedMatches;
 import mpicbg.models.flat.MatchIndices;
 import net.imglib2.util.BenchmarkHelper;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
 
 public class RansacBenchmark {
 
@@ -30,26 +29,12 @@ public class RansacBenchmark {
 			return m;
 		}
 
-		static class DataArrays
-		{
-			final double[][] p;
-			final double[][] q;
-			final double[] w;
-
-			DataArrays( final int capacity )
-			{
-				p = new double[ 1 ][ capacity ];
-				q = new double[ 1 ][ capacity ];
-				w = new double[ capacity ];
-			}
-		}
-
 //		void fit( FlattenedMatches matches, MatchIndices indices ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 //		{
 //			fit( matches, indices, new DataArrays( indices.size() ) );
 //		}
 
-		void fit_1( FlattenedMatches matches, MatchIndices indices, DataArrays prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+		void fit_1( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
 			final double[] p = matches.p()[0];
 			final double[] q = matches.q()[0];
@@ -58,9 +43,9 @@ public class RansacBenchmark {
 			final int size = indices.size();
 			final int[] samples = indices.indices();
 
-			final double[] psX = prealloc.p[0];
-			final double[] qsX = prealloc.q[0];
-			final double[] ws = prealloc.w;
+			final double[] psX = prealloc.p()[0];
+			final double[] qsX = prealloc.q()[0];
+			final double[] ws = prealloc.w();
 			for ( int i = 0; i < size; i++ )
 			{
 				final int sample = samples[ i ];
@@ -69,7 +54,7 @@ public class RansacBenchmark {
 				ws[ i ] = w[ sample ];
 			}
 
-			fit_2( prealloc.p, prealloc.q, prealloc.w, size );
+			fit_2( prealloc.p(), prealloc.q(), prealloc.w(), size );
 		}
 
 		/**
@@ -134,7 +119,7 @@ public class RansacBenchmark {
 			invert();
 		}
 
-		void fit_3( FlattenedMatches matches, MatchIndices indices, DataArrays prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+		void fit_3( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
 			final double[] p = matches.p()[0];
 			final double[] q = matches.q()[0];
@@ -146,9 +131,9 @@ public class RansacBenchmark {
 			if ( size < MIN_NUM_MATCHES )
 				throw new NotEnoughDataPointsException( size + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
 
-			final double[] pX = prealloc.p[0];
-			final double[] qX = prealloc.q[0];
-			final double[] ws = prealloc.w;
+			final double[] pX = prealloc.p()[0];
+			final double[] qX = prealloc.q()[0];
+			final double[] ws = prealloc.w();
 
 			double pcx = 0;
 			double qcx = 0;
@@ -190,7 +175,6 @@ public class RansacBenchmark {
 			invert();
 		}
 
-
 		@Override
 		public < P extends PointMatch > boolean ransac(
 				final List< P > candidates,
@@ -221,7 +205,7 @@ public class RansacBenchmark {
 			final MatchIndices bestInliers = new MatchIndices( numCandidates );
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
 
-			final DataArrays prealloc = new DataArrays( numCandidates );
+			final FlattenedMatches prealloc = new FlattenedMatches( 1, numCandidates );
 
 			int i = 0;
 			A:
