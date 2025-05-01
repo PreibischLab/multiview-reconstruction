@@ -216,8 +216,7 @@ public class RansacBenchmark {
 			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
 			final int numCandidates = flatCandidates.size();
 
-			final int numSamples = getMinNumMatches();
-			final MatchIndices samples = new MatchIndices( numSamples );
+			final MatchIndices samples = new MatchIndices( getMinNumMatches() );
 
 			final MatchIndices bestInliers = new MatchIndices( numCandidates );
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
@@ -269,8 +268,7 @@ public class RansacBenchmark {
 				return false;
 
 			set( copy );
-			for ( int j = 0; j < bestInliers.size(); ++j )
-				inliers.add( candidates.get( bestInliers.indices()[ j ] ) );
+			bestInliers.addSelected( candidates, inliers );
 			return true;
 		}
 
