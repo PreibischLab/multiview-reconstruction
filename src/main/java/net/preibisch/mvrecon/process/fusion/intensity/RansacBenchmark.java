@@ -5,6 +5,8 @@ import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
+import mpicbg.models.flat.FlattenedMatches;
+import mpicbg.models.flat.MatchIndices;
 import net.imglib2.util.BenchmarkHelper;
 
 import java.io.BufferedReader;
@@ -28,58 +30,6 @@ public class RansacBenchmark {
 			return m;
 		}
 
-		static class FlattenedMatches
-		{
-			final int size;
-			final double[] p;
-			final double[] q;
-			final double[] w;
-
-			FlattenedMatches( final int size )
-			{
-				this.size = size;
-				p = new double[ size ];
-				q = new double[ size ];
-				w = new double[ size ];
-			}
-
-			< P extends PointMatch > FlattenedMatches( final List< P > candidates )
-			{
-				this( candidates.size() );
-				for ( int i = 0; i < candidates.size(); i++ )
-				{
-					P match = candidates.get( i );
-					p[ i ] = match.getP1().getL()[ 0 ];
-					q[ i ] = match.getP2().getL()[ 0 ];
-					w[ i ] = match.getWeight();
-				}
-			}
-		}
-
-		// TODO: minimal bounds checking
-		static class MatchIndices
-		{
-			final int[] indices;
-			int size;
-
-			MatchIndices( final int capacity )
-			{
-				indices = new int[ capacity ];
-				size = 0;
-			}
-
-			int size()
-			{
-				return size;
-			}
-
-			void set( final MatchIndices indices )
-			{
-				System.arraycopy( indices.indices, 0, this.indices, 0, indices.size );
-				this.size = indices.size;
-			}
-		}
-
 		static class DataArrays
 		{
 			final double[][] p;
@@ -101,12 +51,12 @@ public class RansacBenchmark {
 
 		void fit_1( FlattenedMatches matches, MatchIndices indices, DataArrays prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
-			final double[] p = matches.p;
-			final double[] q = matches.q;
-			final double[] w = matches.w;
+			final double[] p = matches.p()[0];
+			final double[] q = matches.q()[0];
+			final double[] w = matches.w();
 
-			final int size = indices.size;
-			final int[] samples = indices.indices;
+			final int size = indices.size();
+			final int[] samples = indices.indices();
 
 			final double[] psX = prealloc.p[0];
 			final double[] qsX = prealloc.q[0];
@@ -186,12 +136,12 @@ public class RansacBenchmark {
 
 		void fit_3( FlattenedMatches matches, MatchIndices indices, DataArrays prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
-			final double[] p = matches.p;
-			final double[] q = matches.q;
-			final double[] w = matches.w;
+			final double[] p = matches.p()[0];
+			final double[] q = matches.q()[0];
+			final double[] w = matches.w();
 
-			final int size = indices.size;
-			final int[] samples = indices.indices;
+			final int size = indices.size();
+			final int[] samples = indices.indices();
 
 			if ( size < MIN_NUM_MATCHES )
 				throw new NotEnoughDataPointsException( size + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
@@ -264,11 +214,10 @@ public class RansacBenchmark {
 
 			// extract everything into flat arrays
 			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
-			final int numCandidates = flatCandidates.size;
+			final int numCandidates = flatCandidates.size();
 
 			final int numSamples = getMinNumMatches();
 			final MatchIndices samples = new MatchIndices( numSamples );
-			samples.size = numSamples;
 
 			final MatchIndices bestInliers = new MatchIndices( numCandidates );
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
@@ -280,7 +229,7 @@ public class RansacBenchmark {
 			while ( i < iterations )
 			{
 				// choose model.MIN_SET_SIZE disjunctive matches randomly
-				distinctRandomInts( rnd, numCandidates, samples.indices );
+				samples.sample( rnd, numCandidates );
 				try
 				{
 					m.fit_3( flatCandidates, samples, prealloc );
@@ -321,36 +270,8 @@ public class RansacBenchmark {
 
 			set( copy );
 			for ( int j = 0; j < bestInliers.size(); ++j )
-				inliers.add( candidates.get( bestInliers.indices[ j ] ) );
+				inliers.add( candidates.get( bestInliers.indices()[ j ] ) );
 			return true;
-		}
-
-		private static void distinctRandomInts( final Random rnd, final int bound, int[] ints )
-		{
-			if ( ints.length > bound )
-			{
-				throw new IllegalArgumentException( "not enough candidates" );
-			}
-			for ( int count = 0; count < ints.length; )
-			{
-				final int value = rnd.nextInt( bound );
-				if ( !contains( ints, count, value ) )
-				{
-					ints[ count++ ] = value;
-				}
-			}
-		}
-
-		private static boolean contains( final int[] ints, final int bound, final int value )
-		{
-			for ( int i = 0; i < bound; i++ )
-			{
-				if ( ints[ i ] == value )
-				{
-					return true;
-				}
-			}
-			return false;
 		}
 
 		// CONTINUE HERE:
@@ -384,22 +305,27 @@ public class RansacBenchmark {
 				final double epsilon,
 				final double minInlierRatio )
 		{
-			final int numCandidates = candidates.size;
-			final double[] p = candidates.p;
-			final double[] q = candidates.q;
+			final int numCandidates = candidates.size();
+			final double[] p = candidates.p()[0];
+			final double[] q = candidates.q()[0];
 			final double squEpsilon = epsilon * epsilon;
+			final int[] inlierIndices = inliers.indices();
 			int i = 0;
 			for ( int k = 0; k < numCandidates; k++ )
 			{
 				final double diff = apply( p[ k ] ) - q[ k ];
-				final double squDist = diff * diff;
-				if ( squDist < squEpsilon )
+				if ( Math.abs(diff) < epsilon )
 				{
-					inliers.indices[ i++ ] = k;
+					inlierIndices[ i++ ] = k;
 				}
+//				final double squDist = diff * diff;
+//				if ( squDist < squEpsilon )
+//				{
+//					inlierIndices[ i++ ] = k;
+//				}
 			}
 			final int numInliers = i;
-			inliers.size = numInliers;
+			inliers.setSize( numInliers );
 
 			final int minNumInliers = getMinNumMatches();
 			final double ir = ( double ) numInliers / ( double ) numCandidates;
@@ -441,15 +367,23 @@ public class RansacBenchmark {
             System.out.println("model = " + model);
         }
 
-        BenchmarkHelper.benchmarkAndPrint(20, true,() -> {
-            final AffineModel1D model = new ModAffineModel1D();
+		BenchmarkHelper.benchmarkAndPrint(20, false,() -> {
+			final AffineModel1D model = new ModAffineModel1D();
 //            final AffineModel1D model = new AffineModel1D();
-            final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-            final List<PointMatch> inliers = new ArrayList<>();
-            filter.filter(candidates, inliers);
-        });
+			final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
+			final List<PointMatch> inliers = new ArrayList<>();
+			filter.filter(candidates, inliers);
+		});
 
-    }
+		BenchmarkHelper.benchmarkAndPrint(20, false,() -> {
+			final AffineModel1D model = new ModAffineModel1D();
+//            final AffineModel1D model = new AffineModel1D();
+			final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
+			final List<PointMatch> inliers = new ArrayList<>();
+			filter.filter(candidates, inliers);
+		});
+
+	}
 
     public static int[][] load() throws IOException {
         try (
