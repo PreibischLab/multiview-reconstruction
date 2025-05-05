@@ -76,6 +76,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 	final FusionType fusionType;
 	final int interpolation;
+	final float blendingRange;
 	final Map< ViewId, AffineModel1D > intensityAdjustments;
 
 	/**
@@ -89,6 +90,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 	 * @param viewDescriptions - the viewdescriptions
 	 * @param fusionType - how to combine pixels
 	 * @param interpolation - 1==linear, 0==nearest neighbor
+	 * @param blendingRange - the pixels at the boundary across which to blend
 	 * @param intensityAdjustments - intensity adjustments, can be null
 	 * @param globalMin - the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage (but the actual interval to process in many blocks sits somewhere else)
 	 * @param type - which type to fuse
@@ -101,6 +103,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
 			final int interpolation,
+			final float blendingRange,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final long[] globalMin,
 			final T type )
@@ -116,6 +119,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		this.viewDescriptions = viewDescriptions;
 		this.fusionType = fusionType;
 		this.interpolation = interpolation;
+		this.blendingRange = blendingRange;
 		this.intensityAdjustments = intensityAdjustments;
 	}
 
@@ -136,6 +140,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewIds,
 						fusionType,
 						interpolation, // linear interpolation
+						blendingRange,
 						targetBlock,
 						intensityAdjustments ); // intensity adjustments
 
@@ -173,6 +178,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
 			final int interpolation,
+			final float blendingRange,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final Interval fusionInterval,
 			final T type,
@@ -187,6 +193,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewDescriptions,
 						fusionType,
 						interpolation,
+						blendingRange,
 						intensityAdjustments,
 						fusionInterval.minAsLongArray(),
 						type.createVariable() );
@@ -232,6 +239,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 				data.getSequenceDescription().getViewDescriptions(),
 				FusionType.AVG_BLEND,
 				1, // linear interpolatio
+				FusionTools.defaultBlendingRange,
 				null, // intensity adjustment
 				bb,
 				new FloatType(),
