@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
+import mpicbg.models.SimpleErrorStatistic;
 import mpicbg.models.flat.FlattenedMatches;
 import mpicbg.models.flat.MatchIndices;
 import net.imglib2.util.BenchmarkHelper;
@@ -29,97 +31,124 @@ public class RansacBenchmark {
 			return m;
 		}
 
+		@Override
+		public < P extends PointMatch >boolean filterRansac(
+				final List< P > candidates,
+				final Collection< P > inliers,
+				final int iterations,
+				final double maxEpsilon,
+				final double minInlierRatio,
+				final int minNumInliers,
+				final double maxTrust )
+				throws NotEnoughDataPointsException
+		{
+			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
+			final MatchIndices flatInliers = new MatchIndices( candidates.size() );
+
+			if ( !ransac( flatCandidates, flatInliers, iterations, maxEpsilon, minInlierRatio, minNumInliers ) )
+				return false;
+			if ( !filter( flatCandidates, flatInliers, maxTrust, minNumInliers ) )
+				return false;
+
+			inliers.clear();
+			flatInliers.addSelected( candidates, inliers );
+			return true;
+		}
+
+		private boolean filter(
+				final FlattenedMatches candidates,
+				final MatchIndices inliers,
+				final double maxTrust,
+				final int minNumInliers )
+				throws NotEnoughDataPointsException
+		{
+			if ( inliers.size() < getMinNumMatches() )
+				throw new NotEnoughDataPointsException( inliers.size() + " data points are not enough to solve the Model, at least " + getMinNumMatches() + " data points required." );
+
+			final ModAffineModel1D copy = copy();
+
+			// extract PointMatch data into flat arrays
+			final int numCandidates = candidates.size();
+			final FlattenedMatches prealloc = new FlattenedMatches( candidates.numDimensions(), numCandidates );
+			final SimpleErrorStatistic observer = new SimpleErrorStatistic( numCandidates );
+
+			int numInliers;
+			do
+			{
+				observer.clear();
+				numInliers = inliers.size();
+				try
+				{
+					copy.fit( candidates, inliers, prealloc );
+				}
+				catch ( final NotEnoughDataPointsException | IllDefinedDataPointsException e )
+				{
+					return false;
+				}
+				final int[] samples = inliers.indices();
+				final double[] p = candidates.p()[ 0 ];
+				final double[] q = candidates.q()[ 0 ];
+				for ( int i = 0; i < numInliers; i++ )
+				{
+					final int k = samples[ i ];
+					final double distance = Math.abs( copy.apply( p[ k ] ) - q[ k ] );
+					observer.add( distance );
+				}
+				final double t = observer.getMedian() * maxTrust;
+				int j = 0;
+				for ( int i = 0; i < numInliers; i++ )
+				{
+					final int k = samples[ i ];
+					final double distance = Math.abs( copy.apply( p[ k ] ) - q[ k ] );
+					if ( distance <= t )
+						samples[ j++ ] = k;
+				}
+				inliers.setSize( j );
+				copy.cost = observer.mean();
+			}
+			while ( numInliers > inliers.size() );
+
+			if ( numInliers < minNumInliers )
+				return false;
+
+			set( copy );
+			return true;
+
+		}
+
+		@Override
+		public < P extends PointMatch > boolean filter(
+				final Collection< P > candidates,
+				final Collection< P > inliers,
+				final double maxTrust,
+				final int minNumInliers )
+				throws NotEnoughDataPointsException
+		{
+			// extract PointMatch data into flat arrays
+			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
+			final int numCandidates = flatCandidates.size();
+
+			// equivalent to inliers.addAll( candidates );
+			final MatchIndices flatInliers = new MatchIndices( numCandidates );
+			flatInliers.setSize( numCandidates );
+			Arrays.setAll( flatInliers.indices(), i -> i );
+
+			inliers.clear();
+			if ( filter( flatCandidates, flatInliers, maxTrust, minNumInliers ) )
+			{
+				flatInliers.addSelected( new ArrayList<>( candidates ), inliers );
+				return true;
+			}
+			return false;
+		}
+
+
 //		void fit( FlattenedMatches matches, MatchIndices indices ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 //		{
 //			fit( matches, indices, new DataArrays( indices.size() ) );
 //		}
 
-		void fit_1( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
-		{
-			final double[] p = matches.p()[0];
-			final double[] q = matches.q()[0];
-			final double[] w = matches.w();
-
-			final int size = indices.size();
-			final int[] samples = indices.indices();
-
-			final double[] psX = prealloc.p()[0];
-			final double[] qsX = prealloc.q()[0];
-			final double[] ws = prealloc.w();
-			for ( int i = 0; i < size; i++ )
-			{
-				final int sample = samples[ i ];
-				psX[ i ] = p[ sample ];
-				qsX[ i ] = q[ sample ];
-				ws[ i ] = w[ sample ];
-			}
-
-			fit_2( prealloc.p(), prealloc.q(), prealloc.w(), size );
-		}
-
-		/**
-		 * Closed form weighted least squares solution as described by
-		 * \citet{SchaeferAl06}.
-		 */
-		final public void fit_2(
-				final double[][] p,
-				final double[][] q,
-				final double[] w,
-				final int numMatches)
-				throws NotEnoughDataPointsException, IllDefinedDataPointsException
-		{
-			assert
-			p.length >= 1 &&
-			q.length >= 1 : "1d affine transformations can be applied to 1d points only.";
-
-			assert
-			p[ 0 ].length >= numMatches &&
-			q[ 0 ].length >= numMatches &&
-			w.length >= numMatches : "data arrays too small.";
-
-			final int l = numMatches;
-
-			if ( l < MIN_NUM_MATCHES )
-				throw new NotEnoughDataPointsException( l + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
-
-			double pcx = 0;
-			double qcx = 0;
-
-			double ws = 0.0;
-
-			final double[] pX = p[ 0 ];
-			final double[] qX = q[ 0 ];
-			for ( int i = 0; i < l; ++i )
-			{
-				final double ww = w[ i ];
-				ws += ww;
-				pcx += ww * pX[ i ];
-				qcx += ww * qX[ i ];
-			}
-			pcx /= ws;
-			qcx /= ws;
-
-			double a = 0;
-			double b = 0;
-			for ( int i = 0; i < l; ++i )
-			{
-				final double px = pX[ i ] - pcx;
-				final double qx = qX[ i ] - qcx;
-				final double wwpx = w[ i ] * px;
-				a += wwpx * px;
-				b += wwpx * qx;
-			}
-
-			if ( a == 0 )
-				throw new IllDefinedDataPointsException();
-
-			m00 = b / a;
-			m01 = qcx - m00 * pcx;
-
-			invert();
-		}
-
-		void fit_3( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+		void fit( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
 			final double[] p = matches.p()[0];
 			final double[] q = matches.q()[0];
@@ -175,17 +204,15 @@ public class RansacBenchmark {
 			invert();
 		}
 
-		@Override
-		public < P extends PointMatch > boolean ransac(
-				final List< P > candidates,
-				final Collection< P > inliers,
+		private boolean ransac(
+				final FlattenedMatches candidates,
+				final MatchIndices inliers,
 				final int iterations,
 				final double epsilon,
 				final double minInlierRatio,
 				final int minNumInliers
 		) throws NotEnoughDataPointsException
 		{
-
 			if ( candidates.size() < getMinNumMatches() )
 				throw new NotEnoughDataPointsException( candidates.size() + " data points are not enough to solve the Model, at least " + getMinNumMatches() + " data points required." );
 
@@ -194,16 +221,11 @@ public class RansacBenchmark {
 			final ModAffineModel1D copy = copy();
 			final ModAffineModel1D m = copy();
 
-			inliers.clear();
-
-			// extract everything into flat arrays
-			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
-			final int numCandidates = flatCandidates.size();
-
-			final MatchIndices samples = new MatchIndices( getMinNumMatches() );
-
-			final MatchIndices bestInliers = new MatchIndices( numCandidates );
+			final int numCandidates = candidates.size();
+			final int numSampled = getMinNumMatches();
+			final MatchIndices samples = new MatchIndices( numSampled );
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
+			inliers.setSize( 0 );
 
 			final FlattenedMatches prealloc = new FlattenedMatches( 1, numCandidates );
 
@@ -215,7 +237,7 @@ public class RansacBenchmark {
 				samples.sample( rnd, numCandidates );
 				try
 				{
-					m.fit_3( flatCandidates, samples, prealloc );
+					m.fit( candidates, samples, prealloc );
 				}
 				catch ( final IllDefinedDataPointsException e )
 				{
@@ -225,40 +247,55 @@ public class RansacBenchmark {
 
 				int numInliers = 0;
 
-				boolean isGood = m.test( flatCandidates, tempInliers, epsilon, minInlierRatio );
+				boolean isGood = m.test( candidates, tempInliers, epsilon, minInlierRatio, minNumInliers );
 				while ( isGood && numInliers != tempInliers.size() )
 				{
 					numInliers = tempInliers.size();
 					try
 					{
-						m.fit_3( flatCandidates, tempInliers, prealloc );
+						m.fit( candidates, tempInliers, prealloc );
 					}
 					catch ( final IllDefinedDataPointsException e )
 					{
 						++i;
 						continue A;
 					}
-					isGood = m.test( flatCandidates, tempInliers, epsilon, minInlierRatio );
+					isGood = m.test( candidates, tempInliers, epsilon, minInlierRatio, minNumInliers );
 				}
 				if ( isGood && m.betterThan( copy ) )
 				{
 					copy.set( m );
-					bestInliers.set( tempInliers );
+					inliers.set( tempInliers );
 				}
 				++i;
 			}
 
-			if ( bestInliers.size() == 0 )
+			if ( inliers.size() == 0 )
 				return false;
 
 			set( copy );
-			bestInliers.addSelected( candidates, inliers );
 			return true;
 		}
 
-		// CONTINUE HERE:
-		// TODO: Implement AbstractModel.test(...) alternative for this:
-		//       boolean isGood = m.test( candidates, tempInliers, epsilon, minInlierRatio );
+		@Override
+		public < P extends PointMatch > boolean ransac(
+				final List< P > candidates,
+				final Collection< P > inliers,
+				final int iterations,
+				final double epsilon,
+				final double minInlierRatio,
+				final int minNumInliers
+		) throws NotEnoughDataPointsException
+		{
+			final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
+			final MatchIndices bestInliers = new MatchIndices( candidates.size() );
+			if ( ransac( flatCandidates, bestInliers, iterations, epsilon, minInlierRatio, minNumInliers ) )
+			{
+				bestInliers.addSelected( candidates, inliers );
+				return true;
+			}
+			return false;
+		}
 
 		private double apply( final double l )
 		{
@@ -281,35 +318,30 @@ public class RansacBenchmark {
 		 *
 		 * @return number of inliers (number of valid indices in {@code inliers})
 		 */
-		private boolean test(
+		@Override
+		public boolean test(
 				final FlattenedMatches candidates,
 				final MatchIndices inliers,
 				final double epsilon,
-				final double minInlierRatio )
+				final double minInlierRatio,
+				final int minNumInliers )
 		{
 			final int numCandidates = candidates.size();
-			final double[] p = candidates.p()[0];
-			final double[] q = candidates.q()[0];
-			final double squEpsilon = epsilon * epsilon;
+			final double[] p = candidates.p()[ 0 ];
+			final double[] q = candidates.q()[ 0 ];
 			final int[] inlierIndices = inliers.indices();
 			int i = 0;
 			for ( int k = 0; k < numCandidates; k++ )
 			{
 				final double diff = apply( p[ k ] ) - q[ k ];
-				if ( Math.abs(diff) < epsilon )
+				if ( Math.abs( diff ) < epsilon )
 				{
 					inlierIndices[ i++ ] = k;
 				}
-//				final double squDist = diff * diff;
-//				if ( squDist < squEpsilon )
-//				{
-//					inlierIndices[ i++ ] = k;
-//				}
 			}
 			final int numInliers = i;
 			inliers.setSize( numInliers );
 
-			final int minNumInliers = getMinNumMatches();
 			final double ir = ( double ) numInliers / ( double ) numCandidates;
 			setCost( Math.max( 0.0, Math.min( 1.0, 1.0 - ir ) ) );
 			return ( numInliers >= minNumInliers && ir > minInlierRatio );
@@ -341,30 +373,25 @@ public class RansacBenchmark {
 		final double maxTrust = 3.0;
 
         {
-            final AffineModel1D model = new ModAffineModel1D();
-//            final AffineModel1D model = new AffineModel1D();
-            final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-            final List<PointMatch> inliers = new ArrayList<>();
-            filter.filter(candidates, inliers);
-            System.out.println("model = " + model);
+			final AffineModel1D model = new ModAffineModel1D();
+//			final AffineModel1D model = new AffineModel1D();
+			final PointMatchFilter filter = new RansacRegressionReduceFilter( model );
+			final List< PointMatch > inliers = new ArrayList<>();
+			filter.filter( candidates, inliers );
+			System.out.println( "model = " + model );
         }
 
-		BenchmarkHelper.benchmarkAndPrint(20, false,() -> {
-			final AffineModel1D model = new ModAffineModel1D();
-//            final AffineModel1D model = new AffineModel1D();
-			final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-			final List<PointMatch> inliers = new ArrayList<>();
-			filter.filter(candidates, inliers);
-		});
-
-		BenchmarkHelper.benchmarkAndPrint(20, false,() -> {
-			final AffineModel1D model = new ModAffineModel1D();
-//            final AffineModel1D model = new AffineModel1D();
-			final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-			final List<PointMatch> inliers = new ArrayList<>();
-			filter.filter(candidates, inliers);
-		});
-
+		for ( int i = 0; i < 80; i++ )
+		{
+			BenchmarkHelper.benchmarkAndPrint( 10, false, () -> {
+				final AffineModel1D model = new ModAffineModel1D();
+//				final AffineModel1D model = new AffineModel1D();
+				final PointMatchFilter filter = new RansacRegressionReduceFilter( model );
+				final List< PointMatch > inliers = new ArrayList<>();
+				filter.filter( candidates, inliers );
+				System.out.println( "model = " + model );
+			} );
+		}
 	}
 
     public static int[][] load() throws IOException {
