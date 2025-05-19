@@ -15,6 +15,9 @@ import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.blocks.PrimitiveBlocks;
+import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
@@ -42,19 +45,25 @@ public class ApplyCoefficientsPlayground {
 
 		final RandomAccessibleInterval<UnsignedShortType> image = tile.getImage(0);
 
-//		final BdvSource source0 = BdvFunctions.show(image, "image");
-//		source0.setDisplayRange(0, 2000);
-//		source0.setDisplayRangeBounds(0, 2000);
+		final BdvSource source0 = BdvFunctions.show(image, "image");
+		source0.setDisplayRange(0, 2000);
+		source0.setDisplayRangeBounds(0, 2000);
 
 
 		final URI uri = new File("/Users/pietzsch/Desktop/coefficients.n5").toURI();
 		final N5Reader n5Reader = URITools.instantiateN5Reader(StorageFormat.N5, uri);
-
-		String dataset = "coefficients";
-		Coefficients coefficients = readCoefficients(n5Reader, dataset);
-
-		
+		final String dataset = "coefficients";
+		final Coefficients coefficients = readCoefficients(n5Reader, dataset);
 		n5Reader.close();
+
+		final RandomAccessibleInterval<UnsignedShortType> corrected = BlockSupplier.of(image)
+				.andThen(FastLinearIntensityMap.linearIntensityMap(coefficients, image))
+				.toCellImg(image.dimensionsAsLongArray(), 64);
+
+		final BdvSource source1 = BdvFunctions.show(corrected, "corrected", Bdv.options().addTo(source0));
+		source1.setDisplayRange(0, 2000);
+		source1.setDisplayRangeBounds(0, 2000);
+
 	}
 
 
