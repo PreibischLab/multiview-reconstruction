@@ -55,4 +55,8 @@ public class Coefficients {
 	int numDimensions() {
 		return size.length;
 	}
+
+	int numCoefficients() {
+		return flattenedCoefficients.length;
+	}
 }
