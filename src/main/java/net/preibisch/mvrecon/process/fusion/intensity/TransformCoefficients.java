@@ -116,7 +116,9 @@ class TransformCoefficients {
 			Arrays.fill(dest, 0, pad_left, (float) coeff[o]);
 		}
 		if (copy_len > 0) {
-			System.arraycopy(coeff, o + x0 + pad_left, dest, pad_left, copy_len);
+			for (int i = 0; i < copy_len; ++i) {
+				dest[pad_left + i] = (float) coeff[o + x0 + pad_left + i];
+			}
 		}
 		if (pad_right > 0) {
 			Arrays.fill(dest, len - pad_right, len, (float) coeff[w - 1]);
