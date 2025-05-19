@@ -49,8 +49,8 @@ public class CoefficientsPlayground {
 		n5Writer.createDataset(datasetPath, attr);
 		n5Writer.setAttribute(datasetPath, "coefficients version", "1.0");
 
+		final long[] gridPosition = new long[n + 1];
 		for (int i = 0; i < coefficients.numCoefficients(); ++i) {
-			final long[] gridPosition = new long[n + 1];
 			gridPosition[n] = i;
 			final DoubleArrayDataBlock block = new DoubleArrayDataBlock(blockSize, gridPosition, coefficients.flattenedCoefficients[i]);
 			n5Writer.writeBlock(datasetPath, attr, block);
