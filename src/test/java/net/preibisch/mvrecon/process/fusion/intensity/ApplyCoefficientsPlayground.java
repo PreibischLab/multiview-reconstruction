@@ -6,7 +6,6 @@ import bdv.util.BdvSource;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ImgLoader;
@@ -16,19 +15,13 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockSupplier;
-import net.imglib2.blocks.PrimitiveBlocks;
-import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Cast;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import org.janelia.saalfeldlab.n5.DataBlock;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.DoubleArrayDataBlock;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 import util.URITools;
 
@@ -53,7 +46,7 @@ public class ApplyCoefficientsPlayground {
 		final URI uri = new File("/Users/pietzsch/Desktop/coefficients.n5").toURI();
 		final N5Reader n5Reader = URITools.instantiateN5Reader(StorageFormat.N5, uri);
 		final String dataset = "coefficients";
-		final Coefficients coefficients = readCoefficients(n5Reader, dataset);
+		final Coefficients coefficients = CoefficientsIO.load(n5Reader, dataset);
 		n5Reader.close();
 
 		final RandomAccessibleInterval<UnsignedShortType> corrected = BlockSupplier.of(image)
@@ -63,28 +56,10 @@ public class ApplyCoefficientsPlayground {
 		final BdvSource source1 = BdvFunctions.show(corrected, "corrected", Bdv.options().addTo(source0));
 		source1.setDisplayRange(0, 2000);
 		source1.setDisplayRangeBounds(0, 2000);
-
 	}
 
 
-	static Coefficients readCoefficients(final N5Reader n5Reader, final String datasetPath) {
-
-		final DatasetAttributes attr = n5Reader.getDatasetAttributes(datasetPath);
-		final int n = attr.getNumDimensions() - 1;
-		final int[] fieldDimensions = Arrays.copyOf(attr.getBlockSize(), n);
-		final int numCoefficients = (int) attr.getDimensions()[n];
-		final double[][] coefficients = new double[numCoefficients][];
-		final long[] gridPosition = new long[n + 1];
-		for (int i = 0; i < numCoefficients; i++) {
-			gridPosition[n] = i;
-			final DataBlock<?> block = n5Reader.readBlock(datasetPath, attr, gridPosition);
-			coefficients[i] = (double[]) block.getData();
-		}
-		return new Coefficients(coefficients, fieldDimensions);
-	}
-
-
-	static class Tile {
+	private static class Tile {
 
 		/**
 		 * Image dimensions (at full resolution)
