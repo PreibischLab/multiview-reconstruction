@@ -6,10 +6,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
-
-import bdv.util.Bdv;
-import bdv.util.BdvFunctions;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -26,10 +22,11 @@ import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.blocks.BlockInterval;
-import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.position.FunctionRandomAccessible;
-import net.imglib2.position.transform.Floor;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.NativeType;
@@ -85,21 +82,11 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			final ViewId p2
 			//final HashMap<String, ArrayList<Tile<? extends Affine1D<?>>>> coefficientTiles
 	) {
-		// Get bounding box
-		//      Should this later be an argument, for when we want to parallelize over blocks?
-		//		Do we want to parallelize over blocks? Maybe the matches collection...
-		//
-		//		Should the bounding box be in global coordinates? Given that
-		//      we pick the resolution level ourselves, that would make sense.
-		//      (Actually, we might even pick a different level for each ViewId).
-		//
-		//      Maybe in global coordinates scaled by renderscale. I think that makes sense.
-		//      So a 64x64x64 bounding box means that this many pixels are computed...
-
 		final TileInfo t1 = new TileInfo(numCoefficients, spimData, p1);
 		final TileInfo t2 = new TileInfo(numCoefficients, spimData, p2);
 
-		// This is the region we need to look at.
+		// Find the overlap between the ViewIds (in global coordinates).
+		// This is where we need to look for overlapping CoefficientRegions.
 		final RealInterval overlap = getOverlap(t1, t2);
 
 		// Now find out for which CoefficientRegions (transformed into global
@@ -117,6 +104,13 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 				}
 			}
 		}
+
+		// TODO: Should we have a class for Pair<CoefficientRegion, CoefficientRegion>?
+		//       This could also store matches then ...
+
+		// takes ~1ms
+		System.out.println("found " + r1s.size() + " CoefficientRegions of t1 in overlap.");
+		System.out.println("found " + r2s.size() + " CoefficientRegions of t2 in overlap.");
 		System.out.println("found " + pairs.size() + " CoefficientRegion pairs.");
 
 
@@ -179,21 +173,12 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
 			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
 
-			final int numElements = (int) Intervals.numElements(renderInterval);
-
-			{
-				final byte[] bytes = new byte[numElements];
-				BlockSupplier.of(tempCoefficientMask1).copy(renderInterval, bytes);
-				tempCoefficientMask1Array = ArrayImgs.unsignedBytes(bytes, renderInterval.dimensionsAsLongArray())
-						.view().translate(renderInterval.minAsLongArray());
-			}
-
-			{
-				final byte[] bytes = new byte[numElements];
-				BlockSupplier.of(tempCoefficientMask2).copy(renderInterval, bytes);
-				tempCoefficientMask2Array = ArrayImgs.unsignedBytes(bytes, renderInterval.dimensionsAsLongArray())
-						.view().translate(renderInterval.minAsLongArray());
-			}
+			tempCoefficientMask1Array = copyToArrayImg(
+					BlockSupplier.of(tempCoefficientMask1), renderInterval
+			).view().translate(renderInterval.minAsLongArray());
+			tempCoefficientMask2Array = copyToArrayImg(
+					BlockSupplier.of(tempCoefficientMask2), renderInterval
+			).view().translate(renderInterval.minAsLongArray());
 		}
 
 
@@ -349,24 +334,22 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	}
 
 
+	// ┌-------- refactor ---------
+	// │
+	// │
 
+	// -- util --
 
-	// TODO: maybe we should force all tiles to be rendered from the same mipmap level?
-
-	private static RandomAccessible<?> scaleTile(final AffineTransform3D renderScale, final TileInfo tile) {
-		final int l = bestMipmapLevel(renderScale, tile);
-		final AffineTransform3D transform = new AffineTransform3D();
-		transform.set(renderScale);
-		transform.concatenate(tile.model);
-		transform.concatenate(tile.getMipmapTransforms()[l]);
-		return tile.getImage(l).view()
-				.extend(border())
-				.interpolate(nLinear())
-				.use(affine(transform));
+	public static <T extends NativeType<T>> ArrayImg<T, ?> copyToArrayImg(final BlockSupplier<T> blocks, final Interval interval) {
+		final ArrayImg<T, ?> img = new ArrayImgFactory<>(blocks.getType()).create(interval);
+		final Object data = ((ArrayDataAccess<?>) img.update(null)).getCurrentStorageArray();
+		blocks.copy(interval, data);
+		return img;
 	}
 
-	private static <T> Function<RealRandomAccessible<T>, RandomAccessibleView<T, ?>> affine(final AffineTransform3D transform) {
-		return rra -> RealViews.affine(rra, transform).view();
+	// TODO: bestMatchingMipmapLevel
+	private static int[] bestMipmapLevels(final AffineTransform3D renderScale, final TileInfo tile1, final TileInfo tile2) {
+		final int l1 = bestMipmapLevel(renderScale, tile1);
 	}
 
 	// TODO: Think about this again!
@@ -375,7 +358,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	//       What about anisotropy?
 	//       What about adding our own downsampling on top of the existing mipmap
 	//
- 	//       For now, I just take the smallest side lengths of a transformed source voxel in render space.
+	//       For now, I just take the smallest side lengths of a transformed source voxel in render space.
 	//       That should be larger than 1, but as small as possible.
 	private static int bestMipmapLevel(final AffineTransform3D renderScale, final TileInfo tile) {
 		final AffineTransform3D transform = new AffineTransform3D();
@@ -407,9 +390,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	 * moving by 1 in each dimension of the sources space, how far do we move in
 	 * the target space of the transform.
 	 */
-	//
 	// TODO: This is copied from DownsampleTools. Make DownsampleTools::getStepSize public?
-	//       Probably better to put it into bigdataviewr-core and reuse it from there?
 	private static double[] getStepSize(final AffineTransform3D model) {
 		final double[] size = new double[3];
 		final double[] tmp = new double[3];
@@ -420,6 +401,47 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 		}
 		return size;
 	}
+
+
+	/**
+	 * Return a linearly interpolated view of the {@code tile} at the specified {@code renderScale}.
+	 *
+	 * @param tile
+	 * 		tile to take the source image from
+	 * @param mipmapLevel
+	 * 		resolution level of the source image to use
+	 * @param renderScale
+	 * 		transforms global coordinates to coordinates of the returned RandomAccessible
+	 *
+	 * @return transformed view
+	 */
+	private static RandomAccessible<?> scaleTile(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderScale) {
+		final AffineTransform3D transform = new AffineTransform3D();
+		transform.set(renderScale);
+		transform.concatenate(tile.model);
+		transform.concatenate(tile.getMipmapTransforms()[mipmapLevel]);
+		return tile.getImage(mipmapLevel).view()
+				.extend(border())
+				.interpolate(nLinear())
+				.use(affine(transform));
+	}
+
+
+	// │
+	// │
+	// └--------- refactor ---------
+
+
+	// TODO: Maybe we should force all tiles to be rendered from the same mipmap level? Probably.
+	private static RandomAccessible<?> scaleTile(final AffineTransform3D renderScale, final TileInfo tile) {
+		final int l = bestMipmapLevel(renderScale, tile);
+		return scaleTile(tile, l, renderScale);
+	}
+
+	private static <T> Function<RealRandomAccessible<T>, RandomAccessibleView<T, ?>> affine(final AffineTransform3D transform) {
+		return rra -> RealViews.affine(rra, transform).view();
+	}
+
 
 
 
