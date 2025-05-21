@@ -544,7 +544,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	/**
 	 * Returns the bounding interval of the specified {@code views} in global coordinates.
 	 */
-	public static RealInterval getOverlap(final TileInfo tile1, TileInfo tile2) {
+	static RealInterval getOverlap(final TileInfo tile1, final TileInfo tile2) {
 		return intersect(getBounds(tile1), getBounds(tile2));
 	}
 
@@ -552,7 +552,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	 * Returns the bounding interval of the specified {@code view} in global coordinates.
 	 * This assumes the bounding box in images space is from min-0.5 to max+0.5.
 	 */
-	public static RealInterval getBounds(TileInfo tile) {
+	static RealInterval getBounds(final TileInfo tile) {
 		return tile.model.estimateBounds(imageBounds(tile.dimensions));
 	}
 
@@ -560,7 +560,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	 * Convert integer {@code dimensions} into a bounding box {@code RealInterval} from
 	 * {@code -0.5} to {@code max + 0.5} in every dimension.
 	 */
-	public static RealInterval imageBounds(final Dimensions dimensions) {
+	static RealInterval imageBounds(final Dimensions dimensions) {
 		final int n = dimensions.numDimensions();
 		final double[] min = new double[n];
 		final double[] max = new double[n];

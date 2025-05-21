@@ -45,8 +45,18 @@ class TileInfo {
 	private final MultiResolutionSetupImgLoader<?> setupImgLoader;
 	private final int timepointId;
 
-	TileInfo(final int numCoefficients, final SpimData spimData, final ViewId view) {
-		this.numCoeffs = new int[] {numCoefficients, numCoefficients, numCoefficients};
+	/**
+	 * Create a TileInfo for the given ViewId
+	 *
+	 * @param coefficientsSize
+	 * 		dimensions of the coefficients field
+	 * @param spimData
+	 * 		spimdata that provides images and registration
+	 * @param view
+	 * 		ViewId that the new TileInfo represents
+	 */
+	TileInfo(final int[] coefficientsSize, final SpimData spimData, final ViewId view) {
+		this.numCoeffs = coefficientsSize;
 
 		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
 		final SetupImgLoader<?> sil = imgLoader.getSetupImgLoader(view.getViewSetupId());
