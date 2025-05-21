@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.Point;
@@ -19,7 +18,6 @@ import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPoint;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.img.array.ArrayImg;
@@ -39,7 +37,6 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.fluent.RandomAccessibleView;
 
 import static net.imglib2.util.Intervals.intersect;
 import static net.imglib2.util.Intervals.isEmpty;
@@ -347,10 +344,52 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 		return img;
 	}
 
-	// TODO: bestMatchingMipmapLevel
-	private static int[] bestMipmapLevels(final AffineTransform3D renderScale, final TileInfo tile1, final TileInfo tile2) {
-		final int l1 = bestMipmapLevel(renderScale, tile1);
+	/**
+	 * Return a linearly interpolated view of the {@code tile} at the specified {@code renderScale}.
+	 *
+	 * @param tile
+	 * 		tile to take the source image from
+	 * @param mipmapLevel
+	 * 		resolution level of the source image to use
+	 * @param renderScale
+	 * 		transforms global coordinates to coordinates of the returned RandomAccessible
+	 *
+	 * @return transformed view
+	 */
+	private static RandomAccessible<?> scaleTile(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderScale) {
+		final AffineTransform3D transform = mipmapToRenderCoordinates(tile, mipmapLevel, renderScale);
+		return RealViews.affine(tile.getImage(mipmapLevel).view()
+						.extend(border()).interpolate(nLinear()),
+				transform);
 	}
+
+	/**
+	 * Find the mipmap level with {@link #getPixelSize pixel-size} closest to {@code targetPixelSize}.
+	 *
+	 * @param renderScale
+	 * 		transforms global coordinates to target coordinates (where pixel-size is measured).
+	 * @param tile
+	 * 		tile to take mipmap levels from
+	 * @param targetPixelSize
+	 *      desired pixel size
+	 *
+	 * @return mipmap level index
+	 */
+	private static int bestMatchingMipmapLevel(final AffineTransform3D renderScale, final TileInfo tile, final double targetPixelSize) {
+		int bestLevel = 0;
+		double bestDiff = Double.POSITIVE_INFINITY;
+		for (int l = 0; l < tile.numMipmapLevels(); l++) {
+			final double pixelSize = getPixelSize(mipmapToRenderCoordinates(tile, l, renderScale));
+			final double diff = Math.abs(targetPixelSize - pixelSize);
+			if (diff < bestDiff) {
+				bestDiff = diff;
+				bestLevel = l;
+			}
+		}
+		return bestLevel;
+	}
+
+
 
 	// TODO: Think about this again!
 	//
@@ -360,20 +399,23 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	//
 	//       For now, I just take the smallest side lengths of a transformed source voxel in render space.
 	//       That should be larger than 1, but as small as possible.
+	/**
+	 * Find the mipmap level with smallest {@link #getPixelSize pixel-size} larger than 1.
+	 *
+	 * @param tile
+	 * 		tile to take mipmap levels from
+	 * @param renderScale
+	 * 		transforms global coordinates to target coordinates (where pixel-size is measured).
+	 *
+	 * @return mipmap level index
+	 */
 	private static int bestMipmapLevel(final AffineTransform3D renderScale, final TileInfo tile) {
-		final AffineTransform3D transform = new AffineTransform3D();
-		final AffineTransform3D[] mipmaps = tile.getMipmapTransforms();
-
 		final float acceptedError = 0.02f;
-
 		int bestLevel = 0;
 		double bestSize = 0;
-		for (int i = 0; i < mipmaps.length; i++) {
-			transform.set(renderScale);
-			transform.concatenate(tile.model);
-			transform.concatenate(mipmaps[i]);
-			final double[] step = getStepSize(transform);
-			final double pixelSize = Math.min(step[0], Math.min(step[1], step[2]));
+		for (int i = 0; i < tile.numMipmapLevels(); i++) {
+			final AffineTransform3D transform = mipmapToRenderCoordinates(tile, i, renderScale);
+			final double pixelSize = getPixelSize(transform);
 			if (bestSize < (1 - acceptedError) && pixelSize > bestSize) {
 				bestSize = pixelSize;
 				bestLevel = i;
@@ -386,8 +428,18 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	}
 
 	/**
+	 * Compute the pixel size at the given transform. That is, when moving by 1
+	 * in each dimension of the source space, how far do we move (at least) in
+	 * the target space of the transform.
+	 */
+	private static double getPixelSize(final AffineTransform3D model) {
+		final double[] step = getStepSize(model);
+		return Math.min(step[0], Math.min(step[1], step[2]));
+	}
+
+	/**
 	 * Compute the projected voxel size at the given transform. That is, when
-	 * moving by 1 in each dimension of the sources space, how far do we move in
+	 * moving by 1 in each dimension of the source space, how far do we move in
 	 * the target space of the transform.
 	 */
 	// TODO: This is copied from DownsampleTools. Make DownsampleTools::getStepSize public?
@@ -402,30 +454,32 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 		return size;
 	}
 
-
 	/**
-	 * Return a linearly interpolated view of the {@code tile} at the specified {@code renderScale}.
+	 * Compute the transform from the given {@code mipmapLevel} of the {@code
+	 * tile} into target space, where {@code renderScale} transforms global
+	 * coordinates into target space.
+	 * <p>
+	 * The returned transform is concatenated by first transforming the given
+	 * mipmap level into full resolution tile coordinates, then applying the
+	 * tile's model to transform into global coordinates, then applying {@code
+	 * renderScale} to transform into the target space.
 	 *
 	 * @param tile
 	 * 		tile to take the source image from
 	 * @param mipmapLevel
 	 * 		resolution level of the source image to use
 	 * @param renderScale
-	 * 		transforms global coordinates to coordinates of the returned RandomAccessible
+	 * 		transforms global coordinates to target coordinates
 	 *
-	 * @return transformed view
+	 * @return transform from mipmap to target coordinates
 	 */
-	private static RandomAccessible<?> scaleTile(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderScale) {
+	private static AffineTransform3D mipmapToRenderCoordinates(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderScale) {
 		final AffineTransform3D transform = new AffineTransform3D();
 		transform.set(renderScale);
 		transform.concatenate(tile.model);
 		transform.concatenate(tile.getMipmapTransforms()[mipmapLevel]);
-		return tile.getImage(mipmapLevel).view()
-				.extend(border())
-				.interpolate(nLinear())
-				.use(affine(transform));
+		return transform;
 	}
-
 
 	// │
 	// │
@@ -436,10 +490,6 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	private static RandomAccessible<?> scaleTile(final AffineTransform3D renderScale, final TileInfo tile) {
 		final int l = bestMipmapLevel(renderScale, tile);
 		return scaleTile(tile, l, renderScale);
-	}
-
-	private static <T> Function<RealRandomAccessible<T>, RandomAccessibleView<T, ?>> affine(final AffineTransform3D transform) {
-		return rra -> RealViews.affine(rra, transform).view();
 	}
 
 
