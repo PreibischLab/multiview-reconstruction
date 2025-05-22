@@ -10,11 +10,27 @@ import java.net.URISyntaxException;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.FinalRealInterval;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealInterval;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.util.Cast;
+import net.imglib2.util.Intervals;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 
 public class IntensityPlayground {
+
+	static RealInterval scale(RealInterval interval, double scale) {
+		final AffineTransform3D t = new AffineTransform3D();
+		t.scale(scale);
+		return t.estimateBounds(interval);
+	}
 
 	public static void main(String[] args) throws URISyntaxException, SpimDataException {
 		final URI xml = new URI("file:/Users/pietzsch/Desktop/data/Janelia/keller-shadingcorrected/dataset.xml");
@@ -27,8 +43,24 @@ public class IntensityPlayground {
 		final ViewId id1 = new ViewId(0, 1);
 
 
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, 1. / 4, 8);
+		final double renderScale = 0.25;
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
 		matcher.match(id0, id1);
+
+
+		final TileInfo tile0 = matcher.getTileInfo(id0);
+		final TileInfo tile1 = matcher.getTileInfo(id1);
+
+		final RandomAccessible<IntType> tempCoefficientsMask1 = matcher.scaleTileCoefficients(tile0);
+		final RandomAccessible<IntType> tempCoefficientsMask2 = matcher.scaleTileCoefficients(tile1);
+		final RandomAccessible<UnsignedByteType> tempCoefficientMask1 = matcher.scaleTileCoefficient(tile0, 0,0,0);
+		final RandomAccessible<UnsignedByteType> tempCoefficientMask2 = matcher.scaleTileCoefficient(tile1, 7,0,0);
+
+
+		final int l = matcher.bestMipmapLevel(tile0);
+		final RandomAccessible<UnsignedShortType> rendered1 = matcher.scaleTileImage(tile0, l);
+		final RandomAccessible<UnsignedShortType> rendered2 = matcher.scaleTileImage(tile1, l);
+
 
 		// show in BDV
 		final BdvHandle bdv = BdvFunctions.show();
@@ -37,25 +69,24 @@ public class IntensityPlayground {
 		BdvFunctions.show(soc0, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
 		BdvFunctions.show(soc1, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
 
-		final RandomAccessibleInterval<?> interval = matcher.rendered1;
-		BdvFunctions.show(matcher.tempCoefficientsMask1, interval, "mask 1",
+		final RealInterval overlap = IntensityMatcher.getOverlap(tile0, tile1);
+		final Interval renderBounds = Intervals.smallestContainingInterval(scale(overlap, renderScale));
+
+		BdvFunctions.show(tempCoefficientsMask1, renderBounds, "mask 1",
 				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 512);
-		BdvFunctions.show(matcher.tempCoefficientsMask2, interval, "mask 2",
+		BdvFunctions.show(tempCoefficientsMask2, renderBounds, "mask 2",
 				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 512);
 
-		BdvFunctions.show(matcher.tempCoefficientMask1, interval, "mask 1 (0)",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
-		BdvFunctions.show(matcher.tempCoefficientMask1Array, "mask 1 (0) Array",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(-1, 1);
-		BdvFunctions.show(matcher.tempCoefficientMask2, interval, "mask 2 (7)",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
-		BdvFunctions.show(matcher.tempCoefficientMask2Array, "mask 2 (7) Array",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(-1, 1);
 
-		BdvFunctions.show(matcher.rendered1, "rendered 1",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
-		BdvFunctions.show(matcher.rendered2, "rendered 2",
-				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1000);
+		BdvFunctions.show(tempCoefficientMask1, renderBounds, "mask 1 (0)",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
+		BdvFunctions.show(tempCoefficientMask2, renderBounds, "mask 2 (7)",
+				Bdv.options().addTo(bdv).sourceTransform(4,4,4)).setDisplayRange(0, 1);
+
+		BdvFunctions.show(rendered1.view().interval(renderBounds), "rendered 1",
+				Bdv.options().addTo(bdv).sourceTransform(4, 4, 4)).setDisplayRange(0, 1000);
+		BdvFunctions.show(rendered2.view().interval(renderBounds), "rendered 2",
+				Bdv.options().addTo(bdv).sourceTransform(4, 4, 4)).setDisplayRange(0, 1000);
 
 
 

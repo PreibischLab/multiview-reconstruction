@@ -90,7 +90,7 @@ public class VisualizeCoefficients {
 				.getViewSetupsOrdered()
 				.stream()
 				.map(v -> new ViewId(0, v.getId()))
-				.map(viewId -> new TileInfo(8, spimData, viewId))
+				.map(viewId -> new TileInfo(new int[] {8, 8, 8}, spimData, viewId))
 				.toArray(TileInfo[]::new);
 		final BdvOverlay overlay = new CoefficientsOverlay(Arrays.copyOf(tiles, 3));
 		BdvFunctions.showOverlay(overlay, "coefficients", Bdv.options().addTo(bdv));

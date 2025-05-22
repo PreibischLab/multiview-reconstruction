@@ -3,6 +3,8 @@ package net.preibisch.mvrecon.process.fusion.intensity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import mpicbg.models.AffineModel1D;
@@ -15,7 +17,6 @@ import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPoint;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -43,35 +44,34 @@ import static net.imglib2.util.Intervals.isEmpty;
 import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
-// TODO: Should generics rather be on match method? (after we don't need rendered1 field anymore)
-public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
+public class IntensityMatcher {
 
 	private final SpimData spimData;
 
-	private final double renderScale;
+	/**
+	 * Transforms global coordinates into render space (which is rasterized for sampling mask and intensity voxels).
+	 */
+	private final AffineTransform3D renderScale;
 
-	private final int numCoefficients;
+	private final int[] numCoefficients;
 
-	RandomAccessible<IntType> tempCoefficientsMask1;
-	RandomAccessible<IntType> tempCoefficientsMask2;
+	private final Map< ViewId, TileInfo > tileInfos = new ConcurrentHashMap<>();
 
-	RandomAccessible<UnsignedByteType> tempCoefficientMask1;
-	RandomAccessible<UnsignedByteType> tempCoefficientMask2;
-
-	RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1Array;
-	RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask2Array;
-
-	RandomAccessibleInterval<T> rendered1;
-	RandomAccessibleInterval<T> rendered2;
-
+	/**
+	 * @param spimData
+	 * @param renderScale
+	 * 		at which scale to sample images. For example, {@code renderScale = 0.25} means using 4 x downsampled images.
+	 * @param coefficientsSize
+	 */
 	IntensityMatcher(
 			final SpimData spimData,
 			final double renderScale,
-			final int numCoefficients
+			final int[] coefficientsSize
 	) {
 		this.spimData = spimData;
-		this.renderScale = renderScale;
-		this.numCoefficients = numCoefficients;
+		this.numCoefficients = coefficientsSize;
+		this.renderScale = new AffineTransform3D();
+		this.renderScale.scale(renderScale);
 	}
 
 	public void match(
@@ -79,8 +79,8 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			final ViewId p2
 			//final HashMap<String, ArrayList<Tile<? extends Affine1D<?>>>> coefficientTiles
 	) {
-		final TileInfo t1 = new TileInfo(numCoefficients, spimData, p1);
-		final TileInfo t2 = new TileInfo(numCoefficients, spimData, p2);
+		final TileInfo t1 = getTileInfo(p1);
+		final TileInfo t2 = getTileInfo(p2);
 
 		// Find the overlap between the ViewIds (in global coordinates).
 		// This is where we need to look for overlapping CoefficientRegions.
@@ -112,76 +112,29 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 
 		// Next steps:
-		// [+] Find best source resolution to render overlap at renderScale.
-		// [+] Render tile image and visualize result.
-		// [ ] Render coefficient mask for 1 particular coefficient and visualize result
-		// [ ] Render both tile image and coefficient mask int coefficient pair intersection only.
-		// [ ] Iterate coefficient masks from both tiles and count overlapping voxels.
 		// [ ] blk optimizations? E.g., render and match single line from both coefficient masks?
-
-		/*
-		// WIP: coefficients mask
-		final TileInfo tile = t1;
-		final Supplier<BiConsumer<Localizable, ? super IntType>> supplier = () -> {
-			final RealPoint cposr = new RealPoint(3);
-			final long[] cpos = new long[ 3 ];
-			return 	(pos, value) -> {
-				t1.coeffBoundsToWorldTransform.applyInverse(cposr,pos);
-				Floor.floor(cposr,cpos);
-				for ( int d = 0; d < 3; ++d ) {
-					if (cpos[d] < 0 || cpos[d] >= tile.numCoeffs[d]) {
-						value.set(-1);
-						return;
-					}
-				}
-				final int ci = IntervalIndexer.positionToIndex(cpos, tile.numCoeffs);
-				value.set(ci);
-			};
-		};
-		final FunctionRandomAccessible<IntType> coeff = new FunctionRandomAccessible<>(3, supplier, IntType::new);
-		tempCoefficientsMask = coeff;
-		 */
 
 		// For rendering image data in bounding box at appropriate resolution:
 		//      - scale by renderScale
 		//      - smallest containing Interval
 		//      - translation to the min of that interval
-		final AffineTransform3D scale = new AffineTransform3D();
-		scale.scale(renderScale);
-
-		final FinalRealInterval scaledBounds = scale.estimateBounds(overlap);
-		final Interval renderBounds = Intervals.smallestContainingInterval(scaledBounds);
-
-		rendered1 = Cast.unchecked(scaleTile(scale, t1).view().interval(renderBounds));
-		rendered2 = Cast.unchecked(scaleTile(scale, t2).view().interval(renderBounds));
-
-		tempCoefficientsMask1 = scaleTileCoefficients(scale, t1);
-		tempCoefficientsMask2 = scaleTileCoefficients(scale, t2);
-
-		tempCoefficientMask1 = scaleTileCoefficient(scale, t1, 0);
-		tempCoefficientMask2 = scaleTileCoefficient(scale, t2, 7);
 
 		// render coefficient mask to ArrayImg
-		{
-			final CoefficientRegion r1 = r1s.get(0);
-			final CoefficientRegion r2 = r2s.get(0);
-
-			final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
-			final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
-			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
-
-			tempCoefficientMask1Array = copyToArrayImg(
-					BlockSupplier.of(tempCoefficientMask1), renderInterval
-			).view().translate(renderInterval.minAsLongArray());
-			tempCoefficientMask2Array = copyToArrayImg(
-					BlockSupplier.of(tempCoefficientMask2), renderInterval
-			).view().translate(renderInterval.minAsLongArray());
-		}
-
+		//		RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1 = null;
+		//		Interval renderInterval = null;
+		//		RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1Array = copyToArrayImg(
+		//				BlockSupplier.of(tempCoefficientMask1),
+		//				renderInterval
+		//		).view().translate(renderInterval.minAsLongArray());
 
 		{
-			final RandomAccessible<T> scaledTile1 = Cast.unchecked(scaleTile(scale, t1));
-			final RandomAccessible<T> scaledTile2 = Cast.unchecked(scaleTile(scale, t2));
+
+			final int l1 = bestMipmapLevel(renderScale, t1);
+			final int l2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, l1, renderScale)));
+			final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, l1, renderScale));
+			final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, l2, renderScale));
+
+			System.out.println("l1 = " + l1 + ", l2 = " + l2);
 
 //			final CoefficientRegion r1 = r1s.get(0);
 //			final CoefficientRegion r2 = r2s.get(0);
@@ -191,13 +144,13 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 				final CoefficientRegion r2 = pair.getB();
 
 				final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
-				final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
+				final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
 				final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
 				final int numElements = (int) Intervals.numElements(renderInterval);
 				final List<PointMatch> candidates = new ArrayList<>(numElements);
 
-				final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(scale, t1, r1.index);
-				final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(scale, t2, r2.index);
+				final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
+				final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
 
 				LoopBuilder.setImages(
 						mask1.view().interval(renderInterval),
@@ -277,8 +230,12 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	}
 
 	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
-		final int[] cpos = new int[ 3 ];
-		IntervalIndexer.indexToPosition( coeff, tile.numCoeffs, cpos );
+		final int[] coeffPos = new int[3];
+		IntervalIndexer.indexToPosition(coeff, tile.numCoeffs, coeffPos);
+		return scaleTileCoefficient(renderScale, tile, coeffPos);
+	}
+
+	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int[] coeffPos) {
 		final AffineTransform3D scaleToGrid = new AffineTransform3D();
 		scaleToGrid.set(tile.coeffBoundsToWorldTransform.inverse());
 		scaleToGrid.concatenate(renderScale.inverse());
@@ -287,7 +244,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 			return 	(pos, value) -> {
 				scaleToGrid.apply(pos, gridRealPos);
 				for ( int d = 0; d < 3; ++d ) {
-					if (cpos[d] != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
+					if (coeffPos[d] != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
 						value.set(0);
 						return;
 					}
@@ -335,13 +292,56 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	// │
 	// │
 
+
+
+	// ┌---------------------------
+	// │
+	// │          DEBUG
+	// │
+
+	RandomAccessible<UnsignedByteType> scaleTileCoefficient(final TileInfo tile, final int... coeffPos) {
+		return scaleTileCoefficient(renderScale, tile, coeffPos);
+	}
+
+	RandomAccessible<IntType> scaleTileCoefficients(final TileInfo tile) {
+		return scaleTileCoefficients(renderScale, tile);
+	}
+
+	<T> RandomAccessible<T> scaleTileImage(final TileInfo tile, final int mipmapLevel) {
+		return Cast.unchecked(scaleTile(tile, mipmapLevel, renderScale));
+	}
+
+	int bestMipmapLevel(final TileInfo tile) {
+		return bestMipmapLevel(renderScale, tile);
+	}
+
+	static RealInterval getCoefficientWorldBoundingBox(TileInfo tile, final int... coeffPos)
+	{
+		if (tile.numCoeffs.length != coeffPos.length)
+			throw new IllegalArgumentException();
+		final int n = coeffPos.length;
+		final double[] cmin = new double[n];
+		final double[] cmax = new double[n];
+		Arrays.setAll(cmin, d -> coeffPos[d]);
+		Arrays.setAll(cmax, d -> coeffPos[d] + 1);
+		return tile.coeffBoundsToWorldTransform.estimateBounds(FinalRealInterval.wrap(cmin, cmax));
+	}
+
+	// │
+	// │          DEBUG
+	// │
+	// └---------------------------
+
+
+
+
+
 	// -- util --
 
-	public static <T extends NativeType<T>> ArrayImg<T, ?> copyToArrayImg(final BlockSupplier<T> blocks, final Interval interval) {
-		final ArrayImg<T, ?> img = new ArrayImgFactory<>(blocks.getType()).create(interval);
-		final Object data = ((ArrayDataAccess<?>) img.update(null)).getCurrentStorageArray();
-		blocks.copy(interval, data);
-		return img;
+	// ----------
+
+	TileInfo getTileInfo(ViewId viewId) {
+		return tileInfos.computeIfAbsent(viewId, v -> new TileInfo(numCoefficients, spimData, v));
 	}
 
 	/**
@@ -404,17 +404,17 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	 *
 	 * @param tile
 	 * 		tile to take mipmap levels from
-	 * @param renderScale
+	 * @param renderTransform
 	 * 		transforms global coordinates to target coordinates (where pixel-size is measured).
 	 *
 	 * @return mipmap level index
 	 */
-	private static int bestMipmapLevel(final AffineTransform3D renderScale, final TileInfo tile) {
+	private static int bestMipmapLevel(final AffineTransform3D renderTransform, final TileInfo tile) {
 		final float acceptedError = 0.02f;
 		int bestLevel = 0;
 		double bestSize = 0;
 		for (int i = 0; i < tile.numMipmapLevels(); i++) {
-			final AffineTransform3D transform = mipmapToRenderCoordinates(tile, i, renderScale);
+			final AffineTransform3D transform = mipmapToRenderCoordinates(tile, i, renderTransform);
 			final double pixelSize = getPixelSize(transform);
 			if (bestSize < (1 - acceptedError) && pixelSize > bestSize) {
 				bestSize = pixelSize;
@@ -456,26 +456,26 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	/**
 	 * Compute the transform from the given {@code mipmapLevel} of the {@code
-	 * tile} into target space, where {@code renderScale} transforms global
-	 * coordinates into target space.
+	 * tile} into render space, where {@code renderTransform} transforms global
+	 * coordinates into render coordinates.
 	 * <p>
 	 * The returned transform is concatenated by first transforming the given
 	 * mipmap level into full resolution tile coordinates, then applying the
 	 * tile's model to transform into global coordinates, then applying {@code
-	 * renderScale} to transform into the target space.
+	 * renderTransform} to transform into render coordinates.
 	 *
 	 * @param tile
 	 * 		tile to take the source image from
 	 * @param mipmapLevel
 	 * 		resolution level of the source image to use
-	 * @param renderScale
-	 * 		transforms global coordinates to target coordinates
+	 * @param renderTransform
+	 * 		transforms global coordinates to render coordinates
 	 *
-	 * @return transform from mipmap to target coordinates
+	 * @return transform from mipmap to render coordinates
 	 */
-	private static AffineTransform3D mipmapToRenderCoordinates(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderScale) {
+	private static AffineTransform3D mipmapToRenderCoordinates(final TileInfo tile, final int mipmapLevel, final AffineTransform3D renderTransform) {
 		final AffineTransform3D transform = new AffineTransform3D();
-		transform.set(renderScale);
+		transform.set(renderTransform);
 		transform.concatenate(tile.model);
 		transform.concatenate(tile.getMipmapTransforms()[mipmapLevel]);
 		return transform;
@@ -484,13 +484,6 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 	// │
 	// │
 	// └--------- refactor ---------
-
-
-	// TODO: Maybe we should force all tiles to be rendered from the same mipmap level? Probably.
-	private static RandomAccessible<?> scaleTile(final AffineTransform3D renderScale, final TileInfo tile) {
-		final int l = bestMipmapLevel(renderScale, tile);
-		return scaleTile(tile, l, renderScale);
-	}
 
 
 
@@ -541,6 +534,7 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 
 	// --- - - -  -  -   -   U T I L   -   -  -  - - - ---
 
+
 	/**
 	 * Returns the bounding interval of the specified {@code views} in global coordinates.
 	 */
@@ -567,5 +561,12 @@ public class IntensityMatcher<T extends NativeType<T> & RealType<T>> {
 		Arrays.fill(min, -0.5);
 		Arrays.setAll(max, d -> dimensions.dimension(d) - 0.5);
 		return FinalRealInterval.wrap(min, max);
+	}
+
+	static <T extends NativeType<T>> ArrayImg<T, ?> copyToArrayImg(final BlockSupplier<T> blocks, final Interval interval) {
+		final ArrayImg<T, ?> img = new ArrayImgFactory<>(blocks.getType()).create(interval);
+		final Object data = ((ArrayDataAccess<?>) img.update(null)).getCurrentStorageArray();
+		blocks.copy(interval, data);
+		return img;
 	}
 }
