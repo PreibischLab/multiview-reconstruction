@@ -114,119 +114,50 @@ public class IntensityMatcher {
 		// Next steps:
 		// [ ] blk optimizations? E.g., render and match single line from both coefficient masks?
 
-		// For rendering image data in bounding box at appropriate resolution:
-		//      - scale by renderScale
-		//      - smallest containing Interval
-		//      - translation to the min of that interval
+		final int mipmapLevel1 = bestMipmapLevel(renderScale, t1);
+		final int mipmapLevel2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, mipmapLevel1, renderScale)));
+		System.out.println("using mipmapLevel " + mipmapLevel1 + " for t1, mipmapLevel " + mipmapLevel2 + " for t2");
 
-		// render coefficient mask to ArrayImg
-		//		RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1 = null;
-		//		Interval renderInterval = null;
-		//		RandomAccessibleInterval<UnsignedByteType> tempCoefficientMask1Array = copyToArrayImg(
-		//				BlockSupplier.of(tempCoefficientMask1),
-		//				renderInterval
-		//		).view().translate(renderInterval.minAsLongArray());
+		final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, mipmapLevel1, renderScale));
+		final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
 
-		{
-
-			final int l1 = bestMipmapLevel(renderScale, t1);
-			final int l2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, l1, renderScale)));
-			final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, l1, renderScale));
-			final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, l2, renderScale));
-
-			System.out.println("l1 = " + l1 + ", l2 = " + l2);
-
-//			final CoefficientRegion r1 = r1s.get(0);
-//			final CoefficientRegion r2 = r2s.get(0);
-			int j = 0;
-			for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
-				final CoefficientRegion r1 = pair.getA();
-				final CoefficientRegion r2 = pair.getB();
-
-				final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
-				final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
-				final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
-				final int numElements = (int) Intervals.numElements(renderInterval);
-				final List<PointMatch> candidates = new ArrayList<>(numElements);
-
-				final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
-				final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
-
-				LoopBuilder.setImages(
-						mask1.view().interval(renderInterval),
-						mask2.view().interval(renderInterval),
-						scaledTile1.view().interval(renderInterval),
-						scaledTile2.view().interval(renderInterval)
-				).forEachPixel((m1, m2, v1, v2) -> {
-					if (m1.get() != 0 && m2.get() != 0) {
-						final double p = v1.getRealDouble() / 255.0;
-						final double q = v2.getRealDouble() / 255.0;
-						final PointMatch pq = new PointMatch(new Point(new double[]{p}), new Point(new double[]{q}), 1);
-						candidates.add(pq);
-					}
-				});
-
-				if (candidates.size() > 1000) {
-
-//					if (j == 101) {
-//						Bdv bdv = BdvFunctions.show(mask1.view().interval(renderInterval), "mask1", Bdv.options());
-//						BdvFunctions.show(mask1.view().interval(renderInterval), "mask2", Bdv.options().addTo(bdv));
-//						BdvFunctions.show(scaledTile1.view().interval(renderInterval), "scaledTile1", Bdv.options().addTo(bdv));
-//						BdvFunctions.show(scaledTile2.view().interval(renderInterval), "scaledTile2", Bdv.options().addTo(bdv));
-//					}
-
-/*					if (j == 93) {
-						final StringBuilder sp = new StringBuilder("final int[] p = {");
-						final StringBuilder sq = new StringBuilder("final int[] q = {");
-						for (PointMatch candidate : candidates) {
-							final double p = candidate.getP1().getL()[0];
-							final double q = candidate.getP2().getL()[0];
-							sp.append(String.format("%.0f, ", p * 255.0));
-							sq.append(String.format("%.0f, ", q * 255.0));
-						}
-						sp.append("};");
-						sq.append("};");
-						System.out.println(sp);
-						System.out.println(sq);
-					}
-*/
-					final AffineModel1D model = new RansacBenchmark.ModAffineModel1D();
-					final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-					final List<PointMatch> inliers = new ArrayList<>();
-					filter.filter(candidates, inliers);
-					System.out.println("j = " + j + ", model = " + model);
-				}
-				++j;
-//				if (j == 300) {
-//					break;
-//				}
-			}
-		}
-
-
-
-
-//		final BlockSupplier<T> block = BlockSupplier.of(rendered1);
-//		RealViews.affine(t1.getImage(l).view().extend(zero()).interpolate(nLinear()), render);
-
-		/*
-		System.out.println("overlap = " + overlap);
-		System.out.println("renderScale = " + renderScale);
-		System.out.println("scaledBounds = " + scaledBounds);
-		System.out.println("renderBounds = " + renderBounds);
-		System.out.println("Intervals.numElements(renderBounds) = " + Intervals.numElements(renderBounds));
-
+		int j = 0;
 		for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
 			final CoefficientRegion r1 = pair.getA();
 			final CoefficientRegion r2 = pair.getB();
+
 			final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
-			final FinalRealInterval scaledIntersection = scale.estimateBounds(intersection);
-			final Interval intIntersection = Intervals.largestContainedInterval(scaledIntersection);
-			System.out.println(Intervals.numElements(intIntersection));
-			System.out.println( "  r1.index = " + r1.index );
-			System.out.println( "  r2.index = " + r2.index );
+			final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
+			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
+			final int numElements = (int) Intervals.numElements(renderInterval);
+			final List<PointMatch> candidates = new ArrayList<>(numElements);
+
+			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
+			final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
+
+			LoopBuilder.setImages(
+					mask1.view().interval(renderInterval),
+					mask2.view().interval(renderInterval),
+					scaledTile1.view().interval(renderInterval),
+					scaledTile2.view().interval(renderInterval)
+			).forEachPixel((m1, m2, v1, v2) -> {
+				if (m1.get() != 0 && m2.get() != 0) {
+					final double p = v1.getRealDouble() / 255.0;
+					final double q = v2.getRealDouble() / 255.0;
+					final PointMatch pq = new PointMatch(new Point(new double[]{p}), new Point(new double[]{q}), 1);
+					candidates.add(pq);
+				}
+			});
+
+			if (candidates.size() > 1000) {
+				final AffineModel1D model = new RansacBenchmark.ModAffineModel1D();
+				final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
+				final List<PointMatch> inliers = new ArrayList<>();
+				filter.filter(candidates, inliers);
+				System.out.println("j = " + j + ", model = " + model);
+			}
+			++j;
 		}
-	 	*/
 	}
 
 	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
@@ -286,59 +217,6 @@ public class IntensityMatcher {
 			cpos[2] = (int) Math.floor(gridRealPos.getDoublePosition(2));
 		};
 	}
-
-
-	// ┌-------- refactor ---------
-	// │
-	// │
-
-
-
-	// ┌---------------------------
-	// │
-	// │          DEBUG
-	// │
-
-	RandomAccessible<UnsignedByteType> scaleTileCoefficient(final TileInfo tile, final int... coeffPos) {
-		return scaleTileCoefficient(renderScale, tile, coeffPos);
-	}
-
-	RandomAccessible<IntType> scaleTileCoefficients(final TileInfo tile) {
-		return scaleTileCoefficients(renderScale, tile);
-	}
-
-	<T> RandomAccessible<T> scaleTileImage(final TileInfo tile, final int mipmapLevel) {
-		return Cast.unchecked(scaleTile(tile, mipmapLevel, renderScale));
-	}
-
-	int bestMipmapLevel(final TileInfo tile) {
-		return bestMipmapLevel(renderScale, tile);
-	}
-
-	static RealInterval getCoefficientWorldBoundingBox(TileInfo tile, final int... coeffPos)
-	{
-		if (tile.numCoeffs.length != coeffPos.length)
-			throw new IllegalArgumentException();
-		final int n = coeffPos.length;
-		final double[] cmin = new double[n];
-		final double[] cmax = new double[n];
-		Arrays.setAll(cmin, d -> coeffPos[d]);
-		Arrays.setAll(cmax, d -> coeffPos[d] + 1);
-		return tile.coeffBoundsToWorldTransform.estimateBounds(FinalRealInterval.wrap(cmin, cmax));
-	}
-
-	// │
-	// │          DEBUG
-	// │
-	// └---------------------------
-
-
-
-
-
-	// -- util --
-
-	// ----------
 
 	TileInfo getTileInfo(ViewId viewId) {
 		return tileInfos.computeIfAbsent(viewId, v -> new TileInfo(numCoefficients, spimData, v));
@@ -569,4 +447,45 @@ public class IntensityMatcher {
 		blocks.copy(interval, data);
 		return img;
 	}
+
+
+
+
+
+
+
+
+	// ┌---------------------------
+	// │          DEBUG
+
+	RandomAccessible<UnsignedByteType> scaleTileCoefficient(final TileInfo tile, final int... coeffPos) {
+		return scaleTileCoefficient(renderScale, tile, coeffPos);
+	}
+
+	RandomAccessible<IntType> scaleTileCoefficients(final TileInfo tile) {
+		return scaleTileCoefficients(renderScale, tile);
+	}
+
+	<T> RandomAccessible<T> scaleTileImage(final TileInfo tile, final int mipmapLevel) {
+		return Cast.unchecked(scaleTile(tile, mipmapLevel, renderScale));
+	}
+
+	int bestMipmapLevel(final TileInfo tile) {
+		return bestMipmapLevel(renderScale, tile);
+	}
+
+	static RealInterval getCoefficientWorldBoundingBox(TileInfo tile, final int... coeffPos)
+	{
+		if (tile.numCoeffs.length != coeffPos.length)
+			throw new IllegalArgumentException();
+		final int n = coeffPos.length;
+		final double[] cmin = new double[n];
+		final double[] cmax = new double[n];
+		Arrays.setAll(cmin, d -> coeffPos[d]);
+		Arrays.setAll(cmax, d -> coeffPos[d] + 1);
+		return tile.coeffBoundsToWorldTransform.estimateBounds(FinalRealInterval.wrap(cmin, cmax));
+	}
+
+	// │          DEBUG
+	// └---------------------------
 }
