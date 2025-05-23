@@ -6,11 +6,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
-import mpicbg.models.Affine1D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Tile;
+import net.imglib2.util.IntervalIndexer;
+import net.imglib2.util.Intervals;
+import net.imglib2.util.Util;
 
 
 /**
@@ -24,9 +26,9 @@ import mpicbg.models.Tile;
  */
 class IntensityTile {
 
-	final private int nSubTilesPerDimension;
+	final private int[] nSubTilesPerDimension;
 	final private int nFittingCycles;
-	final private List<Tile<? extends Affine1D<?>>> subTiles;
+	final private List<Tile<?>> subTiles;
 
 	private double distance = 0;
 	private final Set<IntensityTile> connectedTiles = new HashSet<>();
@@ -34,33 +36,35 @@ class IntensityTile {
 	/**
 	 * Creates a new intensity tile with the specified number of sub-tiles per dimension and the number of fitting
 	 * cycles to perform within one fit of the intensity tile.
-	 * @param modelSupplier supplies instances of the model to use for the sub-tiles
-	 * @param nSubTilesPerDimension the number of sub-tiles per side of the tile
-	 * @param nFittingCycles the number of fitting cycles
+	 *
+	 * @param modelSupplier
+	 * 		supplies instances of the model to use for the sub-tiles
+	 * @param nSubTilesPerDimension
+	 * 		the number of sub-tiles per side of the tile
+	 * @param nFittingCycles
+	 * 		the number of fitting cycles
 	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	public IntensityTile(
-			final Supplier<? extends Affine1D<?>> modelSupplier,
-			final int nSubTilesPerDimension,
+	public <M extends Model<M>> IntensityTile(
+			final Supplier<M> modelSupplier,
+			final int[] nSubTilesPerDimension,
 			final int nFittingCycles
 	) {
-		this.nSubTilesPerDimension = nSubTilesPerDimension;
+		this.nSubTilesPerDimension = nSubTilesPerDimension; // TODO: rename? nSubTiles?
 		this.nFittingCycles = nFittingCycles;
-		final int N = nSubTilesPerDimension * nSubTilesPerDimension;
-		this.subTiles = new ArrayList<>(N);
 
-		for (int i = 0; i < N; i++) {
-			final Affine1D<?> model = modelSupplier.get();
-			this.subTiles.add(new Tile<>((Model) model));
+		final int n = Util.safeInt(Intervals.numElements(nSubTilesPerDimension));
+		subTiles = new ArrayList<>(n);
+		for (int i = 0; i < n; i++) {
+			subTiles.add(new Tile<>(modelSupplier.get()));
 		}
 	}
 
-	public Tile<? extends Affine1D<?>> getSubTile(final int i) {
+	public Tile<?> getSubTileAtIndex(final int i) {
 		return this.subTiles.get(i);
 	}
 
-	public Tile<? extends Affine1D<?>> getSubTile(final int i, final int j) {
-		return this.subTiles.get(i * this.nSubTilesPerDimension + j);
+	public Tile<?> getSubTileAt(final int[] pos) {
+		return getSubTileAtIndex(IntervalIndexer.positionToIndex(pos, nSubTilesPerDimension));
 	}
 
 	public int nSubTiles() {
@@ -80,7 +84,7 @@ class IntensityTile {
 	 */
 	public void updateDistance() {
 		distance = 0;
-		for (final Tile<?> subTile : this.subTiles) {
+		for (final Tile<?> subTile : subTiles) {
 			subTile.updateCost();
 			distance = Math.max(distance, subTile.getDistance());
 		}
@@ -93,7 +97,9 @@ class IntensityTile {
 	/**
 	 * Connects this tile to another tile. In contrast to the connect method of the Tile class, this method also
 	 * connects the other tile to this tile.
-	 * @param otherTile the tile to connect to (bidirectional connection)
+	 *
+	 * @param otherTile
+	 * 		the tile to connect to (bidirectional connection)
 	 */
 	public void connectTo(final IntensityTile otherTile) {
 		connectedTiles.add(otherTile);
@@ -103,15 +109,20 @@ class IntensityTile {
 	/**
 	 * Fits the model of all sub-tiles as often as specified by the nFittingCycles parameter. After fitting the model,
 	 * the model is immediately applied to the sub-tile.
-	 * @param damp the damping factor to apply to the model
-	 * @throws NotEnoughDataPointsException if there are not enough data points to fit the model
-	 * @throws IllDefinedDataPointsException if the data points are such that the model cannot be fitted
+	 *
+	 * @param damp
+	 * 		the damping factor to apply to the model
+	 *
+	 * @throws NotEnoughDataPointsException
+	 * 		if there are not enough data points to fit the model
+	 * @throws IllDefinedDataPointsException
+	 * 		if the data points are such that the model cannot be fitted
 	 */
 	public void fitAndApply(final double damp) throws NotEnoughDataPointsException, IllDefinedDataPointsException {
-		final List<Tile<? extends Affine1D<?>>> shuffledTiles = new ArrayList<>(this.subTiles);
+		final List<Tile<?>> shuffledTiles = new ArrayList<>(subTiles);
 		for (int i = 0; i < nFittingCycles; i++) {
 			Collections.shuffle(shuffledTiles);
-			for (final Tile<? extends Affine1D<?>> subTile : shuffledTiles) {
+			for (final Tile<?> subTile : shuffledTiles) {
 				subTile.fitModel();
 				subTile.apply(damp);
 			}
@@ -122,8 +133,6 @@ class IntensityTile {
 	 * Applies the model of all sub-tiles.
 	 */
 	public void apply() {
-		for (final Tile<? extends Affine1D<?>> subTile : this.subTiles) {
-			subTile.apply();
-		}
+		subTiles.forEach(Tile::apply);
 	}
 }

@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
+import mpicbg.models.Tile;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
@@ -38,6 +39,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.process.fusion.intensity.RansacBenchmark.ModAffineModel1D;
 
 import static net.imglib2.util.Intervals.intersect;
 import static net.imglib2.util.Intervals.isEmpty;
@@ -55,7 +57,9 @@ public class IntensityMatcher {
 
 	private final int[] numCoefficients;
 
-	private final Map< ViewId, TileInfo > tileInfos = new ConcurrentHashMap<>();
+	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
+
+	private final Map<ViewId, IntensityTile> intensityTiles = new ConcurrentHashMap<>();
 
 	/**
 	 * @param spimData
@@ -81,6 +85,8 @@ public class IntensityMatcher {
 	) {
 		final TileInfo t1 = getTileInfo(p1);
 		final TileInfo t2 = getTileInfo(p2);
+		final IntensityTile p1IntensityTile = intensityTiles.get(p1);
+		final IntensityTile p2IntensityTile = intensityTiles.get(p2);
 
 		// Find the overlap between the ViewIds (in global coordinates).
 		// This is where we need to look for overlapping CoefficientRegions.
@@ -122,6 +128,7 @@ public class IntensityMatcher {
 		final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
 
 		int j = 0;
+		int connectionCount = 0;
 		for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
 			final CoefficientRegion r1 = pair.getA();
 			final CoefficientRegion r2 = pair.getB();
@@ -150,13 +157,22 @@ public class IntensityMatcher {
 			});
 
 			if (candidates.size() > 1000) {
-				final AffineModel1D model = new RansacBenchmark.ModAffineModel1D();
+				final AffineModel1D model = new ModAffineModel1D();
 				final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
-				final List<PointMatch> inliers = new ArrayList<>();
-				filter.filter(candidates, inliers);
+				final List<PointMatch> reducedMatches = new ArrayList<>();
+				filter.filter(candidates, reducedMatches);
 				System.out.println("j = " + j + ", model = " + model);
+
+				/* connect tiles across patches */
+				final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(r1.index);
+				final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(r2.index);
+				st1.connect(st2, reducedMatches);
+				connectionCount++;
 			}
 			++j;
+		}
+		if (connectionCount > 0) {
+			p1IntensityTile.connectTo(p2IntensityTile);
 		}
 	}
 
@@ -218,8 +234,13 @@ public class IntensityMatcher {
 		};
 	}
 
-	TileInfo getTileInfo(ViewId viewId) {
+	TileInfo getTileInfo(final ViewId viewId) {
 		return tileInfos.computeIfAbsent(viewId, v -> new TileInfo(numCoefficients, spimData, v));
+	}
+
+	IntensityTile getIntensityTile(final ViewId viewId) {
+		final int nFittingCycles = 1; // TODO: expose parameter (?)
+		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(ModAffineModel1D::new, numCoefficients, nFittingCycles));
 	}
 
 	/**
