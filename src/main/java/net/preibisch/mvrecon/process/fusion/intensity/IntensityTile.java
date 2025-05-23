@@ -49,7 +49,7 @@ class IntensityTile {
 			final int[] nSubTilesPerDimension,
 			final int nFittingCycles
 	) {
-		this.nSubTilesPerDimension = nSubTilesPerDimension; // TODO: rename? nSubTiles?
+		this.nSubTilesPerDimension = nSubTilesPerDimension; // TODO: rename? nSubTiles? gridSize?
 		this.nFittingCycles = nFittingCycles;
 
 		final int n = Util.safeInt(Intervals.numElements(nSubTilesPerDimension));
@@ -65,6 +65,10 @@ class IntensityTile {
 
 	public Tile<?> getSubTileAt(final int[] pos) {
 		return getSubTileAtIndex(IntervalIndexer.positionToIndex(pos, nSubTilesPerDimension));
+	}
+
+	public int[] getSubTileGridSize() {
+		return nSubTilesPerDimension;
 	}
 
 	public int nSubTiles() {

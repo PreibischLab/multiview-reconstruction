@@ -243,6 +243,11 @@ public class IntensityMatcher {
 		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(ModAffineModel1D::new, numCoefficients, nFittingCycles));
 	}
 
+	Map<ViewId, IntensityTile> getIntensityTiles() {
+		return intensityTiles;
+	}
+
+
 	/**
 	 * Return a linearly interpolated view of the {@code tile} at the specified {@code renderScale}.
 	 *
@@ -287,8 +292,6 @@ public class IntensityMatcher {
 		}
 		return bestLevel;
 	}
-
-
 
 	// TODO: Think about this again!
 	//
@@ -379,14 +382,6 @@ public class IntensityMatcher {
 		transform.concatenate(tile.getMipmapTransforms()[mipmapLevel]);
 		return transform;
 	}
-
-	// │
-	// │
-	// └--------- refactor ---------
-
-
-
-
 
 	/**
 	 * Loop over num of coefficient regions.
