@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
@@ -99,6 +100,65 @@ public class IntensityMatcher {
 				writer.close();
 			}
 		}
+
+		static class CoefficientMatch {
+
+			final int coeff1;
+			final int coeff2;
+			final int numVoxels;
+			final Collection<PointMatch> matches;
+
+			CoefficientMatch(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) {
+				this.coeff1 = coeff1;
+				this.coeff2 = coeff2;
+				this.numVoxels = numVoxels;
+				this.matches = matches;
+			}
+		}
+
+		static class Reader implements Closeable {
+
+			private final BufferedReader reader;
+
+			Reader(final String filePath) throws IOException {
+				reader = Files.newBufferedReader(Paths.get(filePath));
+			}
+
+			ViewId readViewId() throws IOException {
+				final String line = reader.readLine();
+				if (line == null)
+					return null;
+
+				final String[] tokens = line.split("\\s+");
+				final int t = Integer.parseInt(tokens[0]);
+				final int s = Integer.parseInt(tokens[1]);
+				return new ViewId(t, s);
+			}
+
+			CoefficientMatch readMatches() throws IOException {
+				final String line = reader.readLine();
+				if (line == null)
+					return null;
+
+				final String[] tokens = line.split("\\s+");
+				final int coeff1 = Integer.parseInt(tokens[0]);
+				final int coeff2 = Integer.parseInt(tokens[1]);
+				final int numVoxels = Integer.parseInt(tokens[2]);
+
+				final List<PointMatch> matches = new ArrayList<>();
+				for (int i = 3; i < tokens.length; i += 2) {
+					final double l1 = Double.parseDouble(tokens[i]);
+					final double l2 = Double.parseDouble(tokens[i + 1]);
+					matches.add(new PointMatch1D(new Point1D(l1), new Point1D(l2)));
+				}
+				return new CoefficientMatch(coeff1, coeff2, numVoxels, matches);
+			}
+
+			@Override
+			public void close() throws IOException {
+				reader.close();
+			}
+		}
 	}
 
 
@@ -161,9 +221,40 @@ public class IntensityMatcher {
 		this.outputDirectory = outputDirectory;
 	}
 
-	public void match(
+	public void readFromFile(
 			final ViewId p1,
-			final ViewId p2
+			final ViewId p2,
+			final String directory
+	) {
+		final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
+				directory,
+				p1.getTimePointId(), p1.getViewSetupId(),
+				p2.getTimePointId(), p2.getViewSetupId());
+		try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
+			input.readViewId(); // ignored
+			input.readViewId(); // ignored
+			final IntensityTile p1IntensityTile = getIntensityTile(p1);
+			final IntensityTile p2IntensityTile = getIntensityTile(p2);
+			int connectionCount = 0;
+			IntensityMatchesIO.CoefficientMatch coefficientMatch = input.readMatches();
+			while (coefficientMatch != null) {
+				final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1);
+				final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2);
+				st1.connect(st2, coefficientMatch.matches);
+				connectionCount++;
+				coefficientMatch = input.readMatches();
+			}
+			if (connectionCount > 0) {
+				p1IntensityTile.connectTo(p2IntensityTile);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void match(
+		final ViewId p1,
+		final ViewId p2
 	) {
 		if (outputDirectory != null) {
 			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
@@ -278,7 +369,9 @@ public class IntensityMatcher {
 					connectionCount++;
 
 					try {
-						output.writeMatches(r1.index, r2.index, candidates.size(), reducedMatches);
+						if (output != null) {
+							output.writeMatches(r1.index, r2.index, candidates.size(), reducedMatches);
+						}
 					} catch (IOException e) {
 						throw new RuntimeException();
 					}

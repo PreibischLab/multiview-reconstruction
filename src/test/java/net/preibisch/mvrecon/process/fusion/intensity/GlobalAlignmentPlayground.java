@@ -24,13 +24,31 @@ public class GlobalAlignmentPlayground {
 				.toArray(ViewId[]::new);
 
 		final double renderScale = 0.25;
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8}, "/Users/pietzsch/Desktop/matches/");
-
-		for (int i = 0; i < views.length; ++i) {
-			for (int j = i + 1; j < views.length; ++j) {
-				System.out.println("matching view " + views[i] + " and " + views[j]);
-				matcher.match(views[i], views[j]);
+		final String outputDirectory = "/Users/pietzsch/Desktop/matches/";
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8}, outputDirectory);
+		final boolean writeMatches = false;
+		if (writeMatches) {
+			for (int i = 0; i < views.length; ++i) {
+				for (int j = i + 1; j < views.length; ++j) {
+					System.out.println("matching view " + views[i] + " and " + views[j]);
+					matcher.match(views[i], views[j]);
+				}
+			}
+		} else {
+			for (int i = 0; i < views.length; ++i) {
+				for (int j = i + 1; j < views.length; ++j) {
+					System.out.println("matching view " + views[i] + " and " + views[j]);
+					matcher.readFromFile(views[i], views[j], outputDirectory);
+				}
 			}
 		}
+
+		final IntensityCorrection solver = new IntensityCorrection();
+		solver.solveForGlobalCoefficients(matcher.getIntensityTiles(), 1000);
+
+		// TODO: iterate IntensityTiles
+		//       for each IntensityTile iterate Coefficient Tiles
+		//       extract Coefficient instance (scale models by 255!?)
+
 	}
 }
