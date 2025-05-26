@@ -1,6 +1,7 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import mpicbg.models.IdentityModel;
@@ -15,7 +16,7 @@ public class IntensityCorrection {
 
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityCorrection.class);
 
-	private void solveForGlobalCoefficients(
+	/*private*/ void solveForGlobalCoefficients(
 			final Map<ViewId, IntensityTile> coefficientTiles,
 			final int iterations) {
 
@@ -97,7 +98,7 @@ public class IntensityCorrection {
 			final Double average,
 			final double weight) {
 		final PointMatch eqMatch = new PointMatch1D(new Point1D(average), new Point1D(0.5), weight);
-		coefficientTile.connect(equilibrationTile, List.of(eqMatch));
+		coefficientTile.connect(equilibrationTile, Collections.singletonList(eqMatch));
 	}
 
 	static protected void identityConnect(final Tile<?> t1, final Tile<?> t2) {

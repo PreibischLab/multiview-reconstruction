@@ -1,7 +1,13 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,12 +47,67 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.RansacBenchmark.ModAffineModel1D;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static net.imglib2.util.Intervals.intersect;
 import static net.imglib2.util.Intervals.isEmpty;
 import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
 public class IntensityMatcher {
+
+
+
+
+
+
+	static class IntensityMatchesIO {
+
+		static class Writer implements Closeable {
+
+			private final BufferedWriter writer;
+
+			Writer(final String filePath) throws IOException {
+				writer = Files.newBufferedWriter(Paths.get(filePath), CREATE, TRUNCATE_EXISTING);
+			}
+
+			void writeViewId(final ViewId viewId) throws IOException {
+				final int t = viewId.getTimePointId();
+				final int s = viewId.getViewSetupId();
+				writer.write(Integer.toString(t));
+				writer.write(" ");
+				writer.write(Integer.toString(s));
+				writer.write(" ");
+				writer.newLine();
+			}
+
+			void writeMatches(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) throws IOException {
+				writer.write(String.format("%d %d %d ", coeff1, coeff2, numVoxels));
+				for (final PointMatch match : matches) {
+					final double l1 = match.getP1().getL()[0];
+					final double l2 = match.getP2().getL()[0];
+					writer.write(Double.toString(l1));
+					writer.write(" ");
+					writer.write(Double.toString(l2));
+					writer.write(" ");
+				}
+				writer.newLine();
+			}
+
+			@Override
+			public void close() throws IOException {
+				writer.close();
+			}
+		}
+	}
+
+
+
+
+
+
+
+
 
 	private final SpimData spimData;
 
@@ -56,6 +117,11 @@ public class IntensityMatcher {
 	private final AffineTransform3D renderScale;
 
 	private final int[] numCoefficients;
+
+	/**
+	 * If non-null, reduced matches are written to text files on this directory for debugging...
+	 */
+	private final String outputDirectory;
 
 	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
 
@@ -72,25 +138,65 @@ public class IntensityMatcher {
 			final double renderScale,
 			final int[] coefficientsSize
 	) {
+		this(spimData, renderScale, coefficientsSize, null);
+	}
+
+	/**
+	 * @param spimData
+	 * @param renderScale
+	 * 		at which scale to sample images. For example, {@code renderScale = 0.25} means using 4 x downsampled images.
+	 * @param coefficientsSize
+	 */
+	IntensityMatcher(
+			final SpimData spimData,
+			final double renderScale,
+			final int[] coefficientsSize,
+			final String outputDirectory
+	) {
 		this.spimData = spimData;
 		this.numCoefficients = coefficientsSize;
 		this.renderScale = new AffineTransform3D();
 		this.renderScale.scale(renderScale);
+
+		this.outputDirectory = outputDirectory;
 	}
 
 	public void match(
 			final ViewId p1,
 			final ViewId p2
-			//final HashMap<String, ArrayList<Tile<? extends Affine1D<?>>>> coefficientTiles
+	) {
+		if (outputDirectory != null) {
+			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
+					outputDirectory,
+					p1.getTimePointId(), p1.getViewSetupId(),
+					p2.getTimePointId(), p2.getViewSetupId());
+			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
+				output.writeViewId(p1);
+				output.writeViewId(p2);
+				match(p1, p2, output);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			match(p1, p2, null);
+		}
+	}
+
+	void match(
+			final ViewId p1,
+			final ViewId p2,
+			final IntensityMatchesIO.Writer output
 	) {
 		final TileInfo t1 = getTileInfo(p1);
 		final TileInfo t2 = getTileInfo(p2);
-		final IntensityTile p1IntensityTile = intensityTiles.get(p1);
-		final IntensityTile p2IntensityTile = intensityTiles.get(p2);
+		final IntensityTile p1IntensityTile = getIntensityTile(p1);
+		final IntensityTile p2IntensityTile = getIntensityTile(p2);
 
 		// Find the overlap between the ViewIds (in global coordinates).
 		// This is where we need to look for overlapping CoefficientRegions.
 		final RealInterval overlap = getOverlap(t1, t2);
+		if (Intervals.isEmpty(overlap))
+			return;
 
 		// Now find out for which CoefficientRegions (transformed into global
 		// coordinates) the intersection with overlap is non-empty. Those are
@@ -161,13 +267,22 @@ public class IntensityMatcher {
 				final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
 				final List<PointMatch> reducedMatches = new ArrayList<>();
 				filter.filter(candidates, reducedMatches);
-				System.out.println("j = " + j + ", model = " + model);
+				System.out.println("j = " + j + ", model = " + model + (reducedMatches.isEmpty() ? ", not matched" : ""));
 
-				/* connect tiles across patches */
-				final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(r1.index);
-				final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(r2.index);
-				st1.connect(st2, reducedMatches);
-				connectionCount++;
+				if (!reducedMatches.isEmpty()) {
+
+					/* connect tiles across patches */
+					final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(r1.index);
+					final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(r2.index);
+					st1.connect(st2, reducedMatches);
+					connectionCount++;
+
+					try {
+						output.writeMatches(r1.index, r2.index, candidates.size(), reducedMatches);
+					} catch (IOException e) {
+						throw new RuntimeException();
+					}
+				}
 			}
 			++j;
 		}
@@ -246,7 +361,6 @@ public class IntensityMatcher {
 	Map<ViewId, IntensityTile> getIntensityTiles() {
 		return intensityTiles;
 	}
-
 
 	/**
 	 * Return a linearly interpolated view of the {@code tile} at the specified {@code renderScale}.
