@@ -1,12 +1,18 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.StorageFormat;
+
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import util.URITools;
 
 public class GlobalAlignmentPlayground {
 
@@ -45,6 +51,18 @@ public class GlobalAlignmentPlayground {
 
 		final IntensityCorrection solver = new IntensityCorrection();
 		solver.solveForGlobalCoefficients(matcher.getIntensityTiles(), 1000);
+
+
+		final URI uri = new File( "/Users/pietzsch/Desktop/intensity.n5" ).toURI();
+		try ( final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, uri ) )
+		{
+			IntensityCorrection.writeCoefficients(
+					n5Writer,
+					"",
+					"coefficients",
+					matcher.getIntensityTiles()
+			);
+		}
 
 		// TODO: iterate IntensityTiles
 		//       for each IntensityTile iterate Coefficient Tiles

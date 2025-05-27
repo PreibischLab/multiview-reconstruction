@@ -9,6 +9,8 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.iterator.IntervalIterator;
+
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,5 +109,34 @@ public class IntensityCorrection {
 		matches.add(new PointMatch1D(new Point1D(1), new Point1D(1)));
 		t1.connect(t2, matches);
 	}
+
+
+	static void writeCoefficients(
+			final N5Writer n5Writer,
+			final String group,
+			final String dataset,
+			final ViewId viewId,
+			final IntensityTile tile
+	) {
+		final int setupId = viewId.getViewSetupId();
+		final int timePointId = viewId.getTimePointId();
+		final String path = String.format( "%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset );
+		System.out.println( "path = " + path );
+
+		final Coefficients coefficients = tile.getScaledCoefficients();
+		CoefficientsIO.save( coefficients, n5Writer, path );
+	}
+
+	static void writeCoefficients(
+			final N5Writer n5Writer,
+			final String group,
+			final String dataset,
+			final Map<ViewId, IntensityTile> coefficientTiles
+	) {
+		coefficientTiles.forEach( ( viewId, tile ) -> {
+			writeCoefficients( n5Writer, group, dataset, viewId, tile );
+		} );
+	}
+
 
 }
