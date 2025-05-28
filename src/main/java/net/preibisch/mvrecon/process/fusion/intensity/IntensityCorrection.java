@@ -111,6 +111,18 @@ public class IntensityCorrection {
 	}
 
 
+	/**
+	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
+	 */
+	static String getCoefficientsDatasetPath(
+			final String group,
+			final String dataset,
+			final int setupId,
+			final int timePointId
+	) {
+		return String.format("%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset);
+	}
+
 	static void writeCoefficients(
 			final N5Writer n5Writer,
 			final String group,
@@ -120,7 +132,7 @@ public class IntensityCorrection {
 	) {
 		final int setupId = viewId.getViewSetupId();
 		final int timePointId = viewId.getTimePointId();
-		final String path = String.format( "%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset );
+		final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
 		System.out.println( "path = " + path );
 
 		final Coefficients coefficients = tile.getScaledCoefficients();
