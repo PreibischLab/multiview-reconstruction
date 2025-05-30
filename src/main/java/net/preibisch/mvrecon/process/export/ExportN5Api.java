@@ -238,6 +238,7 @@ public class ExportN5Api implements ImgExport
 
 						// extract the resolution of the s0 export
 						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+						// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 
@@ -359,6 +360,7 @@ public class ExportN5Api implements ImgExport
 
 			// extract the resolution of the s0 export
 			// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
+			// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
 			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
 			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
 

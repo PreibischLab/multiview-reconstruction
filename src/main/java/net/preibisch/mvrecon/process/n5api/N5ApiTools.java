@@ -382,7 +382,7 @@ public class N5ApiTools
 			final ViewId viewId,
 			final DataType dataType,
 			final long[] dimensions,
-			final double[] resolutionS0,
+			//final double[] resolutionS0, // TODO: this is a hack (uses 1,1,1) so the export downsampling pyramid is working
 			final Compression compression,
 			final int[] blockSize,
 			int[][] downsamplings )
@@ -422,7 +422,7 @@ public class N5ApiTools
 		final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 				5, // int n
 				"/", // String name, I also saw "/"
-				resolutionS0, // double[] resolutionS0,
+				new double[] { 1, 1, 1 }, //resolutionS0, // double[] resolutionS0,
 				"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 				mrInfo.length, // int numResolutionLevels,
 				levelToName,

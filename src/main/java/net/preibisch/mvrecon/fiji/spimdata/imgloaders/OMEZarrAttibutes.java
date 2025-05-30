@@ -143,6 +143,9 @@ public class OMEZarrAttibutes
 		if ( !Double.isNaN( downsamplingF ) )
 			Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
 
+		// TODO: this is a hack so the export downsampling pyramid is working
+		Arrays.setAll( resolutionS0, d -> 1 );
+
 		return resolutionS0;
 	}
 
