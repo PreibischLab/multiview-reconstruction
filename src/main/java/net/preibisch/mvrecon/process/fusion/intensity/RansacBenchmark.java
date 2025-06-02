@@ -69,7 +69,6 @@ public class RansacBenchmark {
 
 			// extract PointMatch data into flat arrays
 			final int numCandidates = candidates.size();
-			final FlattenedMatches prealloc = new FlattenedMatches( candidates.numDimensions(), numCandidates );
 			final SimpleErrorStatistic observer = new SimpleErrorStatistic( numCandidates );
 
 			int numInliers;
@@ -79,7 +78,7 @@ public class RansacBenchmark {
 				numInliers = inliers.size();
 				try
 				{
-					copy.fit( candidates, inliers, prealloc );
+					copy.fit( candidates, inliers );
 				}
 				catch ( final NotEnoughDataPointsException | IllDefinedDataPointsException e )
 				{
@@ -148,7 +147,7 @@ public class RansacBenchmark {
 //			fit( matches, indices, new DataArrays( indices.size() ) );
 //		}
 
-		void fit( FlattenedMatches matches, MatchIndices indices, FlattenedMatches prealloc ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
+		void fit( FlattenedMatches matches, MatchIndices indices ) throws NotEnoughDataPointsException, IllDefinedDataPointsException
 		{
 			final double[] p = matches.p()[0];
 			final double[] q = matches.q()[0];
@@ -160,47 +159,30 @@ public class RansacBenchmark {
 			if ( size < MIN_NUM_MATCHES )
 				throw new NotEnoughDataPointsException( size + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
 
-			final double[] pX = prealloc.p()[0];
-			final double[] qX = prealloc.q()[0];
-			final double[] ws = prealloc.w();
-
-			double pcx = 0;
-			double qcx = 0;
-			double ws1 = 0.0;
+			double W = 0;
+			double S_p = 0;
+			double S_q = 0;
+			double S_pp = 0;
+			double S_pq = 0;
 
 			for ( int i = 0; i < size; i++ )
 			{
 				final int sample = samples[ i ];
-				final double pp = p[ sample ];
-				final double qq = q[ sample ];
-				final double ww = w[ sample ];
-				ws[ i ] = ww;
-				pX[ i ] = pp;
-				qX[ i ] = qq;
-				ws1 += ww;
-				pcx += ww * pp;
-				qcx += ww * qq;
-			}
-			pcx /= ws1;
-			qcx /= ws1;
-
-			double a = 0;
-			double b = 0;
-			for ( int i = 0; i < size; ++i )
-			{
-				final double px = pX[ i ] - pcx;
-				final double qx = qX[ i ] - qcx;
-				final double wwpx = ws[ i ] * px;
-				a += wwpx * px;
-				b += wwpx * qx;
+				final double p_i = p[ sample ];
+				final double q_i = q[ sample ];
+				final double w_i = w[ sample ];
+				W += w_i;
+				S_p += w_i * p_i;
+				S_q += w_i * q_i;
+				S_pp += w_i * p_i * p_i;
+				S_pq += w_i * p_i * q_i;
 			}
 
+			final double a = W * S_pp - S_p * S_p;
 			if ( a == 0 )
 				throw new IllDefinedDataPointsException();
-
-			m00 = b / a;
-			m01 = qcx - m00 * pcx;
-
+			m00 = ( W * S_pq - S_p * S_q ) / a;
+			m01 = ( S_q - m00 * S_p ) / W;
 			invert();
 		}
 
@@ -227,8 +209,6 @@ public class RansacBenchmark {
 			final MatchIndices tempInliers = new MatchIndices( numCandidates );
 			inliers.setSize( 0 );
 
-			final FlattenedMatches prealloc = new FlattenedMatches( 1, numCandidates );
-
 			int i = 0;
 			A:
 			while ( i < iterations )
@@ -237,7 +217,7 @@ public class RansacBenchmark {
 				samples.sample( rnd, numCandidates );
 				try
 				{
-					m.fit( candidates, samples, prealloc );
+					m.fit( candidates, samples );
 				}
 				catch ( final IllDefinedDataPointsException e )
 				{
@@ -253,7 +233,7 @@ public class RansacBenchmark {
 					numInliers = tempInliers.size();
 					try
 					{
-						m.fit( candidates, tempInliers, prealloc );
+						m.fit( candidates, tempInliers );
 					}
 					catch ( final IllDefinedDataPointsException e )
 					{
@@ -381,7 +361,7 @@ public class RansacBenchmark {
 			System.out.println( "model = " + model );
         }
 
-		for ( int i = 0; i < 80; i++ )
+		for ( int i = 0; i < 8; i++ )
 		{
 			BenchmarkHelper.benchmarkAndPrint( 10, false, () -> {
 				final AffineModel1D model = new ModAffineModel1D();
@@ -389,7 +369,7 @@ public class RansacBenchmark {
 				final PointMatchFilter filter = new RansacRegressionReduceFilter( model );
 				final List< PointMatch > inliers = new ArrayList<>();
 				filter.filter( candidates, inliers );
-				System.out.println( "model = " + model );
+//				System.out.println( "model = " + model );
 			} );
 		}
 	}
