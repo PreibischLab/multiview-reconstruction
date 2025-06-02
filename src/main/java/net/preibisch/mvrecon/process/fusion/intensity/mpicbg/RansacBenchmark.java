@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.intensity;
+package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,9 +14,6 @@ import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
-import mpicbg.models.SimpleErrorStatistic;
-import mpicbg.models.flat.FlattenedMatches;
-import mpicbg.models.flat.MatchIndices;
 import net.imglib2.util.BenchmarkHelper;
 
 public class RansacBenchmark {
@@ -324,8 +321,7 @@ public class RansacBenchmark {
 		 *
 		 * @return number of inliers (number of valid indices in {@code inliers})
 		 */
-		@Override
-		public boolean test(
+		private boolean test(
 				final FlattenedMatches candidates,
 				final MatchIndices inliers,
 				final double epsilon,

@@ -11,6 +11,8 @@ import java.util.Collection;
 import java.util.List;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;

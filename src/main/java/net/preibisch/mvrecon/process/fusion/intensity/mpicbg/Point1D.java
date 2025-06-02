@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.fusion.intensity;
+package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
 import mpicbg.models.CoordinateTransform;
 import mpicbg.models.Point;

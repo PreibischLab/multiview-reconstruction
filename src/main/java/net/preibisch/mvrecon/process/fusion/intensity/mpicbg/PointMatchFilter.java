@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.intensity;
+package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
 import mpicbg.models.PointMatch;
 

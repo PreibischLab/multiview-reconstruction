@@ -9,6 +9,8 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.iterator.IntervalIterator;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.slf4j.Logger;
