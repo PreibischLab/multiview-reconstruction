@@ -228,7 +228,7 @@ public class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble() / 255.0;
 					final double q = v2.getRealDouble() / 255.0;
-					final PointMatch pq = new PointMatch(new Point(new double[]{p}), new Point(new double[]{q}), 1);
+					final PointMatch1D pq = new PointMatch1D(new Point1D(p), new Point1D(q), 1);
 					candidates.add(pq);
 				}
 			});
