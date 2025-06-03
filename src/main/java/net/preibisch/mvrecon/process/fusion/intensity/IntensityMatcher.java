@@ -39,7 +39,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacBenchmark.ModAffineModel1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatchFilter;
@@ -237,7 +237,7 @@ public class IntensityMatcher {
 			});
 
 			if (candidates.size() > 1000) {
-				final AffineModel1D model = new ModAffineModel1D();
+				final AffineModel1D model = new FastAffineModel1D();
 				final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
 				final List<PointMatch> reducedMatches = new ArrayList<>();
 				filter.filter(candidates, reducedMatches);
@@ -331,7 +331,7 @@ public class IntensityMatcher {
 
 	IntensityTile getIntensityTile(final ViewId viewId) {
 		final int nFittingCycles = 1; // TODO: expose parameter (?)
-		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(ModAffineModel1D::new, numCoefficients, nFittingCycles));
+		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile( FastAffineModel1D::new, numCoefficients, nFittingCycles));
 	}
 
 	Map<ViewId, IntensityTile> getIntensityTiles() {
