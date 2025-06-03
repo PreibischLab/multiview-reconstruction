@@ -15,8 +15,7 @@ interface FastModel
 	 * the worst outliers with RANSAC and filter potential outliers by robust
 	 * iterative regression.
 	 *
-	 * @param candidates candidate data points inluding (many) outliers
-	 * @param inliers remaining candidates after RANSAC
+	 * @param candidates candidate data points including (many) outliers
 	 * @param iterations number of iterations
 	 * @param maxEpsilon maximal allowed transfer error
 	 * @param minInlierRatio minimal number of inliers to number of
@@ -25,12 +24,12 @@ interface FastModel
 	 * @param maxTrust reject candidates with a cost larger than
 	 *   maxTrust * median cost
 	 *
-	 * @return true if the model could be estimated and inliers is not empty,
-	 * false otherwise.  If false, this model remains unchanged.
+	 * @return indices of {@code candidates} that are inliers, or {@code null}
+	 * if the model could not be fitted (model parameters remain unchanged in
+	 * that case).
 	 */
-	< P extends PointMatch > boolean fastFilterRansac(
-			final List< P > candidates,
-			final Collection< P > inliers,
+	MatchIndices fastFilterRansac(
+			final FlattenedMatches candidates,
 			final int iterations,
 			final double maxEpsilon,
 			final double minInlierRatio,

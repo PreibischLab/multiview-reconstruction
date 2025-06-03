@@ -40,6 +40,7 @@ import net.imglib2.util.LinAlgHelpers;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
@@ -216,11 +217,13 @@ public class IntensityMatcher {
 			final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
 			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
 			final int numElements = (int) Intervals.numElements(renderInterval);
+			final FlattenedMatches flatCandidates = new FlattenedMatches( 1, numElements );
 			final List<PointMatch> candidates = new ArrayList<>(numElements);
 
 			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
 			final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
 
+			final int[] i = { 0 };
 			LoopBuilder.setImages(
 					mask1.view().interval(renderInterval),
 					mask2.view().interval(renderInterval),
@@ -230,16 +233,23 @@ public class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble() / 255.0;
 					final double q = v2.getRealDouble() / 255.0;
+					final int k = i[ 0 ]++;
+					flatCandidates.p()[ 0 ][ k ] = p;
+					flatCandidates.q()[ 0 ][ k ] = q;
+					flatCandidates.w()[ k ] = 1;
 					final PointMatch1D pq = new PointMatch1D(new Point1D(p), new Point1D(q), 1);
 					candidates.add(pq);
 				}
 			});
 
-			if (candidates.size() > 1000) {
-				final AffineModel1D model = new FastAffineModel1D();
+			final int numCandidates = i[ 0 ];
+			if (numCandidates > 1000) {
+//			if (candidates.size() > 1000) {
+				final FastAffineModel1D model = new FastAffineModel1D();
 				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(model);
-				final List<PointMatch> reducedMatches = new ArrayList<>();
-				filter.filter(candidates, reducedMatches);
+				final List< PointMatch > reducedMatches = new ArrayList<>();
+//				filter.filter(candidates, reducedMatches);
+				filter.filter( FlattenedMatches.copyOf( flatCandidates, numCandidates ), reducedMatches );
 				System.out.println("j = " + j + ", model = " + model + (reducedMatches.isEmpty() ? ", not matched" : ""));
 
 				if (!reducedMatches.isEmpty()) {

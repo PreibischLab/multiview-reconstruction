@@ -1,5 +1,6 @@
 package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -20,6 +21,22 @@ public class FlattenedMatches
 		p = new double[ numDimensions ][ size ];
 		q = new double[ numDimensions ][ size ];
 		w = new double[ size ];
+	}
+
+	private FlattenedMatches( final FlattenedMatches other, final int size )
+	{
+		n = other.n;
+		this.size = size;
+		p = new double[ n ][];
+		Arrays.setAll( p, d -> Arrays.copyOf( other.p[ d ], size ) );
+		q = new double[ n ][];
+		Arrays.setAll( q, d -> Arrays.copyOf( other.q[ d ], size ) );
+		w = Arrays.copyOf( other.w, size );
+	}
+
+	public static FlattenedMatches copyOf( final FlattenedMatches matches, final int newSize )
+	{
+		return new FlattenedMatches( matches, newSize );
 	}
 
 	public < P extends PointMatch > FlattenedMatches( final Collection< P > matches )

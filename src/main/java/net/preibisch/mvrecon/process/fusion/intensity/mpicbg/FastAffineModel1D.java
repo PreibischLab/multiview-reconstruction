@@ -23,26 +23,6 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		return m;
 	}
 
-	@Override
-	public < P extends PointMatch > boolean fastFilterRansac(
-			final List< P > candidates,
-			final Collection< P > inliers,
-			final int iterations,
-			final double maxEpsilon,
-			final double minInlierRatio,
-			final int minNumInliers,
-			final double maxTrust )
-			throws NotEnoughDataPointsException
-	{
-		final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
-		final MatchIndices flatInliers = fastFilterRansac( flatCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
-		if ( flatInliers == null )
-			return false;
-		inliers.clear();
-		flatInliers.addSelected( candidates, inliers );
-		return true;
-	}
-
 	/**
 	 * @return indices of {@code candidates} that are inliers, or {@code null} if the model could not be fitted (this model remains unchanged in that case).
 	 */
@@ -259,7 +239,7 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		return true;
 	}
 
-	private double apply( final double l )
+	double apply( final double l )
 	{
 		return l * m00 + m01;
 	}

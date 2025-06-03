@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import mpicbg.models.AffineModel1D;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -24,13 +23,18 @@ public class RansacBenchmark {
 
         final int numElements = p.length;
 
-        final List<PointMatch> candidates = new ArrayList<>(numElements);
+//        final List<PointMatch> candidates = new ArrayList<>(numElements);
+		final FlattenedMatches flatCandidates = new FlattenedMatches( 1, numElements );
         for (int i = 0; i < numElements; i++) {
             final double pi = p[i] / 255.0;
             final double qi = q[i] / 255.0;
-            final PointMatch pq = new PointMatch(new Point(new double[]{pi}), new Point(new double[]{qi}), 1);
-            candidates.add(pq);
+//            final PointMatch pq = new PointMatch(new Point(new double[]{pi}), new Point(new double[]{qi}), 1);
+//            candidates.add(pq);
+			flatCandidates.p()[ 0 ][ i ] = pi;
+			flatCandidates.q()[ 0 ][ i ] = qi;
+			flatCandidates.w()[ i ] = 1;
         }
+
 
 		final int iterations = 1000;
 		final double  maxEpsilon = 0.1;
@@ -39,21 +43,20 @@ public class RansacBenchmark {
 		final double maxTrust = 3.0;
 
         {
-			final AffineModel1D model = new FastAffineModel1D();
-			final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model );
+			final FastAffineModel1D model = new FastAffineModel1D();
+			final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
 			final List< PointMatch > inliers = new ArrayList<>();
-			filter.filter( candidates, inliers );
+			filter.filter( flatCandidates, inliers );
 			System.out.println( "model = " + model );
         }
 
 		for ( int i = 0; i < 8; i++ )
 		{
 			BenchmarkHelper.benchmarkAndPrint( 10, false, () -> {
-				final AffineModel1D model = new FastAffineModel1D();
-//				final AffineModel1D model = new AffineModel1D();
-				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model );
+				final FastAffineModel1D model = new FastAffineModel1D();
+				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
 				final List< PointMatch > inliers = new ArrayList<>();
-				filter.filter( candidates, inliers );
+				filter.filter( flatCandidates, inliers );
 //				System.out.println( "model = " + model );
 			} );
 		}
