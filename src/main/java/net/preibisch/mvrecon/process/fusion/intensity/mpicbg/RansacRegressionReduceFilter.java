@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import mpicbg.models.AffineModel1D;
 import mpicbg.models.IllDefinedDataPointsException;
-import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -39,18 +39,71 @@ import mpicbg.models.PointMatch;
  */
 public class RansacRegressionReduceFilter
 {
-	protected Model<?> model;
-	final protected int iterations = 1000;
-	final protected double  maxEpsilon = 0.1;
-	final protected double minInlierRatio = 0.1;
-	final protected int minNumInliers = 10;
-	final protected double maxTrust = 3.0;
+	private final AffineModel1D model;
 
-	public RansacRegressionReduceFilter(final Model<?> model) {
+	private final int iterations;
+	private final double  maxEpsilon;
+	private final double minInlierRatio;
+	private final int minNumInliers;
+	private final double maxTrust;
+
+	public RansacRegressionReduceFilter(
+			final AffineModel1D model
+	) {
+		this( model, 1000, 0.1, 0.1, 10, 3.0 );
+	}
+	public RansacRegressionReduceFilter(
+		final AffineModel1D model,
+		final int iterations,
+		final double  maxEpsilon,
+		final double minInlierRatio,
+		final int minNumInliers,
+		final double maxTrust
+	) {
+		this.iterations = iterations;
+		this.maxEpsilon = maxEpsilon;
+		this.minInlierRatio = minInlierRatio;
+		this.minNumInliers = minNumInliers;
+		this.maxTrust = maxTrust;
 		this.model = model;
 	}
 
-	static protected double[] minMax( final Iterable< PointMatch > matches )
+	public void filter( final List< PointMatch > candidates, final Collection< PointMatch > inliers )
+	{
+		boolean inliersAreValid;
+		try
+		{
+			if ( model instanceof FastAffineModel1D )
+				inliersAreValid = ( ( FastAffineModel1D ) model ).fastFilterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
+			else
+				inliersAreValid = model.filterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
+			if ( inliersAreValid )
+				model.fit( inliers );
+		}
+		catch ( final NotEnoughDataPointsException | IllDefinedDataPointsException e )
+		{
+			inliersAreValid = false;
+		}
+
+		if ( !inliersAreValid )
+		{
+			inliers.clear();
+			return;
+		}
+
+		final double[] minMax = minMax( inliers );
+		final double weight = 2.0 / model.getMinNumMatches();
+		final List< Point > points = evenlySpacedPoints( minMax, model.getMinNumMatches() );
+		inliers.clear();
+
+		for ( final Point point : points )
+		{
+			point.apply( model );
+			inliers.add( new PointMatch( point, new Point( point.getW().clone() ), weight ) );
+		}
+	}
+
+	private static double[] minMax( final Iterable< PointMatch > matches )
 	{
 		final Iterator< PointMatch > iter = matches.iterator();
 		PointMatch m = iter.next();
@@ -65,50 +118,21 @@ public class RansacRegressionReduceFilter
 			else if ( x > max )
 				max = x;
 		}
-		return new double[]{ min, max };
+		return new double[] { min, max };
 	}
 
-	public void filter( final List< PointMatch > candidates, final Collection< PointMatch > inliers )
+	private static List< Point > evenlySpacedPoints( final double[] interval, final int n )
 	{
-		boolean inliersAreValid;
-		try {
-			if ( model instanceof FastModel )
-				inliersAreValid = ( ( FastModel ) model ).fastFilterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
-			else
-				inliersAreValid = model.filterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
-			if (inliersAreValid)
-				model.fit(inliers);
-		}
-		catch (final NotEnoughDataPointsException | IllDefinedDataPointsException e) {
-			inliersAreValid = false;
-		}
+		if ( n == 1 )
+			return Collections.singletonList( new Point( new double[] { ( interval[ 0 ] + interval[ 1 ] ) / 2 } ) );
 
-		if (!inliersAreValid) {
-			inliers.clear();
-			return;
-		}
+		final double min = interval[ 0 ];
+		final double delta = ( interval[ 1 ] - interval[ 0 ] ) / ( n - 1 );
+		final List< Point > points = new ArrayList<>();
 
-		final double[] minMax = minMax(inliers);
-		final double weight = 2.0 / model.getMinNumMatches();
-		final List<Point> points = evenlySpacedPoints(minMax, model.getMinNumMatches());
-		inliers.clear();
-
-		for (final Point point : points) {
-			point.apply(model);
-			inliers.add(new PointMatch(point, new Point(point.getW().clone()), weight));
-		}
-	}
-
-	protected List<Point> evenlySpacedPoints(final double[] interval, final int n) {
-		if (n == 1)
-			return Collections.singletonList(new Point(new double[]{(interval[0] + interval[1]) / 2}));
-
-		final double min = interval[0];
-		final double delta = (interval[1] - interval[0]) / (n-1);
-		final List<Point> points = new ArrayList<>();
-
-		for (int k = 0; k < n; k++) {
-			points.add(new Point(new double[]{ min + k*delta }));
+		for ( int k = 0; k < n; k++ )
+		{
+			points.add( new Point( new double[] { min + k * delta } ) );
 		}
 
 		return points;
