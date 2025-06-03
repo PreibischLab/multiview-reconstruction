@@ -2,7 +2,7 @@ package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
 import java.util.Arrays;
 
-public class SimpleErrorStatistic
+class SimpleErrorStatistic
 {
 	private final double[] values;
 

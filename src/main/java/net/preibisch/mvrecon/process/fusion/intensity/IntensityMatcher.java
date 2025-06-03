@@ -42,7 +42,6 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
-import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatchFilter;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
 
 import static net.imglib2.util.Intervals.intersect;
@@ -238,7 +237,7 @@ public class IntensityMatcher {
 
 			if (candidates.size() > 1000) {
 				final AffineModel1D model = new FastAffineModel1D();
-				final PointMatchFilter filter = new RansacRegressionReduceFilter(model);
+				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(model);
 				final List<PointMatch> reducedMatches = new ArrayList<>();
 				filter.filter(candidates, reducedMatches);
 				System.out.println("j = " + j + ", model = " + model + (reducedMatches.isEmpty() ? ", not matched" : ""));

@@ -15,7 +15,6 @@ import net.imglib2.util.BenchmarkHelper;
 
 public class RansacBenchmark {
 
-
 	public static void main(String[] args) throws IOException, NotEnoughDataPointsException
 	{
 
@@ -41,8 +40,7 @@ public class RansacBenchmark {
 
         {
 			final AffineModel1D model = new FastAffineModel1D();
-//			final AffineModel1D model = new AffineModel1D();
-			final PointMatchFilter filter = new RansacRegressionReduceFilter( model );
+			final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model );
 			final List< PointMatch > inliers = new ArrayList<>();
 			filter.filter( candidates, inliers );
 			System.out.println( "model = " + model );
@@ -53,7 +51,7 @@ public class RansacBenchmark {
 			BenchmarkHelper.benchmarkAndPrint( 10, false, () -> {
 				final AffineModel1D model = new FastAffineModel1D();
 //				final AffineModel1D model = new AffineModel1D();
-				final PointMatchFilter filter = new RansacRegressionReduceFilter( model );
+				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter( model );
 				final List< PointMatch > inliers = new ArrayList<>();
 				filter.filter( candidates, inliers );
 //				System.out.println( "model = " + model );

@@ -1,7 +1,5 @@
 package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -10,27 +8,23 @@ import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
 
-public class FastAffineModel1D extends AffineModel1D
+public class FastAffineModel1D extends AffineModel1D implements FastModel
 {
 	public FastAffineModel1D()
 	{
 		super();
 	}
 
-	FastAffineModel1D( FastAffineModel1D model )
-	{
-		super();
-		set( model );
-	}
-
 	@Override
 	public FastAffineModel1D copy()
 	{
-		return new FastAffineModel1D( this );
+		FastAffineModel1D  m = new FastAffineModel1D();
+		m.set( this );
+		return m;
 	}
 
 	@Override
-	public < P extends PointMatch > boolean filterRansac(
+	public < P extends PointMatch > boolean fastFilterRansac(
 			final List< P > candidates,
 			final Collection< P > inliers,
 			final int iterations,
@@ -40,7 +34,6 @@ public class FastAffineModel1D extends AffineModel1D
 			final double maxTrust )
 			throws NotEnoughDataPointsException
 	{
-		System.out.println( "@Override FastAffineModel1D.filterRansac" );
 		final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
 		final MatchIndices flatInliers = new MatchIndices( candidates.size() );
 
@@ -54,54 +47,6 @@ public class FastAffineModel1D extends AffineModel1D
 		return true;
 	}
 
-	@Override
-	public < P extends PointMatch > boolean ransac(
-			final List< P > candidates,
-			final Collection< P > inliers,
-			final int iterations,
-			final double epsilon,
-			final double minInlierRatio,
-			final int minNumInliers
-	) throws NotEnoughDataPointsException
-	{
-		System.out.println( "@Override FastAffineModel1D.ransac" );
-		final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
-		final MatchIndices bestInliers = new MatchIndices( candidates.size() );
-		if ( ransac( flatCandidates, bestInliers, iterations, epsilon, minInlierRatio, minNumInliers ) )
-		{
-			bestInliers.addSelected( candidates, inliers );
-			return true;
-		}
-		return false;
-	}
-
-	@Override
-	public < P extends PointMatch > boolean filter(
-			final Collection< P > candidates,
-			final Collection< P > inliers,
-			final double maxTrust,
-			final int minNumInliers )
-			throws NotEnoughDataPointsException
-	{
-		System.out.println( "@Override FastAffineModel1D.filter" );
-		// extract PointMatch data into flat arrays
-		final FlattenedMatches flatCandidates = new FlattenedMatches( candidates );
-		final int numCandidates = flatCandidates.size();
-
-		// equivalent to inliers.addAll( candidates );
-		final MatchIndices flatInliers = new MatchIndices( numCandidates );
-		flatInliers.setSize( numCandidates );
-		Arrays.setAll( flatInliers.indices(), i -> i );
-
-		inliers.clear();
-		if ( filter( flatCandidates, flatInliers, maxTrust, minNumInliers ) )
-		{
-			flatInliers.addSelected( new ArrayList<>( candidates ), inliers );
-			return true;
-		}
-		return false;
-	}
-
 	private boolean filter(
 			final FlattenedMatches candidates,
 			final MatchIndices inliers,
@@ -112,7 +57,7 @@ public class FastAffineModel1D extends AffineModel1D
 		if ( inliers.size() < getMinNumMatches() )
 			throw new NotEnoughDataPointsException( inliers.size() + " data points are not enough to solve the Model, at least " + getMinNumMatches() + " data points required." );
 
-		final FastAffineModel1D copy = new FastAffineModel1D( this );
+		final FastAffineModel1D copy = copy();
 
 		// extract PointMatch data into flat arrays
 		final int numCandidates = candidates.size();
@@ -241,8 +186,8 @@ public class FastAffineModel1D extends AffineModel1D
 
 		cost = Double.MAX_VALUE;
 
-		final FastAffineModel1D copy = new FastAffineModel1D( this );
-		final FastAffineModel1D m = new FastAffineModel1D( this );
+		final FastAffineModel1D copy = copy();
+		final FastAffineModel1D m = copy();
 
 		final int numCandidates = candidates.size();
 		final int numSampled = getMinNumMatches();

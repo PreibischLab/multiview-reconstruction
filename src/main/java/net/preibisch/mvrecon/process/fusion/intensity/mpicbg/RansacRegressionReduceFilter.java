@@ -21,24 +21,23 @@
  */
 package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 
-import mpicbg.models.AffineModel1D;
-import mpicbg.models.IllDefinedDataPointsException;
-import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.Point;
-import mpicbg.models.PointMatch;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.Model;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.Point;
+import mpicbg.models.PointMatch;
+
 /**
  * @author Stephan Saalfeld saalfelds@janelia.hhmi.org
  *
  */
-public class RansacRegressionReduceFilter implements PointMatchFilter
+public class RansacRegressionReduceFilter
 {
 	protected Model<?> model;
 	final protected int iterations = 1000;
@@ -46,10 +45,6 @@ public class RansacRegressionReduceFilter implements PointMatchFilter
 	final protected double minInlierRatio = 0.1;
 	final protected int minNumInliers = 10;
 	final protected double maxTrust = 3.0;
-
-	public RansacRegressionReduceFilter() {
-		model = new AffineModel1D();
-	}
 
 	public RansacRegressionReduceFilter(final Model<?> model) {
 		this.model = model;
@@ -73,12 +68,14 @@ public class RansacRegressionReduceFilter implements PointMatchFilter
 		return new double[]{ min, max };
 	}
 
-	@Override
 	public void filter( final List< PointMatch > candidates, final Collection< PointMatch > inliers )
 	{
 		boolean inliersAreValid;
 		try {
-			inliersAreValid = model.filterRansac(candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+			if ( model instanceof FastModel )
+				inliersAreValid = ( ( FastModel ) model ).fastFilterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
+			else
+				inliersAreValid = model.filterRansac( candidates, inliers, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
 			if (inliersAreValid)
 				model.fit(inliers);
 		}
