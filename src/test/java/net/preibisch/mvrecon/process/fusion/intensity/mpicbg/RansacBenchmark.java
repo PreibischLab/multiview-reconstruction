@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.util.BenchmarkHelper;
 
@@ -29,12 +28,9 @@ public class RansacBenchmark {
         for (int i = 0; i < numElements; i++) {
             final double pi = p[i] / 255.0;
             final double qi = q[i] / 255.0;
-//            final PointMatch pq = new PointMatch(new Point(new double[]{pi}), new Point(new double[]{qi}), 1);
-//            candidates.add(pq);
-			flatCandidates.p()[ 0 ][ i ] = pi;
-			flatCandidates.q()[ 0 ][ i ] = qi;
-			flatCandidates.w()[ i ] = 1;
+			flatCandidates.put( pi, qi, 1 );
         }
+		flatCandidates.flip();
 
 
 		final int iterations = 1000;

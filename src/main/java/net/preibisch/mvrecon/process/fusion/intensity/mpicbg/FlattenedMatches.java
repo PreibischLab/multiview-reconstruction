@@ -9,47 +9,42 @@ import mpicbg.models.PointMatch;
 public class FlattenedMatches
 {
 	private final int n;
-	private final int size;
+	private final int capacity;
 	private final double[][] p;
 	private final double[][] q;
 	private final double[] w;
 
 	private boolean weighted = true;
 
-//	private final int capacity; -- size, make size settable
-//	private int position; -- starts at 0
+	private int position;
+	private int limit;
 
-	public FlattenedMatches( final int numDimensions, final int size )
+	public FlattenedMatches( final int numDimensions, final int capacity )
 	{
 		this.n = numDimensions;
-		this.size = size;
-		p = new double[ numDimensions ][ size ];
-		q = new double[ numDimensions ][ size ];
-		w = new double[ size ];
+		this.capacity = capacity;
+		p = new double[ numDimensions ][ capacity ];
+		q = new double[ numDimensions ][ capacity ];
+		w = new double[ capacity ];
+		position = 0;
+		limit = capacity;
 	}
 
 	public < P extends PointMatch > FlattenedMatches( final Collection< P > matches )
 	{
 		this( numDimensions( matches ), matches.size() );
-
-		final Iterator< P > iter = matches.iterator();
-		for ( int i = 0; i < size; i++ )
-		{
-			final P match = iter.next();
-			final double[] l1 = match.getP1().getL();
-			final double[] l2 = match.getP2().getL();
-			for ( int d = 0; d < n; d++ )
-			{
-				p[ d ][ i ] = l1[ d ];
-				q[ d ][ i ] = l2[ d ];
-			}
-			w[ i ] = match.getWeight();
-		}
+		matches.forEach( this::put );
+		flip();
 	}
 
 	public int size()
 	{
-		return size;
+		return limit;
+	}
+
+	public int capacity()
+	{
+		return capacity;
 	}
 
 	public int numDimensions()
@@ -81,7 +76,7 @@ public class FlattenedMatches
 	}
 
 
-	// weighted()
+	// --- weighted() ---
 
 	/**
 	 * Returns {@code true} if the weights of the matches should be considered
@@ -105,6 +100,37 @@ public class FlattenedMatches
 	}
 
 
+	// --- java.nio.Buffer-like API ---
+
+	public void put( final PointMatch match )
+	{
+		final double[] l1 = match.getP1().getL();
+		final double[] l2 = match.getP2().getL();
+		for ( int d = 0; d < n; d++ )
+		{
+			p[ d ][ position ] = l1[ d ];
+			q[ d ][ position ] = l2[ d ];
+		}
+		w[ position ] = match.getWeight();
+		position++;
+	}
+
+	// 1D. TODO: should this move to sub-class?
+	public void put( final double p, final double q, final double w )
+	{
+		this.p[ 0 ][ position ] = p;
+		this.q[ 0 ][ position ] = q;
+		this.w[ position ] = w;
+		position++;
+	}
+
+	public void flip()
+	{
+		limit = position;
+		position = 0;
+	}
+
+
 	// --- copyOf() ---
 
 	public static FlattenedMatches copyOf( final FlattenedMatches matches, final int newSize )
@@ -112,17 +138,16 @@ public class FlattenedMatches
 		return new FlattenedMatches( matches, newSize );
 	}
 
-	private FlattenedMatches( final FlattenedMatches other, final int size )
+	private FlattenedMatches( final FlattenedMatches other, final int capacity )
 	{
 		n = other.n;
 		weighted = other.weighted;
 
-		this.size = size;
+		this.capacity = capacity;
 		p = new double[ n ][];
-		Arrays.setAll( p, d -> Arrays.copyOf( other.p[ d ], size ) );
+		Arrays.setAll( p, d -> Arrays.copyOf( other.p[ d ], capacity ) );
 		q = new double[ n ][];
-		Arrays.setAll( q, d -> Arrays.copyOf( other.q[ d ], size ) );
-		w = Arrays.copyOf( other.w, size );
+		Arrays.setAll( q, d -> Arrays.copyOf( other.q[ d ], capacity ) );
+		w = Arrays.copyOf( other.w, capacity );
 	}
-
 }
