@@ -115,57 +115,59 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		if ( size < MIN_NUM_MATCHES )
 			throw new NotEnoughDataPointsException( size + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
 
-		double W = 0;
-		double S_p = 0;
-		double S_q = 0;
-		double S_pp = 0;
-		double S_pq = 0;
-
-		for ( int i = 0; i < size; i++ )
+		if ( matches.weighted() )
 		{
-			final int sample = samples[ i ];
-			final double p_i = p[ sample ];
-			final double q_i = q[ sample ];
-			final double w_i = w[ sample ];
-			W += w_i;
-			S_p += w_i * p_i;
-			S_q += w_i * q_i;
-			S_pp += w_i * p_i * p_i;
-			S_pq += w_i * p_i * q_i;
+
+			double W = 0;
+			double S_p = 0;
+			double S_q = 0;
+			double S_pp = 0;
+			double S_pq = 0;
+
+			for ( int i = 0; i < size; i++ )
+			{
+				final int sample = samples[ i ];
+				final double p_i = p[ sample ];
+				final double q_i = q[ sample ];
+				final double w_i = w[ sample ];
+				W += w_i;
+				S_p += w_i * p_i;
+				S_q += w_i * q_i;
+				S_pp += w_i * p_i * p_i;
+				S_pq += w_i * p_i * q_i;
+			}
+
+			final double a = W * S_pp - S_p * S_p;
+			if ( a == 0 )
+				throw new IllDefinedDataPointsException();
+			m00 = ( W * S_pq - S_p * S_q ) / a;
+			m01 = ( S_q - m00 * S_p ) / W;
 		}
-
-		final double a = W * S_pp - S_p * S_p;
-		if ( a == 0 )
-			throw new IllDefinedDataPointsException();
-		m00 = ( W * S_pq - S_p * S_q ) / a;
-		m01 = ( S_q - m00 * S_p ) / W;
-		invert();
-
-		// assuming all weights = 1 ...
-		/*
-		double S_p = 0;
-		double S_q = 0;
-		double S_pp = 0;
-		double S_pq = 0;
-
-		for ( int i = 0; i < size; i++ )
+		else
 		{
-			final int sample = samples[ i ];
-			final double p_i = p[ sample ];
-			final double q_i = q[ sample ];
-			S_p += p_i;
-			S_q += q_i;
-			S_pp += p_i * p_i;
-			S_pq += p_i * q_i;
-		}
+			double S_p = 0;
+			double S_q = 0;
+			double S_pp = 0;
+			double S_pq = 0;
 
-		final double a = size * S_pp - S_p * S_p;
-		if ( a == 0 )
-			throw new IllDefinedDataPointsException();
-		m00 = ( size * S_pq - S_p * S_q ) / a;
-		m01 = ( S_q - m00 * S_p ) / size;
+			for ( int i = 0; i < size; i++ )
+			{
+				final int sample = samples[ i ];
+				final double p_i = p[ sample ];
+				final double q_i = q[ sample ];
+				S_p += p_i;
+				S_q += q_i;
+				S_pp += p_i * p_i;
+				S_pq += p_i * q_i;
+			}
+
+			final double a = size * S_pp - S_p * S_p;
+			if ( a == 0 )
+				throw new IllDefinedDataPointsException();
+			m00 = ( size * S_pq - S_p * S_q ) / a;
+			m01 = ( S_q - m00 * S_p ) / size;
+		}
 		invert();
-		*/
 	}
 
 	private boolean ransac(

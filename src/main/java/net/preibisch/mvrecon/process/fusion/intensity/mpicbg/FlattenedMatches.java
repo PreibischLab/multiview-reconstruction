@@ -14,6 +14,11 @@ public class FlattenedMatches
 	private final double[][] q;
 	private final double[] w;
 
+	private boolean weighted = true;
+
+//	private final int capacity; -- size, make size settable
+//	private int position; -- starts at 0
+
 	public FlattenedMatches( final int numDimensions, final int size )
 	{
 		this.n = numDimensions;
@@ -21,22 +26,6 @@ public class FlattenedMatches
 		p = new double[ numDimensions ][ size ];
 		q = new double[ numDimensions ][ size ];
 		w = new double[ size ];
-	}
-
-	private FlattenedMatches( final FlattenedMatches other, final int size )
-	{
-		n = other.n;
-		this.size = size;
-		p = new double[ n ][];
-		Arrays.setAll( p, d -> Arrays.copyOf( other.p[ d ], size ) );
-		q = new double[ n ][];
-		Arrays.setAll( q, d -> Arrays.copyOf( other.q[ d ], size ) );
-		w = Arrays.copyOf( other.w, size );
-	}
-
-	public static FlattenedMatches copyOf( final FlattenedMatches matches, final int newSize )
-	{
-		return new FlattenedMatches( matches, newSize );
 	}
 
 	public < P extends PointMatch > FlattenedMatches( final Collection< P > matches )
@@ -90,4 +79,50 @@ public class FlattenedMatches
 
 		return matches.iterator().next().getP1().getL().length;
 	}
+
+
+	// weighted()
+
+	/**
+	 * Returns {@code true} if the weights of the matches should be considered
+	 * for model fitting. Returns {@code false} if all weights are (or should be
+	 * assumed) {@code =1}.
+	 *
+	 * @return whether weights should be considered for model fitting
+	 */
+	public boolean weighted()
+	{
+		return weighted;
+	}
+
+	/**
+	 * @param weighted
+	 * 		whether weights should be considered for model fitting
+	 */
+	public void setWeighted( final boolean weighted )
+	{
+		this.weighted = weighted;
+	}
+
+
+	// --- copyOf() ---
+
+	public static FlattenedMatches copyOf( final FlattenedMatches matches, final int newSize )
+	{
+		return new FlattenedMatches( matches, newSize );
+	}
+
+	private FlattenedMatches( final FlattenedMatches other, final int size )
+	{
+		n = other.n;
+		weighted = other.weighted;
+
+		this.size = size;
+		p = new double[ n ][];
+		Arrays.setAll( p, d -> Arrays.copyOf( other.p[ d ], size ) );
+		q = new double[ n ][];
+		Arrays.setAll( q, d -> Arrays.copyOf( other.q[ d ], size ) );
+		w = Arrays.copyOf( other.w, size );
+	}
+
 }

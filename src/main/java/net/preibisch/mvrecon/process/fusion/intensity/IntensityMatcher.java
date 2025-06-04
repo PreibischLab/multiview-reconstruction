@@ -218,6 +218,7 @@ public class IntensityMatcher {
 			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
 			final int numElements = (int) Intervals.numElements(renderInterval);
 			final FlattenedMatches flatCandidates = new FlattenedMatches( 1, numElements );
+			flatCandidates.setWeighted( false );
 			final List<PointMatch> candidates = new ArrayList<>(numElements);
 
 			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);

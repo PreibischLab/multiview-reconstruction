@@ -25,6 +25,7 @@ public class RansacBenchmark {
 
 //        final List<PointMatch> candidates = new ArrayList<>(numElements);
 		final FlattenedMatches flatCandidates = new FlattenedMatches( 1, numElements );
+		flatCandidates.setWeighted( false );
         for (int i = 0; i < numElements; i++) {
             final double pi = p[i] / 255.0;
             final double qi = q[i] / 255.0;
