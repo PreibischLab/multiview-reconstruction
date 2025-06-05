@@ -4,9 +4,12 @@ import bdv.BigDataViewer;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvHandle;
+import bdv.util.BdvStackSource;
 import bdv.viewer.SourceAndConverter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -61,10 +64,9 @@ public class IntensityPlayground {
 
 		// show in BDV
 		final BdvHandle bdv = BdvFunctions.show();
-		final SourceAndConverter<?> soc0 = BigDataViewer.createSetupSourceNumericType(spimData, 0, "setup 0", bdv.getResourceManager());
-		final SourceAndConverter<?> soc1 = BigDataViewer.createSetupSourceNumericType(spimData, 1, "setup 1", bdv.getResourceManager());
-		BdvFunctions.show(soc0, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
-		BdvFunctions.show(soc1, Bdv.options().addTo(bdv)).setDisplayRange(0, 1000);
+		final List< BdvStackSource< ? > > spimdataSources = BdvFunctions.show( spimData, Bdv.options().addTo( bdv ) );
+		spimdataSources.get(0).setDisplayRange(0, 1000);
+		spimdataSources.get(1).setDisplayRange(0, 1000);
 
 		final RealInterval overlap = IntensityMatcher.getOverlap(tile0, tile1);
 		final Interval renderBounds = Intervals.smallestContainingInterval(scale(overlap, renderScale));
