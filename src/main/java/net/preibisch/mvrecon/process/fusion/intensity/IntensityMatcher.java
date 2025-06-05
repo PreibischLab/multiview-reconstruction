@@ -50,8 +50,12 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IntensityMatcher {
+
+	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
 	final AbstractSpimData<?> spimData;
 
@@ -137,8 +141,8 @@ public class IntensityMatcher {
 	}
 
 	void matchAndConnect(
-		final ViewId p1,
-		final ViewId p2
+			final ViewId p1,
+			final ViewId p2
 	) {
 		if (outputDirectory != null) {
 			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
@@ -225,10 +229,9 @@ public class IntensityMatcher {
 			}
 		}
 
-		// TODO: use logging instead
-		System.out.println("found " + r1s.size() + " CoefficientRegions of t1 in overlap.");
-		System.out.println("found " + r2s.size() + " CoefficientRegions of t2 in overlap.");
-		System.out.println("found " + pairs.size() + " CoefficientRegion pairs.");
+		LOG.debug("found {} CoefficientRegions of t1 in overlap.", r1s.size());
+		LOG.debug("found {} CoefficientRegions of t2 in overlap.", r2s.size());
+		LOG.debug("found {} CoefficientRegion pairs.", pairs.size());
 
 
 		// Next steps:
@@ -236,8 +239,7 @@ public class IntensityMatcher {
 
 		final int mipmapLevel1 = bestMipmapLevel(renderScale, t1);
 		final int mipmapLevel2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, mipmapLevel1, renderScale)));
-		// TODO: use logging instead
-		System.out.println("using mipmapLevel " + mipmapLevel1 + " for t1, mipmapLevel " + mipmapLevel2 + " for t2");
+		LOG.debug("using mipmapLevel {} for t1, mipmapLevel {} for t2", mipmapLevel1, mipmapLevel2);
 
 		final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, mipmapLevel1, renderScale));
 		final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
@@ -251,8 +253,8 @@ public class IntensityMatcher {
 			final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
 			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
 			final int numElements = (int) Intervals.numElements(renderInterval);
-			final FlattenedMatches flatCandidates = new FlattenedMatches( 1, numElements );
-			flatCandidates.setWeighted( false );
+			final FlattenedMatches flatCandidates = new FlattenedMatches(1, numElements);
+			flatCandidates.setWeighted(false);
 //			final List<PointMatch> candidates = new ArrayList<>(numElements);
 
 			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
@@ -275,15 +277,13 @@ public class IntensityMatcher {
 			if (flatCandidates.size() > 1000) {
 				final FastAffineModel1D model = new FastAffineModel1D();
 				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(model);
-				final List< PointMatch > reducedMatches = new ArrayList<>();
+				final List<PointMatch> reducedMatches = new ArrayList<>();
 				filter.filter(flatCandidates, reducedMatches);
 				if (reducedMatches.isEmpty()) {
-					// TODO: use logging instead
-					System.out.println("(" + r1.index + ", " + r2.index + ") not matched");
+					LOG.debug("({}, {}) not matched", r1.index, r2.index);
 				} else {
+					LOG.debug("({}, {}) matched: {}", r1.index, r2.index, model);
 					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
-					// TODO: use logging instead
-					System.out.println("(" + r1.index + ", " + r2.index + ") matched: " + model);
 				}
 			}
 		}
@@ -302,9 +302,9 @@ public class IntensityMatcher {
 		scaleToGrid.concatenate(renderScale.inverse());
 		final Supplier<BiConsumer<Localizable, ? super UnsignedByteType>> supplier = () -> {
 			final RealPoint gridRealPos = new RealPoint(3);
-			return 	(pos, value) -> {
+			return (pos, value) -> {
 				scaleToGrid.apply(pos, gridRealPos);
-				for ( int d = 0; d < 3; ++d ) {
+				for (int d = 0; d < 3; ++d) {
 					if (coeffPos[d] != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
 						value.set(0);
 						return;
@@ -321,11 +321,11 @@ public class IntensityMatcher {
 		scaleToGrid.set(tile.coeffBoundsToWorldTransform.inverse());
 		scaleToGrid.concatenate(renderScale.inverse());
 		final Supplier<BiConsumer<Localizable, ? super IntType>> supplier = () -> {
-			final int[] cpos = new int[ 3 ];
+			final int[] cpos = new int[3];
 			final BiConsumer<Localizable, int[]> toCoeffGrid = toGrid(scaleToGrid);
-			return 	(pos, value) -> {
+			return (pos, value) -> {
 				toCoeffGrid.accept(pos, cpos);
-				for ( int d = 0; d < 3; ++d ) {
+				for (int d = 0; d < 3; ++d) {
 					if (cpos[d] < 0 || cpos[d] >= tile.numCoeffs[d]) {
 						value.set(-1);
 						return;
@@ -354,7 +354,7 @@ public class IntensityMatcher {
 
 	IntensityTile getIntensityTile(final ViewId viewId) {
 		final int nFittingCycles = 1; // TODO: expose parameter (?)
-		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile( FastAffineModel1D::new, numCoefficients, nFittingCycles));
+		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(FastAffineModel1D::new, numCoefficients, nFittingCycles));
 	}
 
 	Map<ViewId, IntensityTile> getIntensityTiles() {
@@ -388,7 +388,7 @@ public class IntensityMatcher {
 	 * @param tile
 	 * 		tile to take mipmap levels from
 	 * @param targetPixelSize
-	 *      desired pixel size
+	 * 		desired pixel size
 	 *
 	 * @return mipmap level index
 	 */
@@ -414,6 +414,7 @@ public class IntensityMatcher {
 	//
 	//       For now, I just take the smallest side lengths of a transformed source voxel in render space.
 	//       That should be larger than 1, but as small as possible.
+
 	/**
 	 * Find the mipmap level with smallest {@link #getPixelSize pixel-size} larger than 1.
 	 *
@@ -554,10 +555,14 @@ public class IntensityMatcher {
 		private final Collection<PointMatch> matches;
 
 		/**
-		 * @param coeff1 flattened index of matched coefficient in first tile
-		 * @param coeff2 flattened index of matched coefficient in second tile
-		 * @param numVoxels number of overlapping voxels used to estimate the model
-		 * @param matches reduced matches (describe the model)
+		 * @param coeff1
+		 * 		flattened index of matched coefficient in first tile
+		 * @param coeff2
+		 * 		flattened index of matched coefficient in second tile
+		 * @param numVoxels
+		 * 		number of overlapping voxels used to estimate the model
+		 * @param matches
+		 * 		reduced matches (describe the model)
 		 */
 		CoefficientMatch(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) {
 			this.coeff1 = coeff1;
@@ -634,12 +639,6 @@ public class IntensityMatcher {
 	}
 
 
-
-
-
-
-
-
 	// ┌---------------------------
 	// │          DEBUG
 
@@ -659,8 +658,7 @@ public class IntensityMatcher {
 		return bestMipmapLevel(renderScale, tile);
 	}
 
-	static RealInterval getCoefficientWorldBoundingBox(TileInfo tile, final int... coeffPos)
-	{
+	static RealInterval getCoefficientWorldBoundingBox(TileInfo tile, final int... coeffPos) {
 		if (tile.numCoeffs.length != coeffPos.length)
 			throw new IllegalArgumentException();
 		final int n = coeffPos.length;
