@@ -1,10 +1,11 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.util.Arrays;
-import mpicbg.spim.data.SpimData;
-import mpicbg.spim.data.sequence.ImgLoader;
+
+import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
+import mpicbg.spim.data.generic.sequence.BasicSetupImgLoader;
 import mpicbg.spim.data.sequence.MultiResolutionSetupImgLoader;
-import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.RandomAccessibleInterval;
@@ -55,11 +56,11 @@ class TileInfo {
 	 * @param view
 	 * 		ViewId that the new TileInfo represents
 	 */
-	TileInfo(final int[] coefficientsSize, final SpimData spimData, final ViewId view) {
+	TileInfo(final int[] coefficientsSize, final AbstractSpimData<?> spimData, final ViewId view) {
 		this.numCoeffs = coefficientsSize;
 
-		final ImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
-		final SetupImgLoader<?> sil = imgLoader.getSetupImgLoader(view.getViewSetupId());
+		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
+		final BasicSetupImgLoader<?> sil = imgLoader.getSetupImgLoader(view.getViewSetupId());
 		if (!(sil instanceof MultiResolutionSetupImgLoader)) {
 			throw new IllegalArgumentException();
 		}

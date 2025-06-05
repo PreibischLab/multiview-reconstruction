@@ -1,14 +1,22 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import mpicbg.models.IdentityModel;
 import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
+import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.AbstractRealInterval;
+import net.imglib2.FinalRealInterval;
+import net.imglib2.RealInterval;
 import net.imglib2.iterator.IntervalIterator;
+import net.imglib2.util.Intervals;
+import net.imglib2.util.Util;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 
@@ -147,10 +155,74 @@ public class IntensityCorrection {
 			final String dataset,
 			final Map<ViewId, IntensityTile> coefficientTiles
 	) {
-		coefficientTiles.forEach( ( viewId, tile ) -> {
-			writeCoefficients( n5Writer, group, dataset, viewId, tile );
-		} );
+		coefficientTiles.forEach((viewId, tile) -> {
+			writeCoefficients(n5Writer, group, dataset, viewId, tile);
+		});
 	}
 
 
+	// ┌-----------------------------------------
+	// │          for BigStitcher-Spark
+
+	public static class SerializableRealInterval implements RealInterval, Serializable {
+
+		private static final long serialVersionUID = 1L;
+
+		private final double[] min;
+		private final double[] max;
+
+		public SerializableRealInterval(final RealInterval interval) {
+			min = interval.minAsDoubleArray();
+			max = interval.maxAsDoubleArray();
+		}
+
+		public static RealInterval serializable(final RealInterval interval) {
+			if (interval instanceof Serializable)
+				return interval;
+			else
+				return new SerializableRealInterval(interval);
+		}
+
+		@Override
+		public boolean equals(final Object obj) {
+			return obj instanceof SerializableRealInterval && Intervals.equals(this, (RealInterval) obj, 0.0);
+		}
+
+		@Override
+		public int hashCode() {
+			return Util.combineHash(Arrays.hashCode(min), Arrays.hashCode(max));
+		}
+
+		@Override
+		public double realMin(final int d) {
+			return min[d];
+		}
+
+		@Override
+		public double realMax(final int d) {
+			return max[d];
+		}
+
+		@Override
+		public int numDimensions() {
+			return min.length;
+		}
+
+		@Override
+		public String toString() {
+			return "SerializableRealInterval{" +
+					"min=" + Arrays.toString(min) +
+					", max=" + Arrays.toString(max) +
+					'}';
+		}
+	}
+
+	public static RealInterval getBounds(final AbstractSpimData<?> spimData, final ViewId viewId) {
+		final TileInfo tile = new TileInfo(new int[] {1, 1, 1}, spimData, viewId);
+		return IntensityMatcher.getBounds(tile);
+	}
+
+
+	// │          for BigStitcher-Spark
+	// └-----------------------------------------
 }
