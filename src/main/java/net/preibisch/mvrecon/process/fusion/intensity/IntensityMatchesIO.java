@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 
@@ -37,7 +38,11 @@ class IntensityMatchesIO {
 			writer.newLine();
 		}
 
-		void writeMatches(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) throws IOException {
+		void writeMatches(final CoefficientMatch coefficientMatch) throws IOException {
+			final int coeff1 = coefficientMatch.coeff1();
+			final int coeff2 = coefficientMatch.coeff2();
+			final int numVoxels = coefficientMatch.numVoxels();
+			final Collection<PointMatch> matches = coefficientMatch.matches();
 			writer.write(String.format("%d %d %d ", coeff1, coeff2, numVoxels));
 			for (final PointMatch match : matches) {
 				final double l1 = match.getP1().getL()[0];
@@ -53,21 +58,6 @@ class IntensityMatchesIO {
 		@Override
 		public void close() throws IOException {
 			writer.close();
-		}
-	}
-
-	static class CoefficientMatch {
-
-		final int coeff1;
-		final int coeff2;
-		final int numVoxels;
-		final Collection<PointMatch> matches;
-
-		CoefficientMatch(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) {
-			this.coeff1 = coeff1;
-			this.coeff2 = coeff2;
-			this.numVoxels = numVoxels;
-			this.matches = matches;
 		}
 	}
 

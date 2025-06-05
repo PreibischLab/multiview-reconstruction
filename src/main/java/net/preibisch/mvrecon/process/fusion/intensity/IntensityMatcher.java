@@ -6,8 +6,11 @@ import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.bor
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +19,7 @@ import java.util.function.Supplier;
 
 import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
-import mpicbg.spim.data.SpimData;
+import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalRealInterval;
@@ -50,7 +53,7 @@ import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionRed
 
 public class IntensityMatcher {
 
-	private final SpimData spimData;
+	final AbstractSpimData<?> spimData;
 
 	/**
 	 * Transforms global coordinates into render space (which is rasterized for sampling mask and intensity voxels).
@@ -75,7 +78,7 @@ public class IntensityMatcher {
 	 * @param coefficientsSize
 	 */
 	IntensityMatcher(
-			final SpimData spimData,
+			final AbstractSpimData<?> spimData,
 			final double renderScale,
 			final int[] coefficientsSize
 	) {
@@ -89,7 +92,7 @@ public class IntensityMatcher {
 	 * @param coefficientsSize
 	 */
 	IntensityMatcher(
-			final SpimData spimData,
+			final AbstractSpimData<?> spimData,
 			final double renderScale,
 			final int[] coefficientsSize,
 			final String outputDirectory
@@ -117,7 +120,7 @@ public class IntensityMatcher {
 			final IntensityTile p1IntensityTile = getIntensityTile(p1);
 			final IntensityTile p2IntensityTile = getIntensityTile(p2);
 			int connectionCount = 0;
-			IntensityMatchesIO.CoefficientMatch coefficientMatch = input.readMatches();
+			CoefficientMatch coefficientMatch = input.readMatches();
 			while (coefficientMatch != null) {
 				final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1);
 				final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2);
@@ -133,7 +136,7 @@ public class IntensityMatcher {
 		}
 	}
 
-	public void match(
+	void matchAndConnect(
 		final ViewId p1,
 		final ViewId p2
 	) {
@@ -145,19 +148,55 @@ public class IntensityMatcher {
 			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
 				output.writeViewId(p1);
 				output.writeViewId(p2);
-				match(p1, p2, output);
+				matchAndConnect(p1, p2, output);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		} else {
-			match(p1, p2, null);
+			matchAndConnect(p1, p2, null);
 		}
 	}
 
-	void match(
+	void matchAndConnect(
 			final ViewId p1,
 			final ViewId p2,
 			final IntensityMatchesIO.Writer output
+	) {
+		final List<CoefficientMatch> coefficientMatches = match(p1, p2);
+		connect(p1, p2, coefficientMatches);
+
+		if (output != null) {
+			try {
+				for (final CoefficientMatch m : coefficientMatches) {
+					output.writeMatches(m);
+				}
+			} catch (IOException e) {
+				throw new RuntimeException();
+			}
+		}
+	}
+
+	public void connect(
+			final ViewId p1,
+			final ViewId p2,
+			final List<CoefficientMatch> coefficientMatches
+	) {
+		if (coefficientMatches.isEmpty())
+			return;
+
+		final IntensityTile p1IntensityTile = getIntensityTile(p1);
+		final IntensityTile p2IntensityTile = getIntensityTile(p2);
+		for (final CoefficientMatch coefficientMatch : coefficientMatches) {
+			final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1);
+			final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2);
+			st1.connect(st2, coefficientMatch.matches);
+		}
+		p1IntensityTile.connectTo(p2IntensityTile);
+	}
+
+	public List<CoefficientMatch> match(
+			final ViewId p1,
+			final ViewId p2
 	) {
 		final TileInfo t1 = getTileInfo(p1);
 		final TileInfo t2 = getTileInfo(p2);
@@ -168,7 +207,7 @@ public class IntensityMatcher {
 		// This is where we need to look for overlapping CoefficientRegions.
 		final RealInterval overlap = getOverlap(t1, t2);
 		if (Intervals.isEmpty(overlap))
-			return;
+			return Collections.emptyList();
 
 		// Now find out for which CoefficientRegions (transformed into global
 		// coordinates) the intersection with overlap is non-empty. Those are
@@ -186,10 +225,7 @@ public class IntensityMatcher {
 			}
 		}
 
-		// TODO: Should we have a class for Pair<CoefficientRegion, CoefficientRegion>?
-		//       This could also store matches then ...
-
-		// takes ~1ms
+		// TODO: use logging instead
 		System.out.println("found " + r1s.size() + " CoefficientRegions of t1 in overlap.");
 		System.out.println("found " + r2s.size() + " CoefficientRegions of t2 in overlap.");
 		System.out.println("found " + pairs.size() + " CoefficientRegion pairs.");
@@ -200,13 +236,13 @@ public class IntensityMatcher {
 
 		final int mipmapLevel1 = bestMipmapLevel(renderScale, t1);
 		final int mipmapLevel2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, mipmapLevel1, renderScale)));
+		// TODO: use logging instead
 		System.out.println("using mipmapLevel " + mipmapLevel1 + " for t1, mipmapLevel " + mipmapLevel2 + " for t2");
 
 		final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, mipmapLevel1, renderScale));
 		final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
 
-		int j = 0;
-		int connectionCount = 0;
+		final List<CoefficientMatch> coefficientMatches = new ArrayList<>();
 		for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
 			final CoefficientRegion r1 = pair.getA();
 			final CoefficientRegion r2 = pair.getB();
@@ -231,44 +267,27 @@ public class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble() / 255.0;
 					final double q = v2.getRealDouble() / 255.0;
-					flatCandidates.put( p, q, 1 );
-//					final PointMatch1D pq = new PointMatch1D(new Point1D(p), new Point1D(q), 1);
-//					candidates.add(pq);
+					flatCandidates.put(p, q, 1);
 				}
 			});
 			flatCandidates.flip();
 
 			if (flatCandidates.size() > 1000) {
-//			if (candidates.size() > 1000) {
 				final FastAffineModel1D model = new FastAffineModel1D();
 				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(model);
 				final List< PointMatch > reducedMatches = new ArrayList<>();
-//				filter.filter(candidates, reducedMatches);
-				filter.filter( flatCandidates, reducedMatches );
-				System.out.println("j = " + j + ", model = " + model + (reducedMatches.isEmpty() ? ", not matched" : ""));
-
-				if (!reducedMatches.isEmpty()) {
-
-					/* connect tiles across patches */
-					final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(r1.index);
-					final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(r2.index);
-					st1.connect(st2, reducedMatches);
-					connectionCount++;
-
-					try {
-						if (output != null) {
-							output.writeMatches(r1.index, r2.index, flatCandidates.size(), reducedMatches);
-						}
-					} catch (IOException e) {
-						throw new RuntimeException();
-					}
+				filter.filter(flatCandidates, reducedMatches);
+				if (reducedMatches.isEmpty()) {
+					// TODO: use logging instead
+					System.out.println("(" + r1.index + ", " + r2.index + ") not matched");
+				} else {
+					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
+					// TODO: use logging instead
+					System.out.println("(" + r1.index + ", " + r2.index + ") matched: " + model);
 				}
 			}
-			++j;
 		}
-		if (connectionCount > 0) {
-			p1IntensityTile.connectTo(p2IntensityTile);
-		}
+		return coefficientMatches;
 	}
 
 	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
@@ -519,6 +538,62 @@ public class IntensityMatcher {
 		}
 	}
 
+	/**
+	 * A matched pair of coefficient regions between two tiles.
+	 * <p>
+	 * Comprises the flattened indices of the matches coefficients in both
+	 * tiles, the number of overlapping voxels used to estimate the intensity
+	 * model, and a collection of point-matches that minimally describe the
+	 * model (i.e., two matches for 1D affine intensity model).
+	 */
+	public static class CoefficientMatch implements Serializable {
+
+		private final int coeff1;
+		private final int coeff2;
+		private final int numVoxels;
+		private final Collection<PointMatch> matches;
+
+		/**
+		 * @param coeff1 flattened index of matched coefficient in first tile
+		 * @param coeff2 flattened index of matched coefficient in second tile
+		 * @param numVoxels number of overlapping voxels used to estimate the model
+		 * @param matches reduced matches (describe the model)
+		 */
+		CoefficientMatch(final int coeff1, final int coeff2, final int numVoxels, final Collection<PointMatch> matches) {
+			this.coeff1 = coeff1;
+			this.coeff2 = coeff2;
+			this.numVoxels = numVoxels;
+			this.matches = matches;
+		}
+
+		/**
+		 * @return flattened index of the matched coefficient in the first tile
+		 */
+		public int coeff1() {
+			return coeff1;
+		}
+
+		/**
+		 * @return flattened index of the matched coefficient in the second tile
+		 */
+		public int coeff2() {
+			return coeff2;
+		}
+
+		/**
+		 * @return the number of overlapping voxels used in the model estimation
+		 */
+		public int numVoxels() {
+			return numVoxels;
+		}
+
+		/**
+		 * @return point matches minimally describing the model
+		 */
+		public Collection<PointMatch> matches() {
+			return matches;
+		}
+	}
 
 	// --- - - -  -  -   -   U T I L   -   -  -  - - - ---
 

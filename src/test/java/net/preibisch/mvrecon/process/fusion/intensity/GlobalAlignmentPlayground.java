@@ -37,7 +37,7 @@ public class GlobalAlignmentPlayground {
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
-					matcher.match(views[i], views[j]);
+					matcher.matchAndConnect(views[i], views[j]);
 				}
 			}
 		} else {

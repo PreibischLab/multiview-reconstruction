@@ -1,11 +1,9 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
-import bdv.BigDataViewer;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvHandle;
 import bdv.util.BdvStackSource;
-import bdv.viewer.SourceAndConverter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -45,7 +43,7 @@ public class IntensityPlayground {
 
 		final double renderScale = 0.25;
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
-		matcher.match(id0, id1);
+		matcher.matchAndConnect(id0, id1);
 
 
 		final TileInfo tile0 = matcher.getTileInfo(id0);

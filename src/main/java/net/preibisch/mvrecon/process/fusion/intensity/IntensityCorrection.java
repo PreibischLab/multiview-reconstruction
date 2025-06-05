@@ -17,6 +17,7 @@ import net.imglib2.RealInterval;
 import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 
@@ -222,6 +223,16 @@ public class IntensityCorrection {
 		return IntensityMatcher.getBounds(tile);
 	}
 
+	public static List<CoefficientMatch> match(
+			final AbstractSpimData<?> spimData,
+			final ViewId viewId1,
+			final ViewId viewId2,
+			final double renderScale,
+			final int[] coefficientsSize
+	) {
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
+		return matcher.match(viewId1, viewId2);
+	}
 
 	// │          for BigStitcher-Spark
 	// └-----------------------------------------
