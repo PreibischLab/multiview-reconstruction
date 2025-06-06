@@ -254,39 +254,218 @@ public class Switch_Attributes implements PlugIn
 			final List<TimePoint> tpsOld = sd.getTimePoints().getTimePointsOrdered();
 			final List<TimePoint> tpsNew;
 
-			final List<Angle> angles = sd.getAllAnglesOrdered();
-			final List<Channel> channels = sd.getAllChannelsOrdered();
-			final List<Illumination> illums = sd.getAllIlluminationsOrdered();
-			final List<Tile> tiles = sd.getAllTilesOrdered();
+			final List<Angle> anglesOld = sd.getAllAnglesOrdered();
+			final List<Channel> channelsOld = sd.getAllChannelsOrdered();
+			final List<Illumination> illumsOld = sd.getAllIlluminationsOrdered();
+			final List<Tile> tilesOld = sd.getAllTilesOrdered();
 
 			int viewSetupId = 0;
 
 			if ( index1 == 0 ) // angle - timepoint switch
 			{
-				tpsNew = null;
-				throw new RuntimeException( "not implemented yet.");
+				tpsNew = anglesOld.stream().map( a -> new TimePoint( a.getId() )).collect( Collectors.toList() );
+				final List<Angle> anglesNew = tpsOld.stream().map( tp -> new Angle( tp.getId() ) ).collect( Collectors.toList() );
+
+				for ( final Tile t : tilesOld )
+				{
+					for ( final Channel c : channelsOld )
+					{
+						for ( final Illumination i : illumsOld )
+						{
+							for ( int ai = 0; ai < anglesNew.size(); ++ai )
+							{
+								final Angle newAngle = anglesNew.get( ai );
+								final TimePoint tpOld = tpsOld.get( ai );
+
+								// find the dimensions and path of the corresponding, old ViewSetup
+								// we made sure that the dimensions are all the same, so any old Angle will do
+								ViewSetup corrVS = null;
+								for ( final ViewSetup vs : setups )
+								{
+									if ( vs.getTile().getId() == t.getId() && vs.getChannel().getId() == c.getId() && vs.getIllumination().getId() == i.getId() )
+									{
+										corrVS = vs;
+										break;
+									}
+								}
+
+								final ViewSetup vsNew = new ViewSetup( viewSetupId++, null, corrVS.getSize(), corrVS.getVoxelSize(), t, c, newAngle, i );
+								setupsNew.add( vsNew );
+
+								// now we need to update the AllenOMEZarrLoader so it loads the correct image for all switched [ViewSetup x Timepoints], i.e. ViewIds
+								for ( int tp = 0; tp < tpsNew.size(); ++tp )
+								{
+									// each new Timepoint in a ViewId corresponds to an old AngleId
+									final TimePoint tpNew = tpsNew.get( tp );
+									final Angle oldAngle = anglesOld.get( tp );
+
+									final ViewId viewIdNew = new ViewId( tpNew.getId(), vsNew.getId() );
+
+									corrVS = null;
+									for ( final ViewSetup vs : setups )
+									{
+										if ( vs.getTile().getId() == t.getId() && vs.getChannel().getId() == c.getId() && vs.getIllumination().getId() == i.getId() && vs.getAngle().getId() == oldAngle.getId() )
+										{
+											corrVS = vs;
+											break;
+										}
+									}
+
+									final ViewId viewIdOld = new ViewId( tpOld.getId(), corrVS.getId() );
+
+									// now fetch the OMEZARREntry and the ViewRegistration for the old viewId
+									final OMEZARREntry omeZarr = viewIdToPath.get( viewIdOld );
+									final ViewRegistration reg = data.getViewRegistrations().getViewRegistration( viewIdOld );
+
+									// which is the OMEZARREntry and the ViewRegistration for the new ViewId
+									viewIdToPathNew.put( viewIdNew, omeZarr );
+									viewRegistrationsNew.put( viewIdNew, new ViewRegistration( tpNew.getId() , vsNew.getId(), new ArrayList<>( reg.getTransformList() ) ) );
+								}
+							}
+						}
+					}
+				}
 			}
 			else if ( index1 == 1 ) // channel - timepoint switch
 			{
-				tpsNew = null;
-				throw new RuntimeException( "not implemented yet.");
+				tpsNew = channelsOld.stream().map( a -> new TimePoint( a.getId() )).collect( Collectors.toList() );
+				final List<Channel> channelsNew = tpsOld.stream().map( tp -> new Channel( tp.getId() ) ).collect( Collectors.toList() );
+
+				for ( final Angle a : anglesOld )
+				{
+					for ( final Tile t : tilesOld )
+					{
+						for ( final Illumination i : illumsOld )
+						{
+							for ( int ci = 0; ci < channelsNew.size(); ++ci )
+							{
+								final Channel newChannel = channelsNew.get( ci );
+								final TimePoint tpOld = tpsOld.get( ci );
+
+								// find the dimensions and path of the corresponding, old ViewSetup
+								// we made sure that the dimensions are all the same, so any old Channel will do
+								ViewSetup corrVS = null;
+								for ( final ViewSetup vs : setups )
+								{
+									if ( vs.getAngle().getId() == a.getId() && vs.getTile().getId() == t.getId() && vs.getIllumination().getId() == i.getId() )
+									{
+										corrVS = vs;
+										break;
+									}
+								}
+
+								final ViewSetup vsNew = new ViewSetup( viewSetupId++, null, corrVS.getSize(), corrVS.getVoxelSize(), t, newChannel, a, i );
+								setupsNew.add( vsNew );
+
+								// now we need to update the AllenOMEZarrLoader so it loads the correct image for all switched [ViewSetup x Timepoints], i.e. ViewIds
+								for ( int tp = 0; tp < tpsNew.size(); ++tp )
+								{
+									// each new Timepoint in a ViewId corresponds to an old ChannelId
+									final TimePoint tpNew = tpsNew.get( tp );
+									final Channel oldChannel = channelsOld.get( tp );
+
+									final ViewId viewIdNew = new ViewId( tpNew.getId(), vsNew.getId() );
+
+									corrVS = null;
+									for ( final ViewSetup vs : setups )
+									{
+										if ( vs.getAngle().getId() == a.getId() && vs.getTile().getId() == t.getId() && vs.getIllumination().getId() == i.getId() && vs.getChannel().getId() == oldChannel.getId() )
+										{
+											corrVS = vs;
+											break;
+										}
+									}
+
+									final ViewId viewIdOld = new ViewId( tpOld.getId(), corrVS.getId() );
+
+									// now fetch the OMEZARREntry and the ViewRegistration for the old viewId
+									final OMEZARREntry omeZarr = viewIdToPath.get( viewIdOld );
+									final ViewRegistration reg = data.getViewRegistrations().getViewRegistration( viewIdOld );
+
+									// which is the OMEZARREntry and the ViewRegistration for the new ViewId
+									viewIdToPathNew.put( viewIdNew, omeZarr );
+									viewRegistrationsNew.put( viewIdNew, new ViewRegistration( tpNew.getId() , vsNew.getId(), new ArrayList<>( reg.getTransformList() ) ) );
+								}
+							}
+						}
+					}
+				}
 			}
 			else if ( index1 == 2 ) // illum - timepoint switch
 			{
-				tpsNew = null;
-				throw new RuntimeException( "not implemented yet.");
+				tpsNew = illumsOld.stream().map( a -> new TimePoint( a.getId() )).collect( Collectors.toList() );
+				final List<Illumination> illumsNew = tpsOld.stream().map( tp -> new Illumination( tp.getId() ) ).collect( Collectors.toList() );
+
+				for ( final Angle a : anglesOld )
+				{
+					for ( final Channel c : channelsOld )
+					{
+						for ( final Tile t : tilesOld )
+						{
+							for ( int ii = 0; ii < illumsNew.size(); ++ii )
+							{
+								final Illumination newIllum = illumsNew.get( ii );
+								final TimePoint tpOld = tpsOld.get( ii );
+
+								// find the dimensions and path of the corresponding, old ViewSetup
+								// we made sure that the dimensions are all the same, so any old Illumination will do
+								ViewSetup corrVS = null;
+								for ( final ViewSetup vs : setups )
+								{
+									if ( vs.getAngle().getId() == a.getId() && vs.getChannel().getId() == c.getId() && vs.getTile().getId() == t.getId() )
+									{
+										corrVS = vs;
+										break;
+									}
+								}
+
+								final ViewSetup vsNew = new ViewSetup( viewSetupId++, null, corrVS.getSize(), corrVS.getVoxelSize(), t, c, a, newIllum );
+								setupsNew.add( vsNew );
+
+								// now we need to update the AllenOMEZarrLoader so it loads the correct image for all switched [ViewSetup x Timepoints], i.e. ViewIds
+								for ( int tp = 0; tp < tpsNew.size(); ++tp )
+								{
+									// each new Timepoint in a ViewId corresponds to an old IlluminationId
+									final TimePoint tpNew = tpsNew.get( tp );
+									final Illumination oldIllum = illumsOld.get( tp );
+
+									final ViewId viewIdNew = new ViewId( tpNew.getId(), vsNew.getId() );
+
+									corrVS = null;
+									for ( final ViewSetup vs : setups )
+									{
+										if ( vs.getAngle().getId() == a.getId() && vs.getChannel().getId() == c.getId() && vs.getTile().getId() == t.getId() && vs.getIllumination().getId() == oldIllum.getId() )
+										{
+											corrVS = vs;
+											break;
+										}
+									}
+
+									final ViewId viewIdOld = new ViewId( tpOld.getId(), corrVS.getId() );
+
+									// now fetch the OMEZARREntry and the ViewRegistration for the old viewId
+									final OMEZARREntry omeZarr = viewIdToPath.get( viewIdOld );
+									final ViewRegistration reg = data.getViewRegistrations().getViewRegistration( viewIdOld );
+
+									// which is the OMEZARREntry and the ViewRegistration for the new ViewId
+									viewIdToPathNew.put( viewIdNew, omeZarr );
+									viewRegistrationsNew.put( viewIdNew, new ViewRegistration( tpNew.getId() , vsNew.getId(), new ArrayList<>( reg.getTransformList() ) ) );
+								}
+							}
+						}
+					}
+				}
 			}
 			else if ( index1 == 3 ) // tile - timepoint switch
 			{
-				final List<Tile> tilesOld = tiles;
 				tpsNew = tilesOld.stream().map( a -> new TimePoint( a.getId() )).collect( Collectors.toList() );
 				final List<Tile> tilesNew = tpsOld.stream().map( tp -> new Tile( tp.getId() ) ).collect( Collectors.toList() );
 
-				for ( final Angle a : angles )
+				for ( final Angle a : anglesOld )
 				{
-					for ( final Channel c : channels )
+					for ( final Channel c : channelsOld )
 					{
-						for ( final Illumination i : illums )
+						for ( final Illumination i : illumsOld )
 						{
 							for ( int ti = 0; ti < tilesNew.size(); ++ti )
 							{
