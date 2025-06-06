@@ -377,9 +377,12 @@ public class Switch_Attributes implements PlugIn
 		final GenericDialog gd1 = new GenericDialog( "Attributes to switch" );
 		gd1.addChoice( "Attribute to switch", choices, choices[ defaultFirst ] );
 		gd1.addChoice( "Switch_with", choices, choices[ defaultSecond ] );
-		gd1.addMessage( "This operation will not carry over metadata to the new XML \n(intensity adjustments, interest points, PSFs, stitching results).\n"
-				+ "\nPlease run this before performing any reconstructions.", GUIHelper.smallStatusFont, Color.red );
-		gd1.addMessage( "Switching Timepoints is only supported for OME-ZARR datasets.", GUIHelper.smallStatusFont, Color.red );
+
+		gd1.addMessage( "Switching TIMEPOINTS is only supported for OME-ZARR datasets.", GUIHelper.smallStatusFont, Color.black );
+
+		gd1.addMessage( "If you switch with TIMEPOINTS, this operation will not carry \n"
+					  + "over most of metadata to the new XML \n(interest points, PSFs, \n"
+					  + "stitching results and intensity adjustments).", GUIHelper.smallStatusFont, Color.red );
 
 		gd1.showDialog();
 
