@@ -279,6 +279,7 @@ public class Switch_Attributes implements PlugIn
 								}
 
 								final ViewSetup vsNew = new ViewSetup( viewSetupId++, null, corrVS.getSize(), corrVS.getVoxelSize(), newTile, c, a, i );
+								setupsNew.add( vsNew );
 
 								// now we need to update the AllenOMEZarrLoader so it loads the correct image for all switched [ViewSetup x Timepoints], i.e. ViewIds
 								for ( int tp = 0; tp < tpsNew.size(); ++tp )
@@ -374,7 +375,7 @@ public class Switch_Attributes implements PlugIn
 	{
 		final LoadParseQueryXML xml = new LoadParseQueryXML();
 
-		LoadParseQueryXML.defaultXMLURI = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
+		//LoadParseQueryXML.defaultXMLURI = "/Users/preibischs/SparkTest/Stitching/dataset.xml";
 
 		if ( !xml.queryXML( "", false, false, false, false, false ) )
 			return;
