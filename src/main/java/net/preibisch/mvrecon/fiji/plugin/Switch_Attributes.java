@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.spim.data.generic.base.Entity;
+import mpicbg.spim.data.registration.ViewRegistration;
+import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.Illumination;
@@ -224,6 +226,8 @@ public class Switch_Attributes implements PlugIn
 			final Map<ViewId, OMEZARREntry> viewIdToPath = imgloader.getViewIdToPath();
 			final Map<ViewId, OMEZARREntry> viewIdToPathNew = new HashMap<>();
 
+			final Map<ViewId, ViewRegistration> viewRegistrationsNew = new HashMap<>();
+
 			// create new ViewSetups - we will most likely have a different amount of ViewSetups
 			final List<TimePoint> tpsOld = sd.getTimePoints().getTimePointsOrdered();
 			final List<TimePoint> tpsNew;
@@ -302,11 +306,13 @@ public class Switch_Attributes implements PlugIn
 
 									final ViewId viewIdOld = new ViewId( tpOld.getId(), corrVS.getId() );
 
-									// now fetch the OMEZARREntry for the old viewId
+									// now fetch the OMEZARREntry and the ViewRegistration for the old viewId
 									final OMEZARREntry omeZarr = viewIdToPath.get( viewIdOld );
+									final ViewRegistration reg = data.getViewRegistrations().getViewRegistration( viewIdOld );
 
-									// which is the OMEZARREntry for the new ViewId
+									// which is the OMEZARREntry and the ViewRegistration for the new ViewId
 									viewIdToPathNew.put( viewIdNew, omeZarr );
+									viewRegistrationsNew.put( viewIdNew, reg );
 								}
 							}
 						}
@@ -321,7 +327,7 @@ public class Switch_Attributes implements PlugIn
 				return new SpimData2(
 						data.getBasePathURI(),
 						sdNew,
-						data.getViewRegistrations(), // we leave them in here because it includes the metadata transformations that are often the same for all views
+						new ViewRegistrations( viewRegistrationsNew ), // we leave them in here because it includes the metadata transformations that are often the same for all views
 						new ViewInterestPoints(),
 						data.getBoundingBoxes(),
 						new PointSpreadFunctions(),
