@@ -254,6 +254,13 @@ public class Switch_Attributes implements PlugIn
 			final List<TimePoint> tpsOld = sd.getTimePoints().getTimePointsOrdered();
 			final List<TimePoint> tpsNew;
 
+			final List<Angle> angles = sd.getAllAnglesOrdered();
+			final List<Channel> channels = sd.getAllChannelsOrdered();
+			final List<Illumination> illums = sd.getAllIlluminationsOrdered();
+			final List<Tile> tiles = sd.getAllTilesOrdered();
+
+			int viewSetupId = 0;
+
 			if ( index1 == 0 ) // angle - timepoint switch
 			{
 				tpsNew = null;
@@ -271,15 +278,9 @@ public class Switch_Attributes implements PlugIn
 			}
 			else if ( index1 == 3 ) // tile - timepoint switch
 			{
-				final List<Tile> tilesOld = sd.getAllTilesOrdered();
+				final List<Tile> tilesOld = tiles;
 				tpsNew = tilesOld.stream().map( a -> new TimePoint( a.getId() )).collect( Collectors.toList() );
-
 				final List<Tile> tilesNew = tpsOld.stream().map( tp -> new Tile( tp.getId() ) ).collect( Collectors.toList() );
-				final List<Angle> angles = sd.getAllAnglesOrdered();
-				final List<Channel> channels = sd.getAllChannelsOrdered();
-				final List<Illumination> illums = sd.getAllIlluminationsOrdered();
-
-				int viewSetupId = 0;
 
 				for ( final Angle a : angles )
 				{
@@ -340,27 +341,26 @@ public class Switch_Attributes implements PlugIn
 						}
 					}
 				}
-
-				final SequenceDescription sdNew = new SequenceDescription( new TimePoints( tpsNew ), setupsNew );
-				final AllenOMEZarrLoader imgLoaderNew = new AllenOMEZarrLoader( imgloader.getN5URI(), sdNew, viewIdToPathNew );
-				sdNew.setImgLoader( imgLoaderNew );
-
-				// we do not want to return the objects from data, since all ViewId's are changed
-				return new SpimData2(
-						data.getBasePathURI(),
-						sdNew,
-						new ViewRegistrations( viewRegistrationsNew ), // we leave them in here because it includes the metadata transformations that are often the same for all views
-						new ViewInterestPoints(),
-						data.getBoundingBoxes(),
-						new PointSpreadFunctions(),
-						new StitchingResults(),
-						new IntensityAdjustments() );
-
 			}
 			else
 			{
 				throw new RuntimeException( "unexpected value: " + index1 );
 			}
+
+			final SequenceDescription sdNew = new SequenceDescription( new TimePoints( tpsNew ), setupsNew );
+			final AllenOMEZarrLoader imgLoaderNew = new AllenOMEZarrLoader( imgloader.getN5URI(), sdNew, viewIdToPathNew );
+			sdNew.setImgLoader( imgLoaderNew );
+
+			// we do not want to return the objects from data, since all ViewId's are changed
+			return new SpimData2(
+					data.getBasePathURI(),
+					sdNew,
+					new ViewRegistrations( viewRegistrationsNew ), // we leave them in here because it includes the metadata transformations that are often the same for all views
+					new ViewInterestPoints(),
+					data.getBoundingBoxes(),
+					new PointSpreadFunctions(),
+					new StitchingResults(),
+					new IntensityAdjustments() );
 		}
 	}
 
@@ -397,6 +397,8 @@ public class Switch_Attributes implements PlugIn
 			IOFunctions.println( "You selected the same attribute twice, we are done.");
 			return null;
 		}
+
+		IOFunctions.println( "Switching " + attributes.get( index1 ).getSimpleName() + " <> " + attributes.get( index2 ).getSimpleName() );
 
 		return switchAttributes(data, index1, index2);
 	}
