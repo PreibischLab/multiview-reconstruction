@@ -312,7 +312,7 @@ public class Switch_Attributes implements PlugIn
 
 									// which is the OMEZARREntry and the ViewRegistration for the new ViewId
 									viewIdToPathNew.put( viewIdNew, omeZarr );
-									viewRegistrationsNew.put( viewIdNew, reg );
+									viewRegistrationsNew.put( viewIdNew, new ViewRegistration( tpNew.getId() , vsNew.getId(), new ArrayList<>( reg.getTransformList() ) ) );
 								}
 							}
 						}
