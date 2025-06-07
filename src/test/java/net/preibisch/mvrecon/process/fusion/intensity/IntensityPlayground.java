@@ -4,6 +4,7 @@ import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvHandle;
 import bdv.util.BdvStackSource;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -21,6 +22,7 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Intervals;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
 
 public class IntensityPlayground {
 
@@ -43,8 +45,8 @@ public class IntensityPlayground {
 
 		final double renderScale = 0.25;
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
-		matcher.matchAndConnect(id0, id1);
-
+//		final List<CoefficientMatch> coefficientMatches = matcher.match(id0, id1);
+//		matcher.connect(id0, id1, coefficientMatches);
 
 		final TileInfo tile0 = matcher.getTileInfo(id0);
 		final TileInfo tile1 = matcher.getTileInfo(id1);

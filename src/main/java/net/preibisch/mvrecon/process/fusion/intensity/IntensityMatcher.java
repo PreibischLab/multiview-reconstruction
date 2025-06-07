@@ -7,6 +7,8 @@ import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,6 +57,95 @@ import org.slf4j.LoggerFactory;
 
 public class IntensityMatcher {
 
+	static class IntensityMatcherWriter {
+		/**
+		 * Reduced matches are written to text files in this directory
+		 */
+		private final String outputDirectory;
+
+		IntensityMatcherWriter(final String outputDirectory) {
+			this.outputDirectory = outputDirectory;
+		}
+
+		public void write(
+				final ViewId p1,
+				final ViewId p2,
+				final List<CoefficientMatch> coefficientMatches
+		) throws IOException {
+			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
+					outputDirectory,
+					p1.getTimePointId(), p1.getViewSetupId(),
+					p2.getTimePointId(), p2.getViewSetupId());
+			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
+				output.writeViewId(p1);
+				output.writeViewId(p2);
+				for (final CoefficientMatch m : coefficientMatches) {
+					output.writeMatches(m);
+				}
+			}
+		}
+	}
+
+	public static class ViewPairCoefficientMatches {
+
+		private final ViewId view1;
+		private final ViewId view2;
+		private final List<CoefficientMatch> coefficientMatches;
+
+		public ViewPairCoefficientMatches(
+				final ViewId view1,
+				final ViewId view2,
+				final List<CoefficientMatch> coefficientMatches
+		) {
+			this.view1 = view1;
+			this.view2 = view2;
+			this.coefficientMatches = coefficientMatches;
+		}
+
+		public ViewId view1() {
+			return view1;
+		}
+
+		public ViewId view2() {
+			return view2;
+		}
+
+		public List<CoefficientMatch> coefficientMatches() {
+			return coefficientMatches;
+		}
+
+		public static ViewPairCoefficientMatches readFromFile(final String fn)
+				throws IOException {
+			if (Paths.get(fn).toFile().isFile()) {
+				try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
+					final ViewId p1 = input.readViewId();
+					final ViewId p2 = input.readViewId();
+					List<CoefficientMatch> coefficientMatches = new ArrayList<>();
+					CoefficientMatch match;
+					while ((match = input.readMatches()) != null) {
+						coefficientMatches.add(match);
+					}
+					return new ViewPairCoefficientMatches(p1, p2, coefficientMatches);
+				}
+			}
+			return null;
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
 	final AbstractSpimData<?> spimData;
@@ -65,11 +156,6 @@ public class IntensityMatcher {
 	private final AffineTransform3D renderScale;
 
 	private final int[] numCoefficients;
-
-	/**
-	 * If non-null, reduced matches are written to text files on this directory for debugging...
-	 */
-	private final String outputDirectory;
 
 	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
 
@@ -86,27 +172,10 @@ public class IntensityMatcher {
 			final double renderScale,
 			final int[] coefficientsSize
 	) {
-		this(spimData, renderScale, coefficientsSize, null);
-	}
-
-	/**
-	 * @param spimData
-	 * @param renderScale
-	 * 		at which scale to sample images. For example, {@code renderScale = 0.25} means using 4 x downsampled images.
-	 * @param coefficientsSize
-	 */
-	IntensityMatcher(
-			final AbstractSpimData<?> spimData,
-			final double renderScale,
-			final int[] coefficientsSize,
-			final String outputDirectory
-	) {
 		this.spimData = spimData;
 		this.numCoefficients = coefficientsSize;
 		this.renderScale = new AffineTransform3D();
 		this.renderScale.scale(renderScale);
-
-		this.outputDirectory = outputDirectory;
 	}
 
 	public void readFromFile(
@@ -118,66 +187,18 @@ public class IntensityMatcher {
 				directory,
 				p1.getTimePointId(), p1.getViewSetupId(),
 				p2.getTimePointId(), p2.getViewSetupId());
-		try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
-			input.readViewId(); // ignored
-			input.readViewId(); // ignored
-			final IntensityTile p1IntensityTile = getIntensityTile(p1);
-			final IntensityTile p2IntensityTile = getIntensityTile(p2);
-			int connectionCount = 0;
-			CoefficientMatch coefficientMatch = input.readMatches();
-			while (coefficientMatch != null) {
-				final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1);
-				final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2);
-				st1.connect(st2, coefficientMatch.matches);
-				connectionCount++;
-				coefficientMatch = input.readMatches();
-			}
-			if (connectionCount > 0) {
-				p1IntensityTile.connectTo(p2IntensityTile);
+		try {
+			final ViewPairCoefficientMatches viewPairCoefficientMatches = ViewPairCoefficientMatches.readFromFile(fn);
+			if (viewPairCoefficientMatches != null) {
+				connect(viewPairCoefficientMatches);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	void matchAndConnect(
-			final ViewId p1,
-			final ViewId p2
-	) {
-		if (outputDirectory != null) {
-			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
-					outputDirectory,
-					p1.getTimePointId(), p1.getViewSetupId(),
-					p2.getTimePointId(), p2.getViewSetupId());
-			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
-				output.writeViewId(p1);
-				output.writeViewId(p2);
-				matchAndConnect(p1, p2, output);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			matchAndConnect(p1, p2, null);
-		}
-	}
-
-	void matchAndConnect(
-			final ViewId p1,
-			final ViewId p2,
-			final IntensityMatchesIO.Writer output
-	) {
-		final List<CoefficientMatch> coefficientMatches = match(p1, p2);
-		connect(p1, p2, coefficientMatches);
-
-		if (output != null) {
-			try {
-				for (final CoefficientMatch m : coefficientMatches) {
-					output.writeMatches(m);
-				}
-			} catch (IOException e) {
-				throw new RuntimeException();
-			}
-		}
+	public void connect(final ViewPairCoefficientMatches matches) {
+		connect(matches.view1(), matches.view2(), matches.coefficientMatches());
 	}
 
 	public void connect(

@@ -1,9 +1,12 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.List;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.IntensityMatcherWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
@@ -16,7 +19,7 @@ import util.URITools;
 
 public class GlobalAlignmentPlayground {
 
-	public static void main(String[] args) throws URISyntaxException, SpimDataException {
+	public static void main(String[] args) throws URISyntaxException, SpimDataException, IOException {
 
 		final URI xml = new URI("file:/Users/pietzsch/Desktop/data/Janelia/keller-shadingcorrected/dataset.xml");
 		final XmlIoSpimData2 io = new XmlIoSpimData2();
@@ -31,13 +34,16 @@ public class GlobalAlignmentPlayground {
 
 		final double renderScale = 0.25;
 		final String outputDirectory = "/Users/pietzsch/Desktop/matches/";
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8}, outputDirectory);
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
 		final boolean writeMatches = false;
 		if (writeMatches) {
+			final IntensityMatcherWriter matchWriter = new IntensityMatcherWriter(outputDirectory);
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
-					matcher.matchAndConnect(views[i], views[j]);
+					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j]);
+					matcher.connect(views[i], views[j], coefficientMatches);
+					matchWriter.write(views[i], views[j], coefficientMatches);
 				}
 			}
 		} else {
