@@ -7,7 +7,6 @@ import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,12 +58,12 @@ public class IntensityMatcher {
 
 	static class IntensityMatcherWriter {
 		/**
-		 * Reduced matches are written to text files in this directory
+		 * Reduced matches are read/written from/to text files in this directory
 		 */
-		private final String outputDirectory;
+		private final String directory;
 
-		IntensityMatcherWriter(final String outputDirectory) {
-			this.outputDirectory = outputDirectory;
+		IntensityMatcherWriter(final String directory) {
+			this.directory = directory;
 		}
 
 		public void write(
@@ -72,10 +71,7 @@ public class IntensityMatcher {
 				final ViewId p2,
 				final List<CoefficientMatch> coefficientMatches
 		) throws IOException {
-			final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
-					outputDirectory,
-					p1.getTimePointId(), p1.getViewSetupId(),
-					p2.getTimePointId(), p2.getViewSetupId());
+			final String fn = getFilename(p1, p2);
 			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
 				output.writeViewId(p1);
 				output.writeViewId(p2);
@@ -83,6 +79,27 @@ public class IntensityMatcher {
 					output.writeMatches(m);
 				}
 			}
+		}
+
+		public void write(
+				ViewPairCoefficientMatches matches
+		) throws IOException {
+			write(matches.view1(), matches.view2(), matches.coefficientMatches());
+		}
+
+		public ViewPairCoefficientMatches read(
+				final ViewId p1,
+				final ViewId p2
+		) throws IOException {
+			final String fn = getFilename(p1, p2);
+			return ViewPairCoefficientMatches.readFromFile(fn);
+		}
+
+		private String getFilename(final ViewId p1, final ViewId p2) {
+			return String.format("%s/t%d_s%d--t%d_s%d.txt",
+					directory,
+					p1.getTimePointId(), p1.getViewSetupId(),
+					p2.getTimePointId(), p2.getViewSetupId());
 		}
 	}
 
@@ -176,25 +193,6 @@ public class IntensityMatcher {
 		this.numCoefficients = coefficientsSize;
 		this.renderScale = new AffineTransform3D();
 		this.renderScale.scale(renderScale);
-	}
-
-	public void readFromFile(
-			final ViewId p1,
-			final ViewId p2,
-			final String directory
-	) {
-		final String fn = String.format("%s/t%d_s%d--t%d_s%d.txt",
-				directory,
-				p1.getTimePointId(), p1.getViewSetupId(),
-				p2.getTimePointId(), p2.getViewSetupId());
-		try {
-			final ViewPairCoefficientMatches viewPairCoefficientMatches = ViewPairCoefficientMatches.readFromFile(fn);
-			if (viewPairCoefficientMatches != null) {
-				connect(viewPairCoefficientMatches);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	public void connect(final ViewPairCoefficientMatches matches) {

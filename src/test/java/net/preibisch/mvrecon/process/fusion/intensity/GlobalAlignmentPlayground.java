@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 
 import java.util.List;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.IntensityMatcherWriter;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.ViewPairCoefficientMatches;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
@@ -34,10 +35,10 @@ public class GlobalAlignmentPlayground {
 
 		final double renderScale = 0.25;
 		final String outputDirectory = "/Users/pietzsch/Desktop/matches/";
+		final IntensityMatcherWriter matchWriter = new IntensityMatcherWriter(outputDirectory);
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
 		final boolean writeMatches = false;
 		if (writeMatches) {
-			final IntensityMatcherWriter matchWriter = new IntensityMatcherWriter(outputDirectory);
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
@@ -50,7 +51,14 @@ public class GlobalAlignmentPlayground {
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
-					matcher.readFromFile(views[i], views[j], outputDirectory);
+					try {
+						final ViewPairCoefficientMatches matches = matchWriter.read(views[i], views[j]);
+						if (matches != null) {
+							matcher.connect(matches);
+						}
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 		}
