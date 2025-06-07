@@ -13,7 +13,7 @@ public class ViewPairCoefficientMatchesIO {
 	 */
 	private final String directory;
 
-	ViewPairCoefficientMatchesIO(final String directory) {
+	public ViewPairCoefficientMatchesIO(final String directory) {
 		this.directory = directory;
 	}
 
