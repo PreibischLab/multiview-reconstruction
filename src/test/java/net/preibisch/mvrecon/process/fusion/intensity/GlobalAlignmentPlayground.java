@@ -6,7 +6,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.List;
-import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.IntensityMatcherWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
@@ -34,7 +33,7 @@ public class GlobalAlignmentPlayground {
 
 		final double renderScale = 0.25;
 		final String outputDirectory = "/Users/pietzsch/Desktop/matches/";
-		final IntensityMatcherWriter matchWriter = new IntensityMatcherWriter(outputDirectory);
+		final ViewPairCoefficientMatchesIO matchWriter = new ViewPairCoefficientMatchesIO(outputDirectory);
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
 		final boolean writeMatches = false;
 		if (writeMatches) {

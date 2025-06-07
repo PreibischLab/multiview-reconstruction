@@ -1,13 +1,6 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
-import static net.imglib2.util.Intervals.intersect;
-import static net.imglib2.util.Intervals.isEmpty;
-import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
-import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
-
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-
 import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.generic.AbstractSpimData;
@@ -54,72 +46,12 @@ import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionRed
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static net.imglib2.util.Intervals.intersect;
+import static net.imglib2.util.Intervals.isEmpty;
+import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
+import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
+
 public class IntensityMatcher {
-
-	static class IntensityMatcherWriter {
-		/**
-		 * Reduced matches are read/written from/to text files in this directory
-		 */
-		private final String directory;
-
-		IntensityMatcherWriter(final String directory) {
-			this.directory = directory;
-		}
-
-		// TODO remove?
-		public void write(
-				final ViewId p1,
-				final ViewId p2,
-				final List<CoefficientMatch> coefficientMatches
-		) throws IOException {
-			final String fn = getFilename(p1, p2);
-			try (final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(fn)) {
-				output.writeViewId(p1);
-				output.writeViewId(p2);
-				for (final CoefficientMatch m : coefficientMatches) {
-					output.writeMatches(m);
-				}
-			}
-		}
-
-		public void write(
-				ViewPairCoefficientMatches matches
-		) throws IOException {
-			write(matches.view1(), matches.view2(), matches.coefficientMatches());
-		}
-
-		public ViewPairCoefficientMatches read(
-				final ViewId p1,
-				final ViewId p2
-		) throws IOException {
-			final String fn = getFilename(p1, p2);
-			return readFromFile(fn);
-		}
-
-		private static ViewPairCoefficientMatches readFromFile(final String fn)
-				throws IOException {
-			if (Paths.get(fn).toFile().isFile()) {
-				try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
-					final ViewId p1 = input.readViewId();
-					final ViewId p2 = input.readViewId();
-					List<CoefficientMatch> coefficientMatches = new ArrayList<>();
-					CoefficientMatch match;
-					while ((match = input.readMatches()) != null) {
-						coefficientMatches.add(match);
-					}
-					return new ViewPairCoefficientMatches(p1, p2, coefficientMatches);
-				}
-			}
-			return null;
-		}
-
-		private String getFilename(final ViewId p1, final ViewId p2) {
-			return String.format("%s/t%d_s%d--t%d_s%d.txt",
-					directory,
-					p1.getTimePointId(), p1.getViewSetupId(),
-					p2.getTimePointId(), p2.getViewSetupId());
-		}
-	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
