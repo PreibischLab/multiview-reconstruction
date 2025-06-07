@@ -66,6 +66,7 @@ public class IntensityMatcher {
 			this.directory = directory;
 		}
 
+		// TODO remove?
 		public void write(
 				final ViewId p1,
 				final ViewId p2,
@@ -92,7 +93,24 @@ public class IntensityMatcher {
 				final ViewId p2
 		) throws IOException {
 			final String fn = getFilename(p1, p2);
-			return ViewPairCoefficientMatches.readFromFile(fn);
+			return readFromFile(fn);
+		}
+
+		private static ViewPairCoefficientMatches readFromFile(final String fn)
+				throws IOException {
+			if (Paths.get(fn).toFile().isFile()) {
+				try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
+					final ViewId p1 = input.readViewId();
+					final ViewId p2 = input.readViewId();
+					List<CoefficientMatch> coefficientMatches = new ArrayList<>();
+					CoefficientMatch match;
+					while ((match = input.readMatches()) != null) {
+						coefficientMatches.add(match);
+					}
+					return new ViewPairCoefficientMatches(p1, p2, coefficientMatches);
+				}
+			}
+			return null;
 		}
 
 		private String getFilename(final ViewId p1, final ViewId p2) {
@@ -129,23 +147,6 @@ public class IntensityMatcher {
 
 		public List<CoefficientMatch> coefficientMatches() {
 			return coefficientMatches;
-		}
-
-		public static ViewPairCoefficientMatches readFromFile(final String fn)
-				throws IOException {
-			if (Paths.get(fn).toFile().isFile()) {
-				try (final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(fn)) {
-					final ViewId p1 = input.readViewId();
-					final ViewId p2 = input.readViewId();
-					List<CoefficientMatch> coefficientMatches = new ArrayList<>();
-					CoefficientMatch match;
-					while ((match = input.readMatches()) != null) {
-						coefficientMatches.add(match);
-					}
-					return new ViewPairCoefficientMatches(p1, p2, coefficientMatches);
-				}
-			}
-			return null;
 		}
 	}
 
