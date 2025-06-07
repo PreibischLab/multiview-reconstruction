@@ -17,24 +17,18 @@ import util.URITools;
 
 public class ViewPairCoefficientMatchesIO {
 
-	private final URI uri;
-	private final KeyValueAccess kva;
-
 	/**
 	 * Reduced matches are read/written from/to text files in this directory
 	 */
-//	private final String directory;
+	private final URI uri;
 
-//	public ViewPairCoefficientMatchesIO(final String directory) {
-//		this.directory = directory;
-//	}
+	private final KeyValueAccess kva;
 
 	public ViewPairCoefficientMatchesIO(final URI uri) {
 		this.uri = uri;
 		kva = URITools.getKeyValueAccess( uri );
 	}
 
-	// TODO remove?
 	public void write(
 			final ViewId p1,
 			final ViewId p2,

@@ -24,10 +24,6 @@ class IntensityMatchesIO {
 
 		private final BufferedWriter writer;
 
-		Writer(final String filePath) throws IOException {
-			writer = Files.newBufferedWriter(Paths.get(filePath), CREATE, TRUNCATE_EXISTING);
-		}
-
 		Writer(final BufferedWriter bufferedWriter) {
 			writer = bufferedWriter;
 		}
@@ -68,10 +64,6 @@ class IntensityMatchesIO {
 	static class Reader implements Closeable {
 
 		private final BufferedReader reader;
-
-		Reader(final String filePath) throws IOException {
-			reader = Files.newBufferedReader(Paths.get(filePath));
-		}
 
 		Reader(final BufferedReader bufferedReader) {
 			reader = bufferedReader;

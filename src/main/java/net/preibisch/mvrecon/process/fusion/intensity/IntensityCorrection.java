@@ -11,16 +11,12 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.AbstractRealInterval;
-import net.imglib2.FinalRealInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
-import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
-
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

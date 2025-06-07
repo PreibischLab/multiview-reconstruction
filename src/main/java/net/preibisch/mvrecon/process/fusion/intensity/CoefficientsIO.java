@@ -9,11 +9,11 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 
-public class CoefficientsIO {
+class CoefficientsIO {
 
 	private CoefficientsIO() {}
 
-	public static void save(final Coefficients coefficients, final N5Writer n5Writer, final String datasetPath) {
+	static void save(final Coefficients coefficients, final N5Writer n5Writer, final String datasetPath) {
 
 		if (n5Writer.exists(datasetPath))
 			n5Writer.remove(datasetPath);
@@ -39,7 +39,7 @@ public class CoefficientsIO {
 		}
 	}
 
-	public static Coefficients load(final N5Reader n5Reader, final String datasetPath) {
+	static Coefficients load(final N5Reader n5Reader, final String datasetPath) {
 
 		final DatasetAttributes attr = n5Reader.getDatasetAttributes(datasetPath);
 		final int n = attr.getNumDimensions() - 1;
@@ -54,5 +54,4 @@ public class CoefficientsIO {
 		}
 		return new Coefficients(coefficients, fieldDimensions);
 	}
-
 }

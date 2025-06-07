@@ -20,6 +20,7 @@ import net.imglib2.util.Cast;
 import net.imglib2.util.IntervalIndexer;
 
 
+// TODO: move to sub-package?
 public class FastLinearIntensityMap {
 
 	/**
