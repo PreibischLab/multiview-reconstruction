@@ -28,6 +28,10 @@ class IntensityMatchesIO {
 			writer = Files.newBufferedWriter(Paths.get(filePath), CREATE, TRUNCATE_EXISTING);
 		}
 
+		Writer(final BufferedWriter bufferedWriter) {
+			writer = bufferedWriter;
+		}
+
 		void writeViewId(final ViewId viewId) throws IOException {
 			final int t = viewId.getTimePointId();
 			final int s = viewId.getViewSetupId();
@@ -67,6 +71,10 @@ class IntensityMatchesIO {
 
 		Reader(final String filePath) throws IOException {
 			reader = Files.newBufferedReader(Paths.get(filePath));
+		}
+
+		Reader(final BufferedReader bufferedReader) {
+			reader = bufferedReader;
 		}
 
 		ViewId readViewId() throws IOException {

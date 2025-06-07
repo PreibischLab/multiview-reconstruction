@@ -32,8 +32,8 @@ public class GlobalAlignmentPlayground {
 				.toArray(ViewId[]::new);
 
 		final double renderScale = 0.25;
-		final String outputDirectory = "/Users/pietzsch/Desktop/matches/";
-		final ViewPairCoefficientMatchesIO matchWriter = new ViewPairCoefficientMatchesIO(outputDirectory);
+		final String outputDirectory = "file:/Users/pietzsch/Desktop/matches_uri/";
+		final ViewPairCoefficientMatchesIO matchWriter = new ViewPairCoefficientMatchesIO(URI.create(outputDirectory));
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
 		final boolean writeMatches = false;
 		if (writeMatches) {
