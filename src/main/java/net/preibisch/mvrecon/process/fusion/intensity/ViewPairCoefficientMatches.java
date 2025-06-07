@@ -1,9 +1,10 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.Serializable;
 import java.util.List;
 import mpicbg.spim.data.sequence.ViewId;
 
-public class ViewPairCoefficientMatches {
+public class ViewPairCoefficientMatches implements Serializable {
 
 	private final ViewId view1;
 	private final ViewId view2;

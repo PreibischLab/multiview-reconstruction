@@ -223,7 +223,7 @@ public class IntensityCorrection {
 		return IntensityMatcher.getBounds(tile);
 	}
 
-	public static List<CoefficientMatch> match(
+	public static ViewPairCoefficientMatches match(
 			final AbstractSpimData<?> spimData,
 			final ViewId viewId1,
 			final ViewId viewId2,
@@ -231,7 +231,7 @@ public class IntensityCorrection {
 			final int[] coefficientsSize
 	) {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
-		return matcher.match(viewId1, viewId2);
+		return new ViewPairCoefficientMatches(viewId1, viewId2, matcher.match(viewId1, viewId2));
 	}
 
 	// │          for BigStitcher-Spark
