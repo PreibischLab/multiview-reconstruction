@@ -7,7 +7,6 @@ import java.net.URISyntaxException;
 
 import java.util.List;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.IntensityMatcherWriter;
-import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.ViewPairCoefficientMatches;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 

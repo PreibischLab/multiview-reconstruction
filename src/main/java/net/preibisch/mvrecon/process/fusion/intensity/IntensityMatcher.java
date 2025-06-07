@@ -121,49 +121,6 @@ public class IntensityMatcher {
 		}
 	}
 
-	public static class ViewPairCoefficientMatches {
-
-		private final ViewId view1;
-		private final ViewId view2;
-		private final List<CoefficientMatch> coefficientMatches;
-
-		public ViewPairCoefficientMatches(
-				final ViewId view1,
-				final ViewId view2,
-				final List<CoefficientMatch> coefficientMatches
-		) {
-			this.view1 = view1;
-			this.view2 = view2;
-			this.coefficientMatches = coefficientMatches;
-		}
-
-		public ViewId view1() {
-			return view1;
-		}
-
-		public ViewId view2() {
-			return view2;
-		}
-
-		public List<CoefficientMatch> coefficientMatches() {
-			return coefficientMatches;
-		}
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
 	final AbstractSpimData<?> spimData;
