@@ -51,7 +51,7 @@ import static net.imglib2.util.Intervals.isEmpty;
 import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.border;
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
-public class IntensityMatcher {
+class IntensityMatcher {
 
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
@@ -65,8 +65,6 @@ public class IntensityMatcher {
 	private final int[] numCoefficients;
 
 	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
-
-	private final Map<ViewId, IntensityTile> intensityTiles = new ConcurrentHashMap<>();
 
 	/**
 	 * @param spimData
@@ -85,36 +83,12 @@ public class IntensityMatcher {
 		this.renderScale.scale(renderScale);
 	}
 
-	public void connect(final ViewPairCoefficientMatches matches) {
-		connect(matches.view1(), matches.view2(), matches.coefficientMatches());
-	}
-
-	public void connect(
-			final ViewId p1,
-			final ViewId p2,
-			final List<CoefficientMatch> coefficientMatches
-	) {
-		if (coefficientMatches.isEmpty())
-			return;
-
-		final IntensityTile p1IntensityTile = getIntensityTile(p1);
-		final IntensityTile p2IntensityTile = getIntensityTile(p2);
-		for (final CoefficientMatch coefficientMatch : coefficientMatches) {
-			final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1);
-			final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2);
-			st1.connect(st2, coefficientMatch.matches);
-		}
-		p1IntensityTile.connectTo(p2IntensityTile);
-	}
-
 	public List<CoefficientMatch> match(
 			final ViewId p1,
 			final ViewId p2
 	) {
 		final TileInfo t1 = getTileInfo(p1);
 		final TileInfo t2 = getTileInfo(p2);
-		final IntensityTile p1IntensityTile = getIntensityTile(p1);
-		final IntensityTile p2IntensityTile = getIntensityTile(p2);
 
 		// Find the overlap between the ViewIds (in global coordinates).
 		// This is where we need to look for overlapping CoefficientRegions.
@@ -259,15 +233,6 @@ public class IntensityMatcher {
 
 	TileInfo getTileInfo(final ViewId viewId) {
 		return tileInfos.computeIfAbsent(viewId, v -> new TileInfo(numCoefficients, spimData, v));
-	}
-
-	IntensityTile getIntensityTile(final ViewId viewId) {
-		final int nFittingCycles = 1; // TODO: expose parameter (?)
-		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(FastAffineModel1D::new, numCoefficients, nFittingCycles));
-	}
-
-	Map<ViewId, IntensityTile> getIntensityTiles() {
-		return intensityTiles;
 	}
 
 	/**
