@@ -10,7 +10,10 @@ import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import mpicbg.models.PointMatch;
 import mpicbg.spim.data.sequence.ViewId;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import util.URITools;
@@ -29,6 +32,38 @@ public class ViewPairCoefficientMatchesIO {
 		kva = URITools.getKeyValueAccess( uri );
 	}
 
+	public void writeCoefficientsSize(
+			final int[] coefficientsSize
+	) throws IOException {
+		final URI fn = uri.resolve("coefficients-size.txt");
+		try (
+				final OutputStream os = URITools.openFileWriteCloudStream(kva, fn);
+				final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os))) {
+			for (final int size : coefficientsSize) {
+				bw.write(String.format("%d ", size));
+			}
+			bw.newLine();
+		}
+	}
+
+	public int[] readCoefficientsSize() throws IOException {
+		final URI fn = uri.resolve("coefficients-size.txt");
+		try (
+				final InputStream is = URITools.openFileReadCloudStream(kva, fn);
+				final BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+
+			final String line = br.readLine();
+			if (line == null)
+				return null;
+			final String[] tokens = line.split("\\s+");
+			final int[] coefficientsSize = new int[tokens.length];
+			for (int i = 0; i < tokens.length; ++i) {
+				coefficientsSize[i] = Integer.parseInt(tokens[i]);
+			}
+			return coefficientsSize;
+		}
+	}
+
 	public void write(
 			final ViewId p1,
 			final ViewId p2,
@@ -38,7 +73,7 @@ public class ViewPairCoefficientMatchesIO {
 		try (
 				final OutputStream os = URITools.openFileWriteCloudStream(kva, fn);
 				final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
-				final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(bw);) {
+				final IntensityMatchesIO.Writer output = new IntensityMatchesIO.Writer(bw)) {
 			output.writeViewId(p1);
 			output.writeViewId(p2);
 			for (final IntensityMatcher.CoefficientMatch m : coefficientMatches) {
@@ -66,7 +101,7 @@ public class ViewPairCoefficientMatchesIO {
 		try (
 				final InputStream is = URITools.openFileReadCloudStream(kva, fn);
 				final BufferedReader br = new BufferedReader(new InputStreamReader(is));
-				final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(br);) {
+				final IntensityMatchesIO.Reader input = new IntensityMatchesIO.Reader(br)) {
 			final ViewId p1 = input.readViewId();
 			final ViewId p2 = input.readViewId();
 			List<IntensityMatcher.CoefficientMatch> coefficientMatches = new ArrayList<>();

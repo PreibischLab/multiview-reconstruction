@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.Arrays;
 import java.util.List;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
@@ -33,28 +34,31 @@ public class GlobalAlignmentPlayground {
 
 		final double renderScale = 0.25;
 		final String outputDirectory = "file:/Users/pietzsch/Desktop/matches_uri/";
-		final ViewPairCoefficientMatchesIO matchWriter = new ViewPairCoefficientMatchesIO(URI.create(outputDirectory));
-		final int[] coefficientsSize = {8, 8, 8};
+		final ViewPairCoefficientMatchesIO matchesIO = new ViewPairCoefficientMatchesIO(URI.create(outputDirectory));
+		int[] coefficientsSize = {8, 8, 8};
+		matchesIO.writeCoefficientsSize(coefficientsSize);
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
-		final IntensityTileSetup intensityTileSetup = new IntensityTileSetup(coefficientsSize);
+		final IntensitySolver intensitySolver = new IntensitySolver(coefficientsSize);
 		final boolean writeMatches = false;
 		if (writeMatches) {
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
 					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j]);
-					intensityTileSetup.connect(views[i], views[j], coefficientMatches);
-					matchWriter.write(views[i], views[j], coefficientMatches);
+					intensitySolver.connect(views[i], views[j], coefficientMatches);
+					matchesIO.write(views[i], views[j], coefficientMatches);
 				}
 			}
 		} else {
+			final int[] coefficientsSizeR = matchesIO.readCoefficientsSize();
+			System.out.println("coefficientsSizeR = " + Arrays.toString(coefficientsSizeR));
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
 					try {
-						final ViewPairCoefficientMatches matches = matchWriter.read(views[i], views[j]);
+						final ViewPairCoefficientMatches matches = matchesIO.read(views[i], views[j]);
 						if (matches != null) {
-							intensityTileSetup.connect(matches);
+							intensitySolver.connect(matches);
 						}
 					} catch (IOException e) {
 						throw new RuntimeException(e);
@@ -63,8 +67,7 @@ public class GlobalAlignmentPlayground {
 			}
 		}
 
-		final IntensityCorrection solver = new IntensityCorrection();
-		solver.solveForGlobalCoefficients(intensityTileSetup.getIntensityTiles(), 1000);
+		intensitySolver.solve(1000);
 
 		final URI uri = new File( "/Users/pietzsch/Desktop/intensity.n5" ).toURI();
 		try ( final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, uri ) )
@@ -73,7 +76,7 @@ public class GlobalAlignmentPlayground {
 					n5Writer,
 					"",
 					"coefficients",
-					intensityTileSetup.getIntensityTiles()
+					intensitySolver.getIntensityTiles()
 			);
 		}
 
