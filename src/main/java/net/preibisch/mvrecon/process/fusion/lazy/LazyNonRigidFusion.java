@@ -85,6 +85,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	final FusionType fusionType;
 	final boolean displayDistances;
 	final int interpolation;
+	final float blendingRange;
 	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
 	final double maxDist;
@@ -108,6 +109,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final double alpha,
 			final boolean virtualGrid,
 			final int interpolation,
+			final float blendingRange,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service,
 			final Interval boundingBox,
@@ -121,6 +123,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		this.fusionType = fusionType;
 		this.displayDistances = displayDistances;
 		this.interpolation = interpolation;
+		this.blendingRange = blendingRange;
 		this.intensityAdjustments = intensityAdjustments;
 
 		this.converter = converter;
@@ -173,6 +176,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						fusionType,
 						displayDistances,
 						interpolation,
+						blendingRange,
 						intensityAdjustments,
 						NonRigidTools.defaultOverlapExpansion( maxDist ) );
 
@@ -210,6 +214,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final double alpha,
 			final boolean virtualGrid,
 			final int interpolation,
+			final float blendingRange,
 			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service,
 			final Interval fusionInterval,
@@ -232,6 +237,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						alpha,
 						virtualGrid,
 						interpolation,
+						blendingRange,
 						intensityAdjustments,
 						service,
 						fusionInterval,
@@ -263,6 +269,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		final int cpd = Math.max( 1, (int)Math.round( 10 / ds ) );
 		final List< String > labels = Arrays.asList("nuclei"); //"beads13", "beads" 
 		final int interpolation = 1;
+		final float blendingRange = 40;
 		final long[] controlPointDistance = new long[] { cpd, cpd, cpd };
 		final double alpha = 1.0;
 		final boolean virtualGrid = false;
@@ -300,6 +307,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 				alpha,
 				virtualGrid,
 				interpolation,
+				blendingRange,
 				null,
 				service,
 				boundingBox,

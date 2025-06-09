@@ -77,6 +77,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
 			final int interpolationMethod,
+			final float blendingRange,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final Interval fusionInterval,
 			final T type,
@@ -92,7 +93,7 @@ public class BlkAffineFusion
 		if ( !supports( is2d, fusionType, intensityAdjustments ) )
 		{
 			IOFunctions.println( "BlkAffineFusion: Fusion method not supported (yet). Falling back to LazyAffineFusion." );
-			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustments, fusionInterval, type, blockSize );
+			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, blendingRange, intensityAdjustments, fusionInterval, type, blockSize );
 		}
 
 		final HashMap< ViewId, Dimensions > viewDimensions = LazyFusionTools.assembleDimensions( viewIds, viewDescriptions );

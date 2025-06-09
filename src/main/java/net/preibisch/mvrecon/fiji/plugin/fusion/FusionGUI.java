@@ -75,6 +75,7 @@ public class FusionGUI implements FusionExportInterface
 	public static int maxCacheSize = Integer.MAX_VALUE;
 
 	public static double defaultDownsampling = 1.0;
+	public static float defaultBlendingRange = 40;
 	public static int defaultBB = 0;
 
 	public static String[] interpolationTypes = new String[]{ "Nearest Neighbor", "Linear Interpolation" };
@@ -114,6 +115,7 @@ public class FusionGUI implements FusionExportInterface
 	protected double max = defaultMax;
 	protected int splittingType = defaultSplittingType;
 	protected double downsampling = defaultDownsampling;
+	protected float blendingRange = defaultBlendingRange;
 	protected int fusionType = defaultFusionType;
 	protected boolean adjustIntensities = defaultAdjustIntensities;
 	protected boolean preserveAnisotropy = defaultPreserveAnisotropy;
@@ -204,6 +206,8 @@ public class FusionGUI implements FusionExportInterface
 
 	@Override
 	public double getDownsampling(){ return downsampling; }
+
+	public float getBlendingRange(){ return blendingRange; }
 
 	public FusionType getFusionType() { return FusionType.values()[ fusionType ]; }
 
@@ -312,6 +316,8 @@ public class FusionGUI implements FusionExportInterface
 		gd.addSlider( "Downsampling", 1.0, 16.0, defaultDownsampling );
 		downsampleField = PluginHelper.isHeadless() ? null : (TextField)gd.getNumericFields().lastElement();
 
+		gd.addNumericField("Blending_range", defaultBlendingRange);
+
 		gd.addChoice( "Interpolation", interpolationTypes, interpolationTypes[ defaultInterpolation ] );
 
 		gd.addChoice( "Fusion_type", fusionTypes, fusionTypes[ defaultFusionType ] );
@@ -412,6 +418,8 @@ public class FusionGUI implements FusionExportInterface
 		if ( downsampling == 1.0 )
 			downsampling = Double.NaN;
 
+		blendingRange = defaultBlendingRange = (float) gd.getNextNumber();
+
 		interpolation = defaultInterpolation = gd.getNextChoiceIndex();
 		fusionType = defaultFusionType = gd.getNextChoiceIndex();
 		pixelType = defaultPixelType = gd.getNextChoiceIndex();
@@ -460,6 +468,7 @@ public class FusionGUI implements FusionExportInterface
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Selected Fusion Parameters: " );
 		IOFunctions.println( "Downsampling: " + DownsampleTools.printDownsampling( getDownsampling() ) );
+		IOFunctions.println( "BlendingRange: " + blendingRange );
 		IOFunctions.println( "BoundingBox: " + getBoundingBox() );
 		IOFunctions.println( "DownsampledBoundingBox: " + getDownsampledBoundingBox() );
 		IOFunctions.println( "PixelType: " + pixelTypes1[ getPixelType() ] );

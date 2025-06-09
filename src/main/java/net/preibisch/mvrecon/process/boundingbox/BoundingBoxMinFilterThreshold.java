@@ -122,7 +122,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 								spimData.getSequenceDescription().getImgLoader(),
 								registrations,
 								spimData.getSequenceDescription().getViewDescriptions(),
-								views, FusionType.AVG_BLEND, 1, maxBBDS, null ),
+								views, FusionType.AVG_BLEND, 1, FusionTools.defaultBlendingRange, maxBBDS, null ),
 						new ArrayImgFactory<>( new FloatType() ),
 						new FloatType(),
 						service );

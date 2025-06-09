@@ -216,6 +216,7 @@ public class Image_Fusion implements PlugIn
 						fusion.getNonRigidParameters().getAlpha(),
 						false,
 						fusion.getInterpolation(),
+						fusion.getBlendingRange(),
 						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 						taskExecutor,
 						fusion.getBoundingBox(),
@@ -256,6 +257,7 @@ public class Image_Fusion implements PlugIn
 						spimData.getSequenceDescription().getViewDescriptions(),
 						fusion.getFusionType(),
 						fusion.getInterpolation(), // linear interpolatio
+						fusion.getBlendingRange(),
 						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 						fusion.getBoundingBox(),
 						(RealType & NativeType)type,
