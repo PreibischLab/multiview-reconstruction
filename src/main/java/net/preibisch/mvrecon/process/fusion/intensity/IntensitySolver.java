@@ -60,7 +60,7 @@ class IntensitySolver {
 		return intensityTiles;
 	}
 
-	public void solve(final int iterations) {
+	public void solveForGlobalCoefficients(final int iterations) {
 
 		final IntensityTile equilibrationTile = new IntensityTile(IdentityModel::new, new int[] {1, 1, 1}, 1);
 		connectTilesWithinPatches(intensityTiles, equilibrationTile);

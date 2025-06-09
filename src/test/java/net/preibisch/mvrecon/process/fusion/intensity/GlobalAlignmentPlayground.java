@@ -67,7 +67,7 @@ public class GlobalAlignmentPlayground {
 			}
 		}
 
-		intensitySolver.solve(1000);
+		intensitySolver.solveForGlobalCoefficients(1000);
 
 		final URI uri = new File( "/Users/pietzsch/Desktop/intensity.n5" ).toURI();
 		try ( final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, uri ) )

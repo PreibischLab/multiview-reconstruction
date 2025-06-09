@@ -2,6 +2,7 @@ package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
@@ -9,12 +10,8 @@ import net.imglib2.RealInterval;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IntensityCorrection {
-
-	private static final Logger LOG = LoggerFactory.getLogger(IntensityCorrection.class);
 
 	/**
 	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
@@ -127,6 +124,27 @@ public class IntensityCorrection {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 		return new ViewPairCoefficientMatches(viewId1, viewId2, matcher.match(viewId1, viewId2));
 	}
+
+	public static Map<ViewId, Coefficients> solve(
+			final int[] coefficientsSize,
+			final Collection<ViewPairCoefficientMatches> pairwiseMatches,
+			final int iterations
+	){
+		final IntensitySolver solver = new IntensitySolver(coefficientsSize);
+		pairwiseMatches.forEach(solver::connect);
+		solver.solveForGlobalCoefficients(iterations);
+
+		// TODO: fix 1/255 scale for fitting workaround...
+		//       ~~> IntensityMatcher something something
+		// 		 ~~> Coefficients getScaledCoefficients() {
+
+		final Map<ViewId, IntensityTile> intensityTiles = solver.getIntensityTiles();
+		// TODO: into convert Map<ViewId, Coefficients> ior returning
+
+		throw new UnsupportedOperationException("TODO: what to return");
+	}
+
+
 
 	// │          for BigStitcher-Spark
 	// └-----------------------------------------
