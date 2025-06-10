@@ -1,6 +1,5 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
-import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,34 +15,6 @@ import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.Coefficie
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class IntensityCorrection {
-
-	/**
-	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
-	 */
-	static String getCoefficientsDatasetPath(
-			final String group,
-			final String dataset,
-			final int setupId,
-			final int timePointId
-	) {
-		return String.format("%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset);
-	}
-
-	static void writeCoefficients(
-			final N5Writer n5Writer,
-			final String group,
-			final String dataset,
-			final ViewId viewId,
-			final Coefficients coefficients
-	) {
-		final int setupId = viewId.getViewSetupId();
-		final int timePointId = viewId.getTimePointId();
-		final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
-		CoefficientsIO.save( coefficients, n5Writer, path );
-	}
-
-	// ┌-----------------------------------------
-	// │          for BigStitcher-Spark
 
 	public static class SerializableRealInterval implements RealInterval, Serializable {
 
@@ -135,15 +106,25 @@ public class IntensityCorrection {
 			final N5Writer n5Writer,
 			final String group,
 			final String dataset,
-			final Map<ViewId, Coefficients> coefficientTiles
+			final Map<ViewId, Coefficients> coefficients
 	) {
-		coefficientTiles.forEach((viewId, tile) -> {
-			writeCoefficients(n5Writer, group, dataset, viewId, tile);
+		coefficients.forEach((viewId, tile) -> {
+			final int setupId = viewId.getViewSetupId();
+			final int timePointId = viewId.getTimePointId();
+			final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
+			CoefficientsIO.save(tile, n5Writer, path);
 		});
 	}
 
-
-
-	// │          for BigStitcher-Spark
-	// └-----------------------------------------
+	/**
+	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
+	 */
+	static String getCoefficientsDatasetPath(
+			final String group,
+			final String dataset,
+			final int setupId,
+			final int timePointId
+	) {
+		return String.format("%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset);
+	}
 }
