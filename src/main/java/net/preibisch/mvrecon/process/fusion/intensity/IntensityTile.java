@@ -144,13 +144,8 @@ class IntensityTile {
 	/**
 	 * Returns the model parameters as {@link Coefficients} for applying to
 	 * intensity-correct images.
-	 * <p>
-	 * Because we scale intensity values by 1/255 for fitting, we
-	 * need to adjust model parameters for applying to the
-	 * original intensity values. This should be more flexible /
-	 * less baked in... TODO
 	 */
-	public Coefficients getScaledCoefficients() {
+	public Coefficients getCoefficients() {
 		final int numCoefficients = 2; // AffineModel1D
 		final int n = nSubTiles();
 		final double[][] coefficients = new double[numCoefficients][n];
@@ -159,7 +154,7 @@ class IntensityTile {
 			AffineModel1D model = (AffineModel1D) tile.getModel();
 			final double[] matrix = model.getMatrix(null);
 			final double m00 = matrix[0];
-			final double m01 = matrix[1] * 255.0;
+			final double m01 = matrix[1];
 			coefficients[0][i] = m00;
 			coefficients[1][i] = m01;
 		}

@@ -3,6 +3,7 @@ package net.preibisch.mvrecon.process.fusion.intensity.mpicbg;
 import java.util.Collection;
 import java.util.List;
 
+import mpicbg.models.AbstractModel;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -24,7 +25,20 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 	}
 
 	/**
-	 * @return indices of {@code candidates} that are inliers, or {@code null} if the model could not be fitted (this model remains unchanged in that case).
+	 * Estimate a {@code AffineModel1D} from a set with many outliers by first
+	 * filtering the worst outliers with RANSAC and filter potential outliers by
+	 * robust iterative regression.
+	 *
+	 * @param candidates candidate data points including (many) outliers
+	 * @param iterations number of RANSAC iterations
+	 * @param maxEpsilon maximal allowed transfer error
+	 * @param minInlierRatio minimal number of inliers to number of candidates
+	 * @param minNumInliers minimally required absolute number of inliers
+	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
+	 *
+	 * @return indices of {@code candidates} that are inliers, or {@code null}
+	 * if the model could not be fitted (this model remains unchanged in that
+	 * case).
 	 */
 	public MatchIndices fastFilterRansac(
 			final FlattenedMatches candidates,

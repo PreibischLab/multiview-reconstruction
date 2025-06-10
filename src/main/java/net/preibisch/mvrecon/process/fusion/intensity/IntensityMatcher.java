@@ -65,6 +65,7 @@ class IntensityMatcher {
 
 	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
 
+
 	/**
 	 * @param spimData
 	 * @param renderScale
@@ -85,6 +86,29 @@ class IntensityMatcher {
 	public List<CoefficientMatch> match(
 			final ViewId p1,
 			final ViewId p2
+	) {
+		return match(p1, p2, 1000, 0.1 * 255, 0.1, 10, 3.0);
+	}
+
+	/**
+	 *
+	 * @param p1
+	 * @param p2
+	 * @param iterations number of RANSAC iterations
+	 * @param maxEpsilon maximal allowed transfer error
+	 * @param minInlierRatio minimal number of inliers to number of candidates
+	 * @param minNumInliers minimally required absolute number of inliers
+	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
+	 * @return
+	 */
+	public List<CoefficientMatch> match(
+			final ViewId p1,
+			final ViewId p2,
+			final int iterations,
+			final double maxEpsilon,
+			final double minInlierRatio,
+			final int minNumInliers,
+			final double maxTrust
 	) {
 		final TileInfo t1 = getTileInfo(p1);
 		final TileInfo t2 = getTileInfo(p2);
@@ -149,16 +173,17 @@ class IntensityMatcher {
 					scaledTile2.view().interval(renderInterval)
 			).forEachPixel((m1, m2, v1, v2) -> {
 				if (m1.get() != 0 && m2.get() != 0) {
-					final double p = v1.getRealDouble() / 255.0;
-					final double q = v2.getRealDouble() / 255.0;
+					final double p = v1.getRealDouble();
+					final double q = v2.getRealDouble();
 					flatCandidates.put(p, q, 1);
 				}
 			});
 			flatCandidates.flip();
 
-			if (flatCandidates.size() > 1000) {
+			if (flatCandidates.size() > 1000) { // TODO: make parameter
 				final FastAffineModel1D model = new FastAffineModel1D();
-				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(model);
+				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
+						model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
 				final List<PointMatch> reducedMatches = new ArrayList<>();
 				filter.filter(flatCandidates, reducedMatches);
 				if (reducedMatches.isEmpty()) {

@@ -6,7 +6,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 
@@ -18,6 +20,12 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import util.URITools;
 
 public class GlobalAlignmentPlayground {
+
+	private static final int iterations = 1000;
+	private static final double maxEpsilon = 0.1 * 255;
+	private static final double minInlierRatio = 0.1;
+	private static final int minNumInliers = 10;
+	private static final double maxTrust = 3.0;
 
 	public static void main(String[] args) throws URISyntaxException, SpimDataException, IOException {
 
@@ -44,7 +52,8 @@ public class GlobalAlignmentPlayground {
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
-					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j]);
+					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j],
+							iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
 					intensitySolver.connect(views[i], views[j], coefficientMatches);
 					matchesIO.write(views[i], views[j], coefficientMatches);
 				}
@@ -70,13 +79,16 @@ public class GlobalAlignmentPlayground {
 		intensitySolver.solveForGlobalCoefficients(1000);
 
 		final URI uri = new File( "/Users/pietzsch/Desktop/intensity.n5" ).toURI();
+		final Map<ViewId, IntensityTile> intensityTiles = intensitySolver.getIntensityTiles();
+		final Map<ViewId, Coefficients> coefficients = new HashMap<>();
+		intensityTiles.forEach((k, v) -> coefficients.put(k, v.getCoefficients()));
 		try ( final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, uri ) )
 		{
 			IntensityCorrection.writeCoefficients(
 					n5Writer,
 					"",
 					"coefficients",
-					intensitySolver.getIntensityTiles()
+					coefficients
 			);
 		}
 

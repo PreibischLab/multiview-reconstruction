@@ -1,14 +1,18 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RealInterval;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class IntensityCorrection {
@@ -30,28 +34,13 @@ public class IntensityCorrection {
 			final String group,
 			final String dataset,
 			final ViewId viewId,
-			final IntensityTile tile
+			final Coefficients coefficients
 	) {
 		final int setupId = viewId.getViewSetupId();
 		final int timePointId = viewId.getTimePointId();
 		final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
-		System.out.println( "path = " + path );
-
-		final Coefficients coefficients = tile.getScaledCoefficients();
 		CoefficientsIO.save( coefficients, n5Writer, path );
 	}
-
-	static void writeCoefficients(
-			final N5Writer n5Writer,
-			final String group,
-			final String dataset,
-			final Map<ViewId, IntensityTile> coefficientTiles
-	) {
-		coefficientTiles.forEach((viewId, tile) -> {
-			writeCoefficients(n5Writer, group, dataset, viewId, tile);
-		});
-	}
-
 
 	// ┌-----------------------------------------
 	// │          for BigStitcher-Spark
@@ -122,7 +111,10 @@ public class IntensityCorrection {
 			final int[] coefficientsSize
 	) {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
-		return new ViewPairCoefficientMatches(viewId1, viewId2, matcher.match(viewId1, viewId2));
+		final List<CoefficientMatch> match = matcher.match(viewId1, viewId2,
+				// TODO: make arguments
+				1000, 0.1 * 255, 0.1, 10, 3.0);
+		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
 	}
 
 	public static Map<ViewId, Coefficients> solve(
@@ -133,15 +125,21 @@ public class IntensityCorrection {
 		final IntensitySolver solver = new IntensitySolver(coefficientsSize);
 		pairwiseMatches.forEach(solver::connect);
 		solver.solveForGlobalCoefficients(iterations);
-
-		// TODO: fix 1/255 scale for fitting workaround...
-		//       ~~> IntensityMatcher something something
-		// 		 ~~> Coefficients getScaledCoefficients() {
-
 		final Map<ViewId, IntensityTile> intensityTiles = solver.getIntensityTiles();
-		// TODO: into convert Map<ViewId, Coefficients> ior returning
+		final Map<ViewId, Coefficients> coefficients = new HashMap<>();
+		intensityTiles.forEach((k, v) -> coefficients.put(k, v.getCoefficients()));
+		return coefficients;
+	}
 
-		throw new UnsupportedOperationException("TODO: what to return");
+	public static void writeCoefficients(
+			final N5Writer n5Writer,
+			final String group,
+			final String dataset,
+			final Map<ViewId, Coefficients> coefficientTiles
+	) {
+		coefficientTiles.forEach((viewId, tile) -> {
+			writeCoefficients(n5Writer, group, dataset, viewId, tile);
+		});
 	}
 
 

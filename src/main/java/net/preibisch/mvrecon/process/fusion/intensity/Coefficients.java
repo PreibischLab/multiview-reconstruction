@@ -1,16 +1,16 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
-import static net.imglib2.util.Util.safeInt;
-
+import java.io.Serializable;
 import java.util.Arrays;
-
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.util.Intervals;
+
+import static net.imglib2.util.Util.safeInt;
 
 /**
  * Holds flattened coefficient array and dimensions.
  */
-public class Coefficients {
+public class Coefficients implements Serializable {
 
 	private final int[] size;
 	private final int[] strides;

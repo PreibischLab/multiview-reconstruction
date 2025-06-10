@@ -43,13 +43,14 @@ public class RansacRegressionReduceFilter
 
 	private final double maxTrust;
 
-	public RansacRegressionReduceFilter(
-			final FastAffineModel1D model
-	)
-	{
-		this( model, 1000, 0.1, 0.1, 10, 3.0 );
-	}
-
+	/**
+	 * @param model the model to fit
+	 * @param iterations number of RANSAC iterations
+	 * @param maxEpsilon maximal allowed transfer error
+	 * @param minInlierRatio minimal number of inliers to number of candidates
+	 * @param minNumInliers minimally required absolute number of inliers
+	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
+	 */
 	public RansacRegressionReduceFilter(
 			final FastAffineModel1D model,
 			final int iterations,
