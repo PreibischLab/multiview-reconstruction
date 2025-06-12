@@ -131,7 +131,9 @@ public class BlkAffineFusion
 		if ( !supports( is2d, fusionType, intensityAdjustmentModels ) )
 		{
 			if ( intensityAdjustmentCoefficients != null )
+				// TODO: support intensity adjustmen with Coefficients in LazyAffineFusion
 				throw new UnsupportedOperationException( "BlkAffineFusion: Fusion method not supported (yet)." );
+
 			IOFunctions.println( "BlkAffineFusion: Fusion method not supported (yet). Falling back to LazyAffineFusion." );
 			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize );
 		}

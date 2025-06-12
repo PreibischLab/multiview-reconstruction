@@ -12,6 +12,8 @@ import net.imglib2.RealInterval;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
+
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class IntensityCorrection {
@@ -114,6 +116,16 @@ public class IntensityCorrection {
 			final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
 			CoefficientsIO.save(tile, n5Writer, path);
 		});
+	}
+
+	public static Coefficients readCoefficients(
+			final N5Reader n5Reader,
+			final String group,
+			final String dataset,
+			final ViewId viewId
+	) {
+		final String path = getCoefficientsDatasetPath(group, dataset, viewId.getViewSetupId(), viewId.getTimePointId());
+		return CoefficientsIO.load(n5Reader, path);
 	}
 
 	/**
