@@ -75,7 +75,7 @@ class IntensityTileOptimizer {
 			Collections.shuffle(freeTiles);
 
 			final long t1 = System.currentTimeMillis();
-			LOG.debug("Shuffling took {} ms", t1 - t0);
+			System.out.println("Shuffling took {} ms " + (t1 - t0));
 
 			/* initialize the configuration with the current model of each tile */
 			applyAll(tiles, executor);
@@ -122,6 +122,7 @@ class IntensityTileOptimizer {
 				final double error = computeErrors(tiles, executor);
 				observer.add(error);
 
+				System.out.println( i + ": " + error + " " + observer.max);
 				LOG.debug("{}: {} {}", i, error, observer.max);
 
 				if (i > maxPlateauWidth) {
