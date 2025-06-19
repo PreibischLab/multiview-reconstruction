@@ -10,6 +10,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+
+import mpicbg.models.AffineModel1D;
+import mpicbg.models.IdentityModel;
+import mpicbg.models.InterpolatedAffineModel1D;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
@@ -42,6 +48,8 @@ import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,6 +174,8 @@ class IntensityMatcher {
 			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
 			final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
 
+			final List<PointMatch> candidates = new ArrayList<>();
+
 			LoopBuilder.setImages(
 					mask1.view().interval(renderInterval),
 					mask2.view().interval(renderInterval),
@@ -175,22 +185,79 @@ class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble();
 					final double q = v2.getRealDouble();
-					flatCandidates.put(p, q, 1);
+					if ( p > 5 && q > 5 )
+					{
+						flatCandidates.put(p, q, 1);
+						candidates.add( new PointMatch( new Point( new double[] { p }), new Point( new double[] { q } )));
+					}
 				}
 			});
 			flatCandidates.flip();
 
 			if (flatCandidates.size() > 1000) { // TODO: make parameter
-				final FastAffineModel1D model = new FastAffineModel1D();
-				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
-						model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-				final List<PointMatch> reducedMatches = new ArrayList<>();
-				filter.filter(flatCandidates, reducedMatches);
-				if (reducedMatches.isEmpty()) {
+				//final FastAffineModel1D model = new FastAffineModel1D();
+				//final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
+				//		model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+				//final List<PointMatch> reducedMatches = new ArrayList<>();
+
+				/*
+				if ( p1.getViewSetupId() == 0 && p2.getViewSetupId() == 1 && r1.index == 104 && r2.index == 111 )
+				{
+					System.out.println( "flatCandidates.capacity() " + flatCandidates.capacity() );
+					System.out.println( "candidates.size() " + candidates.size() );
+
+					for ( int i = 0; i < candidates.size(); ++i )
+						System.out.println(flatCandidates.p()[0][i] + " > " + flatCandidates.q()[0][i] + ", classic: " + candidates.get( i ).getP1().getL()[ 0 ] + " > " + candidates.get( i ).getP2().getL()[ 0 ] );
+				}
+				*/
+
+				/*
+				if ( p1.getViewSetupId() == 0 && p2.getViewSetupId() == 1 && r1.index == 0 && r2.index == 7 )
+				{
+					for ( int i = 0; i < candidates.size(); ++i )
+						System.out.println( candidates.get( i ).getP1().getL()[ 0 ] + " > " + candidates.get( i ).getP2().getL()[ 0 ] );
+				}
+				*/
+
+				final List<PointMatch> iClassic = new ArrayList<>();
+				final AffineModel1D mClassic = new AffineModel1D();
+				//InterpolatedAffineModel1D mClassic = new InterpolatedAffineModel1D<>( new AffineModel1D(), new IdentityModel(), 0.5 );
+				
+				try {
+					mClassic.filterRansac(candidates, iClassic, iterations, maxEpsilon, minInlierRatio, minNumInliers);
+				} catch (NotEnoughDataPointsException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				//filter.filter(flatCandidates, reducedMatches);
+
+				/*
+				if ( p1.getViewSetupId() == 0 && p2.getViewSetupId() == 1 && r1.index == 104 && r2.index == 111 )
+				{
+					System.out.println("\n matches: " );
+					iClassic.forEach( m -> System.out.println( m.getP1().getL()[ 0 ]  + " >> " + m.getP2().getL()[ 0 ] ));
+				}
+				*/
+
+				/*
+				if ( p1.getViewSetupId() == 0 && p2.getViewSetupId() == 1 && r1.index == 0 && r2.index == 7 )
+				{
+					System.out.println("Found: " + iClassic.size() + " matches. " );
+					//System.out.println("\n matches: " );
+					//iClassic.forEach( m -> System.out.println( m.getP1().getL()[ 0 ]  + " >> " + m.getP2().getL()[ 0 ] ));
+				}
+				*/
+
+				if (iClassic.isEmpty()) {
 					LOG.debug("({}, {}) not matched", r1.index, r2.index);
 				} else {
-					LOG.debug("({}, {}) matched: {}", r1.index, r2.index, model);
-					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
+					LOG.debug("({}, {}) matched: {}", r1.index, r2.index, mClassic);
+					//if ( p1.getViewSetupId() == 0 && p2.getViewSetupId() == 1 && r1.index == 104 && r2.index == 111 )
+					{
+						System.out.println( Group.pvid( p1 ) + "<>" +Group.pvid( p2 ) + " matched: " + r1.index + " > " + r2.index + ", matches=" + iClassic.size() + "/" + flatCandidates.size() + ", model=" + mClassic + ", maxEpislon: " + maxEpsilon  );
+					}
+					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, candidates.size(), iClassic));
 				}
 			}
 		}
