@@ -104,6 +104,7 @@ public class IntensityCorrection {
 		return coefficients;
 	}
 
+	// TODO: this should become part of SpimData2 I'd say? Ultimately this is a property of the dataset that should also be displayed and potentially used during reconstruction
 	public static void writeCoefficients(
 			final N5Writer n5Writer,
 			final String group,
