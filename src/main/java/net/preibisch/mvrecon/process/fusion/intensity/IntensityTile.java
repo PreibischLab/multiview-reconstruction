@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import mpicbg.models.AffineModel1D;
 import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.InterpolatedAffineModel1D;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Tile;
@@ -151,7 +152,13 @@ class IntensityTile {
 		final double[][] coefficients = new double[numCoefficients][n];
 		for (int i = 0; i < n; i++) {
 			final Tile<?> tile = getSubTileAtIndex(i);
-			AffineModel1D model = (AffineModel1D) tile.getModel();
+
+			final AffineModel1D model;
+			if ( InterpolatedAffineModel1D.class.isInstance( tile.getModel() ) )
+				model = ((InterpolatedAffineModel1D<?, ?>)tile.getModel()).createAffineModel1D();
+			else
+				model = (AffineModel1D) tile.getModel();
+
 			final double[] matrix = model.getMatrix(null);
 			final double m00 = matrix[0];
 			final double m01 = matrix[1];
