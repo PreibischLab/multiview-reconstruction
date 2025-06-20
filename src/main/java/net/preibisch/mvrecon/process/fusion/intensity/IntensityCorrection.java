@@ -86,7 +86,7 @@ public class IntensityCorrection {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 		final List<CoefficientMatch> match = matcher.match(viewId1, viewId2,
 				// TODO: make arguments
-				1000, 0.1 * 255, 0.1, 10, 3.0);
+				5.0, 1000, 0.02 * 255, 0.1, 10, 3.0);
 		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
 	}
 
