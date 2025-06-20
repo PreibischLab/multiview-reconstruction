@@ -76,6 +76,7 @@ public class RansacRegressionReduceFilter
 			final MatchIndices flatInliers = model.fastFilterRansac( candidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
 			if ( flatInliers != null )
 			{
+				System.out.println( flatInliers.size() + "/" + candidates.size() );
 				final double[] minMax = minMax( candidates, flatInliers );
 				final double min = minMax[ 0 ];
 				final double max = minMax[ 1 ];
