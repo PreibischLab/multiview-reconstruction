@@ -5,9 +5,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import mpicbg.models.AffineModel1D;
 import mpicbg.models.IdentityModel;
+import mpicbg.models.InterpolatedAffineModel1D;
 import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
+import mpicbg.models.TranslationModel1D;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.iterator.IntervalIterator;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
@@ -20,6 +24,9 @@ import org.slf4j.LoggerFactory;
 class IntensitySolver {
 
 	private static final Logger LOG = LoggerFactory.getLogger(IntensitySolver.class);
+
+	public static double lambda1 = 0.01;
+	public static double lambda2 = 0.01;
 
 	private final int[] numCoefficients;
 
@@ -53,7 +60,12 @@ class IntensitySolver {
 
 	IntensityTile getIntensityTile(final ViewId viewId) {
 		final int nFittingCycles = 1; // TODO: expose parameter (?)
-		return intensityTiles.computeIfAbsent(viewId, v -> new IntensityTile(FastAffineModel1D::new, numCoefficients, nFittingCycles));
+		return intensityTiles.computeIfAbsent(
+				viewId,
+				v -> new IntensityTile(
+						() -> new InterpolatedAffineModel1D<>( new InterpolatedAffineModel1D<>( new AffineModel1D(), new TranslationModel1D(), lambda1), new IdentityModel(), lambda2),//FastAffineModel1D::new,
+						numCoefficients,
+						nFittingCycles));
 	}
 
 	Map<ViewId, IntensityTile> getIntensityTiles() {
