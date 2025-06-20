@@ -83,17 +83,11 @@ class IntensityMatcher {
 		this.renderScale.scale(renderScale);
 	}
 
-	public List<CoefficientMatch> match(
-			final ViewId p1,
-			final ViewId p2
-	) {
-		return match(p1, p2, 1000, 0.1 * 255, 0.1, 10, 3.0);
-	}
-
 	/**
 	 *
 	 * @param p1
 	 * @param p2
+	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
 	 * @param iterations number of RANSAC iterations
 	 * @param maxEpsilon maximal allowed transfer error
 	 * @param minInlierRatio minimal number of inliers to number of candidates
@@ -104,6 +98,7 @@ class IntensityMatcher {
 	public List<CoefficientMatch> match(
 			final ViewId p1,
 			final ViewId p2,
+			final double minIntensity,
 			final int iterations,
 			final double maxEpsilon,
 			final double minInlierRatio,
@@ -175,7 +170,8 @@ class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble();
 					final double q = v2.getRealDouble();
-					flatCandidates.put(p, q, 1);
+					if ( p >= minIntensity && q >= minIntensity )
+						flatCandidates.put(p, q, 1);
 				}
 			});
 			flatCandidates.flip();
