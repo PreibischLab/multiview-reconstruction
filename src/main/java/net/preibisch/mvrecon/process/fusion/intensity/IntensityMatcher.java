@@ -170,6 +170,8 @@ class IntensityMatcher {
 				if (m1.get() != 0 && m2.get() != 0) {
 					final double p = v1.getRealDouble();
 					final double q = v2.getRealDouble();
+
+					// TODO: support that one of the tiles is darker because of bleaching given a (for now user-defined) factor and the number of overlapping tiles
 					if ( p >= minIntensity && q >= minIntensity )
 						flatCandidates.put(p, q, 1);
 				}
