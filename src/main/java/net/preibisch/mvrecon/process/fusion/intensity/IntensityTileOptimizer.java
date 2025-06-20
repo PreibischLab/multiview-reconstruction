@@ -122,6 +122,7 @@ class IntensityTileOptimizer {
 				final double error = computeErrors(tiles, executor);
 				observer.add(error);
 
+				System.out.println( i + ", " + error );
 				LOG.debug("{}: {} {}", i, error, observer.max);
 
 				if (i > maxPlateauWidth) {
