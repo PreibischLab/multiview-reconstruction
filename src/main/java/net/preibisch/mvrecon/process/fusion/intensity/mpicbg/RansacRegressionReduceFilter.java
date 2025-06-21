@@ -25,12 +25,16 @@ import java.util.Collection;
 
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Stephan Saalfeld saalfelds@janelia.hhmi.org
  */
 public class RansacRegressionReduceFilter
 {
+	private static final Logger LOG = LoggerFactory.getLogger(RansacRegressionReduceFilter.class);
+
 	private final FastAffineModel1D model;
 
 	private final int iterations;
@@ -76,7 +80,7 @@ public class RansacRegressionReduceFilter
 			final MatchIndices flatInliers = model.fastFilterRansac( candidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust );
 			if ( flatInliers != null )
 			{
-				System.out.println( flatInliers.size() + "/" + candidates.size() );
+				LOG.debug("inliers/candidates: {}/{}", flatInliers.size(), candidates.size());
 				final double[] minMax = minMax( candidates, flatInliers );
 				final double min = minMax[ 0 ];
 				final double max = minMax[ 1 ];
