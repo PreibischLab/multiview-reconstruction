@@ -83,10 +83,29 @@ public class IntensityCorrection {
 			final double renderScale,
 			final int[] coefficientsSize
 	) {
+		return match(spimData, viewId1, viewId2, renderScale, coefficientsSize,
+				5.0, 250.0, 1000, 1000, 0.02 * 255, 0.1, 10, 3.0);
+	}
+
+	public static ViewPairCoefficientMatches match(
+			final AbstractSpimData<?> spimData,
+			final ViewId viewId1,
+			final ViewId viewId2,
+			final double renderScale,
+			final int[] coefficientsSize,
+			final double minIntensity,
+			final double maxIntensity,
+			final int minNumCandidates,
+			final int iterations,
+			final double maxEpsilon,
+			final double minInlierRatio,
+			final int minNumInliers,
+			final double maxTrust
+	) {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 		final List<CoefficientMatch> match = matcher.match(viewId1, viewId2,
-				// TODO: make arguments
-				5.0, 1000, 0.02 * 255, 0.1, 10, 3.0);
+				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
+				minInlierRatio, minNumInliers, maxTrust);
 		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
 	}
 

@@ -88,6 +88,8 @@ class IntensityMatcher {
 	 * @param p1
 	 * @param p2
 	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
+	 * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
+	 * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
 	 * @param iterations number of RANSAC iterations
 	 * @param maxEpsilon maximal allowed transfer error
 	 * @param minInlierRatio minimal number of inliers to number of candidates
@@ -99,6 +101,8 @@ class IntensityMatcher {
 			final ViewId p1,
 			final ViewId p2,
 			final double minIntensity,
+			final double maxIntensity,
+			final int minNumCandidates,
 			final int iterations,
 			final double maxEpsilon,
 			final double minInlierRatio,
@@ -172,13 +176,14 @@ class IntensityMatcher {
 					final double q = v2.getRealDouble();
 
 					// TODO: support that one of the tiles is darker because of bleaching given a (for now user-defined) factor and the number of overlapping tiles
-					if ( p >= minIntensity && q >= minIntensity )
+					if (p >= minIntensity && q >= minIntensity && p <= maxIntensity && q <= maxIntensity) {
 						flatCandidates.put(p, q, 1);
+					}
 				}
 			});
 			flatCandidates.flip();
 
-			if (flatCandidates.size() > 1000) { // TODO: make parameter
+			if (flatCandidates.size() > minNumCandidates) {
 				final FastAffineModel1D model = new FastAffineModel1D();
 				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
 						model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);

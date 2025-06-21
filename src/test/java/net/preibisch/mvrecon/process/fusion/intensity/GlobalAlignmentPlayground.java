@@ -21,7 +21,9 @@ import util.URITools;
 
 public class GlobalAlignmentPlayground {
 
-	private static final double intensityThreshold = 5.0;
+	private static final double minIntensityThreshold = 5.0;
+	private static final double maxIntensityThreshold = 250.0;
+	private static final int minNumCandidates = 1000;
 	private static final int iterations = 1000;
 	private static final double maxEpsilon = 0.1 * 255;
 	private static final double minInlierRatio = 0.1;
@@ -54,7 +56,7 @@ public class GlobalAlignmentPlayground {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
 					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j],
-							intensityThreshold, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+							minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
 					intensitySolver.connect(views[i], views[j], coefficientMatches);
 					matchesIO.write(views[i], views[j], coefficientMatches);
 				}
