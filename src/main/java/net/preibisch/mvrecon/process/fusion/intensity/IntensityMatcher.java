@@ -85,8 +85,8 @@ class IntensityMatcher {
 
 	/**
 	 *
-	 * @param p1
-	 * @param p2
+	 * @param view1
+	 * @param view2
 	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
 	 * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
 	 * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
@@ -98,8 +98,8 @@ class IntensityMatcher {
 	 * @return
 	 */
 	public List<CoefficientMatch> match(
-			final ViewId p1,
-			final ViewId p2,
+			final ViewId view1,
+			final ViewId view2,
 			final double minIntensity,
 			final double maxIntensity,
 			final int minNumCandidates,
@@ -109,8 +109,42 @@ class IntensityMatcher {
 			final int minNumInliers,
 			final double maxTrust
 	) {
-		final TileInfo t1 = getTileInfo(p1);
-		final TileInfo t2 = getTileInfo(p2);
+		return match(view1, Collections.emptyList(), view2, Collections.emptyList(),
+				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+	}
+
+	/**
+	 *
+	 * @param view1
+	 * @param view1Bleachers
+	 * @param view2
+	 * @param view2Bleachers
+	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
+	 * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
+	 * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
+	 * @param iterations number of RANSAC iterations
+	 * @param maxEpsilon maximal allowed transfer error
+	 * @param minInlierRatio minimal number of inliers to number of candidates
+	 * @param minNumInliers minimally required absolute number of inliers
+	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
+	 * @return
+	 */
+	public List<CoefficientMatch> match(
+			final ViewId view1,
+			final List<ViewId> view1Bleachers,
+			final ViewId view2,
+			final List<ViewId> view2Bleachers,
+			final double minIntensity,
+			final double maxIntensity,
+			final int minNumCandidates,
+			final int iterations,
+			final double maxEpsilon,
+			final double minInlierRatio,
+			final int minNumInliers,
+			final double maxTrust
+	) {
+		final TileInfo t1 = getTileInfo(view1);
+		final TileInfo t2 = getTileInfo(view2);
 
 		// Find the overlap between the ViewIds (in global coordinates).
 		// This is where we need to look for overlapping CoefficientRegions.
