@@ -13,10 +13,12 @@ import java.util.function.Supplier;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPoint;
@@ -51,6 +53,8 @@ import static net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension.bor
 import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear;
 
 class IntensityMatcher {
+
+										private static final boolean NO_SOLVE = true;
 
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
@@ -199,23 +203,32 @@ class IntensityMatcher {
 			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
 			final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
 
-			LoopBuilder.setImages(
-					mask1.view().interval(renderInterval),
-					mask2.view().interval(renderInterval),
-					scaledTile1.view().interval(renderInterval),
-					scaledTile2.view().interval(renderInterval)
-			).forEachPixel((m1, m2, v1, v2) -> {
-				if (m1.get() != 0 && m2.get() != 0) {
-					final double p = v1.getRealDouble();
-					final double q = v2.getRealDouble();
+			final Cursor<UnsignedByteType> cMask1 = mask1.view().interval(renderInterval).flatIterable().cursor();
+			final Cursor<UnsignedByteType> cMask2 = mask2.view().interval(renderInterval).flatIterable().cursor();
+			final RandomAccess<? extends RealType<?>> raTile1 = scaledTile1.randomAccess();
+			final RandomAccess<? extends RealType<?>> raTile2 = scaledTile2.randomAccess();
+			while (cMask1.hasNext()) {
+				final boolean m1 = cMask1.next().get() != 0;
+				final boolean m2 = cMask2.next().get() != 0;
+				if (m1 && m2) {
+					raTile1.setPosition(cMask1);
+					final double p = raTile1.get().getRealDouble();
+					if (p < minIntensity || p > maxIntensity)
+						continue;
+
+					raTile2.setPosition(cMask1);
+					final double q = raTile2.get().getRealDouble();
+					if (q < minIntensity || q > maxIntensity)
+						continue;
 
 					// TODO: support that one of the tiles is darker because of bleaching given a (for now user-defined) factor and the number of overlapping tiles
-					if (p >= minIntensity && q >= minIntensity && p <= maxIntensity && q <= maxIntensity) {
-						flatCandidates.put(p, q, 1);
-					}
+					flatCandidates.put(p, q, 1);
 				}
-			});
+			}
 			flatCandidates.flip();
+
+			if ( NO_SOLVE )
+				return coefficientMatches;
 
 			if (flatCandidates.size() > minNumCandidates) {
 				final FastAffineModel1D model = new FastAffineModel1D();
