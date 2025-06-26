@@ -1,6 +1,7 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,6 +16,9 @@ import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.Coefficie
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+
+import static net.imglib2.util.Intervals.intersect;
+import static net.imglib2.util.Intervals.isEmpty;
 
 public class IntensityCorrection {
 
@@ -76,6 +80,37 @@ public class IntensityCorrection {
 		return IntensityMatcher.getBounds(tile);
 	}
 
+	/**
+	 * Given a list of {@code ViewIds} in the order they were acquired (such
+	 * that views later in the list have been potentially bleached by earlier
+	 * views), finds for each {@code ViewId} the potential "bleachers" (earlier
+	 * views with overlapping bounds).
+	 *
+	 * @param views list of all {@code ViewIds} in the order they were acquired
+	 * @param viewBounds maps {@code ViewId} to bounding box in world coordinates
+	 * @return maps every ViewId to the ViewIds of potential bleachers
+	 */
+	public static Map<ViewId, List<ViewId>> getPotentialBleachers(
+			final List<ViewId> views,
+			final Map<ViewId, RealInterval> viewBounds
+	) {
+		final Map<ViewId, List<ViewId>> viewBleachers = new HashMap<>();
+		for (int i = 0; i < views.size(); ++i) {
+			final ViewId view0 = views.get(i);
+			final RealInterval bounds0 = viewBounds.get(view0);
+			final List<ViewId> bleachers = new ArrayList<>();
+			viewBleachers.put(view0, bleachers);
+			for (int j = 0; j < i; ++j) {
+				final ViewId view1 = views.get(j);
+				final RealInterval bounds1 = viewBounds.get(view1);
+				if (!isEmpty(intersect(bounds0, bounds1))) {
+					bleachers.add(view1);
+				}
+			}
+		}
+		return viewBleachers;
+	}
+
 	public static ViewPairCoefficientMatches match(
 			final AbstractSpimData<?> spimData,
 			final ViewId viewId1,
@@ -104,6 +139,31 @@ public class IntensityCorrection {
 	) {
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 		final List<CoefficientMatch> match = matcher.match(viewId1, viewId2,
+				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
+				minInlierRatio, minNumInliers, maxTrust);
+		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
+	}
+
+	public static ViewPairCoefficientMatches match(
+			final AbstractSpimData<?> spimData,
+			final ViewId viewId1,
+			final List<ViewId> viewId1Bleachers,
+			final ViewId viewId2,
+			final List<ViewId> viewId2Bleachers,
+			final UnbleachFunction unbleachFunction,
+			final double renderScale,
+			final int[] coefficientsSize,
+			final double minIntensity,
+			final double maxIntensity,
+			final int minNumCandidates,
+			final int iterations,
+			final double maxEpsilon,
+			final double minInlierRatio,
+			final int minNumInliers,
+			final double maxTrust
+	) {
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize, unbleachFunction);
+		final List<CoefficientMatch> match = matcher.match(viewId1, viewId1Bleachers, viewId2, viewId2Bleachers,
 				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
 				minInlierRatio, minNumInliers, maxTrust);
 		return new ViewPairCoefficientMatches(viewId1, viewId2, match);

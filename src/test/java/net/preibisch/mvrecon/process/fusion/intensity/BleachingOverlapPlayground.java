@@ -1,9 +1,10 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -15,13 +16,23 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RealInterval;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-
-import static net.imglib2.util.Intervals.intersect;
-import static net.imglib2.util.Intervals.isEmpty;
+import org.slf4j.LoggerFactory;
 
 public class BleachingOverlapPlayground
 {
+	private static final double minIntensityThreshold = 5.0;
+	private static final double maxIntensityThreshold = 250.0;
+	private static final int minNumCandidates = 1000;
+	private static final int iterations = 1000;
+	private static final double maxEpsilon = 0.1 * 255;
+	private static final double minInlierRatio = 0.1;
+	private static final int minNumInliers = 10;
+	private static final double maxTrust = 3.0;
+
 	public static void main(String[] args) throws URISyntaxException, SpimDataException, IOException {
+
+		Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+		root.setLevel(Level.WARN);
 
 		final URI xml = new URI("file:/Users/pietzsch/Desktop/data/Janelia/keller-shadingcorrected/dataset.xml");
 		final XmlIoSpimData2 io = new XmlIoSpimData2();
@@ -42,43 +53,28 @@ public class BleachingOverlapPlayground
 		}
 
 		// maps every ViewId to the ViewIds of potential "bleachers" (other views with overlapping bounds)
-		final Map<ViewId, List<ViewId>> bleachers = getPotentialBleachers(views, viewBounds);
+		final Map<ViewId, List<ViewId>> bleachers = IntensityCorrection.getPotentialBleachers(views, viewBounds);
 		for (final ViewId view : views) {
 			System.out.println(view.getViewSetupId() + " : " +
 					Arrays.toString(bleachers.get(view).stream()
 							.mapToInt(ViewId::getViewSetupId)
 							.toArray()));
 		}
-	}
 
-	/**
-	 * Given a list of {@code ViewIds} in the order they were acquired (such
-	 * that views later in the list have been potentially bleached by earlier
-	 * views), finds for each {@code ViewId} the potential "bleachers" (earlier
-	 * views with overlapping bounds).
-	 *
-	 * @param views list of all {@code ViewIds} in the order they were acquired
-	 * @param viewBounds maps {@code ViewId} to bounding box in world coordinates
-	 * @return maps every ViewId to the ViewIds of potential bleachers
-	 */
-	public static Map<ViewId, List<ViewId>> getPotentialBleachers(
-			final List<ViewId> views,
-			final Map<ViewId, RealInterval> viewBounds
-	) {
-		final Map<ViewId, List<ViewId>> viewBleachers = new HashMap<>();
+		final double renderScale = 0.25;
+		int[] coefficientsSize = {8, 8, 8};
+		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 		for (int i = 0; i < views.size(); ++i) {
-			final ViewId view0 = views.get(i);
-			final RealInterval bounds0 = viewBounds.get(view0);
-			final List<ViewId> bleachers = new ArrayList<>();
-			viewBleachers.put(view0, bleachers);
-			for (int j = 0; j < i; ++j) {
-				final ViewId view1 = views.get(j);
-				final RealInterval bounds1 = viewBounds.get(view1);
-				if (!isEmpty(intersect(bounds0, bounds1))) {
-					bleachers.add(view1);
-				}
+			final ViewId view1 = views.get(i);
+			final List<ViewId> view1Bleachers = bleachers.get(view1);
+			for (int j = i + 1; j < views.size(); ++j) {
+				final ViewId view2 = views.get(j);
+				final List<ViewId> view2Bleachers = bleachers.get(view2);
+				matcher.match(view1, view1Bleachers, view2, view2Bleachers,
+						minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations,
+						maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
 			}
 		}
-		return viewBleachers;
+
 	}
 }

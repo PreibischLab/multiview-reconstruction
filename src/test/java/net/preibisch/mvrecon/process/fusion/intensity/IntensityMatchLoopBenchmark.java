@@ -20,7 +20,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 
-import static net.preibisch.mvrecon.process.fusion.intensity.BleachingOverlapPlayground.getPotentialBleachers;
+import static net.preibisch.mvrecon.process.fusion.intensity.IntensityCorrection.getPotentialBleachers;
 
 public class IntensityMatchLoopBenchmark {
 
@@ -72,9 +72,11 @@ public class IntensityMatchLoopBenchmark {
 			final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
 			for (int i = 0; i < views.size(); ++i) {
 				final ViewId view1 = views.get(i);
+				final List<ViewId> view1Bleachers = bleachers.get(view1);
 				for (int j = i + 1; j < views.size(); ++j) {
 					final ViewId view2 = views.get(j);
-					matcher.match(view1, view2,
+					final List<ViewId> view2Bleachers = bleachers.get(view2);
+					matcher.match(view1, view1Bleachers, view2, view2Bleachers,
 							minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations,
 							maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
 				}

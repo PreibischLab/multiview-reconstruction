@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
@@ -27,7 +28,6 @@ import net.imglib2.blocks.BlockInterval;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
-import net.imglib2.loops.LoopBuilder;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
@@ -54,8 +54,6 @@ import static net.imglib2.view.fluent.RandomAccessibleView.Interpolation.nLinear
 
 class IntensityMatcher {
 
-										private static final boolean NO_SOLVE = true;
-
 	private static final Logger LOG = LoggerFactory.getLogger(IntensityMatcher.class);
 
 	final AbstractSpimData<?> spimData;
@@ -69,22 +67,34 @@ class IntensityMatcher {
 
 	private final Map<ViewId, TileInfo> tileInfos = new ConcurrentHashMap<>();
 
+	private final UnbleachFunction unbleach;
 
 	/**
 	 * @param spimData
 	 * @param renderScale
 	 * 		at which scale to sample images. For example, {@code renderScale = 0.25} means using 4 x downsampled images.
 	 * @param coefficientsSize
+	 * @param unbleach
 	 */
+	IntensityMatcher(
+			final AbstractSpimData<?> spimData,
+			final double renderScale,
+			final int[] coefficientsSize,
+			final UnbleachFunction unbleach
+	) {
+		this.spimData = spimData;
+		this.numCoefficients = coefficientsSize;
+		this.unbleach = unbleach;
+		this.renderScale = new AffineTransform3D();
+		this.renderScale.scale(renderScale);
+	}
+
 	IntensityMatcher(
 			final AbstractSpimData<?> spimData,
 			final double renderScale,
 			final int[] coefficientsSize
 	) {
-		this.spimData = spimData;
-		this.numCoefficients = coefficientsSize;
-		this.renderScale = new AffineTransform3D();
-		this.renderScale.scale(renderScale);
+		this(spimData, renderScale, coefficientsSize, (v, i) -> v);
 	}
 
 	/**
@@ -176,6 +186,14 @@ class IntensityMatcher {
 		LOG.debug("found {} CoefficientRegions of t2 in overlap.", r2s.size());
 		LOG.debug("found {} CoefficientRegion pairs.", pairs.size());
 
+		final List<RandomAccess<UnsignedByteType>> view1BleacherMasks = view1Bleachers.stream()
+				.map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
+				.map(RandomAccessible::randomAccess)
+				.collect(Collectors.toList());
+		final List<RandomAccess<UnsignedByteType>> view2BleacherMasks = view2Bleachers.stream()
+				.map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
+				.map(RandomAccessible::randomAccess)
+				.collect(Collectors.toList());
 
 		// Next steps:
 		// [ ] blk optimizations? E.g., render and match single line from both coefficient masks?
@@ -212,23 +230,33 @@ class IntensityMatcher {
 				final boolean m2 = cMask2.next().get() != 0;
 				if (m1 && m2) {
 					raTile1.setPosition(cMask1);
-					final double p = raTile1.get().getRealDouble();
+					double p = raTile1.get().getRealDouble();
 					if (p < minIntensity || p > maxIntensity)
 						continue;
 
 					raTile2.setPosition(cMask1);
-					final double q = raTile2.get().getRealDouble();
+					double q = raTile2.get().getRealDouble();
 					if (q < minIntensity || q > maxIntensity)
 						continue;
 
-					// TODO: support that one of the tiles is darker because of bleaching given a (for now user-defined) factor and the number of overlapping tiles
+					int numBleaches1 = 0;
+					for (final RandomAccess<UnsignedByteType> b : view1BleacherMasks) {
+						if (b.setPositionAndGet(cMask1).get() != 0)
+							++numBleaches1;
+					}
+					p = unbleach.unbleach(p, numBleaches1);
+
+					int numBleaches2 = 0;
+					for (final RandomAccess<UnsignedByteType> b : view2BleacherMasks) {
+						if (b.setPositionAndGet(cMask1).get() != 0)
+							++numBleaches2;
+					}
+					q = unbleach.unbleach(q, numBleaches2);
+
 					flatCandidates.put(p, q, 1);
 				}
 			}
 			flatCandidates.flip();
-
-			if ( NO_SOLVE )
-				return coefficientMatches;
 
 			if (flatCandidates.size() > minNumCandidates) {
 				final FastAffineModel1D model = new FastAffineModel1D();
@@ -263,6 +291,26 @@ class IntensityMatcher {
 				scaleToGrid.apply(pos, gridRealPos);
 				for (int d = 0; d < 3; ++d) {
 					if (coeffPos[d] != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
+						value.set(0);
+						return;
+					}
+				}
+				value.set(1);
+			};
+		};
+		return new FunctionRandomAccessible<>(3, supplier, UnsignedByteType::new);
+	}
+
+	private static RandomAccessible<UnsignedByteType> scaleTileBounds(final AffineTransform3D renderScale, final TileInfo tile) {
+		final AffineTransform3D scaleToUnit = new AffineTransform3D();
+		scaleToUnit.set(tile.unitBoundsToWorldTransform.inverse());
+		scaleToUnit.concatenate(renderScale.inverse());
+		final Supplier<BiConsumer<Localizable, ? super UnsignedByteType>> supplier = () -> {
+			final RealPoint gridRealPos = new RealPoint(3);
+			return (pos, value) -> {
+				scaleToUnit.apply(pos, gridRealPos);
+				for (int d = 0; d < 3; ++d) {
+					if (0 != (int) Math.floor(gridRealPos.getDoublePosition(d))) {
 						value.set(0);
 						return;
 					}

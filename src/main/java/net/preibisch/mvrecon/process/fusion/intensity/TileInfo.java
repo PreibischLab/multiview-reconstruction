@@ -33,15 +33,21 @@ class TileInfo {
 	final AffineTransform3D coeffCenterTransform;
 
 	/**
-	 * coefficient coordinate to min bound of coefficient region center in image coordinates
+	 * coefficient coordinate to min bound of coefficient region in image coordinates
 	 */
 	final AffineTransform3D coeffBoundsTransform;
 
 	/**
-	 * coefficient coordinate to min bound of coefficient region center in world coordinates
+	 * coefficient coordinate to min bound of coefficient region in world coordinates
 	 * (i.e., {@code model * coeffBoundsTransform})
 	 */
 	final AffineTransform3D coeffBoundsToWorldTransform;
+
+	/**
+	 * [0,1] to image region in world coordinates
+	 * (i.e., map 0 to 0, 1 to dimension[d], then map to world coordinates
+	 */
+	final AffineTransform3D unitBoundsToWorldTransform;
 
 	private final MultiResolutionSetupImgLoader<?> setupImgLoader;
 	private final int timepointId;
@@ -89,6 +95,18 @@ class TileInfo {
 		coeffBoundsToWorldTransform = new AffineTransform3D();
 		coeffBoundsToWorldTransform.set(model);
 		coeffBoundsToWorldTransform.concatenate(coeffBoundsTransform);
+
+		final AffineTransform3D unitBoundsTransform = new AffineTransform3D();
+		Arrays.setAll(scale, d -> (double) dimensions.dimension(d));
+		unitBoundsTransform.set(
+				scale[0], 0, 0, -0.5,
+				0, scale[1], 0, -0.5,
+				0, 0, scale[2], -0.5
+		);
+
+		unitBoundsToWorldTransform = new AffineTransform3D();
+		unitBoundsToWorldTransform.set(model);
+		unitBoundsToWorldTransform.concatenate(unitBoundsTransform);
 	}
 
 	/**
