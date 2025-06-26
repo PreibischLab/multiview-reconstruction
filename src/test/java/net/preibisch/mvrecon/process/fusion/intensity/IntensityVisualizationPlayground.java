@@ -76,7 +76,7 @@ public class IntensityVisualizationPlayground {
 
 
 
-		final URI coefficientsUri = new File("/Users/pietzsch/Desktop/intensity.n5").toURI();
+		final URI coefficientsUri = new File("/Users/pietzsch/Desktop/intensity_spark.n5").toURI();
 		final N5Reader n5Reader = URITools.instantiateN5Reader(StorageFormat.N5, coefficientsUri);
 
 		final AtomicBoolean enableIntensityCorrection = new AtomicBoolean(false);
@@ -87,7 +87,7 @@ public class IntensityVisualizationPlayground {
 			final int setupId = getSetupId(source.getSpimSource());
 			final IntFunction<Coefficients> timepointToCoefficients = timepointIndex -> {
 				final int timepointId = seq.getTimePoints().getTimePointsOrdered().get(timepointIndex).getId();
-				final String path = IntensityCorrection.getCoefficientsDatasetPath("", "coefficients", setupId, timepointId);
+				final String path = IntensityCorrection.getCoefficientsDatasetPath("", "intensity", setupId, timepointId);
 				System.out.println("path = " + path);
 				return CoefficientsIO.load(n5Reader, path);
 			};
