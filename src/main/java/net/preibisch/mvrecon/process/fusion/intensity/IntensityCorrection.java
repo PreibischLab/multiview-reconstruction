@@ -119,7 +119,7 @@ public class IntensityCorrection {
 			final int[] coefficientsSize
 	) {
 		return match(spimData, viewId1, viewId2, renderScale, coefficientsSize,
-				5.0, 250.0, 1000, 1000, 0.02 * 255, 0.1, 10, 3.0);
+				1.0, Double.NaN, 1000, 1000, 0.02 * 255, 0.1, 10, 3.0);
 	}
 
 	public static ViewPairCoefficientMatches match(

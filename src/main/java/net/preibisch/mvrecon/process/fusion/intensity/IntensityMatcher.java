@@ -225,18 +225,22 @@ class IntensityMatcher {
 			final Cursor<UnsignedByteType> cMask2 = mask2.view().interval(renderInterval).flatIterable().cursor();
 			final RandomAccess<? extends RealType<?>> raTile1 = scaledTile1.randomAccess();
 			final RandomAccess<? extends RealType<?>> raTile2 = scaledTile2.randomAccess();
+
+			final boolean hasMinIntensity = Double.isFinite( minIntensity );
+			final boolean hasMaxIntensity = Double.isFinite( maxIntensity );
+
 			while (cMask1.hasNext()) {
 				final boolean m1 = cMask1.next().get() != 0;
 				final boolean m2 = cMask2.next().get() != 0;
 				if (m1 && m2) {
 					raTile1.setPosition(cMask1);
 					double p = raTile1.get().getRealDouble();
-					if (p < minIntensity || p > maxIntensity)
+					if ( ( hasMinIntensity && p < minIntensity ) || ( hasMaxIntensity && p > maxIntensity ) )
 						continue;
 
 					raTile2.setPosition(cMask1);
 					double q = raTile2.get().getRealDouble();
-					if (q < minIntensity || q > maxIntensity)
+					if ( ( hasMinIntensity && q < minIntensity ) || ( hasMaxIntensity && q > maxIntensity ) )
 						continue;
 
 					int numBleaches1 = 0;
