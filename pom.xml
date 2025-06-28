@@ -280,6 +280,7 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		</dependency>
 
 		<!-- JavaFX (system scope) -->
+	<!--
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
@@ -295,8 +296,8 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>javafx-swing</artifactId>
 			<version>21</version>
 		</dependency>
+	-->
 	</dependencies>
-
 	<profiles>
 	<profile>
 			<id>fatjar</id>
