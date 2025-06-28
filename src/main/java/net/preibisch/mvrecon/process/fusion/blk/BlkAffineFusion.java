@@ -9,12 +9,12 @@
  * it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 2 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
@@ -63,6 +63,8 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
+import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
+import net.preibisch.mvrecon.process.fusion.intensity.FastLinearIntensityMap;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -82,6 +84,43 @@ public class BlkAffineFusion
 			final T type,
 			final int[] blockSize )
 	{
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod,
+				intensityAdjustments, null,
+				fusionInterval, type, blockSize );
+	}
+
+	public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > initWithIntensityCoefficients(
+			final Converter< FloatType, T > converter,
+			final BasicImgLoader imgloader,
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
+			final FusionType fusionType,
+			final int interpolationMethod,
+			final Map< ViewId, Coefficients > intensityAdjustments,
+			final Interval fusionInterval,
+			final T type,
+			final int[] blockSize )
+	{
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod,
+				null, intensityAdjustments,
+				fusionInterval, type, blockSize );
+	}
+
+	private static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > init(
+			final Converter< FloatType, T > converter,
+			final BasicImgLoader imgloader,
+			final Collection< ? extends ViewId > viewIds,
+			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
+			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
+			final FusionType fusionType,
+			final int interpolationMethod,
+			final Map< ViewId, AffineModel1D > intensityAdjustmentModels,
+			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients,
+			final Interval fusionInterval,
+			final T type,
+			final int[] blockSize )
+	{
 		// go through the views and check if they are all 2-dimensional
 		final boolean is2d = viewIds.stream()
 				.map( viewDescriptions::get )
@@ -89,10 +128,14 @@ public class BlkAffineFusion
 				.filter( BasicViewSetup::hasSize )
 				.allMatch( vs -> vs.getSize().dimension( 2 ) == 1 );
 
-		if ( !supports( is2d, fusionType, intensityAdjustments ) )
+		if ( !supports( is2d, fusionType, intensityAdjustmentModels ) )
 		{
+			if ( intensityAdjustmentCoefficients != null )
+				// TODO: support intensity adjustmen with Coefficients in LazyAffineFusion
+				throw new UnsupportedOperationException( "BlkAffineFusion: Fusion method not supported (yet)." );
+
 			IOFunctions.println( "BlkAffineFusion: Fusion method not supported (yet). Falling back to LazyAffineFusion." );
-			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustments, fusionInterval, type, blockSize );
+			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize );
 		}
 
 		final HashMap< ViewId, Dimensions > viewDimensions = LazyFusionTools.assembleDimensions( viewIds, viewDescriptions );
@@ -130,8 +173,11 @@ public class BlkAffineFusion
 
 			final AffineTransform3D transform = concatenateBoundingBoxOffset( model, fusionInterval );
 
+			final Coefficients coefficients = intensityAdjustmentCoefficients == null ? null : intensityAdjustmentCoefficients.get( viewId );
+
 			final BlockSupplier< FloatType > viewBlocks = transformedBlocks(
 					Cast.unchecked( inputImg ),
+					coefficients,
 					transform, interpolation );
 			images.add( viewBlocks );
 
@@ -234,12 +280,15 @@ public class BlkAffineFusion
 
 	private static < T extends NativeType< T > > BlockSupplier< FloatType > transformedBlocks(
 			final RandomAccessibleInterval< T > inputImg,
+			final Coefficients coefficients,
 			final AffineTransform3D transform,
 			final Interpolation interpolation )
 	{
-		return BlockSupplier.of( extendInput( inputImg ) )
-				.andThen( Convert.convert( new FloatType() ) )
-				.andThen( Transform.affine( transform, interpolation ) );
+		BlockSupplier< FloatType > blocks = BlockSupplier.of( extendInput( inputImg ) )
+				.andThen( Convert.convert( new FloatType() ) );
+		if ( coefficients != null )
+			blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
+		return blocks.andThen( Transform.affine( transform, interpolation ) );
 	}
 
 	private static < T extends NativeType< T > > RandomAccessible< T > extendInput(

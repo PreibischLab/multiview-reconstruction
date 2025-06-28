@@ -35,10 +35,12 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.util.Date;
 import java.util.regex.Pattern;
 
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -147,6 +149,10 @@ public class URITools
 				e.printStackTrace();
 				throw new RuntimeException( "An unexpected URI syntax error occured for '" + uri + "': " + e );
 			}
+		}
+		else if ( URITools.isFile( uri ) )
+		{
+			return new FileSystemKeyValueAccess( FileSystems.getDefault() );
 		}
 		else
 		{
