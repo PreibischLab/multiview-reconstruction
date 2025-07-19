@@ -636,7 +636,7 @@ public class ExportN5Api implements ImgExport
 
 		PluginHelper.addCompression( gdInit, false );
 
-		gdInit.addCheckbox( "Create a BDV/BigStitcher compatible export", defaultBDV );
+		gdInit.addCheckbox( "Create_a_BDV/BigStitcher compatible export", defaultBDV );
 
 		gdInit.addMessage(
 				"HDF5/BDV currently only supports 8-bit, 16-bit\n"
@@ -649,7 +649,7 @@ public class ExportN5Api implements ImgExport
 				+ "add the fused image to an existing dataset so you can specify a ViewId that does not exist yet.",
 				GUIHelper.smallStatusFont, GUIHelper.neutral );
 
-		gdInit.addCheckbox( "Create multi-resolution pyramid", defaultMultiRes );
+		gdInit.addCheckbox( "Create_multi-resolution pyramid", defaultMultiRes );
 
 		gdInit.showDialog();
 		if ( gdInit.wasCanceled() )
