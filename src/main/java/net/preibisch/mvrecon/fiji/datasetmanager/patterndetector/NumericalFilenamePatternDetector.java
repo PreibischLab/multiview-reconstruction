@@ -238,44 +238,4 @@ public class NumericalFilenamePatternDetector implements FilenamePatternDetector
 	@Override
 	public int getNumVariables(){return variables.size();}
 	
-	public static void main(String[] args)
-	{
-		List< String > files = null;
-		try
-		{
-			Stream< Path > w = Files.list( Paths.get( "/Users/david/Desktop/Bordeaux/BIC Reconstruction/170331_EA810_Fred_MosZXY_Nocrop_12-36-22/" ));
-			
-					files = w.filter( new Predicate< Path >()
-					{
-
-						boolean res = false;
-						@Override
-						public boolean test(Path t)
-						{
-							try
-							{
-								res = Files.size( t ) > 100000;
-							}
-							catch ( IOException e )
-							{
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							return res;
-						}
-					} ).map( p -> p.toFile().getAbsolutePath()).collect( Collectors.toList() );
-		}
-		catch ( IOException e )
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		System.out.println( files.get( 0 ) );
-		
-		Pair< List< String >, List< List< String > > > detectNumericPatterns = detectNumericPatterns( files );
-		
-		
-	}
-	
 }
