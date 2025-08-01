@@ -41,7 +41,6 @@ import bdv.viewer.ViewerPanel;
 import bdv.viewer.ViewerState;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.util.Intervals;
 
 public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< AffineTransform3D >
 {
@@ -52,8 +51,21 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 	// For smooth interpolation
 	private java.util.Map< Integer, OverlayInfo > overlayMemory = new java.util.concurrent.ConcurrentHashMap<>();
 	private double previousZoomLevel = 1.0;
-	private long lastUpdateTime = System.currentTimeMillis();
 	private static final double INTERPOLATION_SPEED = 0.15; // How fast to interpolate (0-1, higher = faster)
+	
+	// Performance optimization caches
+	private final double[] cachedGlobalPlanePoint = new double[3];
+	private final double[] cachedGlobalNormal = new double[3];
+	private boolean cacheValid = false;
+	private int lastTimepoint = -1;
+	private long lastTransformHash = 0;
+	
+	// Reusable objects to avoid garbage collection
+	private final double[] tempSourceCenter = new double[3];
+	private final double[] tempGlobalCenter = new double[3];
+	private final double[] tempScreenCenter = new double[3];
+	private final double[] tempSourceCorner = new double[3];
+	private final double[] tempGlobalCorner = new double[3];
 
 	public ViewSetupIdOverlay( final ViewerPanel viewer )
 	{
@@ -84,6 +96,9 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		final List< SourceAndConverter< ? > > sources = state.getSources();
 		final int timepoint = state.getCurrentTimepoint();
 
+		// Update plane cache once per frame for performance
+		updatePlaneCache( timepoint );
+		
 		// Collect all visible sources and their screen positions
 		final java.util.List< OverlayInfo > overlayInfos = new java.util.ArrayList<>();
 		final java.util.Set< Integer > currentViewSetupIds = new java.util.HashSet<>();
@@ -211,9 +226,7 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		double x, y; // Original center position (updated each frame)
 		double displayX, displayY; // Current display position (may be offset for separation)
 		double targetX, targetY; // Target display position for smooth interpolation
-		double previousDisplayX, previousDisplayY; // Previous display position for interpolation
-		boolean hasValidPreviousPosition; // Whether previous position is valid for interpolation
-		
+
 		OverlayInfo( final int viewSetupId, final double x, final double y )
 		{
 			this.viewSetupId = viewSetupId;
@@ -223,9 +236,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			this.displayY = y;
 			this.targetX = x;
 			this.targetY = y;
-			this.previousDisplayX = x;
-			this.previousDisplayY = y;
-			this.hasValidPreviousPosition = false;
 		}
 	}
 
@@ -371,7 +381,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 	private void interpolatePositions( final java.util.List< OverlayInfo > overlayInfos, final double zoomLevel )
 	{
 		final long currentTime = System.currentTimeMillis();
-		final double deltaTime = Math.min( 50, currentTime - lastUpdateTime ) / 1000.0; // Cap at 50ms for stability
 		lastUpdateTime = currentTime;
 		
 		// Adjust interpolation speed based on zoom changes
@@ -381,10 +390,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		
 		for ( final OverlayInfo info : overlayInfos )
 		{
-			// Store previous position for next frame
-			info.previousDisplayX = info.displayX;
-			info.previousDisplayY = info.displayY;
-			
 			// Interpolate towards target position
 			final double dx = info.targetX - info.displayX;
 			final double dy = info.targetY - info.displayY;
@@ -393,11 +398,9 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			final double distance = Math.sqrt( dx * dx + dy * dy );
 			final double dampingFactor = Math.min( 1.0, distance * 0.01 ); // Slow down when close to target
 			final double effectiveSpeed = interpolationFactor * dampingFactor;
-			
+
 			info.displayX += dx * effectiveSpeed;
 			info.displayY += dy * effectiveSpeed;
-			
-			info.hasValidPreviousPosition = true;
 		}
 		
 		previousZoomLevel = zoomLevel;
@@ -423,6 +426,54 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			javax.swing.SwingUtilities.invokeLater( () -> viewer.repaint() );
 		}
 	}
+	
+	private void updatePlaneCache( final int timepoint )
+	{
+		// Calculate hash of current transform state
+		final long currentTransformHash;
+		synchronized ( viewerTransform )
+		{
+			currentTransformHash = java.util.Arrays.hashCode( viewerTransform.getRowPackedCopy() );
+		}
+		
+		// Check if cache needs updating
+		if ( cacheValid && lastTimepoint == timepoint && lastTransformHash == currentTransformHash )
+		{
+			return; // Cache is still valid
+		}
+		
+		synchronized ( viewerTransform )
+		{
+			// Cache viewer plane position in global coordinates
+			final double[] viewerPlanePoint = { 0, 0, 0 };
+			viewerTransform.inverse().apply( viewerPlanePoint, cachedGlobalPlanePoint );
+			
+			// Cache viewer plane normal in global coordinates
+			final double[] viewerNormal = { 0, 0, 1 };
+			final AffineTransform3D normalTransform = viewerTransform.inverse().copy();
+			normalTransform.set( 0, 0, 3 ); // Remove translation for vector transform
+			normalTransform.set( 0, 1, 3 );
+			normalTransform.set( 0, 2, 3 );
+			normalTransform.apply( viewerNormal, cachedGlobalNormal );
+			
+			// Normalize the normal vector
+			final double normalLength = Math.sqrt( 
+				cachedGlobalNormal[0] * cachedGlobalNormal[0] + 
+				cachedGlobalNormal[1] * cachedGlobalNormal[1] + 
+				cachedGlobalNormal[2] * cachedGlobalNormal[2] 
+			);
+			if ( normalLength > 0 )
+			{
+				cachedGlobalNormal[0] /= normalLength;
+				cachedGlobalNormal[1] /= normalLength;
+				cachedGlobalNormal[2] /= normalLength;
+			}
+		}
+		
+		cacheValid = true;
+		lastTimepoint = timepoint;
+		lastTransformHash = currentTransformHash;
+	}
 
 	private double[] calculateImageCenter( final Source< ? > source, final int timepoint )
 	{
@@ -437,29 +488,27 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			final AffineTransform3D sourceToGlobal = new AffineTransform3D();
 			source.getSourceTransform( timepoint, 0, sourceToGlobal );
 
-			// Check if the source intersects with the current viewer plane
-			if ( !intersectsCurrentViewerPlane( sourceInterval, sourceToGlobal ) )
+			// Check if the source intersects with the current viewer plane (using cached data)
+			if ( !intersectsCurrentViewerPlaneOptimized( sourceInterval, sourceToGlobal ) )
 				return null;
 
-			// Calculate center in source coordinates
-			final double[] sourceCenter = new double[ 3 ];
+			// Calculate center in source coordinates using reusable array
 			for ( int d = 0; d < 3; d++ )
 			{
-				sourceCenter[d] = ( sourceInterval.min( d ) + sourceInterval.max( d ) ) / 2.0;
+				tempSourceCenter[d] = ( sourceInterval.min( d ) + sourceInterval.max( d ) ) / 2.0;
 			}
 
-			// Transform to global coordinates
-			final double[] globalCenter = new double[ 3 ];
-			sourceToGlobal.apply( sourceCenter, globalCenter );
+			// Transform to global coordinates using reusable array
+			sourceToGlobal.apply( tempSourceCenter, tempGlobalCenter );
 
-			// Transform to screen coordinates using viewer transform
-			final double[] screenCenter = new double[ 3 ];
+			// Transform to screen coordinates using viewer transform and reusable array
 			synchronized ( viewerTransform )
 			{
-				viewerTransform.apply( globalCenter, screenCenter );
+				viewerTransform.apply( tempGlobalCenter, tempScreenCenter );
 			}
 
-			return screenCenter;
+			// Return a copy since tempScreenCenter is reused
+			return new double[] { tempScreenCenter[0], tempScreenCenter[1], tempScreenCenter[2] };
 		}
 		catch ( Exception e )
 		{
@@ -467,51 +516,16 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			return null;
 		}
 	}
-
-	private boolean intersectsCurrentViewerPlane( final Interval sourceInterval, final AffineTransform3D sourceToGlobal )
+	
+	private boolean intersectsCurrentViewerPlaneOptimized( final Interval sourceInterval, final AffineTransform3D sourceToGlobal )
 	{
 		try
 		{
-			// Get the current viewer plane position (z=0 in viewer coordinates)
-			final double[] viewerPlanePoint = { 0, 0, 0 };
-			final double[] globalPlanePoint = new double[ 3 ];
-			
-			synchronized ( viewerTransform )
-			{
-				// Transform viewer plane center to global coordinates
-				viewerTransform.inverse().apply( viewerPlanePoint, globalPlanePoint );
-			}
-
-			// Get the viewer plane normal vector (z-axis in viewer coordinates)
-			final double[] viewerNormal = { 0, 0, 1 };
-			final double[] globalNormal = new double[ 3 ];
-			
-			synchronized ( viewerTransform )
-			{
-				// Transform the normal vector (translation should be 0 for vectors)
-				final AffineTransform3D normalTransform = viewerTransform.inverse().copy();
-				normalTransform.set( 0, 0, 3 ); // Remove translation for vector transform
-				normalTransform.set( 0, 1, 3 );
-				normalTransform.set( 0, 2, 3 );
-				normalTransform.apply( viewerNormal, globalNormal );
-			}
-
-			// Normalize the normal vector
-			final double normalLength = Math.sqrt( globalNormal[0] * globalNormal[0] + 
-													globalNormal[1] * globalNormal[1] + 
-													globalNormal[2] * globalNormal[2] );
-			if ( normalLength > 0 )
-			{
-				globalNormal[0] /= normalLength;
-				globalNormal[1] /= normalLength;
-				globalNormal[2] /= normalLength;
-			}
-
-			// Transform source bounding box corners to global coordinates and check intersection
+			// Use cached plane data (already computed in updatePlaneCache)
 			final double[] sourceMin = { sourceInterval.min( 0 ), sourceInterval.min( 1 ), sourceInterval.min( 2 ) };
 			final double[] sourceMax = { sourceInterval.max( 0 ), sourceInterval.max( 1 ), sourceInterval.max( 2 ) };
 			
-			// Check all 8 corners of the source bounding box
+			// Check all 8 corners of the source bounding box using reusable arrays
 			boolean hasPositive = false;
 			boolean hasNegative = false;
 			
@@ -521,25 +535,24 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 				{
 					for ( int z = 0; z <= 1; z++ )
 					{
-						final double[] sourceCorner = { 
-							x == 0 ? sourceMin[0] : sourceMax[0],
-							y == 0 ? sourceMin[1] : sourceMax[1],
-							z == 0 ? sourceMin[2] : sourceMax[2]
-						};
+						// Use reusable array for corner
+						tempSourceCorner[0] = x == 0 ? sourceMin[0] : sourceMax[0];
+						tempSourceCorner[1] = y == 0 ? sourceMin[1] : sourceMax[1];
+						tempSourceCorner[2] = z == 0 ? sourceMin[2] : sourceMax[2];
 						
-						final double[] globalCorner = new double[ 3 ];
-						sourceToGlobal.apply( sourceCorner, globalCorner );
+						// Transform to global coordinates using reusable array
+						sourceToGlobal.apply( tempSourceCorner, tempGlobalCorner );
 						
-						// Calculate signed distance from point to plane
+						// Calculate signed distance from point to plane using cached normal and plane point
 						final double distance = 
-							globalNormal[0] * ( globalCorner[0] - globalPlanePoint[0] ) +
-							globalNormal[1] * ( globalCorner[1] - globalPlanePoint[1] ) +
-							globalNormal[2] * ( globalCorner[2] - globalPlanePoint[2] );
+							cachedGlobalNormal[0] * ( tempGlobalCorner[0] - cachedGlobalPlanePoint[0] ) +
+							cachedGlobalNormal[1] * ( tempGlobalCorner[1] - cachedGlobalPlanePoint[1] ) +
+							cachedGlobalNormal[2] * ( tempGlobalCorner[2] - cachedGlobalPlanePoint[2] );
 						
 						if ( distance > 0 ) hasPositive = true;
 						if ( distance < 0 ) hasNegative = true;
 						
-						// If we have both positive and negative distances, the box intersects the plane
+						// Early exit if we have both positive and negative distances
 						if ( hasPositive && hasNegative )
 							return true;
 					}
@@ -547,7 +560,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			}
 			
 			// If all corners are on the same side, only show if the image is very close to the plane
-			// Use a much stricter threshold - essentially only for images that touch the plane
 			final double threshold = 1.0; // Fixed small threshold in global coordinates
 			
 			// Find the minimum distance from any corner to the plane
@@ -558,19 +570,16 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 				{
 					for ( int z = 0; z <= 1; z++ )
 					{
-						final double[] sourceCorner = { 
-							x == 0 ? sourceMin[0] : sourceMax[0],
-							y == 0 ? sourceMin[1] : sourceMax[1],
-							z == 0 ? sourceMin[2] : sourceMax[2]
-						};
+						tempSourceCorner[0] = x == 0 ? sourceMin[0] : sourceMax[0];
+						tempSourceCorner[1] = y == 0 ? sourceMin[1] : sourceMax[1];
+						tempSourceCorner[2] = z == 0 ? sourceMin[2] : sourceMax[2];
 						
-						final double[] globalCorner = new double[ 3 ];
-						sourceToGlobal.apply( sourceCorner, globalCorner );
+						sourceToGlobal.apply( tempSourceCorner, tempGlobalCorner );
 						
 						final double distance = Math.abs(
-							globalNormal[0] * ( globalCorner[0] - globalPlanePoint[0] ) +
-							globalNormal[1] * ( globalCorner[1] - globalPlanePoint[1] ) +
-							globalNormal[2] * ( globalCorner[2] - globalPlanePoint[2] )
+							cachedGlobalNormal[0] * ( tempGlobalCorner[0] - cachedGlobalPlanePoint[0] ) +
+							cachedGlobalNormal[1] * ( tempGlobalCorner[1] - cachedGlobalPlanePoint[1] ) +
+							cachedGlobalNormal[2] * ( tempGlobalCorner[2] - cachedGlobalPlanePoint[2] )
 						);
 						
 						minDistance = Math.min( minDistance, distance );
@@ -578,7 +587,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 				}
 			}
 			
-			// Only show if the closest corner is very close to the plane
 			return minDistance <= threshold;
 		}
 		catch ( Exception e )
