@@ -48,10 +48,8 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 	private final AffineTransform3D viewerTransform;
 	private volatile boolean visible = true;
 	
-	// For smooth interpolation
+	// For consistent positioning across frames
 	private java.util.Map< Integer, OverlayInfo > overlayMemory = new java.util.concurrent.ConcurrentHashMap<>();
-	private double previousZoomLevel = 1.0;
-	private static final double INTERPOLATION_SPEED = 0.15; // How fast to interpolate (0-1, higher = faster)
 	
 	// Performance optimization caches
 	private final double[] cachedGlobalPlanePoint = new double[3];
@@ -162,11 +160,8 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		final double zoomLevel = calculateZoomLevel();
 		final boolean isCrowded = detectCrowding( overlayInfos );
 		
-		// Calculate target positions for smooth separation
-		calculateTargetPositions( overlayInfos, zoomLevel );
-		
-		// Interpolate towards target positions
-		interpolatePositions( overlayInfos, zoomLevel );
+		// Calculate deterministic display positions
+		calculateDisplayPositions( overlayInfos, zoomLevel );
 		
 		// Determine font size based on zoom level
 		final int fontSize = calculateFontSize( zoomLevel );
@@ -223,9 +218,8 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 	private static class OverlayInfo
 	{
 		final int viewSetupId;
-		double x, y; // Original center position (updated each frame)
-		double displayX, displayY; // Current display position (may be offset for separation)
-		double targetX, targetY; // Target display position for smooth interpolation
+		double x, y; // Original center position
+		double displayX, displayY; // Final display position (deterministic based on zoom level)
 
 		OverlayInfo( final int viewSetupId, final double x, final double y )
 		{
@@ -234,8 +228,6 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			this.y = y;
 			this.displayX = x;
 			this.displayY = y;
-			this.targetX = x;
-			this.targetY = y;
 		}
 	}
 
@@ -311,10 +303,19 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		return false; // Not crowded
 	}
 
-	private void calculateTargetPositions( final java.util.List< OverlayInfo > overlayInfos, final double zoomLevel )
+	private void calculateDisplayPositions( final java.util.List< OverlayInfo > overlayInfos, final double zoomLevel )
 	{
 		if ( overlayInfos.size() <= 1 )
+		{
+			// Single overlay - display at original position
+			if ( overlayInfos.size() == 1 )
+			{
+				final OverlayInfo info = overlayInfos.get( 0 );
+				info.displayX = info.x;
+				info.displayY = info.y;
+			}
 			return;
+		}
 
 		// Group overlays by their position (within a small tolerance)
 		final java.util.Map< String, java.util.List< OverlayInfo > > positionGroups = new java.util.HashMap<>();
@@ -330,24 +331,24 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			positionGroups.computeIfAbsent( positionKey, k -> new java.util.ArrayList<>() ).add( info );
 		}
 		
-		// Calculate target positions for overlapping groups
+		// Calculate deterministic display positions for each group
 		for ( final java.util.List< OverlayInfo > group : positionGroups.values() )
 		{
 			if ( group.size() > 1 )
 			{
-				calculateGroupTargetPositions( group, zoomLevel );
+				calculateGroupDisplayPositions( group, zoomLevel );
 			}
 			else
 			{
-				// Single overlay - target is at original position
+				// Single overlay - display at original position
 				final OverlayInfo info = group.get( 0 );
-				info.targetX = info.x;
-				info.targetY = info.y;
+				info.displayX = info.x;
+				info.displayY = info.y;
 			}
 		}
 	}
 
-	private void calculateGroupTargetPositions( final java.util.List< OverlayInfo > group, final double zoomLevel )
+	private void calculateGroupDisplayPositions( final java.util.List< OverlayInfo > group, final double zoomLevel )
 	{
 		if ( group.size() <= 1 )
 			return;
@@ -356,11 +357,11 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 		final double centerX = group.get( 0 ).x;
 		final double centerY = group.get( 0 ).y;
 
-		// Use smooth radius scaling that doesn't have sharp transitions
+		// Deterministic radius scaling based on zoom level and group size
 		final double baseRadius = Math.max( 30, 15 * group.size() );
-		final double smoothRadius = baseRadius * Math.pow( Math.max( 0.3, zoomLevel ), 0.4 );
+		final double radius = baseRadius * Math.pow( Math.max( 0.3, zoomLevel ), 0.4 );
 		
-		// Sort group by viewSetupId to ensure consistent ordering
+		// Sort group by viewSetupId to ensure consistent, reproducible ordering
 		group.sort( ( a, b ) -> Integer.compare( a.viewSetupId, b.viewSetupId ) );
 		
 		// Arrange in a circle with equal angular spacing
@@ -372,58 +373,9 @@ public class ViewSetupIdOverlay implements OverlayRenderer, TransformListener< A
 			final OverlayInfo info = group.get( i );
 			final double angle = startAngle + i * angleStep;
 			
-			// Calculate target position in a circle
-			info.targetX = centerX + smoothRadius * Math.cos( angle );
-			info.targetY = centerY + smoothRadius * Math.sin( angle );
-		}
-	}
-	
-	private void interpolatePositions( final java.util.List< OverlayInfo > overlayInfos, final double zoomLevel )
-	{
-		final long currentTime = System.currentTimeMillis();
-		lastUpdateTime = currentTime;
-		
-		// Adjust interpolation speed based on zoom changes
-		final double zoomChange = Math.abs( zoomLevel - previousZoomLevel );
-		final double adaptiveSpeed = INTERPOLATION_SPEED * ( 1.0 + zoomChange * 2.0 ); // Speed up during zoom changes
-		final double interpolationFactor = Math.min( 1.0, adaptiveSpeed );
-		
-		for ( final OverlayInfo info : overlayInfos )
-		{
-			// Interpolate towards target position
-			final double dx = info.targetX - info.displayX;
-			final double dy = info.targetY - info.displayY;
-			
-			// Use smooth interpolation with distance-based damping
-			final double distance = Math.sqrt( dx * dx + dy * dy );
-			final double dampingFactor = Math.min( 1.0, distance * 0.01 ); // Slow down when close to target
-			final double effectiveSpeed = interpolationFactor * dampingFactor;
-
-			info.displayX += dx * effectiveSpeed;
-			info.displayY += dy * effectiveSpeed;
-		}
-		
-		previousZoomLevel = zoomLevel;
-		
-		// Request repaint if we're still interpolating
-		boolean needsRepaint = false;
-		for ( final OverlayInfo info : overlayInfos )
-		{
-			final double remainingDistance = Math.sqrt( 
-				( info.targetX - info.displayX ) * ( info.targetX - info.displayX ) +
-				( info.targetY - info.displayY ) * ( info.targetY - info.displayY )
-			);
-			if ( remainingDistance > 1.0 ) // Still moving
-			{
-				needsRepaint = true;
-				break;
-			}
-		}
-		
-		if ( needsRepaint )
-		{
-			// Schedule a repaint for smooth animation
-			javax.swing.SwingUtilities.invokeLater( () -> viewer.repaint() );
+			// Calculate final display position directly - no animation
+			info.displayX = centerX + radius * Math.cos( angle );
+			info.displayY = centerY + radius * Math.sin( angle );
 		}
 	}
 	
