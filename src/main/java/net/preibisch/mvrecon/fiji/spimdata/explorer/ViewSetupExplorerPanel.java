@@ -238,6 +238,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		addColorMode();
 		addHelp();
 		addReCenterShortcut();
+		addViewSetupIdShortcut(); // 'v' or 'V'
 
 		addScreenshot(); // 's' or 'S'
 

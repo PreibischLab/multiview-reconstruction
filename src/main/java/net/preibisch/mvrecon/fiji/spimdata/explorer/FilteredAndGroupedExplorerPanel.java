@@ -96,6 +96,9 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	protected final XmlIoSpimData2 io;
 	protected final boolean isMac;
 	protected boolean colorMode = false;
+	
+	// ViewSetupId overlay
+	protected volatile ViewSetupIdOverlay viewSetupIdOverlay = null;
 
 	public JLabel xmlLabel;
 
@@ -556,6 +559,67 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 				}
 			}
 		} );
+	}
+
+	protected void addViewSetupIdShortcut()
+	{
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent arg0 )
+			{
+				if ( arg0.getKeyChar() == 'v' || arg0.getKeyChar() == 'V' )
+				{
+					final BDVPopup p = bdvPopup();
+					if ( p != null && p.bdv != null && p.bdv.getViewerFrame().isVisible() )
+					{
+						toggleViewSetupIdOverlay( p.bdv );
+					}
+				}
+			}
+		} );
+	}
+
+	private void toggleViewSetupIdOverlay( final BigDataViewer bdv )
+	{
+		if ( viewSetupIdOverlay == null )
+		{
+			// Create and add the overlay
+			viewSetupIdOverlay = new ViewSetupIdOverlay( bdv.getViewer() );
+			bdv.getViewer().renderTransformListeners().add( viewSetupIdOverlay );
+			bdv.getViewer().getDisplay().overlays().add( viewSetupIdOverlay );
+			IOFunctions.println( "ViewSetupId overlay enabled. Press 'v' again to disable." );
+		}
+		else
+		{
+			// Toggle visibility
+			boolean currentlyVisible = viewSetupIdOverlay.isVisible();
+			viewSetupIdOverlay.setVisible( !currentlyVisible );
+			if ( !currentlyVisible )
+			{
+				IOFunctions.println( "ViewSetupId overlay enabled. Press 'v' again to disable." );
+			}
+			else
+			{
+				IOFunctions.println( "ViewSetupId overlay disabled. Press 'v' again to enable." );
+			}
+		}
+		bdv.getViewer().repaint();
+	}
+
+	public void cleanupViewSetupIdOverlay()
+	{
+		if ( viewSetupIdOverlay != null )
+		{
+			final BDVPopup p = bdvPopup();
+			if ( p != null && p.bdv != null )
+			{
+				p.bdv.getViewer().renderTransformListeners().remove( viewSetupIdOverlay );
+				p.bdv.getViewer().getDisplay().overlays().remove( viewSetupIdOverlay );
+				p.bdv.getViewer().repaint();
+			}
+			viewSetupIdOverlay = null;
+		}
 	}
 
 	protected void addReCenterShortcut()
