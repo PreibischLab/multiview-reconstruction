@@ -47,6 +47,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
 import net.preibisch.mvrecon.process.quality.FRCTools;
@@ -176,7 +177,7 @@ public class TestQuality
 		//
 
 		final RandomAccessibleInterval< FloatType > virtual = FRCTools.fuseRAIs( data, downsampling, bb, 1 );
-		DisplayImage.getImagePlusInstance( virtual, false, "Fused, Virtual" + viewIds.get( 0 ).getViewSetupId(), Double.NaN, Double.NaN ).show();
+		FusionTools.getImagePlusInstance( virtual, false, "Fused, Virtual" + viewIds.get( 0 ).getViewSetupId(), Double.NaN, Double.NaN, DisplayImage.service ).show();
 
 	}
 

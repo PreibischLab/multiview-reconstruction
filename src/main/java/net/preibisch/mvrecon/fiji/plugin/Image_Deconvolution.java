@@ -34,6 +34,7 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.numeric.real.FloatType;
@@ -293,7 +294,7 @@ public class Image_Deconvolution implements PlugIn
 	{
 		final String title = Image_Fusion.getTitle( fusion.getSplittingType(), group );
 
-		return exporter.exportImage( output, fusion.getBoundingBox(), fusion.getDownsampling(), Double.NaN, title, group );
+		return exporter.exportImage( BlockSupplier.of( output ), fusion.getBoundingBox(), fusion.getDownsampling(), Double.NaN, title, group );
 	}
 
 	public static void main( String[] args )

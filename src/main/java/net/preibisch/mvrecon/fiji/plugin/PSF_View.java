@@ -39,6 +39,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
 import net.preibisch.mvrecon.process.psf.PSFExtraction;
@@ -116,19 +117,19 @@ public class PSF_View implements PlugIn
 
 		if ( choice == 0 )
 		{
-			DisplayImage.getImagePlusInstance( PSF_Average.averagePSF( spimData, viewIds ), false, "Averaged PSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( PSF_Average.averagePSF( spimData, viewIds ), false, "Averaged PSF", 0, 1, DisplayImage.service ).show();
 		}
 		else if ( choice == 1 )
 		{
-			DisplayImage.getImagePlusInstance( averageTransformedPSF( spimData, viewIds ), false, "Averaged transformed PSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( averageTransformedPSF( spimData, viewIds ), false, "Averaged transformed PSF", 0, 1, DisplayImage.service ).show();
 		}
 		else if ( choice == 2 )
 		{
-			DisplayImage.getImagePlusInstance( PSFCombination.computeMaxProjectionPSF( PSF_Average.averagePSF( spimData, viewIds ) ), false, "Maximum Projection of averaged PSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( PSFCombination.computeMaxProjectionPSF( PSF_Average.averagePSF( spimData, viewIds ) ), false, "Maximum Projection of averaged PSF", 0, 1, DisplayImage.service ).show();
 		}
 		else if ( choice == 3 )
 		{
-			DisplayImage.getImagePlusInstance( PSFCombination.computeMaxProjectionPSF( averageTransformedPSF( spimData, viewIds ) ), false, "Maximum Projection of averaged transformed PSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( PSFCombination.computeMaxProjectionPSF( averageTransformedPSF( spimData, viewIds ) ), false, "Maximum Projection of averaged transformed PSF", 0, 1, DisplayImage.service ).show();
 		}
 
 		return true;

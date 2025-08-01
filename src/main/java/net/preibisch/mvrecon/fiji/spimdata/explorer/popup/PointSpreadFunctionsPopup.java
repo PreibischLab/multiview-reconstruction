@@ -44,6 +44,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ExplorerWindow;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSetable
@@ -204,12 +205,13 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 							}
 							else
 							{
-								DisplayImage.getImagePlusInstance(
+								FusionTools.getImagePlusInstance(
 									psf.getPSFCopy(),
 									false,
 									"PSF " + Group.pvid( v ),
 									Double.NaN,
-									Double.NaN ).show();
+									Double.NaN,
+									DisplayImage.service).show();
 							}
 						}
 					}

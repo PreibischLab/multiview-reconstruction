@@ -38,11 +38,16 @@ import ij.plugin.PlugIn;
 import mpicbg.spim.data.sequence.SetupImgLoader;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedByteConverter;
 import net.imglib2.converter.RealUnsignedShortConverter;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
@@ -59,9 +64,11 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.GenericLoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.export.Calibrateable;
+import net.preibisch.mvrecon.process.export.ExportN5Api;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
+import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion.BlockSupplierOrRAI;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyNonRigidFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
@@ -197,11 +204,12 @@ public class Image_Fusion implements PlugIn
 							fusion.getAnisotropyFactor(),
 							fusion.getDownsampling() );
 
-			final RandomAccessibleInterval lazy;
+			//final RandomAccessibleInterval lazy;
+			final BlockSupplierOrRAI supplier;
 
 			if ( fusion.getNonRigidParameters().isActive() )
 			{
-				lazy = LazyNonRigidFusion.init(
+				supplier = new BlockSupplierOrRAI( LazyNonRigidFusion.init(
 						conv,
 						spimData.getSequenceDescription().getImgLoader(),
 						registrations,
@@ -220,7 +228,7 @@ public class Image_Fusion implements PlugIn
 						taskExecutor,
 						fusion.getBoundingBox(),
 						(RealType & NativeType)type,
-						blocksize );
+						blocksize ) );
 
 				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
 				/*
@@ -248,7 +256,8 @@ public class Image_Fusion implements PlugIn
 			{
 				System.out.println( "Image_Fusion.fuse" );
 //				lazy = LazyAffineFusion.init(
-				lazy = BlkAffineFusion.init(
+
+				supplier = BlkAffineFusion.init(
 						conv,
 						spimData.getSequenceDescription().getImgLoader(),
 						group.getViews(),
@@ -260,36 +269,26 @@ public class Image_Fusion implements PlugIn
 						fusion.getBoundingBox(),
 						(RealType & NativeType)type,
 						blocksize );
+
+				System.out.println( Util.printInterval( new FinalInterval( fusion.getBoundingBox().dimensionsAsLongArray() ) ) );
+				System.out.println( Util.printInterval( fusion.getBoundingBox() ) );
+
+				//ArrayImg img = ExportN5Api.arrayImg( supplier, new FinalInterval( fusion.getBoundingBox().dimensionsAsLongArray() ) );
+				//ArrayImg img = ExportN5Api.arrayImg( supplier, new FinalInterval( new long[] { 128, 128, 64 } ) );
+				//ImageJFunctions.show( img );
+				//SimpleMultiThreading.threadHaltUnClean();
 			}
 
 			final String title = getTitle( fusion.getSplittingType(), group );
 	
 			if ( !exporter.exportImage(
-					lazy,
+					supplier,
 					fusion.getBoundingBox(),
 					fusion.getDownsampling(),
 					fusion.getAnisotropyFactor(),
 					title,
 					group  ) )
 				return false;
-
-			/*
-			if ( fusion.getPixelType() == 1 ) // 16 bit
-			{
-				final double[] minmax = determineInputBitDepth( group, spimData, virtual );
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Range for conversion to 16-bit, min=" + minmax[ 0 ] + ", max=" + minmax[ 1 ] );
-
-				if ( !cacheAndExport(
-						new ConvertedRandomAccessibleInterval< FloatType, UnsignedShortType >(
-								virtual, new RealUnsignedShortConverter<>( minmax[ 0 ], minmax[ 1 ] ), new UnsignedShortType() ),
-						taskExecutor, new UnsignedShortType(), fusion, exporter, group, minmax ) )
-					return false;
-			}
-			else
-			{
-				if ( !cacheAndExport( virtual, taskExecutor, new FloatType(), fusion, exporter, group, null ) )
-					return false;
-			}*/
 		}
 
 		exporter.finish();

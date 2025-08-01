@@ -37,14 +37,13 @@ import ij.io.FileSaver;
 import ij.io.TiffEncoder;
 import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.resave.Resave_TIFF;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
-import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Save3dTIFF implements ImgExport, Calibrateable
@@ -87,13 +86,15 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 			return fileName;
 	}
 
+	/*
 	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
 	{
 		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
+	*/
 
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval< T > img,
+			final BlockSupplier< T > img,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
@@ -104,10 +105,13 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 		if ( img == null )
 			return false;
 		
-		// determine min and max
-		final double[] minmax = FusionTools.minMaxApprox( null );//DisplayImage.getFusionMinMax( img, min, max );
-
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, title, minmax[ 0 ], minmax[ 1 ] );
+		final ImagePlus imp =
+				DisplayImage.getImagePlusInstance(
+						img,
+						bb,
+						new int[] { DisplayImage.defaultBlocksizePrecomputeX, DisplayImage.defaultBlocksizePrecomputeY, DisplayImage.defaultBlocksizePrecomputeZ },
+						true,
+						title, 0, 255, DisplayImage.service );
 
 		DisplayImage.setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 

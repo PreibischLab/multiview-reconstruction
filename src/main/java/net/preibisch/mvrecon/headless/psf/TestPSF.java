@@ -37,6 +37,7 @@ import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.headless.registration.TestRegistration;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
 import net.preibisch.mvrecon.process.psf.PSFExtraction;
@@ -94,8 +95,8 @@ public class TestPSF
 			final Img< FloatType > avgPSF = PSFCombination.computeAverageImage( psfs.values(), new ArrayImgFactory< FloatType >(), true );
 			final Img< FloatType > maxAvgPSF = PSFCombination.computeMaxAverageTransformedPSF( psfs.values(), new ArrayImgFactory< FloatType >() );
 
-			DisplayImage.getImagePlusInstance( Views.rotate( avgPSF, 0, 2 ), false, "avgPSF", 0, 1 ).show();
-			DisplayImage.getImagePlusInstance( maxAvgPSF, false, "maxAvgPSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( Views.rotate( avgPSF, 0, 2 ), false, "avgPSF", 0, 1, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( maxAvgPSF, false, "maxAvgPSF", 0, 1, DisplayImage.service ).show();
 		}
 	}
 }

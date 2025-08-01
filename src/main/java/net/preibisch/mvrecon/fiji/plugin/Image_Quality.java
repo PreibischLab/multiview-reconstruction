@@ -38,6 +38,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -193,7 +194,7 @@ public class Image_Quality implements PlugIn
 
 		final String title = Image_Fusion.getTitle( quality.getSplittingType(), group );
 
-		return exporter.exportImage( processedOutput, quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group );
+		return exporter.exportImage( BlockSupplier.of( processedOutput ), quality.getBoundingBox(), quality.getDownsampling(), quality.getAnisotropyFactor(), title, group );
 	}
 
 	public static void main( String[] args )

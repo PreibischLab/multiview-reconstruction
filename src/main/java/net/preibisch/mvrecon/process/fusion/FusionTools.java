@@ -70,12 +70,15 @@ import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealTypeConverters;
+import net.imglib2.exception.ImgLibException;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.img.cell.Cell;
 import net.imglib2.img.cell.CellGrid;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
@@ -661,7 +664,7 @@ public class FusionTools
 		if ( imgType == ImgDataType.CACHED )
 			img = cacheRandomAccessibleInterval( input, maxCacheSize, new FloatType(), cellDim );
 		else if ( imgType == ImgDataType.PRECOMPUTED )
-			img = copyImg( input, new ImagePlusImgFactory<>(), new FloatType(), null, true );
+			img = copyImg( input, new ImagePlusImgFactory<>( new FloatType()), new FloatType(), null, true );
 		else
 			img = input;
 
@@ -670,7 +673,52 @@ public class FusionTools
 				"Fused, Virtual (cached) " : (imgType == ImgDataType.VIRTUAL ? 
 						"Fused, Virtual" : "Fused" );
 
-		return DisplayImage.getImagePlusInstance( img, true, title, min, max );
+		return getImagePlusInstance( img, true, title, min, max, DisplayImage.service );
+	}
+
+	public static < T extends RealType< T > > double[] getFusionMinMax(
+			final RandomAccessibleInterval<T> img,
+			final double min,
+			final double max )
+	{
+		final double[] minmax;
+
+		if ( Double.isNaN( min ) || Double.isNaN( max ) )
+			minmax = FusionTools.minMaxApprox( img );
+		else
+			minmax = new double[]{ (float)min, (float)max };
+
+		return minmax;
+	}
+
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final RandomAccessibleInterval< T > img,
+			final boolean virtualDisplay,
+			final String title,
+			final double min,
+			final double max,
+			final ExecutorService service )
+	{
+		ImagePlus imp = null;
+
+		if ( img instanceof ImagePlusImg )
+			try { imp = ((ImagePlusImg<T, ?>)img).getImagePlus(); } catch (ImgLibException e) {}
+
+		if ( imp == null )
+		{
+			if ( virtualDisplay )
+				imp = ImageJFunctions.wrap( img, title, service );
+			else
+				imp = ImageJFunctions.wrap( img, title, service ).duplicate();
+		}
+
+		final double[] minmax = getFusionMinMax( img, min, max );
+
+		imp.setTitle( title );
+		imp.setDimensions( 1, (int)img.dimension( 2 ), 1 );
+		imp.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+
+		return imp;
 	}
 
 	/**

@@ -26,13 +26,16 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -63,12 +66,11 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
@@ -78,6 +80,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
+import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
@@ -113,8 +116,6 @@ public class ExportN5Api implements ImgExport
 
 	public static boolean defaultAdvancedBlockSize = false;
 
-	public static int defaultRetries = 5;
-
 	public static int defaultBlocksizeFactorX_N5 = 1;
 	public static int defaultBlocksizeFactorY_N5 = 1;
 	public static int defaultBlocksizeFactorZ_N5 = 1;
@@ -148,8 +149,6 @@ public class ExportN5Api implements ImgExport
 	int bsFactorY = defaultBlocksizeFactorY_N5;
 	int bsFactorZ = defaultBlocksizeFactorZ_N5;
 
-	int retries = defaultRetries;
-
 	Compression compression = null;
 	N5Writer driverVolumeWriter = null;
 
@@ -180,21 +179,20 @@ public class ExportN5Api implements ImgExport
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			RandomAccessibleInterval<T> imgInterval,
+			final BlockSupplier<T> blockSupplierIn,
 			final Interval bb,
 			final double downsamplingF,
 			final double anisoF,
 			final String title,
 			final Group<? extends ViewDescription> fusionGroup )
 	{
-		final int numReTries = retries;
-		final T type = imgInterval.getType();
+		final BlockSupplier<T> blockSupplier = blockSupplierIn.threadSafe();
+
+		final T type = blockSupplier.getType();
 		final DataType dataType = N5Utils.dataType( type );
 		final EnumSet< DataType > supportedDataTypes = EnumSet.of( DataType.UINT8, DataType.UINT16, DataType.FLOAT32 );
 		if ( !supportedDataTypes.contains( dataType ) )
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
-
-		IOFunctions.println( "#retries=" + numReTries );
 
 		if ( driverVolumeWriter == null )
 		{
@@ -281,7 +279,8 @@ public class ExportN5Api implements ImgExport
 			}
 		}
 
-		final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
+		//final RandomAccessibleInterval< T > img = Views.zeroMin( imgInterval );
+		final Interval imgInterval = new FinalInterval( bb.dimensionsAsLongArray() );
 
 		final MultiResolutionLevelInfo[] mrInfo;
 		final long currentChannelIndex, currentTPIndex;
@@ -464,98 +463,133 @@ public class ExportN5Api implements ImgExport
 		// save full-resolution data (s0)
 		//
 
-		// TODO: use Tobi's code (at least for the special cases)
-		final ForkJoinPool myPool = new ForkJoinPool( Threads.numThreads() );
+		IOFunctions.println( "#threads=" + Threads.numThreads() );
+
+		//final ForkJoinPool poolFullRes = new ForkJoinPool( Threads.numThreads() );
+		final ExecutorService poolFullRes = Executors.newFixedThreadPool( Threads.numThreads() );
 
 		long time = System.currentTimeMillis();
 
 		try
 		{
-			myPool.submit(() ->
-				grid.parallelStream().forEach(
-						gridBlock ->
+			final ArrayList< Callable< long[] > > tasks = new ArrayList<>();
+
+			do
+			{
+				for ( final long[][] gridBlock : grid )
+				{
+					tasks.add( () ->
+					{
+						final long[] /*blockOffset, blockSize,*/ gridOffset;
+	
+						final long[] blockMin = gridBlock[0].clone();
+						final long[] blockMax = new long[ blockMin.length ];
+
+						for ( int d = 0; d < blockMin.length; ++d )
+							blockMax[ d ] = Math.min( imgInterval.max( d ), blockMin[ d ] + gridBlock[1][ d ] - 1 );
+
+						final RandomAccessibleInterval< T > image;
+						final RandomAccessibleInterval< T > img = BlkAffineFusion.arrayImg( blockSupplier, new FinalInterval( blockMin, blockMax ) );
+
+						// 5D OME-ZARR CONTAINER
+						if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 						{
-							int reTryCount = 0;
-							boolean successful = false;
+							// gridBlock is 3d, make it 5d
+							//blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
+							//blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
+							gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
+	
+							// img is 3d, make it 5d
+							// the same information is returned no matter which index is queried in C and T
+							image = Views.interval(
+										Views.addDimension( Views.addDimension( img ) ),
+										new FinalInterval( new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], currentChannelIndex+1, currentTPIndex+1 } ) );
+						}
+						else
+						{
+							//blockOffset = gridBlock[0];
+							//blockSize = gridBlock[1];
+							gridOffset = gridBlock[2];
+	
+							image = img;
+						}
+	
+						/*
+						final Interval block =
+								Intervals.translate(
+										new FinalInterval( blockSize ),
+										blockOffset );
+	
+						final RandomAccessibleInterval< T > source =
+								Views.interval( image, block );
+	
+						final RandomAccessibleInterval< T > sourceGridBlock =
+								Views.offsetInterval(source, blockOffset, blockSize);
+						*/
+						N5Utils.saveBlock( /*sourceGridBlock*/ image, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
+	
+						IJ.showProgress( progress.incrementAndGet(), grid.size() );
+	
+						return gridBlock[ 0 ].clone();
+					} );
+				}
+	
+				final List<Future<long[]>> futures = poolFullRes.invokeAll( tasks );
 
-							do
-							{
-								try
-								{
-									final long[] blockOffset, blockSize, gridOffset;
-	
-									final RandomAccessible< T >image;
-	
-									// 5D OME-ZARR CONTAINER
-									if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
-									{
-										// gridBlock is 3d, make it 5d
-										blockOffset = new long[] { gridBlock[0][0], gridBlock[0][1], gridBlock[0][2], currentChannelIndex, currentTPIndex };
-										blockSize = new long[] { gridBlock[1][0], gridBlock[1][1], gridBlock[1][2], 1, 1 };
-										gridOffset = new long[] { gridBlock[2][0], gridBlock[2][1], gridBlock[2][2], currentChannelIndex, currentTPIndex }; // because blocksize in C & T is 1
-	
-										// img is 3d, make it 5d
-										// the same information is returned no matter which index is queried in C and T
-										image = Views.addDimension( Views.addDimension( img ) );
-									}
-									else
-									{
-										blockOffset = gridBlock[0];
-										blockSize = gridBlock[1];
-										gridOffset = gridBlock[2];
-	
-										image = img;
-									}
-	
-									final Interval block =
-											Intervals.translate(
-													new FinalInterval( blockSize ),
-													blockOffset );
-	
-									final RandomAccessibleInterval< T > source =
-											Views.interval( image, block );
-	
-									final RandomAccessibleInterval< T > sourceGridBlock =
-											Views.offsetInterval(source, blockOffset, blockSize);
-	
-									N5Utils.saveBlock(sourceGridBlock, driverVolumeWriter, mrInfo[ 0 ].dataset, gridOffset );
-	
-									IJ.showProgress( progress.incrementAndGet(), grid.size() );
-	
-									successful = true;
+				int count = 0;
+				int fail = 0;
 
-									if ( reTryCount > 0 )
-										IOFunctions.println( "Retry to write block offset=" + Util.printCoordinates( gridBlock[0] ) + " successful." );
-								}
-								catch (Exception e)
-								{
-									successful = false;
-									++reTryCount;
+				final HashMap< String, long[][] > setAllBlocks = new HashMap<>();
+				grid.forEach( gridBlock -> setAllBlocks.put( Arrays.toString( gridBlock[ 0 ] ), gridBlock ) );
 
-									if ( reTryCount <= numReTries )
-									{
-										IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "', retrying " + (reTryCount) + "/" + numReTries+ ", (" + e + ")" );
-									}
-									else
-									{
-										IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "', giving up ... " );
-										e.printStackTrace();
-										myPool.shutdownNow();
-										return;
-									}
-								}
-							} while ( !successful );
-						} )
-				).get();
+				for ( final Future<long[]> future : futures )
+				{
+					try
+					{
+						final long[] result = future.get();
+	
+						if ( result == null )
+						{
+							++fail; // that does not seem to happen
+						}
+						else
+						{
+							++count;
+							setAllBlocks.remove( Arrays.toString( result ) );
+						}
+					}
+					catch ( Exception e )
+					{
+						++fail;
+						IOFunctions.println( "s0: " + e );
+						//e.printStackTrace();
+					}
+				}
+	
+				IOFunctions.println( "fail: " + fail );
+				IOFunctions.println( "successful: " + count );
 
-			//myPool.shutdown();
+				tasks.clear();
+				grid.clear();
+
+				if ( fail > 0 )
+				{
+					IOFunctions.println( "Adding " + setAllBlocks.size() + " blocks ... " );
+					grid.addAll( setAllBlocks.values() );
+				}
+			}
+			while ( grid.size() > 0 );
+
+			poolFullRes.shutdown();
+			poolFullRes.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
 		}
-		catch (InterruptedException | ExecutionException e)
+		catch ( Exception e )
 		{
 			IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ 0 ].dataset + "'. Error: " + e );
 			e.printStackTrace();
 			return false;
 		}
+
 
 		//System.out.println( "Saved, e.g. view with './n5-view -i " + n5Path + " -d " + n5Dataset );
 		IJ.showProgress( progress.getAndSet( 0 ), grid.size() );
@@ -566,6 +600,8 @@ public class ExportN5Api implements ImgExport
 		//
 		for ( int level = 1; level < mrInfo.length; ++level )
 		{
+			//final ForkJoinPool myPool = new ForkJoinPool( Threads.numThreads() );
+			final ExecutorService myPool = Executors.newFixedThreadPool( Threads.numThreads() );
 			final int s = level;
 
 			// we need to run explicitly in 3D because for OME-ZARR, dimensions are 5D
@@ -580,13 +616,6 @@ public class ExportN5Api implements ImgExport
 									blocksize()[2] * computeBlocksizeFactor()[ 2 ] }
 							);
 
-					/*N5ApiTools.assembleJobs(
-							mrInfo[ level ],
-							new int[] {
-									blocksize()[0] * computeBlocksizeFactor()[ 0 ],
-									blocksize()[1] * computeBlocksizeFactor()[ 1 ],
-									blocksize()[2] * computeBlocksizeFactor()[ 2 ] });*/
-
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Downsampling: " + Util.printCoordinates( mrInfo[ level ].absoluteDownsampling ) + " with relative downsampling of " + Util.printCoordinates( mrInfo[ level ].relativeDownsampling ));
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": s" + level + " num blocks=" + allBlocks.size() );
 			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Loading '" + mrInfo[ level - 1 ].dataset + "', downsampled will be written as '" + mrInfo[ level ].dataset + "'." );
@@ -596,62 +625,50 @@ public class ExportN5Api implements ImgExport
 
 			try
 			{
-				myPool.submit( () -> allBlocks.parallelStream().forEach(
-						gridBlock ->
+				final ArrayList< Callable< long[] > > tasks = new ArrayList<>();
+				
+				for ( final long[][] gridBlock : allBlocks )
+				{
+					tasks.add( () -> 
+					{
+						// 5D OME-ZARR CONTAINER
+						if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
 						{
-							int reTryCount = 0;
-							boolean successful = false;
+							N5ApiTools.writeDownsampledBlock5dOMEZARR(
+									driverVolumeWriter,
+									mrInfo[ s ],
+									mrInfo[ s - 1 ],
+									gridBlock,
+									currentChannelIndex,
+									currentTPIndex );
+						}
+						else
+						{
+							N5ApiTools.writeDownsampledBlock(
+									driverVolumeWriter,
+									mrInfo[ s ],
+									mrInfo[ s - 1 ],
+									gridBlock );
+						}
 
-							do
-							{
-								try
-								{
-									// 5D OME-ZARR CONTAINER
-									if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
-									{
-										N5ApiTools.writeDownsampledBlock5dOMEZARR(
-												driverVolumeWriter,
-												mrInfo[ s ],
-												mrInfo[ s - 1 ],
-												gridBlock,
-												currentChannelIndex,
-												currentTPIndex );
-									}
-									else
-									{
-										N5ApiTools.writeDownsampledBlock(
-												driverVolumeWriter,
-												mrInfo[ s ],
-												mrInfo[ s - 1 ],
-												gridBlock );
-									}
+						IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 
-									successful = true;
+						return gridBlock[ 0 ].clone();
+					});
+				}
 
-									IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
-								}
-								catch (Exception e)
-								{
-									successful = false;
-									++reTryCount;
+				final List<Future<long[]>> futures = myPool.invokeAll( tasks );
 
-									if ( reTryCount <= numReTries )
-									{
-										IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "', retrying " + (reTryCount) + "/" + numReTries+ ", (" + e + ")" );
-									}
-									else
-									{
-										IOFunctions.println( "Error writing block offset=" + Util.printCoordinates( gridBlock[0] ) + "', giving up ... " );
-										e.printStackTrace();
-										myPool.shutdownNow();
-										return;
-									}
-								}
-							} while ( !successful );
-						})).get();
+				for ( final Future<long[]> future : futures )
+				{
+					final long[] result = future.get();
+					// TODO: add error handling
+				}
 
+				myPool.shutdown();
+				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
 			}
-			catch (InterruptedException | ExecutionException e)
+			catch ( Exception e )
 			{
 				IOFunctions.println( "Failed to write HDF5/N5/ZARR dataset '" + mrInfo[ level ].dataset + "'. Error: " + e );
 				e.printStackTrace();
@@ -659,11 +676,8 @@ public class ExportN5Api implements ImgExport
 			}
 
 			IJ.showProgress( progress.getAndSet( 0 ), allBlocks.size() );
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s " + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Saved level s" + level + ", took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
-
-		myPool.shutdown();
-		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS); } catch (InterruptedException e) { e.printStackTrace(); }
 
 		return true;
 	}
@@ -863,7 +877,6 @@ public class ExportN5Api implements ImgExport
 		}
 
 		gd.addCheckbox( "Show_advanced_block_size_options (in a new dialog, current values above)", defaultAdvancedBlockSize );
-		gd.addNumericField( "Number_of_re-tries when a block fails to be written (before aborting)", defaultRetries, 0 );
 
 		gd.showDialog();
 		if ( gd.wasCanceled() )
@@ -992,8 +1005,6 @@ public class ExportN5Api implements ImgExport
 				bsFactorX = defaultBlocksizeFactorX_N5; bsFactorY = defaultBlocksizeFactorY_N5; bsFactorZ = defaultBlocksizeFactorZ_N5;
 			}
 		}
-
-		retries = defaultRetries = (int)Math.round(gd.getNextNumber());
 
 		if ( multiRes )
 		{

@@ -47,6 +47,7 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.quality.FRC;
 import net.preibisch.mvrecon.process.quality.FRC.ThresholdMethod;
 import net.preibisch.mvrecon.process.quality.FRCRealRandomAccessible;
@@ -65,7 +66,7 @@ public class TestFRC
 		//final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File( "/Users/spreibi/Documents/Microscopy/SPIM/HisYFP-SPIM/spim_TL18_Angle0.tif" ) );
 		final Img< FloatType > img = IOFunctions.openAs32BitArrayImg( new File(
 				"/Users/spreibi/Documents/BIMSB/Projects/CLARITY/Quality assessment/clarity-2.tif" ) );
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
+		final ImagePlus imp = FusionTools.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN, DisplayImage.service );
 		imp.show();
 
 		testFRCOld( img );
@@ -160,7 +161,7 @@ public class TestFRC
 			System.out.println( z + "\t" + integral+ "\t" + relintegral );
 		}*/
 	
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN );
+		final ImagePlus imp = FusionTools.getImagePlusInstance( img, true, "brain", Double.NaN, Double.NaN, DisplayImage.service );
 		imp.show();
 	}
 
@@ -169,7 +170,7 @@ public class TestFRC
 		final FRCRealRandomAccessible< FloatType > frc = FRCTools.distributeGridFRC( input, 0.1, 10, 256, true, FRCRealRandomAccessible.relativeFRCDist, null );
 		//final FRCRealRandomAccessible< FloatType > frc = FRCRealRandomAccessible.fixedGridFRC( input, 50, 5, 256, false, false, FRCRealRandomAccessible.relativeFRCDist, null );
 
-		DisplayImage.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN ).show();
+		FusionTools.getImagePlusInstance( frc.getRandomAccessibleInterval(), false, "frc", Double.NaN, Double.NaN, DisplayImage.service ).show();
 	}
 
 	public static void testFRCOld( final Img< FloatType > input )

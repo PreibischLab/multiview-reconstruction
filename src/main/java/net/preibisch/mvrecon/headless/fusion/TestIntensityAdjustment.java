@@ -166,7 +166,7 @@ public class TestIntensityAdjustment
 		final RandomAccessibleInterval< FloatType > fusedImg = FusionTools.copyImg( virtual, new ImagePlusImgFactory<>( new FloatType() ), new FloatType(), null, true );
 		final RandomAccessibleInterval< FloatType > fusedBalancedImg = FusionTools.copyImg( virtualBalanced, new ImagePlusImgFactory<>( new FloatType() ), new FloatType(), null, true );
 
-		DisplayImage.getImagePlusInstance( fusedImg, false, "Fused", 0, 255 ).show();
-		DisplayImage.getImagePlusInstance( fusedBalancedImg, false, "Fused Balanced", 0, 255 ).show();
+		FusionTools.getImagePlusInstance( fusedImg, false, "Fused", 0, 255, DisplayImage.service ).show();
+		FusionTools.getImagePlusInstance( fusedBalancedImg, false, "Fused Balanced", 0, 255, DisplayImage.service ).show();
 	}
 }

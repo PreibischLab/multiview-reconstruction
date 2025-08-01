@@ -45,6 +45,7 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converter;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -311,7 +312,7 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 
 		// Lazy Non-rigid fusion took: 263447 ms.
 		long time = System.currentTimeMillis();
-		DisplayImage.getImagePlusInstance( lazyFused, false, "Fused Non-rigid", 0, 255 ).show();
+		ImageJFunctions.show( lazyFused, DisplayImage.service ).show();
 		System.out.println( "Lazy Non-rigid fusion took: " + (System.currentTimeMillis() - time) + " ms.");
 
 		//ImageJFunctions.show( lazyFused, service );

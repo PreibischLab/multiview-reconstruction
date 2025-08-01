@@ -42,6 +42,7 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -95,7 +96,7 @@ public class ExportLarge2DTIFF implements ImgExport
 	//@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			RandomAccessibleInterval<T> imgInterval,
+			final BlockSupplier< T > img, //RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
@@ -103,18 +104,18 @@ public class ExportLarge2DTIFF implements ImgExport
 			final Group<? extends ViewDescription> fusionGroup )
 	{
 		// hack to make the interval divisable by 16 (see https://imagesc.zulipchat.com/#narrow/stream/212929-general/topic/Writing.20large.202D.20TIFFs)
-		if ( imgInterval.dimension( 0 ) % 16 != 0 || imgInterval.dimension( 1 ) % 16 != 0 )
+		if ( bb.dimension( 0 ) % 16 != 0 || bb.dimension( 1 ) % 16 != 0 )
 		{
-			final long[] min = imgInterval.minAsLongArray();
-			final long[] max = imgInterval.maxAsLongArray();
+			final long[] min = bb.minAsLongArray();
+			final long[] max = bb.maxAsLongArray();
 
-			max[ 0 ] += ( 16 - imgInterval.dimension( 0 ) % 16 );
-			max[ 1 ] += ( 16 - imgInterval.dimension( 1 ) % 16 );
+			max[ 0 ] += ( 16 - bb.dimension( 0 ) % 16 );
+			max[ 1 ] += ( 16 - bb.dimension( 1 ) % 16 );
 
 			final Interval interval = new FinalInterval(min, max);
 
 			IOFunctions.println( "WARNING: changing output interval be divisible by 16:" );
-			IOFunctions.println( "OLD: " + Util.printInterval(imgInterval) );
+			IOFunctions.println( "OLD: " + Util.printInterval(bb) );
 			IOFunctions.println( "NEW: " + Util.printInterval(interval) );
 
 			imgInterval = Views.interval( Views.extendZero( imgInterval ), interval );

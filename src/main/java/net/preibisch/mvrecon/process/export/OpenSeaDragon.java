@@ -40,6 +40,7 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.NativeType;
@@ -74,7 +75,7 @@ public class OpenSeaDragon implements ImgExport
 	int choiceR, choiceG, choiceB, format, tileSize, tileOverlap;
 	int numFusionGroups;
 
-	ArrayList< RandomAccessibleInterval< UnsignedByteType > > groups = new ArrayList<>();
+	ArrayList< BlockSupplier< UnsignedByteType > > groups = new ArrayList<>();
 
 	@Override
 	public ImgExport newInstance() { return new OpenSeaDragon(); }
@@ -91,7 +92,7 @@ public class OpenSeaDragon implements ImgExport
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			final RandomAccessibleInterval<T> imgInterval,
+			final BlockSupplier<T> supplier,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
@@ -99,7 +100,8 @@ public class OpenSeaDragon implements ImgExport
 			final Group<? extends ViewDescription > fusionGroup )
 	{
 		// remember all fusiongroups
-		groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)imgInterval) );
+		//groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)img Interval) );
+		groups.add( (BlockSupplier)(Object)supplier );
 
 		// do nothing until all fusiongroups arrived
 		if ( groups.size() < numFusionGroups )
@@ -113,9 +115,9 @@ public class OpenSeaDragon implements ImgExport
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Fusing to OpenSeaDragon path='"+path+"', dataset='"+dataset+"' ... ");
 
-		final RandomAccessibleInterval< UnsignedByteType > virtualR = groups.get( choiceR );
-		final RandomAccessibleInterval< UnsignedByteType > virtualG = groups.get( choiceG );
-		final RandomAccessibleInterval< UnsignedByteType > virtualB = groups.get( choiceB );
+		final BlockSupplier< UnsignedByteType > virtualR = groups.get( choiceR );
+		final BlockSupplier< UnsignedByteType > virtualG = groups.get( choiceG );
+		final BlockSupplier< UnsignedByteType > virtualB = groups.get( choiceB );
 
 		final RandomAccessibleInterval<ARGBType> rgb =
 				Converters.mergeARGB( Views.stack( virtualR, virtualG, virtualB ) , ColorChannelOrder.RGB );
