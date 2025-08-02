@@ -173,6 +173,10 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 					bdvpopup.bdv = BDVPopup.createBDV( getSpimData(), xml() );
 
 				setFusedModeSimple( bdvpopup.bdv, data );
+				
+				// Update BDV to show all grouped tiles based on initial table selection
+				if ( !selectedRows.isEmpty() )
+					updateBDV( bdvpopup.bdv, colorMode, data, firstSelectedVD, selectedRows );
 			}
 		}
 
