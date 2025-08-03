@@ -43,15 +43,18 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
+import net.imglib2.img.array.ArrayImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
+import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class OpenSeaDragon implements ImgExport
@@ -101,7 +104,7 @@ public class OpenSeaDragon implements ImgExport
 	{
 		// remember all fusiongroups
 		//groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)img Interval) );
-		groups.add( (BlockSupplier)(Object)supplier );
+		groups.add( (BlockSupplier)(Object)supplier.threadSafe() );
 
 		// do nothing until all fusiongroups arrived
 		if ( groups.size() < numFusionGroups )
@@ -111,7 +114,7 @@ public class OpenSeaDragon implements ImgExport
 		}
 
 		// the empty image to choose from
-		groups.add( Views.interval( new ConstantRandomAccessible<UnsignedByteType>( new UnsignedByteType(), 3 ), new FinalInterval( imgInterval ) ) );
+		groups.add( BlockSupplier.of( Views.interval( new ConstantRandomAccessible<UnsignedByteType>( new UnsignedByteType(), 3 ), Intervals.zeroMin( bb ) ) ).threadSafe() );
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Fusing to OpenSeaDragon path='"+path+"', dataset='"+dataset+"' ... ");
 
@@ -119,10 +122,10 @@ public class OpenSeaDragon implements ImgExport
 		final BlockSupplier< UnsignedByteType > virtualG = groups.get( choiceG );
 		final BlockSupplier< UnsignedByteType > virtualB = groups.get( choiceB );
 
-		final RandomAccessibleInterval<ARGBType> rgb =
-				Converters.mergeARGB( Views.stack( virtualR, virtualG, virtualB ) , ColorChannelOrder.RGB );
+		//final RandomAccessibleInterval<ARGBType> rgb = Converters.mergeARGB( Views.stack( virtualR, virtualG, virtualB ) , ColorChannelOrder.RGB );
+		//final OpenSeaDragonImgLib2 osd = new OpenSeaDragonImgLib2( rgb );
 
-		final OpenSeaDragonImgLib2 osd = new OpenSeaDragonImgLib2( rgb );
+		final OpenSeaDragonImgLib2 osd = new OpenSeaDragonImgLib2( virtualR, virtualG, virtualB, bb );
 
 		long time = System.currentTimeMillis();
 
@@ -277,11 +280,19 @@ public class OpenSeaDragon implements ImgExport
 
 	public static class OpenSeaDragonImgLib2 implements PartialImageReader
 	{
-		final RandomAccessibleInterval<ARGBType> img;
+		final BlockSupplier< UnsignedByteType > virtualR, virtualG, virtualB;
+		final Interval interval;
 
-		public OpenSeaDragonImgLib2( final RandomAccessibleInterval<ARGBType> img )
+		public OpenSeaDragonImgLib2( 
+				final BlockSupplier< UnsignedByteType > virtualR,
+				final BlockSupplier< UnsignedByteType > virtualG,
+				final BlockSupplier< UnsignedByteType > virtualB,
+				final Interval interval )
 		{
-			this.img = img;
+			this.virtualR = virtualR;
+			this.virtualG = virtualG;
+			this.virtualB = virtualB;
+			this.interval = Intervals.zeroMin( interval );
 		}
 
 		@Override
@@ -291,12 +302,12 @@ public class OpenSeaDragon implements ImgExport
 
 		@Override
 		public int getWidth() {
-			return (int)img.dimension( 0 );
+			return (int)interval.dimension( 0 );
 		}
 
 		@Override
 		public int getHeight() {
-			return (int)img.dimension( 1 );
+			return (int)interval.dimension( 1 );
 		}
 
 		@Override
@@ -305,6 +316,13 @@ public class OpenSeaDragon implements ImgExport
 			final Interval interval = new FinalInterval(
 					new long[] {rectangle.x, rectangle.y},
 					new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1 } );
+
+			final ArrayImg<UnsignedByteType, ?> r = BlkAffineFusion.arrayImg( virtualR, interval );
+			final ArrayImg<UnsignedByteType, ?> g = BlkAffineFusion.arrayImg( virtualG, interval );
+			final ArrayImg<UnsignedByteType, ?> b = BlkAffineFusion.arrayImg( virtualB, interval );
+
+			final RandomAccessibleInterval<ARGBType> img = Converters.mergeARGB( Views.stack( r, g, b ) , ColorChannelOrder.RGB );
+
 			final RandomAccessibleInterval<ARGBType> block = Views.zeroMin( Views.interval( img, interval ) );
 
 			//ImageJFunctions.show( block, DeconViews.createExecutorService() );

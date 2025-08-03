@@ -68,7 +68,6 @@ import net.preibisch.mvrecon.process.export.ExportN5Api;
 import net.preibisch.mvrecon.process.export.ImgExport;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
-import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion.BlockSupplierOrRAI;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyAffineFusion;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyNonRigidFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;

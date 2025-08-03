@@ -50,6 +50,7 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.array.ArrayImgs;
@@ -146,7 +147,9 @@ public class OpenSeaDragonExport
 
 		final RandomAccessibleInterval<ARGBType> rgb = Converters.mergeARGB( Views.stack( r8bit, g8bit, b8bit ) , ColorChannelOrder.RGB );
 
-		final OpenSeaDragonImgLib2 osd = new OpenSeaDragonImgLib2( rgb );
+		//final OpenSeaDragonImgLib2 osd = new OpenSeaDragonImgLib2( rgb );
+		final OpenSeaDragonImgLib2 osd =
+				new OpenSeaDragonImgLib2( BlockSupplier.of( r8bit ), BlockSupplier.of( g8bit ), BlockSupplier.of( b8bit ), new FinalInterval( virtualRed ));
 
 		//osd.read( new Rectangle(5000, 100, 1024, 768 ));
 		//SimpleMultiThreading.threadHaltUnClean();
