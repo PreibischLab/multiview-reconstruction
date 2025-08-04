@@ -138,10 +138,10 @@ public class TestWeights
 							transformedContentBased,
 							CombineType.MUL );
 			
-			DisplayImage.getImagePlusInstance( transformedInput, true, "inputImg", 0, 255 ).show();
-			DisplayImage.getImagePlusInstance( transformedBlending, true, "blending", 0, 1 ).show();
-			DisplayImage.getImagePlusInstance( transformedContentBased, true, "content", 0, 1 ).show();
-			DisplayImage.getImagePlusInstance( combinedWeights, true, "combinedWeights", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( transformedInput, true, "inputImg", 0, 255, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( transformedBlending, true, "blending", 0, 1, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( transformedContentBased, true, "content", 0, 1, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( combinedWeights, true, "combinedWeights", 0, 1, DisplayImage.service ).show();
 		}
 	}
 }

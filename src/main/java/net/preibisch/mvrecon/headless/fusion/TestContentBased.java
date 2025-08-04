@@ -71,7 +71,7 @@ public class TestContentBased
 
 		IOFunctions.println( "Done ... " );
 
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( cb.getEntropy(), true, "brain", Double.NaN, Double.NaN );
+		final ImagePlus imp = FusionTools.getImagePlusInstance( cb.getEntropy(), true, "brain", Double.NaN, Double.NaN, DisplayImage.service );
 		imp.show();
 	}
 }

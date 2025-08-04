@@ -38,10 +38,10 @@ import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
+import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.ClampType;
 import net.imglib2.algorithm.blocks.convert.Convert;
@@ -50,6 +50,9 @@ import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedByteConverter;
 import net.imglib2.converter.RealUnsignedShortConverter;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -71,7 +74,48 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class BlkAffineFusion
 {
-	public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > init(
+	/*
+	public static class BlockSupplierOrRAI< T extends RealType< T > & NativeType< T > >
+	{
+		final BlockSupplier< T > supplier;
+		final RandomAccessibleInterval< T > rai;
+
+		public BlockSupplierOrRAI( final BlockSupplier< T > supplier )
+		{
+			this.supplier = supplier;
+			this.rai = null;
+		}
+
+		public BlockSupplierOrRAI( final RandomAccessibleInterval< T > rai )
+		{
+			this.supplier = null;
+			this.rai = rai;
+		}
+
+		public boolean hasSupplier() { return supplier != null; }
+		public boolean hasRAI() { return rai != null; }
+
+		public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval<T> cellImg(
+				final BlockSupplier< T > blocks,
+				final long[] dimensions,
+				final int[] blockSize )
+		{
+			return BlockAlgoUtils.cellImg( blocks, dimensions, blockSize );
+		}
+	}
+	*/
+
+	public static < T extends NativeType< T > > ArrayImg< T, ? > arrayImg(
+			final BlockSupplier< T > blocks,
+			final Interval interval )
+	{
+		final ArrayImg< T, ? > img = new ArrayImgFactory<>( blocks.getType() ).create( interval );
+		final Object dest = ( ( ArrayDataAccess< ? > ) img.update( null ) ).getCurrentStorageArray();
+		blocks.copy( interval, dest );
+		return img;
+	}
+
+	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
 			final BasicImgLoader imgloader,
 			final Collection< ? extends ViewId > viewIds,
@@ -89,7 +133,7 @@ public class BlkAffineFusion
 				fusionInterval, type, blockSize );
 	}
 
-	public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > initWithIntensityCoefficients(
+	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > initWithIntensityCoefficients(
 			final Converter< FloatType, T > converter,
 			final BasicImgLoader imgloader,
 			final Collection< ? extends ViewId > viewIds,
@@ -107,7 +151,7 @@ public class BlkAffineFusion
 				fusionInterval, type, blockSize );
 	}
 
-	private static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval< T > init(
+	private static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
 			final BasicImgLoader imgloader,
 			final Collection< ? extends ViewId > viewIds,
@@ -134,8 +178,9 @@ public class BlkAffineFusion
 				// TODO: support intensity adjustmen with Coefficients in LazyAffineFusion
 				throw new UnsupportedOperationException( "BlkAffineFusion: Fusion method not supported (yet)." );
 
+			//throw new UnsupportedOperationException( "BlkAffineFusion: Fusion method not supported (yet)." );
 			IOFunctions.println( "BlkAffineFusion: Fusion method not supported (yet). Falling back to LazyAffineFusion." );
-			return LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize );
+			return BlockSupplier.of( LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize ) );
 		}
 
 		final HashMap< ViewId, Dimensions > viewDimensions = LazyFusionTools.assembleDimensions( viewIds, viewDescriptions );
@@ -238,7 +283,11 @@ public class BlkAffineFusion
 				floatBlocks,
 				converter, type )
 				.tile( 32 );
-		return BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), blockSize );
+
+		System.out.println( Util.printInterval( new FinalInterval( fusionInterval.dimensionsAsLongArray() ) ) );
+		
+		return blocks;
+		//return BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), blockSize );
 	}
 
 	private static < T extends NativeType< T > > BlockSupplier< T > convertToOutputType(

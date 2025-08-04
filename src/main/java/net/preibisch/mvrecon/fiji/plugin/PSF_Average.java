@@ -40,6 +40,7 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
 import net.preibisch.mvrecon.process.psf.PSFExtraction;
@@ -107,7 +108,7 @@ public class PSF_Average implements PlugIn
 			PSFExtraction.removeMinProjections( avgPSF );
 
 		if ( choice == 0 || choice == 2 )
-			DisplayImage.getImagePlusInstance( avgPSF, false, "Averaged PSF", 0, 1 ).show();
+			FusionTools.getImagePlusInstance( avgPSF, false, "Averaged PSF", 0, 1, DisplayImage.service ).show();
 
 		if ( choice == 1 || choice == 2 )
 		{

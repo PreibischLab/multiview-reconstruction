@@ -136,7 +136,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 		IOFunctions.println( "Threshold: " + threshold );
 
 		if ( displaySegmentationImage )
-			DisplayImage.getImagePlusInstance( img, false, "Fused input", minmax[ 0 ], minmax[ 1 ] ).show();
+			FusionTools.getImagePlusInstance( img, false, "Fused input", minmax[ 0 ], minmax[ 1 ], DisplayImage.service ).show();
 
 		IOFunctions.println( "Computing minimum filter with effective radius of " + effR + " (downsampling=" + downsampling + ")" );
 
@@ -144,7 +144,7 @@ public class BoundingBoxMinFilterThreshold implements BoundingBoxEstimation
 
 		if ( displaySegmentationImage )
 		{
-			final ImagePlus imp = DisplayImage.getImagePlusInstance( img, false, "Segmentation image", minmax[ 0 ], minmax[ 1 ] );
+			final ImagePlus imp = FusionTools.getImagePlusInstance( img, false, "Segmentation image", minmax[ 0 ], minmax[ 1 ], DisplayImage.service );
 			imp.show();
 		}
 

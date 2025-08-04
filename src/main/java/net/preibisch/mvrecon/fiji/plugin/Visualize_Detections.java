@@ -47,6 +47,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestP
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
 
 public class Visualize_Detections implements PlugIn
@@ -152,7 +153,6 @@ public class Visualize_Detections implements PlugIn
 		//
 		// load the images and render the segmentations
 		//
-		final DisplayImage di = new DisplayImage();
 
 		for ( final ViewId viewId : viewIds )
 		{
@@ -171,7 +171,7 @@ public class Visualize_Detections implements PlugIn
 			{
 				@SuppressWarnings( "unchecked" )
 				final RandomAccessibleInterval< UnsignedShortType > img = ( RandomAccessibleInterval< UnsignedShortType > ) spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( vd.getViewSetupId() ).getImage( vd.getTimePointId() );
-				di.exportImage( img, name );
+				FusionTools.getImagePlusInstance(img, true, name, 0, 255, DisplayImage.service ).show();
 				interval = img;
 			}
 			else
@@ -186,8 +186,9 @@ public class Visualize_Detections implements PlugIn
 					interval = new FinalInterval( vd.getViewSetup().getSize() );
 				}
 			}
-			
-			di.exportImage( renderSegmentations( spimData, viewId, label, detections, interval, downsample ), "seg of " + name );
+
+			//di.exportImage( renderSegmentations( spimData, viewId, label, detections, interval, downsample ), "seg of " + name );
+			FusionTools.getImagePlusInstance(renderSegmentations( spimData, viewId, label, detections, interval, downsample ), true, "seg of " + name, Double.NaN, Double.NaN, DisplayImage.service ).show();
 		}
 	}
 	

@@ -47,6 +47,7 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AbstractImgFactoryImgLoader;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Display_View implements PlugIn
@@ -159,7 +160,7 @@ public class Display_View implements PlugIn
 		{
 			il = (AbstractImgFactoryImgLoader)imgLoader;
 			factory = il.getImgFactory();
-			il.setImgFactory( new ImagePlusImgFactory< FloatType >());
+			il.setImgFactory( new ImagePlusImgFactory< FloatType >( new FloatType()));
 		}
 		else
 		{
@@ -168,16 +169,17 @@ public class Display_View implements PlugIn
 		}
 
 		// display it
-		DisplayImage export = new DisplayImage();
-		
+
 		if ( pixelType == 0 )
-			export.exportImage( ((ImgLoader)spimData.getSequenceDescription().getImgLoader()).getSetupImgLoader( viewId.getViewSetupId() ).getFloatImage( viewId.getTimePointId(), false ), name );
+		{
+			FusionTools.getImagePlusInstance(((ImgLoader)spimData.getSequenceDescription().getImgLoader()).getSetupImgLoader( viewId.getViewSetupId() ).getFloatImage( viewId.getTimePointId(), false ), true, name, 0, 255, DisplayImage.service ).show();
+		}
 		else
 		{
 			@SuppressWarnings( "unchecked" )
 			RandomAccessibleInterval< UnsignedShortType > img =
 				( RandomAccessibleInterval< UnsignedShortType > ) ((ImgLoader)spimData.getSequenceDescription().getImgLoader()).getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
-			export.exportImage( img, name );
+			FusionTools.getImagePlusInstance(img, true, name, 0, 255, DisplayImage.service ).show();
 		}
 
 		if ( factory != null && il != null )

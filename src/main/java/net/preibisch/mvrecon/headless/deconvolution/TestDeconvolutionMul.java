@@ -150,7 +150,7 @@ public class TestDeconvolutionMul
 		//DisplayImage.getImagePlusInstance( Views.rotate( avgPSF, 0, 2 ), false, "avgPSF", 0, 1 ).show();
 
 		final Img< FloatType > maxAvgPSF = PSFCombination.computeMaxAverageTransformedPSF( psfs.values(), new ArrayImgFactory< FloatType >() );
-		DisplayImage.getImagePlusInstance( maxAvgPSF, false, "maxAvgPSF", 0, 1 ).show();
+		FusionTools.getImagePlusInstance( maxAvgPSF, false, "maxAvgPSF", 0, 1, DisplayImage.service ).show();
 
 		final ImgFactory< FloatType > blockFactory = new ArrayImgFactory<>();
 		final ImgFactory< FloatType > psiFactory = new ArrayImgFactory<>();
@@ -242,7 +242,7 @@ public class TestDeconvolutionMul
 			psi = decon.getPSI();
 			debugImp = decon.getDebugImage();
 
-			ImagePlus imp = DisplayImage.getImagePlusInstance( psi, false, "Deconvolved", Double.NaN, Double.NaN );
+			ImagePlus imp = FusionTools.getImagePlusInstance( psi, false, "Deconvolved", Double.NaN, Double.NaN, DisplayImage.service );
 			imp.getCalibration().xOrigin = -(boundingBox.min( 0 ) / downsampling);
 			imp.getCalibration().yOrigin = -(boundingBox.min( 1 ) / downsampling);
 			imp.getCalibration().zOrigin = -(boundingBox.min( 2 ) / downsampling);
@@ -278,9 +278,9 @@ public class TestDeconvolutionMul
 			System.out.println( "Raw Weight Instance: " + fusion.getUnnormalizedWeights().get( group ).getClass().getSimpleName() );
 			System.out.println( "Normalized Weight Instance: " + fusion.getNormalizedWeights().get( group ).getClass().getSimpleName() );
 
-			DisplayImage.getImagePlusInstance( fusion.getImages().get( group ), true, "g=" + i + " image", 0, 255 ).show();
-			DisplayImage.getImagePlusInstance( fusion.getUnnormalizedWeights().get( group ), true, "g=" + i + " weightsRawDecon", 0, 2 ).show();
-			DisplayImage.getImagePlusInstance( fusion.getNormalizedWeights().get( group ), true, "g=" + i + " weightsNormDecon", 0, 2 ).show();
+			FusionTools.getImagePlusInstance( fusion.getImages().get( group ), true, "g=" + i + " image", 0, 255, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( fusion.getUnnormalizedWeights().get( group ), true, "g=" + i + " weightsRawDecon", 0, 2, DisplayImage.service ).show();
+			FusionTools.getImagePlusInstance( fusion.getNormalizedWeights().get( group ), true, "g=" + i + " weightsNormDecon", 0, 2, DisplayImage.service ).show();
 
 			allWeightsNormed.add( fusion.getNormalizedWeights().get( group ) );
 
@@ -290,14 +290,14 @@ public class TestDeconvolutionMul
 				final long[] dim = new long[ fusion.getDownsampledBoundingBox().numDimensions() ];
 				fusion.getDownsampledBoundingBox().dimensions( dim );
 	
-				DisplayImage.getImagePlusInstance(
+				FusionTools.getImagePlusInstance(
 						new CombineWeightsRandomAccessibleInterval(
 								new FinalInterval( dim ),
 								((FusedRandomAccessibleInterval)fusion.getImages().get( group )).getWeights(),
 								CombineType.SUM ),
 						true,
 						"g=" + i + " weightsFusion",
-						0, 1 ).show();
+						0, 1, DisplayImage.service ).show();
 			}
 
 			++i;
@@ -307,13 +307,13 @@ public class TestDeconvolutionMul
 		final long[] dim = new long[ fusion.getDownsampledBoundingBox().numDimensions() ];
 		fusion.getDownsampledBoundingBox().dimensions( dim );
 
-		DisplayImage.getImagePlusInstance(
+		FusionTools.getImagePlusInstance(
 				new CombineWeightsRandomAccessibleInterval(
 						new FinalInterval( dim ),
 						allWeightsNormed,
 						CombineType.SUM ),
 				true,
 				"sum of all normed weights",
-				0, 1 ).show();
+				0, 1, DisplayImage.service ).show();
 	}
 }

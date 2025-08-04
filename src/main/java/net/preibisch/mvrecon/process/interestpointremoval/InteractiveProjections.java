@@ -43,6 +43,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.FloatType;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -179,7 +180,8 @@ public class InteractiveProjections
 
 	protected ImagePlus showProjection( final Img< FloatType > img )
 	{
-		final ImagePlus imp = DisplayImage.getImagePlusInstance( img, false, "Max Projection", Double.NaN, Double.NaN );
+		final ImagePlus imp = ImageJFunctions.show( img, DisplayImage.service );
+		imp.setDisplayRange(0, 255);
 		imp.show();
 		return imp;
 	}

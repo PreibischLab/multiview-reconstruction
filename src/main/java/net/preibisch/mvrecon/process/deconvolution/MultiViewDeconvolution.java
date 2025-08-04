@@ -41,6 +41,7 @@ import net.preibisch.mvrecon.process.deconvolution.init.PsiInitFactory;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThread;
 import net.preibisch.mvrecon.process.deconvolution.iteration.ComputeBlockThreadFactory;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 
 public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
 {
@@ -153,7 +154,7 @@ public abstract class MultiViewDeconvolution< C extends ComputeBlockThread >
 			{
 				// if it is slices, wrap & copy otherwise virtual & copy - never use the actual image
 				// as it is being updated in the process
-				final ImagePlus tmp = DisplayImage.getImagePlusInstance( psi, true, "Psi", 0, avgMax ).duplicate();
+				final ImagePlus tmp = FusionTools.getImagePlusInstance( psi, false, "Psi", 0, avgMax, DisplayImage.service );
 
 				if ( this.stack == null )
 				{

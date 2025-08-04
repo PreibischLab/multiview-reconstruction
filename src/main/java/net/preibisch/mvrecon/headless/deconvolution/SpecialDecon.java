@@ -48,6 +48,7 @@ import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.process.deconvolution.normalization.AdjustInput;
 import net.preibisch.mvrecon.process.export.DisplayImage;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.psf.PSFCombination;
 import net.preibisch.mvrecon.process.psf.PSFExtraction;
 
@@ -150,7 +151,7 @@ public class SpecialDecon
 		subtract( psf0, 15.0f );
 
 		System.out.println( AdjustInput.sumImg( psf0 ) );
-		DisplayImage.getImagePlusInstance( psf0, false, "psf_" + contains, Double.NaN, Double.NaN ).show();
+		FusionTools.getImagePlusInstance( psf0, false, "psf_" + contains, Double.NaN, Double.NaN, DisplayImage.service ).show();
 	}
 
 	public static void addTo( final Img< FloatType > img1, final Img< FloatType > img2 )

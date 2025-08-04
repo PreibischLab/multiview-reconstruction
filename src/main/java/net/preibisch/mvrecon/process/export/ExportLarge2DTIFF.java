@@ -42,6 +42,8 @@ import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -51,6 +53,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
@@ -58,6 +61,7 @@ import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.process.deconvolution.DeconViews;
+import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ExportLarge2DTIFF implements ImgExport
@@ -95,33 +99,39 @@ public class ExportLarge2DTIFF implements ImgExport
 	//@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public <T extends RealType<T> & NativeType<T>> boolean exportImage(
-			RandomAccessibleInterval<T> imgInterval,
+			final BlockSupplier< T > blocks, //RandomAccessibleInterval<T> imgInterval,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
 			final String title,
 			final Group<? extends ViewDescription> fusionGroup )
 	{
+		// is zero min
+		RandomAccessibleInterval<T> imgInterval = BlockAlgoUtils.cellImg( blocks.threadSafe(), bb.dimensionsAsLongArray(), new int[]{ 1024, 1024, 1 } );
+
 		// hack to make the interval divisable by 16 (see https://imagesc.zulipchat.com/#narrow/stream/212929-general/topic/Writing.20large.202D.20TIFFs)
-		if ( imgInterval.dimension( 0 ) % 16 != 0 || imgInterval.dimension( 1 ) % 16 != 0 )
+		if ( bb.dimension( 0 ) % 16 != 0 || bb.dimension( 1 ) % 16 != 0 )
 		{
-			final long[] min = imgInterval.minAsLongArray();
-			final long[] max = imgInterval.maxAsLongArray();
+			final long[] min = bb.minAsLongArray();
+			final long[] max = bb.maxAsLongArray();
 
-			max[ 0 ] += ( 16 - imgInterval.dimension( 0 ) % 16 );
-			max[ 1 ] += ( 16 - imgInterval.dimension( 1 ) % 16 );
+			max[ 0 ] += ( 16 - bb.dimension( 0 ) % 16 );
+			max[ 1 ] += ( 16 - bb.dimension( 1 ) % 16 );
 
-			final Interval interval = new FinalInterval(min, max);
+			final Interval interval = Intervals.zeroMin( new FinalInterval(min, max) );
 
 			IOFunctions.println( "WARNING: changing output interval be divisible by 16:" );
-			IOFunctions.println( "OLD: " + Util.printInterval(imgInterval) );
-			IOFunctions.println( "NEW: " + Util.printInterval(interval) );
+			IOFunctions.println( "OLD: " + Util.printInterval(bb) );
+			IOFunctions.println( "OLD zeroMin: " + Util.printInterval(Intervals.zeroMin( bb) ) );
+			IOFunctions.println( "NEW zeroMin: " + Util.printInterval(interval) );
 
+			//imgInterval = Views.interval( Views.extendZero( imgInterval ), interval );
 			imgInterval = Views.interval( Views.extendZero( imgInterval ), interval );
 		}
 
 		// remember all fusiongroups
-		groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)imgInterval) );
+		//groups.add(Views.zeroMin((RandomAccessibleInterval)(Object)imgInterval) );
+		groups.add((RandomAccessibleInterval)(Object)imgInterval );
 
 		// do nothing until all fusiongroups arrived
 		if ( groups.size() < numFusionGroups )

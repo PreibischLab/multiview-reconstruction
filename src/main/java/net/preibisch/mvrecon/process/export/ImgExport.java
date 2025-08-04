@@ -24,7 +24,7 @@ package net.preibisch.mvrecon.process.export;
 
 import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
@@ -59,13 +59,12 @@ public interface ImgExport
 	 * @return success? true or false
 	 */
 	< T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval< T > img,
+			final BlockSupplier< T > img,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
 			final String title,
 			final Group< ? extends ViewDescription > fusionGroup );
-	
 	/*
 	 * Query the necessary parameters for the fusion (new dialog can be made)
 	 * 

@@ -31,10 +31,10 @@ import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.ViewDescription;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.exception.ImgLibException;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
+import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.img.imageplus.ImagePlusImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.preibisch.legacy.io.IOFunctions;
@@ -47,7 +47,7 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 public class DisplayImage implements ImgExport, Calibrateable
 {
 	// TODO: this is ugly, but otherwise the service is shutdown while the ImageJVirtualStack is still displayed and crashes when scrolling through the stack
-	final static ExecutorService service = DeconViews.createExecutorService();
+	final public static ExecutorService service = DeconViews.createExecutorService();
 
 	final String[] choiceText = new String[] { "cached (immediate, less memory, slower)", "precomputed (fast, complete copy in memory before display)" };
 
@@ -73,19 +73,9 @@ public class DisplayImage implements ImgExport, Calibrateable
 	public DisplayImage() { this( true ); }
 	public DisplayImage( final boolean virtualDisplay ) { this.virtualDisplay = virtualDisplay; }
 
-	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img )
-	{
-		exportImage( img, null, Double.NaN, Double.NaN, "Image", null );
-	}
-
-	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
-	{
-		exportImage( img, null, Double.NaN, Double.NaN, title, null );
-	}
-
 	@Override
 	public < T extends RealType< T > & NativeType< T > > boolean exportImage(
-			final RandomAccessibleInterval< T > img,
+			final BlockSupplier< T > img,
 			final Interval bb,
 			final double downsampling,
 			final double anisoF,
@@ -101,7 +91,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Display range min=" + minIntensity + ", max=" + maxIntensity );
 
-		final ImagePlus imp = getImagePlusInstance( img, virtualDisplay, title, minIntensity, maxIntensity );
+		final ImagePlus imp = getImagePlusInstance( img, bb, blocksize(), virtualDisplay, title, minIntensity, maxIntensity, service );
 
 		setCalibration( imp, bb, downsampling, anisoF, cal, unit );
 
@@ -126,6 +116,17 @@ public class DisplayImage implements ImgExport, Calibrateable
 		}
 
 		imp.getCalibration().setUnit( unit );
+	}
+
+	/*	
+	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img )
+	{
+		exportImage( img, null, Double.NaN, Double.NaN, "Image", null );
+	}
+
+	public < T extends RealType< T > & NativeType< T > > void exportImage( final RandomAccessibleInterval< T > img, final String title )
+	{
+		exportImage( img, null, Double.NaN, Double.NaN, title, null );
 	}
 
 	public static < T extends RealType< T > > double[] getFusionMinMax(
@@ -179,6 +180,50 @@ public class DisplayImage implements ImgExport, Calibrateable
 		imp.setTitle( title );
 		imp.setDimensions( 1, (int)img.dimension( 2 ), 1 );
 		imp.setDisplayRange( minmax[ 0 ], minmax[ 1 ] );
+
+		return imp;
+	}
+	*/
+
+	public static < T extends RealType< T > & NativeType< T > > ImagePlus getImagePlusInstance(
+			final BlockSupplier< T > supplier,
+			final Interval interval,
+			final int[] blockSize,
+			final boolean virtualDisplay,
+			final String title,
+			double min,
+			double max,
+			final ExecutorService service )
+	{
+		//ImagePlus imp = null;
+
+		//if ( img instanceof ImagePlusImg )
+		//	try { imp = ((ImagePlusImg<T, ?>)img).getImagePlus(); } catch (ImgLibException e) {}
+
+		final ImagePlus imp;
+		CachedCellImg<T, ?> img = BlockAlgoUtils.cellImg( supplier, interval.dimensionsAsLongArray(), blockSize );
+
+		if ( virtualDisplay )
+		{
+			imp = ImageJFunctions.wrap( img, title, service );
+		}
+		else
+		{
+			imp = ImageJFunctions.wrap( img, title, service ).duplicate(); // TODO: this can be done more efficient, use BlkAffineFusion.arrayImg for each slice
+			img = null;
+		}
+
+		//final double[] minmax = getFusionMinMax( img, min, max );
+
+		if ( Double.isNaN( min ) )
+			min = 0;
+
+		if ( Double.isNaN( max ) )
+			max = 255;
+			
+		imp.setTitle( title );
+		imp.setDimensions( 1, (int)interval.dimension( 2 ), 1 );
+		imp.setDisplayRange( min, max );
 
 		return imp;
 	}

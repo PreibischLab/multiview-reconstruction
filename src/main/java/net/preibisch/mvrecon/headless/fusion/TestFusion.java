@@ -100,7 +100,7 @@ public class TestFusion
 						FusionType.AVG_BLEND,
 						bb );
 
-		DisplayImage.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255 ).show();
+		FusionTools.getImagePlusInstance( virtual, true, "Fused, Virtual", 0, 255, DisplayImage.service ).show();
 
 		//
 		// actually fuse into an image multithreaded
@@ -112,6 +112,6 @@ public class TestFusion
 
 		IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Finished fusion process." );
 
-		DisplayImage.getImagePlusInstance( fusedImg, false, "Fused", 0, 255 ).show();
+		FusionTools.getImagePlusInstance( fusedImg, false, "Fused", 0, 255, DisplayImage.service ).show();
 	}
 }

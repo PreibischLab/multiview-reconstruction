@@ -237,7 +237,7 @@ public class DisplayFusedImagesPopup extends JMenu implements ExplorerWindowSeta
 									imgType );
 					*/
 
-					final ImagePlus imp = DisplayImage.getImagePlusInstance( lazyFused, false, "Fused Non-rigid", 0, 255 );
+					final ImagePlus imp = FusionTools.getImagePlusInstance( lazyFused, false, "Fused Non-rigid", 0, 255, DisplayImage.service );
 
 					if ( imp.getStack().getSize() > 1 )
 					{

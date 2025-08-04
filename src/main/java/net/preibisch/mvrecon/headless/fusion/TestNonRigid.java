@@ -105,7 +105,7 @@ public class TestNonRigid
 						spimData.getSequenceDescription().getViewDescriptions(),
 						fused, FusionType.AVG_BLEND, boundingBox );
 
-		DisplayImage.getImagePlusInstance( virtual, false, "Fused Affine", 0, 255 ).show();
+		FusionTools.getImagePlusInstance( virtual, false, "Fused Affine", 0, 255, DisplayImage.service ).show();
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with affine" );
 	}
@@ -205,7 +205,7 @@ public class TestNonRigid
 
 		// Non-rigid fusion took: 314887 ms.
 		long time = System.currentTimeMillis();
-		DisplayImage.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255 ).show();
+		FusionTools.getImagePlusInstance( virtual, false, "Fused Non-rigid", 0, 255, DisplayImage.service ).show();
 		System.out.println( "Non-rigid fusion took: " + (System.currentTimeMillis() - time) + " ms.");
 
 		IOFunctions.println( new Date( System.currentTimeMillis() ) + ": done with non-rigid" );
