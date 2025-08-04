@@ -181,7 +181,7 @@ public class Resave_TIFF implements PlugIn
 			if ( !viewDescription.isPresent() )
 				continue;
 
-			final RandomAccessibleInterval img = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId(), LOAD_COMPLETELY );
+			final RandomAccessibleInterval img = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( viewId.getViewSetupId() ).getImage( viewId.getTimePointId() );
 
 			String filename = "img";
 
