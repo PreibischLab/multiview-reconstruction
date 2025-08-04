@@ -30,9 +30,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -473,29 +475,14 @@ public class ExportN5Api implements ImgExport
 
 		try
 		{
-			final Map< String, Integer > blockRetryCount = new HashMap<>();
-			final int maxRetries = 3;
-			final boolean giveUp = true;
-			final int maxTotalAttempts = grid.size() * maxRetries;
-			int totalAttempts = 0;
+			final RetryTracker<long[][]> retryTracker = RetryTracker.forGridBlocks("s0 block processing", grid.size());
 
 			do
 			{
-				if ( ++totalAttempts > maxTotalAttempts )
-				{
-					IOFunctions.println( "Maximum retry attempts (" + maxTotalAttempts + ") exceeded. " + grid.size() + " blocks could not be saved." );
+				if (!retryTracker.beginAttempt())
 					return false;
-				}
 
-				// Add delay and GC hint for retries to help with memory pressure
-				if ( totalAttempts > 1 )
-				{
-					IOFunctions.println( "Retry attempt " + totalAttempts + " for " + grid.size() + " failed blocks. Triggering GC and waiting..." );
-					System.gc();
-					try { Thread.sleep( 2000 ); } catch ( InterruptedException ignored ) {}
-				}
-
-				final ArrayList< Callable< long[] > > tasks = new ArrayList<>();
+				final ArrayList< Callable< long[][] > > tasks = new ArrayList<>();
 
 				for ( final long[][] gridBlock : grid )
 				{
@@ -551,68 +538,24 @@ public class ExportN5Api implements ImgExport
 	
 						IJ.showProgress( progress.incrementAndGet(), grid.size() );
 	
-						return gridBlock[ 0 ].clone();
+						return gridBlock.clone();
 					} );
 				}
 	
-				final List<Future<long[]>> futures = poolFullRes.invokeAll( tasks );
+				final List<Future<long[][]>> futures = poolFullRes.invokeAll( tasks );
 
-				final HashMap< String, long[][] > setAllBlocks = new HashMap<>();
-				grid.forEach( gridBlock -> setAllBlocks.put( Arrays.toString( gridBlock[ 0 ] ), gridBlock ) );
+				// extract all blocks that failed
+				final Set<long[][]> failedBlocksSet = retryTracker.processWithFutures( futures, grid );
 
-				for ( final Future<long[]> future : futures )
-				{
-					try
-					{
-						final long[] result = future.get();
-	
-						if ( result != null )
-							setAllBlocks.remove( Arrays.toString( result ) );
-					}
-					catch ( Exception e )
-					{
-						IOFunctions.println( "block error s0 (will be re-tried): " + e );
-					}
-				}
+				// Use RetryTracker to handle retry counting and removal
+				if (!retryTracker.processFailures(failedBlocksSet))
+					return false;
 
-				// Check individual block retry limits
-				final Iterator< Map.Entry< String, long[][] > > blockIterator = setAllBlocks.entrySet().iterator();
-				while ( blockIterator.hasNext() )
-				{
-					final Map.Entry< String, long[][] > entry = blockIterator.next();
-					final String blockKey = entry.getKey();
-					final int retries = blockRetryCount.getOrDefault( blockKey, 0 ) + 1;
-					
-					if ( retries > maxRetries )
-					{
-						if ( giveUp )
-						{
-							IOFunctions.println( "Block " + blockKey + " failed " + retries + " times, giving up on this block and stopping." );
-							return false;
-						}
-						else
-						{
-							IOFunctions.println( "Block " + blockKey + " failed " + retries + " times, giving up on this block and continuing." );
-							blockIterator.remove(); // Remove from retry queue
-						}
-					}
-					else
-					{
-						blockRetryCount.put( blockKey, retries );
-					}
-				}
-	
-				IOFunctions.println( "blocks remaining for retry: " + setAllBlocks.size() );
-
+				// Update grid for next iteration with remaining failed blocks
 				grid.clear();
-
-				if ( setAllBlocks.size() > 0 )
-				{
-					IOFunctions.println( "Adding " + setAllBlocks.size() + " blocks for retry..." );
-					grid.addAll( setAllBlocks.values() );
-				}
+				grid.addAll(failedBlocksSet);
 			}
-			while ( grid.size() > 0 && totalAttempts < maxTotalAttempts );
+			while ( grid.size() > 0 );
 
 			poolFullRes.shutdown();
 			poolFullRes.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
