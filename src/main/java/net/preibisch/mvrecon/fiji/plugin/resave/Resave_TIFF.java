@@ -37,7 +37,9 @@ import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
@@ -198,7 +200,13 @@ public class Resave_TIFF implements PlugIn
 			if ( numTiles > 1 )
 				filename += "_Tile" + viewDescription.getViewSetup().getTile().getName();
 
-			save.exportImage( img, filename );
+			save.exportImage(
+					BlockSupplier.of( img ),
+					new FinalInterval( img ),
+					Double.NaN,
+					Double.NaN,
+					filename,
+					null );
 
 			progressWriter.setProgress( ((i-1) / (double)viewIds.size()) * 95.00  );
 		}

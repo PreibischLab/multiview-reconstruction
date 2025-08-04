@@ -204,30 +204,31 @@ public class Image_Fusion implements PlugIn
 							fusion.getDownsampling() );
 
 			//final RandomAccessibleInterval lazy;
-			final BlockSupplierOrRAI supplier;
+			final BlockSupplier supplier;
 
 			if ( fusion.getNonRigidParameters().isActive() )
 			{
-				supplier = new BlockSupplierOrRAI( LazyNonRigidFusion.init(
-						conv,
-						spimData.getSequenceDescription().getImgLoader(),
-						registrations,
-						spimData.getViewInterestPoints().getViewInterestPoints(),
-						spimData.getSequenceDescription().getViewDescriptions(),
-						group.getViews(),
-						viewsToUse,
-						fusion.getNonRigidParameters().getLabels(),
-						fusion.getFusionType(),
-						fusion.getNonRigidParameters().showDistanceMap(),
-						Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
-						fusion.getNonRigidParameters().getAlpha(),
-						false,
-						fusion.getInterpolation(),
-						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
-						taskExecutor,
-						fusion.getBoundingBox(),
-						(RealType & NativeType)type,
-						blocksize ) );
+				supplier = BlockSupplier.of(
+						LazyNonRigidFusion.init(
+							conv,
+							spimData.getSequenceDescription().getImgLoader(),
+							registrations,
+							spimData.getViewInterestPoints().getViewInterestPoints(),
+							spimData.getSequenceDescription().getViewDescriptions(),
+							group.getViews(),
+							viewsToUse,
+							fusion.getNonRigidParameters().getLabels(),
+							fusion.getFusionType(),
+							fusion.getNonRigidParameters().showDistanceMap(),
+							Util.getArrayFromValue( fusion.getNonRigidParameters().getControlPointDistance(), 3 ),
+							fusion.getNonRigidParameters().getAlpha(),
+							false,
+							fusion.getInterpolation(),
+							fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
+							taskExecutor,
+							fusion.getBoundingBox(),
+							(RealType & NativeType)type,
+							blocksize ) );
 
 				// TODO: replace with LazyAffineFusion and varying blocksizes depending on the task
 				/*
