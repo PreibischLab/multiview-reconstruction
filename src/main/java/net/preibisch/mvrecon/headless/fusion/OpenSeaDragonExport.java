@@ -101,7 +101,7 @@ public class OpenSeaDragonExport
 
 		new ImageJ();
 
-		SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/preibischs/Downloads/troy eberhardt/dataset.xml" ) );
+		SpimData2 spimData = new XmlIoSpimData2().load( URITools.toURI( "/Users/preibischs/Documents/Janelia/Projects/DHS - OpenSeaDragon/troy eberhardt/dataset.xml" ) );
 
 		testOpenSeaDragonExport( spimData, 0, 1, 2 );
 	}
