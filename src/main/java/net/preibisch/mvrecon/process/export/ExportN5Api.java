@@ -602,45 +602,59 @@ public class ExportN5Api implements ImgExport
 
 			try
 			{
-				final ArrayList< Callable< long[] > > tasks = new ArrayList<>();
-				
-				for ( final long[][] gridBlock : allBlocks )
+				final RetryTracker<long[][]> retryTracker = RetryTracker.forGridBlocks("s" + level + " block processing", allBlocks.size());
+
+				do
 				{
-					tasks.add( () -> 
+					if (!retryTracker.beginAttempt())
+						return false;
+
+					final ArrayList< Callable< long[][] > > tasks = new ArrayList<>();
+					
+					for ( final long[][] gridBlock : allBlocks )
 					{
-						// 5D OME-ZARR CONTAINER
-						if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+						tasks.add( () -> 
 						{
-							N5ApiTools.writeDownsampledBlock5dOMEZARR(
-									driverVolumeWriter,
-									mrInfo[ s ],
-									mrInfo[ s - 1 ],
-									gridBlock,
-									currentChannelIndex,
-									currentTPIndex );
-						}
-						else
-						{
-							N5ApiTools.writeDownsampledBlock(
-									driverVolumeWriter,
-									mrInfo[ s ],
-									mrInfo[ s - 1 ],
-									gridBlock );
-						}
+							// 5D OME-ZARR CONTAINER
+							if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )
+							{
+								N5ApiTools.writeDownsampledBlock5dOMEZARR(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock,
+										currentChannelIndex,
+										currentTPIndex );
+							}
+							else
+							{
+								N5ApiTools.writeDownsampledBlock(
+										driverVolumeWriter,
+										mrInfo[ s ],
+										mrInfo[ s - 1 ],
+										gridBlock );
+							}
 
-						IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
+							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
 
-						return gridBlock[ 0 ].clone();
-					});
+							return gridBlock.clone();
+						});
+					}
+
+					final List<Future<long[][]>> futures = myPool.invokeAll( tasks );
+
+					// extract all blocks that failed
+					final Set<long[][]> failedBlocksSet = retryTracker.processWithFutures( futures, allBlocks );
+
+					// Use RetryTracker to handle retry counting and removal
+					if (!retryTracker.processFailures(failedBlocksSet))
+						return false;
+
+					// Update allBlocks for next iteration with remaining failed blocks
+					allBlocks.clear();
+					allBlocks.addAll(failedBlocksSet);
 				}
-
-				final List<Future<long[]>> futures = myPool.invokeAll( tasks );
-
-				for ( final Future<long[]> future : futures )
-				{
-					final long[] result = future.get();
-					// TODO: add error handling
-				}
+				while ( allBlocks.size() > 0 );
 
 				myPool.shutdown();
 				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS);
