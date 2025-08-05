@@ -11,6 +11,9 @@
 # Maven #
 /target/
 
+# VS-CODE #
+.vscode/
+
 # IntelliJ  #
 .idea/
 SPIM_Registration.iml
