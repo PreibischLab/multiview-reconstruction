@@ -385,7 +385,7 @@ public class InterestPointsN5 extends InterestPoints
 			String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			String type = n5.getAttribute(dataset, "type", String.class );
 
-			System.out.println( "Version: " + version + ", type: " + type );
+			//System.out.println( "Version: " + version + ", type: " + type );
 
 			if ( !type.equals("list") )
 			{

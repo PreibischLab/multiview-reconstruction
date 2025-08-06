@@ -35,10 +35,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.joml.Math;
 
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
@@ -270,6 +274,9 @@ public class MatcherPairwiseTools
 		return computePairs( pairs, interestpoints, matcher, matchAcrossLabels, null );
 	}
 
+	static int size;
+	final static AtomicInteger finished = new AtomicInteger( 0 );
+
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
 			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
@@ -277,6 +284,7 @@ public class MatcherPairwiseTools
 			final boolean matchAcrossLabels,
 			final ExecutorService exec )
 	{
+		final int batchSize = 10;
 		final ExecutorService taskExecutor;
 		
 		if ( exec == null )
@@ -284,31 +292,48 @@ public class MatcherPairwiseTools
 		else
 			taskExecutor = exec;
 
-		// each pair of Views that will be compared
-		final ArrayList<MatchingTask<V>> tasksList = getTasksList( pairs, interestpoints, matchAcrossLabels );
-		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = getCallables( tasksList, interestpoints, matcher );
-
 		final List< Pair< Pair< V, V >, PairwiseResult< I > > > r = new ArrayList<>();
 
-		try
+		// each pair of Views that will be compared
+		final ArrayList<MatchingTask<V>> tasksListFull = getTasksList( pairs, interestpoints, matchAcrossLabels );
+
+		for ( int i = 0; i <= tasksListFull.size()/batchSize; ++i )
 		{
-			// invokeAll() returns when all tasks are complete
-			taskExecutor.invokeAll( tasks ).forEach( future ->
+			final ArrayList<MatchingTask<V>> tasksList = new ArrayList<>();
+
+			for ( int j = i*batchSize; j < Math.min( tasksListFull.size(), i*batchSize + batchSize ); ++j )
+				tasksList.add( tasksListFull.get( j ) );
+
+			if ( tasksList.size() == 0 )
+				continue;
+
+			final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > tasks = getCallables( tasksList, interestpoints, matcher );
+
+			System.out.println( "Processing tasks " + i*batchSize + " > " + (Math.min( tasksListFull.size(), i*batchSize + batchSize ) - 1) );
+			size = tasksList.size();
+			System.out.println( "Tasks: " + size );
+
+			try
 			{
-				try
+				// invokeAll() returns when all tasks are complete
+				taskExecutor.invokeAll( tasks ).forEach( future ->
 				{
-					r.add( future.get() );
-				}
-				catch (InterruptedException | ExecutionException e)
-				{
-					e.printStackTrace();
-					throw new RuntimeException( e );
-				}
-			});
-		}
-		catch ( final Exception e )
-		{
-			throw new RuntimeException( e );
+					try
+					{
+						r.add( future.get() );
+						
+					}
+					catch (InterruptedException | ExecutionException e)
+					{
+						e.printStackTrace();
+						throw new RuntimeException( e );
+					}
+				});
+			}
+			catch ( final Exception e )
+			{
+				throw new RuntimeException( e );
+			}
 		}
 
 		if ( exec == null )
@@ -382,12 +407,20 @@ public class MatcherPairwiseTools
 		return taskList;
 	}
 
+	public static HashSet< String > taskTrackingSet = new HashSet<String>();
+	//public static boolean debug1 = false;
+
 	public static < V, I extends InterestPoint > ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > getCallables(
 			final List< MatchingTask< V > > tasks,
 			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
 			final MatcherPairwise< I > matcher )
 	{
 		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > callables = new ArrayList<>(); // your tasks
+
+		int maxSizeA = 0;
+		int maxSizeB = 0;
+		int maxSum = 0;
+		String maxString = "";
 
 		for ( final MatchingTask<V> task : tasks )
 		{
@@ -413,19 +446,57 @@ public class MatcherPairwiseTools
 				listB = mapB.get( task.labelB );
 			}
 
+			maxSizeA = Math.max( maxSizeA, listA.size() );
+			maxSizeB = Math.max( maxSizeB, listB.size() );
+
+			if ( maxSum < listA.size() + listB.size() )
+			{
+				maxSum = listA.size() + listB.size();
+				maxString = ((ViewId)task.getPair().getA()).getViewSetupId() + ":" + listA.size() + " <-> " + ((ViewId)task.getPair().getB()).getViewSetupId() + ":" + listB.size();
+			}
+
+			taskTrackingSet.add( ((ViewId)task.getPair().getA()).getViewSetupId() + "-" + ((ViewId)task.getPair().getB()).getViewSetupId() );
+
 			callables.add( new Callable< Pair< Pair< V, V >, PairwiseResult< I > > >()
 			{
 				@Override
 				public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
 				{
 					final PairwiseResult< I > pwr = matcher.match( listA, listB );
+
 					pwr.setLabelA( task.labelA );
 					pwr.setLabelB( task.labelB );
 					assignLoggingDescriptions( task.getPair(), pwr );
+
+
+					synchronized ( taskTrackingSet )
+					{
+						taskTrackingSet.remove( ((ViewId)task.getPair().getA()).getViewSetupId() + "-" + ((ViewId)task.getPair().getB()).getViewSetupId() );
+
+						/*
+						if ( taskTrackingSet.size() < 45 )
+						{
+							//debug1=true;
+							System.out.print( taskTrackingSet.size()  + ": ");
+							for ( final String s : taskTrackingSet )
+								System.out.print( s  + "; ");
+							System.out.println();
+						}*/
+					}
+
+					int v = finished.incrementAndGet();
+					if ( v % 10 == 0 )
+						System.out.println( v + "/" + size + ", remaining " + taskTrackingSet.size() );
+
 					return new ValuePair<>( task.getPair(), pwr );
 				}
 			});
 		}
+
+		System.out.println( "a: " + maxSizeA );
+		System.out.println( "b: " + maxSizeB );
+		System.out.println( "s: " + maxSum );
+		System.out.println( maxString );
 
 		return callables;
 	}

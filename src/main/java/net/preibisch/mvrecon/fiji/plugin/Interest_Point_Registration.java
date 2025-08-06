@@ -289,6 +289,8 @@ public class Interest_Point_Registration implements PlugIn
 		final ArrayList< Subset< ViewId > > subsets = setup.getSubsets();
 
 		// load & transform all interest points
+		IOFunctions.println( "Fetching " + viewIds.size() + " transformed interestpoint lists ..." );
+
 		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
 					viewIds,
@@ -336,12 +338,18 @@ public class Interest_Point_Registration implements PlugIn
 				for ( final Pair< ViewId, ViewId > pair : pairs )
 					System.out.println( Group.pvid( pair.getA() ) + " <=> " + Group.pvid( pair.getB() ) );
 
+				System.out.println( "Matching ... " );
+
 				// compute all pairwise matchings
 				final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > > result =
 						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance(), matchAcrossLabels );
 
+				System.out.println( "Clear correspondences ... " );
+
 				// clear correspondences
 				MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
+
+				System.out.println( "Add correspondences ... " );
 
 				// add the corresponding detections and output result
 				for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > p : result )
@@ -360,6 +368,8 @@ public class Interest_Point_Registration implements PlugIn
 					if ( collectStatistics )
 						statistics.add( p );
 				}
+
+				System.out.println( "Global opt ... " );
 
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( result, labelMap ); // TODO: Add weights!!!

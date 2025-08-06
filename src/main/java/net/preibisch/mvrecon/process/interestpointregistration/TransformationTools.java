@@ -31,6 +31,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import bdv.BigDataViewer;
 import mpicbg.models.AbstractAffineModel3D;
@@ -66,6 +69,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
+import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.spimdata.ViewSetupUtils;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
@@ -686,8 +690,21 @@ public class TransformationTools
 	{
 		final HashMap< V, HashMap< String, List< InterestPoint > > > transformedInterestpoints = new HashMap<>();
 
-		for ( final V viewId : viewIds )
-			transformedInterestpoints.put( viewId, getInterestPoints( viewId, registrations, interestpoints, labelMap, transform ) );
+		final ForkJoinPool myPool = new ForkJoinPool( Threads.numThreads() );
+
+		try {
+			myPool.submit( () -> viewIds.parallelStream().forEach( viewId ->
+				transformedInterestpoints.put( viewId, getInterestPoints( viewId, registrations, interestpoints, labelMap, transform ) )
+			) ).get();
+		} catch (InterruptedException | ExecutionException e)
+		{
+			throw new RuntimeException( e );
+		}
+
+		myPool.shutdown();
+
+		//for ( final V viewId : viewIds )
+		//	transformedInterestpoints.put( viewId, getInterestPoints( viewId, registrations, interestpoints, labelMap, transform ) );
 
 		return transformedInterestpoints;
 	}
