@@ -385,7 +385,7 @@ public class InterestPointsN5 extends InterestPoints
 			String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			String type = n5.getAttribute(dataset, "type", String.class );
 
-			System.out.println( "Version: " + version + ", type: " + type );
+			//System.out.println( "Version: " + version + ", type: " + type );
 
 			if ( !type.equals("list") )
 			{
@@ -496,7 +496,7 @@ public class InterestPointsN5 extends InterestPoints
 			@SuppressWarnings("unchecked")
 			final Map< String, Long > idMap = n5.getAttribute(dataset, "idMap", Map.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
 
-			System.out.println( "Version: " + version + ", " + idMap.size() + " correspondence codes" );
+			//System.out.println( "Version: " + version + ", " + idMap.size() + " correspondence codes" );
 
 			if ( idMap.size() == 0 )
 			{
