@@ -294,11 +294,39 @@ public class DoGImgLib2
 		{
 			finalPeaks = Localization.computeGaussLocalization( peaks, null, sigma, findMin, findMax, minPeakValue, true );
 		}
-		
-		if ( !silent )
-			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + finalPeaks.size() + " final peaks." );
 
-		return finalPeaks;
+		// remove potential duplicates (happens because during localization it can move around)
+		//final HashSet< >
+		final ArrayList< InterestPoint > filteredFinalPeaks = new ArrayList<>();
+
+		for ( int i = 0; i < finalPeaks.size() - 1; ++i )
+		{
+			final double[] v1 = finalPeaks.get( i ).getL();
+			boolean approxEqual = true;
+
+			for ( int j = i + 1; approxEqual && j < finalPeaks.size(); ++j )
+			{
+				final double[] v2 = finalPeaks.get( j ).getL();
+				approxEqual = isApproxEqual( v1, v2, 0.001 );
+			}
+
+			if ( approxEqual )
+				filteredFinalPeaks.add( finalPeaks.get( i ) );
+		}
+
+		if ( !silent )
+			IOFunctions.println("(" + new Date(System.currentTimeMillis()) + "): Found " + filteredFinalPeaks.size() + " final peaks." );
+
+		return filteredFinalPeaks;
+	}
+
+	private static final boolean isApproxEqual( final double[] v1, final double[] v2, final double epsilon )
+	{
+		for ( int d = 0; d < v1.length; ++d )
+			if ( Math.abs( v1[ d ] - v2[ d ] ) > epsilon )
+				return true;
+
+		return false;
 	}
 
 	public static Pair<double[][], Float > computeSigmas( final float initialSigma, final int n )
