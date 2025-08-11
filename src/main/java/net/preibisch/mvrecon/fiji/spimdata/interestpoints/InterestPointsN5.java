@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +53,22 @@ import util.URITools;
 
 public class InterestPointsN5 extends InterestPoints
 {
+	public static void main( String[] args )
+	{
+		InterestPointsN5 ip = new InterestPointsN5(
+				URI.create("/home/preibischs@hhmi.org/Downloads/mouse2/"),
+				"tpId_0_viewSetupId_47/beads8" );
+
+		List<InterestPoint> points = ip.getInterestPointsCopy();
+		
+
+		for ( final InterestPoint p : points )
+		{
+			if ( p.getL()[ 0 ] == 3636.420068347257 )
+				System.out.println( p.getId() + " " + Arrays.toString( p.getL() ));
+		}
+	}
+
 	public static int defaultBlockSize = 300_000;
 	public static final String baseN5 = "interestpoints.n5";
 
