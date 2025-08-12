@@ -43,6 +43,7 @@ import loci.formats.IFormatReader;
 import loci.formats.Memoizer;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
+import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -107,7 +108,10 @@ class VirtualRAIFactoryLOCI
 
 		final long[] dims = { reader.getSizeX(), reader.getSizeY(), reader.getSizeZ() };
 		final int[] cellDims = { ( int ) dims[ 0 ], ( int ) dims[ 1 ], 1 };
-		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory( options().cellDimensions( cellDims ) );
+		// TODO: just use an ArrayImg/CellImg, no cache for re-saving
+		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory( options().cellDimensions( cellDims ).cacheType( CacheType.BOUNDED ).maxCacheSize( 1 ) );
+
+		//System.out.println( "new cache ... " );
 
 		final ByteOrder byteOrder = reader.isLittleEndian() ? LITTLE_ENDIAN : BIG_ENDIAN;
 
