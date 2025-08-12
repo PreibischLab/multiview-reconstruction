@@ -1089,7 +1089,8 @@ public class FileListDatasetDefinition implements MultiViewDatasetDefinition
 
 		addMessageAsJLabel("<html> <h1> Input image	 storage options </h1> <br /> </html>", gdSave);
 		gdSave.addChoice( "how_to_store_input_images", loadChoicesNew, loadChoicesNew[defaultLoadChoice] );
-		gdSave.addCheckbox( "load_raw_data_virtually (supports large stacks; required to work with BigSticher-Spark and efficient re-saving to HDF5/N5)", defaultVirtual );
+		gdSave.addMessage( "Note: use the load raw data directly option when planning to use BigStitcher-Spark for resaving, this only produces an XML.", GUIHelper.mediumstatusfont, null);	
+		gdSave.addCheckbox( "load_raw_data_virtually (supports large stacks; required to work with BigSticher-Spark and efficient re-saving to OME-ZARR/HDF5/N5)", defaultVirtual );
 
 		addMessageAsJLabel("<html><h2> Save paths for XML & Data</h2></html>", gdSave);
 
