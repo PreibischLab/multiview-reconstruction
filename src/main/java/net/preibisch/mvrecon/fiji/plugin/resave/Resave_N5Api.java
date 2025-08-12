@@ -30,8 +30,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -59,6 +62,7 @@ import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
+import net.preibisch.mvrecon.process.export.RetryTracker;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
@@ -136,7 +140,7 @@ public class Resave_N5Api implements PlugIn
 		final int[][] downsamplings =
 				N5ApiTools.mipMapInfoToDownsamplings( n5Params.proposedMipmaps );
 
-		final List<long[][]> grid =
+		final List<long[][]> gridS0 =
 				vidsToResave.stream().map( viewId ->
 						N5ApiTools.assembleJobs(
 								viewId,
@@ -200,45 +204,87 @@ public class Resave_N5Api implements PlugIn
 						} ).collect(Collectors.toMap( e -> e.getA(), e -> e.getB() ));
 
 		IOFunctions.println( "Created BDV-metadata, took: " + (System.currentTimeMillis() - time ) + " ms." );
-		IOFunctions.println( "Number of compute blocks: " + grid.size() );
+		IOFunctions.println( "Number of compute blocks (s0): " + gridS0.size() );
 
 		final AtomicInteger progress = new AtomicInteger( 0 );
-		IJ.showProgress( progress.get(), grid.size() );
+		IJ.showProgress( progress.get(), gridS0.size() );
 
 		//
 		// Save full resolution dataset (s0)
 		//
-		final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
-
-		time = System.currentTimeMillis();
-
 		try
 		{
-			myPool.submit(() -> grid.parallelStream().forEach(
-					gridBlock -> 
+			final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
+			final RetryTracker<long[][]> retryTracker = RetryTracker.forGridBlocks("s0 resaving", gridS0.size());
+
+			time = System.currentTimeMillis();
+
+			do
+			{
+				if (!retryTracker.beginAttempt())
+					return null;
+
+				final ArrayList< Callable< long[][] > > tasks = new ArrayList<>();
+
+				for ( final long[][] gridBlock : gridS0 )
+					tasks.add( () ->
 					{
 						N5ApiTools.resaveS0Block(
-							data,
-							n5Writer,
-							n5Params.format,
-							dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
-							N5ApiTools.gridToDatasetBdv( 0, n5Params.format ), // a function mapping the gridblock to the dataset name for level 0 and N5
-							gridBlock );
+								data,
+								n5Writer,
+								n5Params.format,
+								dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
+								N5ApiTools.gridToDatasetBdv( 0, n5Params.format ), // a function mapping the gridblock to the dataset name for level 0 and N5
+								gridBlock );
 
-						IJ.showProgress( progress.incrementAndGet(), grid.size() );
+						IJ.showProgress( progress.incrementAndGet(), gridS0.size() );
 
-						// TOOD: add re-try logic
-						//return gridBlock;
-					})).get();
+						return gridBlock.clone();
+					});
+
+				/*
+				myPool.submit(() -> grid.parallelStream().map( gridBlock -> 
+				{
+					N5ApiTools.resaveS0Block(
+						data,
+						n5Writer,
+						n5Params.format,
+						dataTypes.get( N5ApiTools.gridBlockToViewId( gridBlock ).getViewSetupId() ),
+						N5ApiTools.gridToDatasetBdv( 0, n5Params.format ), // a function mapping the gridblock to the dataset name for level 0 and N5
+						gridBlock );
+
+					IJ.showProgress( progress.incrementAndGet(), grid.size() );
+
+					// TOOD: add re-try logic
+					return gridBlock;
+				})).get();*/
+
+				final List<Future<long[][]>> futures = myPool.invokeAll( tasks );
+
+				// extract all blocks that failed
+				final Set<long[][]> failedBlocksSet = retryTracker.processWithFutures( futures, gridS0 );
+
+				// Use RetryTracker to handle retry counting and removal
+				if (!retryTracker.processFailures(failedBlocksSet))
+					return null;
+
+				// Update grid for next iteration with remaining failed blocks
+				gridS0.clear();
+				gridS0.addAll(failedBlocksSet);
+			}
+			while ( gridS0.size() > 0 );
+
+			myPool.shutdown();
+			myPool.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
 		}
-		catch (InterruptedException | ExecutionException e)
+		catch (Exception e)
 		{
 			IOFunctions.println( "Failed to write s0 for " + n5Params.format + " '" + n5Params.n5URI + "'. Error: " + e );
 			e.printStackTrace();
 			return null;
 		}
 
-		IJ.showProgress( progress.getAndSet( 0 ), grid.size() );
+		IJ.showProgress( progress.getAndSet( 0 ), gridS0.size() );
 		IOFunctions.println( "Saved level s0, took: " + (System.currentTimeMillis() - time ) + " ms." );
 
 		//
@@ -247,6 +293,7 @@ public class Resave_N5Api implements PlugIn
 		for ( int level = 1; level < downsamplings.length; ++level )
 		{
 			final int s = level;
+			IOFunctions.println( "Downsampling level s" + s + "... " );
 
 			final List<long[][]> allBlocks =
 					vidsToResave.stream().map( viewId ->
@@ -254,12 +301,70 @@ public class Resave_N5Api implements PlugIn
 									viewId,
 									viewIdToMrInfo.get(viewId)[s] )).flatMap(List::stream).collect( Collectors.toList() );
 
-			IOFunctions.println( "Downsampling level s" + s + "... " );
-			IOFunctions.println( "Number of compute blocks: " + allBlocks.size() );
-			IJ.showProgress( progress.get(), allBlocks.size() );
-
 			time = System.currentTimeMillis();
 
+			try
+			{
+				final ForkJoinPool myPool = new ForkJoinPool( n5Params.numCellCreatorThreads );
+				final RetryTracker<long[][]> retryTracker = RetryTracker.forGridBlocks("s" + s + " resaving", allBlocks.size());
+
+				IOFunctions.println( "Number of compute blocks (s"+s+"): " + allBlocks.size() );
+				IJ.showProgress( progress.get(), allBlocks.size() );
+
+				do
+				{
+					if (!retryTracker.beginAttempt())
+						return null;
+
+					final ArrayList< Callable< long[][] > > tasks = new ArrayList<>();
+
+					for ( final long[][] gridBlock : allBlocks )
+						tasks.add( () ->
+						{
+							// 5D OME-ZARR CONTAINER
+							if ( n5Params.format == StorageFormat.ZARR )
+							{
+								N5ApiTools.writeDownsampledBlock5dOMEZARR(
+										n5Writer,
+										viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
+										viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
+										gridBlock,
+										0,
+										0 );
+							}
+							else
+							{
+								N5ApiTools.writeDownsampledBlock(
+									n5Writer,
+									viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s ], //N5ResaveTools.gridToDatasetBdv( s, StorageType.N5 ),
+									viewIdToMrInfo.get( N5ApiTools.gridBlockToViewId( gridBlock ) )[ s - 1 ],//N5ResaveTools.gridToDatasetBdv( s - 1, StorageType.N5 ),
+									gridBlock );
+							}
+
+							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
+
+							return gridBlock.clone();
+						});
+
+					final List<Future<long[][]>> futures = myPool.invokeAll( tasks );
+
+					// extract all blocks that failed
+					final Set<long[][]> failedBlocksSet = retryTracker.processWithFutures( futures, allBlocks );
+
+					// Use RetryTracker to handle retry counting and removal
+					if (!retryTracker.processFailures(failedBlocksSet))
+						return null;
+
+					// Update grid for next iteration with remaining failed blocks
+					allBlocks.clear();
+					allBlocks.addAll(failedBlocksSet);
+
+				} while ( allBlocks.size() > 0 );
+				
+				myPool.shutdown();
+				myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS );
+
+				/*
 			try
 			{
 				myPool.submit(() -> allBlocks.parallelStream().forEach(
@@ -286,9 +391,13 @@ public class Resave_N5Api implements PlugIn
 							}
 
 							IJ.showProgress( progress.incrementAndGet(), allBlocks.size() );
-						} ) ).get();
+
+							// TOOD: add re-try logic
+							return gridBlock;
+
+						} ) ).get();*/
 			}
-			catch (InterruptedException | ExecutionException e)
+			catch (Exception e)
 			{
 				IOFunctions.println( "Failed to write downsample step s" + s +" for " + n5Params.format + " '" + n5Params.n5URI + "'. Error: " + e );
 				e.printStackTrace();
@@ -299,8 +408,6 @@ public class Resave_N5Api implements PlugIn
 			IOFunctions.println( "Resaved " + n5Params.format + " s" + s + " level, took: " + (System.currentTimeMillis() - time ) + " ms." );
 		}
 
-		myPool.shutdown();
-		try { myPool.awaitTermination( Long.MAX_VALUE, TimeUnit.HOURS ); } catch (InterruptedException e) { e.printStackTrace(); }
 
 
 		if ( n5Params.format == StorageFormat.N5 && URITools.isFile( n5Params.n5URI )) // local file
