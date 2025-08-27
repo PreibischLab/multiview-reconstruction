@@ -290,7 +290,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
 		
 		final JPanel footer = new JPanel(new BorderLayout());
-		this.groupTilesCheckbox = new JCheckBox("Group Tiles", true);
+		this.groupTilesCheckbox = new JCheckBox("Group Tiles", false);
 		this.groupIllumsCheckbox = new JCheckBox("Group Illuminations", true);
 		footer.add(groupTilesCheckbox, BorderLayout.EAST);
 		footer.add(groupIllumsCheckbox, BorderLayout.WEST);
