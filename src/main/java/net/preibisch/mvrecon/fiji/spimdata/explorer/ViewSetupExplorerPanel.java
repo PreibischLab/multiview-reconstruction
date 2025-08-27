@@ -191,7 +191,6 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		tableModel = new MissingViewsTableModelDecorator<>( tableModel );
 		tableModel.setColumnClasses( FilteredAndGroupedTableModel.defaultColumnClassesMV() );
 
-		tableModel.addGroupingFactor( Tile.class );
 		tableModel.addGroupingFactor( Illumination.class );
 
 		table = new JTable();
