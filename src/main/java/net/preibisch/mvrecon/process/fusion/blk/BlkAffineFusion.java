@@ -128,7 +128,7 @@ public class BlkAffineFusion
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, null, interpolationMethod,
 				intensityAdjustments, null,
 				fusionInterval, type, blockSize );
 	}
@@ -140,13 +140,14 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, Coefficients > intensityAdjustments,
 			final Interval fusionInterval,
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, fusionMap, interpolationMethod,
 				null, intensityAdjustments,
 				fusionInterval, type, blockSize );
 	}
@@ -158,6 +159,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, AffineModel1D > intensityAdjustmentModels,
 			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients,
@@ -188,7 +190,11 @@ public class BlkAffineFusion
 
 		// to be able to use the "lowest ViewId" wins strategy
 		final List< ? extends ViewId > sortedViewIds = new ArrayList<>( viewIds );
-		Collections.sort( sortedViewIds );
+
+		if ( fusionMap == null || fusionMap.size() == 0 )
+			Collections.sort( sortedViewIds );
+		else
+			Collections.sort( sortedViewIds, (c1,c2) -> Integer.compare( fusionMap.get( c1.getViewSetupId() ), fusionMap.get( c2.getViewSetupId() ) ) );
 
 		// Which views to process (use un-altered bounding box and registrations).
 		// Final filtering happens per Cell.
