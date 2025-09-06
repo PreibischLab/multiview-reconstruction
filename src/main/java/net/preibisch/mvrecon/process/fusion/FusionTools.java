@@ -571,10 +571,12 @@ public class FusionTools
 
 		if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 			fusion = Fusion.AVG;
-		else if ( fusionType == FusionType.MAX )
+		else if ( fusionType == FusionType.MAX_INTENSITY )
 			fusion = Fusion.MAX;
-		else
+		else if ( fusionType == FusionType.MAX_INTENSITY )
 			fusion = Fusion.FIRST_WINS;
+		else
+			throw new RuntimeException("fusion type " + fusionType + " not supported.");
 
 		return new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), fusion, images, weights );
 		//return new ValuePair<>( new FusedRandomAccessibleInterval( new FinalInterval( getFusedZeroMinInterval( bb ) ), images, weights ), bbTransform );

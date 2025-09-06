@@ -181,10 +181,12 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 
 		if ( fusionType == FusionType.AVG || fusionType == FusionType.AVG_BLEND || fusionType == FusionType.AVG_BLEND_CONTENT || fusionType == FusionType.AVG_CONTENT )
 			fusion = Fusion.AVG;
-		else if ( fusionType == FusionType.MAX )
+		else if ( fusionType == FusionType.MAX_INTENSITY )
 			fusion = Fusion.MAX;
-		else
+		else if ( fusionType == FusionType.LOWEST_VIEWID_WINS )
 			fusion = Fusion.FIRST_WINS;
+		else
+			throw new RuntimeException("fusion type " + fusionType + " not supported.");
 
 		final RandomAccessibleInterval<FloatType> fused =
 				new FusedRandomAccessibleInterval(

@@ -80,8 +80,14 @@ public class FusionGUI implements FusionExportInterface
 	public static String[] interpolationTypes = new String[]{ "Nearest Neighbor", "Linear Interpolation" };
 	public static int defaultInterpolation = 1;
 
-	public enum FusionType { AVG, AVG_BLEND, AVG_CONTENT, AVG_BLEND_CONTENT, MAX, FIRST_LOW, FIRST_HIGH }
-	public static String[] fusionTypes = new String[]{ "Avg", "Avg, Blending", "Avg, Content Based", "Avg, Blending & Content Based", "Max intensity", "First Tile Wins (lowest ViewSetupId)", "First Tile Wins (highest ViewSetupId)" };
+	public enum FusionType {
+		AVG, AVG_BLEND, AVG_CONTENT, AVG_BLEND_CONTENT, MAX_INTENSITY, LOWEST_VIEWID_WINS, HIGHEST_VIEWID_WINS,
+		CLOSEST_PIXEL_WINS
+	}
+
+	public static String[] fusionTypes = new String[] { "Avg", "Avg, Blending", "Avg, Content Based",
+			"Avg, Blending & Content Based", "Max intensity", "First Tile Wins (lowest ViewSetupId)",
+			"Last Tile Wins (highest ViewSetupId)", "Pixel Closest To Its Tile Center Wins" };
 	public static int defaultFusionType = 1;
 
 	public static String[] pixelTypes1 = new String[]{ "32-bit floating point", "16-bit unsigned integer", "8-bit unsigned integer" };
