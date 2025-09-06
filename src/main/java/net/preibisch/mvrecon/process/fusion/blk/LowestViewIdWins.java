@@ -40,7 +40,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Intervals;
 
-class FirstWins
+class LowestViewIdWins
 {
 	public static BlockSupplier< FloatType > of(
 			final List< BlockSupplier< FloatType > > images,

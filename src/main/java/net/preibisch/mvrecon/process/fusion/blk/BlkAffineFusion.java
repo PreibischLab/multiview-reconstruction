@@ -255,7 +255,8 @@ public class BlkAffineFusion
 				masks.add( Masking.create( inputImg, border, transform ) );
 				break;
 			case CLOSEST_PIXEL_WINS:
-				//TODO
+				// we need to use the blending weights, whatever weight is highest wins
+				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
 			case AVG_CONTENT:
 			case AVG_BLEND_CONTENT:
@@ -276,10 +277,10 @@ public class BlkAffineFusion
 			floatBlocks = MaxIntensity.of( images, masks, overlap );
 			break;
 		case LOWEST_VIEWID_WINS:
-			floatBlocks = FirstWins.of( images, masks, overlap );
+			floatBlocks = LowestViewIdWins.of( images, masks, overlap );
 			break;
 		case HIGHEST_VIEWID_WINS:
-			floatBlocks = FirstWinsHighest.of( images, masks, overlap );
+			floatBlocks = HighestViewIdWins.of( images, masks, overlap );
 			break;
 		case CLOSEST_PIXEL_WINS:
 			floatBlocks = null;
@@ -404,6 +405,7 @@ public class BlkAffineFusion
 		case LOWEST_VIEWID_WINS:
 		case HIGHEST_VIEWID_WINS:
 		case MAX_INTENSITY:
+		case CLOSEST_PIXEL_WINS:
 		case AVG:
 			break;
 		case AVG_CONTENT:
