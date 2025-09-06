@@ -47,10 +47,10 @@ class HighestViewIdWins
 			final List< BlockSupplier< UnsignedByteType > > masks,
 			final Overlap overlap )
 	{
-		return new FirstWinsBlockSupplier( images, masks, overlap );
+		return new HighestViewIdWinsBlockSupplier( images, masks, overlap );
 	}
 
-	private static class FirstWinsBlockSupplier extends AbstractBlockSupplier< FloatType >
+	private static class HighestViewIdWinsBlockSupplier extends AbstractBlockSupplier< FloatType >
 	{
 		private final int numDimensions;
 
@@ -66,7 +66,7 @@ class HighestViewIdWins
 
 		private final TempArray< float[] > tempArrayI;
 
-		FirstWinsBlockSupplier(
+		HighestViewIdWinsBlockSupplier(
 				final List< BlockSupplier< FloatType > > images,
 				final List< BlockSupplier< UnsignedByteType > > masks,
 				final Overlap overlap )
@@ -80,7 +80,7 @@ class HighestViewIdWins
 			tempArrayI = TempArray.forPrimitiveType( FLOAT );
 		}
 
-		private FirstWinsBlockSupplier( final FirstWinsBlockSupplier s )
+		private HighestViewIdWinsBlockSupplier( final HighestViewIdWinsBlockSupplier s )
 		{
 			numDimensions = s.numDimensions;
 			images = new ArrayList<>( s.images.size() );
@@ -208,7 +208,7 @@ class HighestViewIdWins
 		@Override
 		public BlockSupplier< FloatType > independentCopy()
 		{
-			return new FirstWinsBlockSupplier( this );
+			return new HighestViewIdWinsBlockSupplier( this );
 		}
 
 		@Override

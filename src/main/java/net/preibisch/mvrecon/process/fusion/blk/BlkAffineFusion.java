@@ -283,8 +283,7 @@ public class BlkAffineFusion
 			floatBlocks = HighestViewIdWins.of( images, masks, overlap );
 			break;
 		case CLOSEST_PIXEL_WINS:
-			floatBlocks = null;
-			//TODO
+			floatBlocks = ClosestPixelWins.of( images, weights, overlap );
 			break;
 		case AVG_CONTENT:
 		case AVG_BLEND_CONTENT:

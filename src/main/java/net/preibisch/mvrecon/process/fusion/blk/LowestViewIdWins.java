@@ -47,10 +47,10 @@ class LowestViewIdWins
 			final List< BlockSupplier< UnsignedByteType > > masks,
 			final Overlap overlap )
 	{
-		return new FirstWinsBlockSupplier( images, masks, overlap );
+		return new LowestViewIdWinsBlockSupplier( images, masks, overlap );
 	}
 
-	private static class FirstWinsBlockSupplier extends AbstractBlockSupplier< FloatType >
+	private static class LowestViewIdWinsBlockSupplier extends AbstractBlockSupplier< FloatType >
 	{
 		private final int numDimensions;
 
@@ -66,7 +66,7 @@ class LowestViewIdWins
 
 		private final TempArray< float[] > tempArrayI;
 
-		FirstWinsBlockSupplier(
+		LowestViewIdWinsBlockSupplier(
 				final List< BlockSupplier< FloatType > > images,
 				final List< BlockSupplier< UnsignedByteType > > masks,
 				final Overlap overlap )
@@ -80,7 +80,7 @@ class LowestViewIdWins
 			tempArrayI = TempArray.forPrimitiveType( FLOAT );
 		}
 
-		private FirstWinsBlockSupplier( final FirstWinsBlockSupplier s )
+		private LowestViewIdWinsBlockSupplier( final LowestViewIdWinsBlockSupplier s )
 		{
 			numDimensions = s.numDimensions;
 			images = new ArrayList<>( s.images.size() );
@@ -201,7 +201,7 @@ class LowestViewIdWins
 		@Override
 		public BlockSupplier< FloatType > independentCopy()
 		{
-			return new FirstWinsBlockSupplier( this );
+			return new LowestViewIdWinsBlockSupplier( this );
 		}
 
 		@Override

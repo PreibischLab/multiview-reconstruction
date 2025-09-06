@@ -45,10 +45,10 @@ class ClosestPixelWins
 			final List< BlockSupplier< FloatType > > weights,
 			final Overlap overlap )
 	{
-		return new WeightedAverageBlockSupplier( images, weights, overlap );
+		return new ClosestPixelWinsBlockSupplier( images, weights, overlap );
 	}
 
-	private static class WeightedAverageBlockSupplier extends AbstractBlockSupplier< FloatType >
+	private static class ClosestPixelWinsBlockSupplier extends AbstractBlockSupplier< FloatType >
 	{
 		private final int numDimensions;
 
@@ -60,7 +60,7 @@ class ClosestPixelWins
 
 		private final TempArray< float[] >[] tempArrays;
 
-		WeightedAverageBlockSupplier(
+		ClosestPixelWinsBlockSupplier(
 				final List< BlockSupplier< FloatType > > images,
 				final List< BlockSupplier< FloatType > > weights,
 				final Overlap overlap )
@@ -73,7 +73,7 @@ class ClosestPixelWins
 			Arrays.setAll( tempArrays, i -> TempArray.forPrimitiveType( FLOAT ) );
 		}
 
-		private WeightedAverageBlockSupplier( final WeightedAverageBlockSupplier s )
+		private ClosestPixelWinsBlockSupplier( final ClosestPixelWinsBlockSupplier s )
 		{
 			numDimensions = s.numDimensions;
 			images = new ArrayList<>( s.images.size() );
@@ -126,7 +126,7 @@ class ClosestPixelWins
 		@Override
 		public BlockSupplier< FloatType > independentCopy()
 		{
-			return new WeightedAverageBlockSupplier( this );
+			return new ClosestPixelWinsBlockSupplier( this );
 		}
 
 		@Override
