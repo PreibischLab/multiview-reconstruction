@@ -81,7 +81,7 @@ class ClosestPixelWins
 			s.images.forEach( i -> images.add( i.independentCopy() ) );
 			s.weights.forEach( i -> weights.add( i.independentCopy() ) );
 			overlap = s.overlap;
-			tempArrays = Cast.unchecked( new TempArray[ 4 ] );
+			tempArrays = Cast.unchecked( new TempArray[ 3 ] );
 			Arrays.setAll( tempArrays, i -> TempArray.forPrimitiveType( FLOAT ) );
 		}
 
@@ -95,11 +95,11 @@ class ClosestPixelWins
 			final int len = safeInt( Intervals.numElements( size ) );
 			final float[] tmpI = tempArrays[ 0 ].get( len );
 			final float[] tmpW = tempArrays[ 1 ].get( len );
-			final float[] sumI = tempArrays[ 2 ].get( len );
-			final float[] sumW = tempArrays[ 3 ].get( len );
+			final float[] maxW = tempArrays[ 2 ].get( len );
+			final float[] fdest = Cast.unchecked( dest );
 
-			Arrays.fill( sumI, 0 );
-			Arrays.fill( sumW, 0 );
+			Arrays.fill( fdest, 0 );
+			Arrays.fill( maxW, 0 );
 
 			final long[] srcMax = new long[ srcPos.length ];
 			Arrays.setAll( srcMax, d -> srcPos[ d ] + size[ d ] - 1 );
@@ -110,16 +110,12 @@ class ClosestPixelWins
 				weights.get( i ).copy( interval, tmpW );
 				for ( int x = 0; x < len; ++x )
 				{
-					sumI[ x ] += tmpW[ x ] * tmpI[ x ];
-					sumW[ x ] += tmpW[ x ];
+					if ( tmpW[ x ] > maxW[ x ] )
+					{
+						maxW[ x ] = tmpW[ x ];
+						fdest[ x ] = tmpI[ x ];
+					}
 				}
-			}
-
-			final float[] fdest = Cast.unchecked( dest );
-			for ( int x = 0; x < len; ++x )
-			{
-				final float w = sumW[ x ];
-				fdest[ x ] = ( w > 0 ) ? sumI[ x ] / w : 0;
 			}
 		}
 
