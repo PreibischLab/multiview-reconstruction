@@ -116,7 +116,9 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<n5-zarr.version>1.5.0</n5-zarr.version>
 		<n5-hdf5.version>2.2.1</n5-hdf5.version>
 
+		<bigdataviewer-n5.version>1.0.2</bigdataviewer-n5.version>
 		<mpicbg.mpicbg.version>1.6.5</mpicbg.mpicbg.version>
+		<generic-archiver.version>1.1.0</generic-archiver.version>
 	</properties>
 
 	<repositories>
@@ -127,6 +129,11 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>net.preibisch</groupId>
+			<artifactId>multiview-simulation</artifactId>
+		</dependency>
+
 		<!-- BigDataViewer dependencies -->
 		<dependency>
 			<groupId>sc.fiji</groupId>
@@ -139,7 +146,45 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>org.bigdataviewer</groupId>
 			<artifactId>bigdataviewer-n5</artifactId>
-			<version>1.0.2</version>
+			<version>${bigdataviewer-n5.version}</version>
+		</dependency>
+
+		<!-- N5 dependencies -->
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-aws-s3</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-blosc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-google-cloud</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-hdf5</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-imglib2</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-universe</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-zarr</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia</groupId>
+			<artifactId>n5-zstandard</artifactId>
 		</dependency>
 
 		<!-- Fiji dependencies -->
@@ -156,6 +201,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij1-patcher</artifactId>
 		</dependency>
 
 		<!-- ImgLib2 dependencies -->
@@ -187,6 +236,20 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-realtransform</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>mpicbg</groupId>
+			<artifactId>mpicbg</artifactId>
+		</dependency>
+
+		<!-- SciJava dependencies -->
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>scijava-listeners</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>ui-behaviour</artifactId>
+		</dependency>
 
 		<!-- OME dependencies -->
 		<dependency>
@@ -207,19 +270,54 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.openmicroscopy</groupId>
+			<artifactId>ome-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.openmicroscopy</groupId>
+			<artifactId>ome-xml</artifactId>
+		</dependency>
 
 		<!-- Third party dependencies -->
 		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>args4j</groupId>
+			<artifactId>args4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ch.epfl.biop</groupId>
+			<artifactId>ijp-kheops</artifactId>
+			<version>${ijp-kheops.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>gov.nist.isg</groupId>
+			<artifactId>generic-archiver</artifactId>
+			<version>${generic-archiver.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>gov.nist.isg</groupId>
+			<artifactId>pyramidio</artifactId>
+			<version>${pyramidio.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>mpicbg</groupId>
-			<artifactId>mpicbg</artifactId>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
@@ -234,72 +332,32 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>jfreechart</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>net.preibisch</groupId>
-			<artifactId>multiview-simulation</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math3</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>args4j</groupId>
-			<artifactId>args4j</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5-imglib2</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5</artifactId>
-			<!-- version>3.41.3/version> -->
-		</dependency>
-		<dependency>
-			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5-hdf5</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5-zarr</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5-universe</artifactId>
-			<!-- <version>1.4.1</version> -->
-		</dependency>
-		<dependency>
-			<groupId>gov.nist.isg</groupId>
-			<artifactId>pyramidio</artifactId>
-			<version>${pyramidio.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>ch.epfl.biop</groupId>
-			<artifactId>ijp-kheops</artifactId>
-			<version>${ijp-kheops.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>info.picocli</groupId>
-			<artifactId>picocli</artifactId>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
-		<!-- JavaFX (system scope) -->
-	<!--
+		<!-- JavaFX dependencies (system scope) -->
+		<!--
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
-			<version>21</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-base</artifactId>
-			<version>21</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-swing</artifactId>
-			<version>21</version>
 		</dependency>
-	-->
+		-->
+
+		<!-- Test dependencies -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<profiles>
 	<profile>
