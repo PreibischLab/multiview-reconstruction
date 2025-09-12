@@ -42,11 +42,16 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.ClampType;
 import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.algorithm.blocks.transform.Transform;
 import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
+import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
+import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
+import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedByteConverter;
 import net.imglib2.converter.RealUnsignedShortConverter;
@@ -74,47 +79,6 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class BlkAffineFusion
 {
-	/*
-	public static class BlockSupplierOrRAI< T extends RealType< T > & NativeType< T > >
-	{
-		final BlockSupplier< T > supplier;
-		final RandomAccessibleInterval< T > rai;
-
-		public BlockSupplierOrRAI( final BlockSupplier< T > supplier )
-		{
-			this.supplier = supplier;
-			this.rai = null;
-		}
-
-		public BlockSupplierOrRAI( final RandomAccessibleInterval< T > rai )
-		{
-			this.supplier = null;
-			this.rai = rai;
-		}
-
-		public boolean hasSupplier() { return supplier != null; }
-		public boolean hasRAI() { return rai != null; }
-
-		public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval<T> cellImg(
-				final BlockSupplier< T > blocks,
-				final long[] dimensions,
-				final int[] blockSize )
-		{
-			return BlockAlgoUtils.cellImg( blocks, dimensions, blockSize );
-		}
-	}
-	*/
-
-	public static < T extends NativeType< T > > ArrayImg< T, ? > arrayImg(
-			final BlockSupplier< T > blocks,
-			final Interval interval )
-	{
-		final ArrayImg< T, ? > img = new ArrayImgFactory<>( blocks.getType() ).create( interval );
-		final Object dest = ( ( ArrayDataAccess< ? > ) img.update( null ) ).getCurrentStorageArray();
-		blocks.copy( interval, dest );
-		return img;
-	}
-
 	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
 			final BasicImgLoader imgloader,
@@ -259,6 +223,8 @@ public class BlkAffineFusion
 				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
 			case AVG_CONTENT:
+				// content.andThen( Transform.affine( transform, interpolation ) )
+				// write method to combine two BlockSuppliers 
 			case AVG_BLEND_CONTENT:
 			default:
 				// should never happen
