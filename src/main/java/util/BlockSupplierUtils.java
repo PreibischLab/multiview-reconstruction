@@ -16,11 +16,12 @@ public class BlockSupplierUtils
 {
 
 	/**
+	 * Made to represent a BlockSupplier as a CachedCellImage, dimensions do not have to match, but should
+	 * 
 	 * for SOFTREF cache call BlockAlgoUtils.cellImg( ... )
 	 *
 	 * @param <T>
 	 * @param blocks
-	 * @param interval
 	 * @param dimensions
 	 * @param cellDimensions
 	 * @param maxCacheSize
@@ -28,7 +29,6 @@ public class BlockSupplierUtils
 	 */
 	public static < T extends NativeType< T > > CachedCellImg< T, ? > cellImgBoundedCache(
 			final BlockSupplier< T > blocks,
-			final Interval interval,
 			long[] dimensions,
 			final int[] cellDimensions,
 			final int maxCacheSize )
@@ -40,6 +40,14 @@ public class BlockSupplierUtils
 				ReadOnlyCachedCellImgOptions.options().cellDimensions( cellDimensions ).cacheType( CacheType.BOUNDED ).maxCacheSize( maxCacheSize ) );
 	}
 
+	/**
+	 * Allows you to copy a subset of a BlockSupplier into an ArrayImg
+	 * 
+	 * @param <T>
+	 * @param blocks
+	 * @param interval
+	 * @return
+	 */
 	public static < T extends NativeType< T > > ArrayImg< T, ? > arrayImg(
 			final BlockSupplier< T > blocks,
 			final Interval interval )
