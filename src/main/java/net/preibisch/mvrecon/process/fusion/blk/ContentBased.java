@@ -19,12 +19,15 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import util.BlockSupplierUtils;
 
 public class ContentBased
 {
+	public static float defaultScale = 2048;
+	public static double defaultContentBasedSigma1 = 20;
+	public static double defaultContentBasedSigma2 = 40;
+
 	/**
 	 * Conceptually, the given {@code interval} is filled with content-based weights, then transformed with {@code transform}.
 	 * <p>
@@ -36,7 +39,7 @@ public class ContentBased
 	 * @param blending
 	 * @param transform
 	 */
-	public static < T extends RealType< T > > BlockSupplier< FloatType > of(
+	public static < T extends RealType< T > > BlockSupplier< FloatType > create(
 			final RandomAccessibleInterval< T > input,
 			final double[] sigma1,
 			final double[] sigma2,
@@ -66,7 +69,7 @@ public class ContentBased
 		final RandomAccessible< FloatType > source;
 		final double[] sigma;
 
-		public Step1BlockSupplier( final RandomAccessible< FloatType > img, final double[] sigma )
+		Step1BlockSupplier( final RandomAccessible< FloatType > img, final double[] sigma )
 		{
 			this.source = img;
 			this.sigma = sigma.clone();
@@ -114,7 +117,7 @@ public class ContentBased
 		final float scale;
 		final Step1BlockSupplier step1BlockSupplier;
 
-		public ContentBasedBlockSupplier(
+		ContentBasedBlockSupplier(
 				final RandomAccessibleInterval< FloatType > inputImg,
 				final double[] sigma1,
 				final double[] sigma2,

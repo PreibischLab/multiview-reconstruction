@@ -222,10 +222,36 @@ public class BlkAffineFusion
 				// we need to use the blending weights, whatever weight is highest wins
 				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
-			case AVG_CONTENT:
-				// content.andThen( Transform.affine( transform, interpolation ) )
-				// write method to combine two BlockSuppliers 
 			case AVG_BLEND_CONTENT:
+				final BlockSupplier< FloatType > cb1 = ContentBased.create(
+						inputImg,
+						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 ),
+						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 ),
+						ContentBased.defaultScale );
+
+				final BlockSupplier< FloatType > cbTransformed1 =
+						cb1.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
+
+				final BlockSupplier<FloatType> blend =
+						Blending.create( inputImg, border, blending, transform );
+
+				weights.add( MultiplicativeCombiner.create(cbTransformed1, blend));
+				break;
+			case AVG_CONTENT:
+				final BlockSupplier< FloatType > cb2 = ContentBased.create(
+						inputImg,
+						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 ),
+						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 ),
+						ContentBased.defaultScale );
+
+				final BlockSupplier< FloatType > cbTransformed2 =
+						cb2.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
+
+				final BlockSupplier<FloatType> avg =
+						Masking.create( inputImg, border, transform ).andThen( Convert.convert( new FloatType() ) );
+
+				weights.add( MultiplicativeCombiner.create(cbTransformed2, avg ));
+				break;
 			default:
 				// should never happen
 				throw new IllegalStateException();
@@ -236,6 +262,8 @@ public class BlkAffineFusion
 		switch ( fusionType )
 		{
 		case AVG:
+		case AVG_CONTENT:
+		case AVG_BLEND_CONTENT:
 		case AVG_BLEND:
 			floatBlocks = WeightedAverage.of( images, weights, overlap );
 			break;
@@ -251,8 +279,6 @@ public class BlkAffineFusion
 		case CLOSEST_PIXEL_WINS:
 			floatBlocks = ClosestPixelWins.of( images, weights, overlap );
 			break;
-		case AVG_CONTENT:
-		case AVG_BLEND_CONTENT:
 		default:
 			// should never happen
 			throw new IllegalStateException();
@@ -363,20 +389,6 @@ public class BlkAffineFusion
 	{
 		if ( is2d )
 			return false; // TODO
-
-		switch ( fusionType )
-		{
-		case AVG_BLEND:
-		case LOWEST_VIEWID_WINS:
-		case HIGHEST_VIEWID_WINS:
-		case MAX_INTENSITY:
-		case CLOSEST_PIXEL_WINS:
-		case AVG:
-			break;
-		case AVG_CONTENT:
-		case AVG_BLEND_CONTENT:
-			return false; // TODO
-		}
 
 		if ( intensityAdjustments != null )
 			return false; // TODO
