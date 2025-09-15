@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -58,6 +59,8 @@ import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -69,6 +72,7 @@ import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
@@ -203,6 +207,11 @@ public class BlkAffineFusion
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 			FusionTools.adjustBlending( viewDimensions.get( viewId ), Group.pvid( viewId ), blending, border, model );
 
+			// adjust content-based for downsampling
+			final double[] sigma1 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 );
+			final double[] sigma2 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 );
+			FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors, model );
+
 			switch ( fusionType )
 			{
 			case AVG:
@@ -223,11 +232,7 @@ public class BlkAffineFusion
 				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
 			case AVG_BLEND_CONTENT:
-				final BlockSupplier< FloatType > cb1 = ContentBased.create(
-						inputImg,
-						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 ),
-						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 ),
-						ContentBased.defaultScale );
+				final BlockSupplier< FloatType > cb1 = ContentBased.create( inputImg, sigma1, sigma2, ContentBased.defaultScale );
 
 				final BlockSupplier< FloatType > cbTransformed1 =
 						cb1.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
@@ -235,14 +240,10 @@ public class BlkAffineFusion
 				final BlockSupplier<FloatType> blend =
 						Blending.create( inputImg, border, blending, transform );
 
-				weights.add( MultiplicativeCombiner.create(cbTransformed1, blend));
+				weights.add( MultiplicativeCombiner.create( cbTransformed1, blend ));
 				break;
 			case AVG_CONTENT:
-				final BlockSupplier< FloatType > cb2 = ContentBased.create(
-						inputImg,
-						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 ),
-						Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 ),
-						ContentBased.defaultScale );
+				final BlockSupplier< FloatType > cb2 = ContentBased.create( inputImg, sigma1, sigma2, ContentBased.defaultScale );
 
 				final BlockSupplier< FloatType > cbTransformed2 =
 						cb2.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
@@ -250,7 +251,7 @@ public class BlkAffineFusion
 				final BlockSupplier<FloatType> avg =
 						Masking.create( inputImg, border, transform ).andThen( Convert.convert( new FloatType() ) );
 
-				weights.add( MultiplicativeCombiner.create(cbTransformed2, avg ));
+				weights.add( MultiplicativeCombiner.create( cbTransformed2, avg ));
 				break;
 			default:
 				// should never happen
