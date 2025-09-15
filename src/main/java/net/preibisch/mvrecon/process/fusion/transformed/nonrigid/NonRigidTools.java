@@ -438,7 +438,7 @@ public class NonRigidTools
 					final double[] sigma2 = Util.getArrayFromValue( FusionTools.defaultContentBasedSigma2, 3 );
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsamplingFactors, modelAffine );
+					FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsamplingFactors, Double.NaN );
 
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Estimating Entropy for " + Group.pvid( viewId ) );
 

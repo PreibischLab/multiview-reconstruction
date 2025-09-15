@@ -90,13 +90,14 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final int interpolationMethod,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final Interval fusionInterval,
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, null, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, anisotropyFactor, null, interpolationMethod,
 				intensityAdjustments, null,
 				fusionInterval, type, blockSize );
 	}
@@ -108,6 +109,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, Coefficients > intensityAdjustments,
@@ -115,7 +117,7 @@ public class BlkAffineFusion
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, fusionMap, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, anisotropyFactor, fusionMap, interpolationMethod,
 				null, intensityAdjustments,
 				fusionInterval, type, blockSize );
 	}
@@ -127,6 +129,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, AffineModel1D > intensityAdjustmentModels,
@@ -210,7 +213,7 @@ public class BlkAffineFusion
 			// adjust content-based for downsampling
 			final double[] sigma1 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 );
 			final double[] sigma2 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 );
-			FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors, model );
+			FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors, anisotropyFactor );
 
 			switch ( fusionType )
 			{

@@ -121,7 +121,7 @@ public class TestWeights
 			System.out.println( "Default sigma1 = " + Util.printCoordinates( sigma1 ) );
 			System.out.println( "Default sigma2 = " + Util.printCoordinates( sigma2 ) );
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-			FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, usedDownsamplingFactors, model );
+			FusionTools.adjustContentBased( spimData.getSequenceDescription().getViewDescription( viewId ), sigma1, sigma2, usedDownsamplingFactors, Double.NaN );
 			System.out.println( "Adjusted sigma1 = " + Util.printCoordinates( sigma1 ) );
 			System.out.println( "Adjusted sigma2 = " + Util.printCoordinates( sigma2 ) );
 
