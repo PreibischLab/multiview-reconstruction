@@ -26,12 +26,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,12 +80,12 @@ import net.preibisch.mvrecon.fiji.plugin.util.GUIHelper;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.AllenOMEZarrLoader.OMEZARREntry;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.OMEZarrAttibutes;
-import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools;
 import net.preibisch.mvrecon.process.n5api.N5ApiTools.MultiResolutionLevelInfo;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools;
 import net.preibisch.mvrecon.process.n5api.SpimData2Tools.InstantiateViewSetupBigStitcher;
+import util.BlockSupplierUtils;
 import util.Grid;
 import util.URITools;
 
@@ -497,7 +494,7 @@ public class ExportN5Api implements ImgExport
 							blockMax[ d ] = Math.min( imgInterval.max( d ), blockMin[ d ] + gridBlock[1][ d ] - 1 );
 
 						final RandomAccessibleInterval< T > image;
-						final RandomAccessibleInterval< T > img = BlkAffineFusion.arrayImg( blockSupplier, new FinalInterval( blockMin, blockMax ) );
+						final RandomAccessibleInterval< T > img = BlockSupplierUtils.arrayImg( blockSupplier, new FinalInterval( blockMin, blockMax ) );
 
 						// 5D OME-ZARR CONTAINER
 						if ( storageType == StorageFormat.ZARR && omeZarrOneContainer )

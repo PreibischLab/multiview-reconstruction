@@ -30,11 +30,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-
 import bdv.util.ConstantRandomAccessible;
 import fiji.util.gui.GenericDialogPlus;
 import gov.nist.isg.archiver.DirectoryArchiver;
@@ -49,22 +44,19 @@ import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.converter.ColorChannelOrder;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.Threads;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionExportInterface;
 import net.preibisch.mvrecon.fiji.plugin.util.PluginHelper;
-import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.fusion.blk.BlkAffineFusion;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
+import util.BlockSupplierUtils;
 
 public class OpenSeaDragon implements ImgExport
 {
@@ -326,9 +318,9 @@ public class OpenSeaDragon implements ImgExport
 					new long[] {rectangle.x, rectangle.y, 0},
 					new long[] {rectangle.x + rectangle.width - 1, rectangle.y + rectangle.height - 1, 0 } );
 
-			final ArrayImg<UnsignedByteType, ?> r = BlkAffineFusion.arrayImg( virtualR, interval );
-			final ArrayImg<UnsignedByteType, ?> g = BlkAffineFusion.arrayImg( virtualG, interval );
-			final ArrayImg<UnsignedByteType, ?> b = BlkAffineFusion.arrayImg( virtualB, interval );
+			final ArrayImg<UnsignedByteType, ?> r = BlockSupplierUtils.arrayImg( virtualR, interval );
+			final ArrayImg<UnsignedByteType, ?> g = BlockSupplierUtils.arrayImg( virtualG, interval );
+			final ArrayImg<UnsignedByteType, ?> b = BlockSupplierUtils.arrayImg( virtualB, interval );
 
 			final RandomAccessibleInterval<ARGBType> img = Converters.mergeARGB( Views.stack( r, g, b ) , ColorChannelOrder.RGB );
 

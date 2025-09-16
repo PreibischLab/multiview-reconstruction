@@ -264,6 +264,7 @@ public class Image_Fusion implements PlugIn
 						registrations,
 						spimData.getSequenceDescription().getViewDescriptions(),
 						fusion.getFusionType(),
+						fusion.getAnisotropyFactor(),
 						fusion.getInterpolation(), // linear interpolatio
 						fusion.adjustIntensities() ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null,
 						fusion.getBoundingBox(),

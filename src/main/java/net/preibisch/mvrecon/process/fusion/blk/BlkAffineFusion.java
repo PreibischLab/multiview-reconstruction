@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
@@ -42,17 +43,24 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.ClampType;
 import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.algorithm.blocks.transform.Transform;
 import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
+import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
+import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
+import net.imglib2.cache.img.optional.CacheOptions.CacheType;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealUnsignedByteConverter;
 import net.imglib2.converter.RealUnsignedShortConverter;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -64,6 +72,7 @@ import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
+import net.preibisch.mvrecon.process.deconvolution.DeconViews;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
@@ -74,47 +83,6 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class BlkAffineFusion
 {
-	/*
-	public static class BlockSupplierOrRAI< T extends RealType< T > & NativeType< T > >
-	{
-		final BlockSupplier< T > supplier;
-		final RandomAccessibleInterval< T > rai;
-
-		public BlockSupplierOrRAI( final BlockSupplier< T > supplier )
-		{
-			this.supplier = supplier;
-			this.rai = null;
-		}
-
-		public BlockSupplierOrRAI( final RandomAccessibleInterval< T > rai )
-		{
-			this.supplier = null;
-			this.rai = rai;
-		}
-
-		public boolean hasSupplier() { return supplier != null; }
-		public boolean hasRAI() { return rai != null; }
-
-		public static < T extends RealType< T > & NativeType< T > > RandomAccessibleInterval<T> cellImg(
-				final BlockSupplier< T > blocks,
-				final long[] dimensions,
-				final int[] blockSize )
-		{
-			return BlockAlgoUtils.cellImg( blocks, dimensions, blockSize );
-		}
-	}
-	*/
-
-	public static < T extends NativeType< T > > ArrayImg< T, ? > arrayImg(
-			final BlockSupplier< T > blocks,
-			final Interval interval )
-	{
-		final ArrayImg< T, ? > img = new ArrayImgFactory<>( blocks.getType() ).create( interval );
-		final Object dest = ( ( ArrayDataAccess< ? > ) img.update( null ) ).getCurrentStorageArray();
-		blocks.copy( interval, dest );
-		return img;
-	}
-
 	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
 			final BasicImgLoader imgloader,
@@ -122,13 +90,14 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final int interpolationMethod,
 			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final Interval fusionInterval,
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, null, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, anisotropyFactor, null, interpolationMethod,
 				intensityAdjustments, null,
 				fusionInterval, type, blockSize );
 	}
@@ -140,6 +109,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, Coefficients > intensityAdjustments,
@@ -147,7 +117,7 @@ public class BlkAffineFusion
 			final T type,
 			final int[] blockSize )
 	{
-		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, fusionMap, interpolationMethod,
+		return init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, anisotropyFactor, fusionMap, interpolationMethod,
 				null, intensityAdjustments,
 				fusionInterval, type, blockSize );
 	}
@@ -159,6 +129,7 @@ public class BlkAffineFusion
 			final Map< ViewId, ? extends AffineTransform3D > viewRegistrations,
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
+			final double anisotropyFactor, // can be Double.NAN, only for content-based fusion
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, AffineModel1D > intensityAdjustmentModels,
@@ -239,6 +210,11 @@ public class BlkAffineFusion
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 			FusionTools.adjustBlending( viewDimensions.get( viewId ), Group.pvid( viewId ), blending, border, model );
 
+			// adjust content-based for downsampling
+			final double[] sigma1 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma1, 3 );
+			final double[] sigma2 = Util.getArrayFromValue( ContentBased.defaultContentBasedSigma2, 3 );
+			FusionTools.adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors, anisotropyFactor );
+
 			switch ( fusionType )
 			{
 			case AVG:
@@ -258,8 +234,28 @@ public class BlkAffineFusion
 				// we need to use the blending weights, whatever weight is highest wins
 				weights.add( Blending.create( inputImg, border, blending, transform ) );
 				break;
-			case AVG_CONTENT:
 			case AVG_BLEND_CONTENT:
+				final BlockSupplier< FloatType > cb1 = ContentBased.create( inputImg, sigma1, sigma2, ContentBased.defaultScale );
+
+				final BlockSupplier< FloatType > cbTransformed1 =
+						cb1.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
+
+				final BlockSupplier<FloatType> blend =
+						Blending.create( inputImg, border, blending, transform );
+
+				weights.add( MultiplicativeCombiner.create( cbTransformed1, blend ));
+				break;
+			case AVG_CONTENT:
+				final BlockSupplier< FloatType > cb2 = ContentBased.create( inputImg, sigma1, sigma2, ContentBased.defaultScale );
+
+				final BlockSupplier< FloatType > cbTransformed2 =
+						cb2.andThen( Transform.affine( transform, Interpolation.NLINEAR ) );
+
+				final BlockSupplier<FloatType> avg =
+						Masking.create( inputImg, border, transform ).andThen( Convert.convert( new FloatType() ) );
+
+				weights.add( MultiplicativeCombiner.create( cbTransformed2, avg ));
+				break;
 			default:
 				// should never happen
 				throw new IllegalStateException();
@@ -270,6 +266,8 @@ public class BlkAffineFusion
 		switch ( fusionType )
 		{
 		case AVG:
+		case AVG_CONTENT:
+		case AVG_BLEND_CONTENT:
 		case AVG_BLEND:
 			floatBlocks = WeightedAverage.of( images, weights, overlap );
 			break;
@@ -285,8 +283,6 @@ public class BlkAffineFusion
 		case CLOSEST_PIXEL_WINS:
 			floatBlocks = ClosestPixelWins.of( images, weights, overlap );
 			break;
-		case AVG_CONTENT:
-		case AVG_BLEND_CONTENT:
 		default:
 			// should never happen
 			throw new IllegalStateException();
@@ -397,20 +393,6 @@ public class BlkAffineFusion
 	{
 		if ( is2d )
 			return false; // TODO
-
-		switch ( fusionType )
-		{
-		case AVG_BLEND:
-		case LOWEST_VIEWID_WINS:
-		case HIGHEST_VIEWID_WINS:
-		case MAX_INTENSITY:
-		case CLOSEST_PIXEL_WINS:
-		case AVG:
-			break;
-		case AVG_CONTENT:
-		case AVG_BLEND_CONTENT:
-			return false; // TODO
-		}
 
 		if ( intensityAdjustments != null )
 			return false; // TODO

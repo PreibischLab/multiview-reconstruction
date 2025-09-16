@@ -533,7 +533,7 @@ public class FusionTools
 					// TODO: yes, here it is wrong ... 
 
 					// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
-					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors );
+					adjustContentBased( viewDescriptions.get( viewId ), sigma1, sigma2, usedDownsampleFactors, Double.NaN );
 
 					//System.out.println( "Adjusted content based sigma1=" + Util.printCoordinates( sigma1 ) + " , sigma2="+ Util.printCoordinates( sigma2 ));
 
@@ -741,7 +741,7 @@ public class FusionTools
 	{
 		final double[] scale = TransformationTools.scaling( dim, transformationModel ).getA();
 
-		final NumberFormat f = TransformationTools.f;
+		//final NumberFormat f = TransformationTools.f;
 
 		//System.out.println( "View " + name + " is currently scaled by: (" +
 		//		f.format( scale[ 0 ] ) + ", " + f.format( scale[ 1 ] ) + ", " + f.format( scale[ 2 ] ) + ")" );
@@ -761,12 +761,18 @@ public class FusionTools
 	 * @param sigma2 - the target sigma2 for entropy approximation, e.g. 40
 	 * @param usedDownsampleFactors - the downsampling factors used to load the input image
 	 */
-	public static void adjustContentBased( final BasicViewDescription< ? > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors )
+	public static void adjustContentBased( final BasicViewDescription< ? > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors, final double anisotropyFactor )
 	{
 		for ( int d = 0; d < sigma1.length; ++d )
 		{
 			sigma1[ d ] /= ( float )usedDownsampleFactors[ d ];
 			sigma2[ d ] /= ( float )usedDownsampleFactors[ d ];
+		}
+
+		if ( !Double.isNaN( anisotropyFactor ) && sigma1.length > 2 && sigma2.length > 2 )
+		{
+			sigma1[ 2 ] /= anisotropyFactor;
+			sigma2[ 2 ] /= anisotropyFactor;
 		}
 	}
 
