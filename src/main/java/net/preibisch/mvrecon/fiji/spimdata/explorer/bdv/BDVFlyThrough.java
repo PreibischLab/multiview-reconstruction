@@ -249,7 +249,6 @@ public class BDVFlyThrough
 						1,
 						null,
 						false,
-						viewer.getOptionValues().getAccumulateProjectorFactory(),
 						new CacheControl.Dummy() );
 
 		renderer.requestRepaint();
@@ -350,7 +349,6 @@ public class BDVFlyThrough
 						1,
 						null,
 						false,
-						viewer.getOptionValues().getAccumulateProjectorFactory(),
 						new CacheControl.Dummy() );
 
 		final ArrayList< AffineTransform3D > transforms = interpolateTransforms( viewerTransformsLocal, defaultMethod == 2, defaultSigma, interpolateSteps );
