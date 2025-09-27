@@ -39,6 +39,7 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
 import util.URITools;
 
 public class GlobalAlignmentPlayground {

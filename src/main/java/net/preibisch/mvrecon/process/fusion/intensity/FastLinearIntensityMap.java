@@ -40,6 +40,7 @@ import net.imglib2.type.PrimitiveType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.IntervalIndexer;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
 
 
 // TODO: move to sub-package?

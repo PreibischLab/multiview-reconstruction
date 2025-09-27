@@ -33,16 +33,12 @@ import java.util.concurrent.ExecutorService;
 import bdv.util.ConstantRandomAccessible;
 import mpicbg.models.AffineModel1D;
 import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
-import mpicbg.spim.data.generic.sequence.BasicViewDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.Converters;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -50,12 +46,11 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.process.deconvolution.MultiViewDeconvolution;
 import net.preibisch.mvrecon.process.deconvolution.normalization.NormalizingRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
@@ -63,7 +58,6 @@ import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class ProcessInputImages< V extends ViewId >
@@ -163,8 +157,7 @@ public class ProcessInputImages< V extends ViewId >
 				useWeightsFusion ? Util.getArrayFromValue( blendingRangeFusion, 3 ) : null,
 				useWeightsFusion ? Util.getArrayFromValue( blendingBorderFusion, 3 ) : null,
 				useWeightsDecon ? Util.getArrayFromValue( blendingRangeDeconvolution, 3 ) : null,
-				useWeightsDecon ? Util.getArrayFromValue( blendingBorderDeconvolution, 3 ) : null,
-				intensityAdjustments );
+				useWeightsDecon ? Util.getArrayFromValue( blendingBorderDeconvolution, 3 ) : null );
 	}
 
 	public void cacheImages( final int cellDim, final int maxCacheSize ) { cacheRandomAccessibleInterval( groups, cellDim, maxCacheSize, images ); }
@@ -287,8 +280,7 @@ public class ProcessInputImages< V extends ViewId >
 			final float[] blendingRangeFusion,
 			final float[] blendingBorderFusion,
 			final float[] blendingRangeDecon,
-			final float[] blendingBorderDecon,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+			final float[] blendingBorderDecon )
 	{
 		int i = 0;
 
@@ -332,12 +324,6 @@ public class ProcessInputImages< V extends ViewId >
 				// input image as reference
 				final double[] ds = new double[ 3 ];
 				RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, ds );
-
-				if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
-					inputImg = Converters.convert(
-							FusionTools.convertInput( inputImg ),
-							new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
-							new FloatType() );
 
 				images.add( TransformView.transformView( inputImg, model, bb, MultiViewDeconvolution.minValueImg, MultiViewDeconvolution.outsideValueImg, 1 ) );
 

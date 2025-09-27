@@ -29,6 +29,7 @@ import java.util.Arrays;
 import net.imglib2.Dimensions;
 import net.imglib2.blocks.TempArray;
 import net.imglib2.util.Cast;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
 
 /**
  * Apply scaling and translation to {@code Coefficients} array.

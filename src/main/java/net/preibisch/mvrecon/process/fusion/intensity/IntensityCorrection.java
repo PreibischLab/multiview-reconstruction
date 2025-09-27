@@ -22,6 +22,9 @@
  */
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import static net.imglib2.util.Intervals.intersect;
+import static net.imglib2.util.Intervals.isEmpty;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,18 +32,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.RealInterval;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
-
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5Writer;
-
-import static net.imglib2.util.Intervals.intersect;
-import static net.imglib2.util.Intervals.isEmpty;
 
 public class IntensityCorrection {
 
@@ -203,42 +202,5 @@ public class IntensityCorrection {
 		final Map<ViewId, Coefficients> coefficients = new HashMap<>();
 		intensityTiles.forEach((k, v) -> coefficients.put(k, v.getCoefficients()));
 		return coefficients;
-	}
-
-	// TODO: this should become part of SpimData2 I'd say? Ultimately this is a property of the dataset that should also be displayed and potentially used during reconstruction
-	public static void writeCoefficients(
-			final N5Writer n5Writer,
-			final String group,
-			final String dataset,
-			final Map<ViewId, Coefficients> coefficients
-	) {
-		coefficients.forEach((viewId, tile) -> {
-			final int setupId = viewId.getViewSetupId();
-			final int timePointId = viewId.getTimePointId();
-			final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
-			CoefficientsIO.save(tile, n5Writer, path);
-		});
-	}
-
-	public static Coefficients readCoefficients(
-			final N5Reader n5Reader,
-			final String group,
-			final String dataset,
-			final ViewId viewId
-	) {
-		final String path = getCoefficientsDatasetPath(group, dataset, viewId.getViewSetupId(), viewId.getTimePointId());
-		return CoefficientsIO.load(n5Reader, path);
-	}
-
-	/**
-	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
-	 */
-	static String getCoefficientsDatasetPath(
-			final String group,
-			final String dataset,
-			final int setupId,
-			final int timePointId
-	) {
-		return String.format("%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset);
 	}
 }

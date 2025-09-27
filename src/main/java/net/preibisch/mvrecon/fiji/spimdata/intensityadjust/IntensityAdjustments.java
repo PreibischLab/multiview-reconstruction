@@ -22,26 +22,92 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.intensityadjust;
 
+import java.net.URI;
 import java.util.HashMap;
+import java.util.Map;
 
-import mpicbg.models.AffineModel1D;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
+import net.preibisch.mvrecon.process.fusion.intensity.IntensityCorrection;
 
 public class IntensityAdjustments
 {
-	private HashMap< ViewId, AffineModel1D > intensityAdjustment;
+	public static final String baseN5 = "intensity_adjustments.n5";
 
-	public IntensityAdjustments()
+	final URI baseDir;
+	final String dataset;
+	final String parameters;
+
+	// the boolean stores if it was changed
+	final private HashMap< ViewId, Pair< Coefficients, Boolean > > coefficientsMap;
+
+	public IntensityAdjustments( final URI baseDir, final String dataset, final String parameters )
 	{
-		this.intensityAdjustment = new HashMap<>();
+		this.baseDir = baseDir;
+		this.dataset = dataset;
+		this.parameters = parameters;
+		this.coefficientsMap = new HashMap<>();
 	}
 
-	public IntensityAdjustments( final HashMap< ViewId, AffineModel1D > models )
+	public void setCoefficient( final ViewId viewId, final Coefficients coefficients )
 	{
-		this();
-		this.intensityAdjustment.putAll( models );
+		coefficientsMap.put( viewId, new ValuePair<>( coefficients, true ) );
 	}
 
-	public HashMap< ViewId, AffineModel1D > getIntensityAdjustments() { return intensityAdjustment; }
-	public void addIntensityAdjustments( final ViewId viewId, final AffineModel1D model ) { this.intensityAdjustment.put( viewId, model ); }
+	public void setCoefficients( final ViewId viewId, final Map< ViewId, Coefficients > coefficients )
+	{
+		coefficients.forEach( (v,c) -> coefficientsMap.put( v, new ValuePair<>( c, true ) ) );
+	}
+
+	public boolean saveInterestPoints( final boolean forceWrite )
+	{
+		boolean modified = coefficientsMap.values().stream().anyMatch( p -> p.getB() );
+
+		if ( !modified && !forceWrite )
+			return true;
+
+		IntensityCorrection.writeCoefficients(null, baseN5, dataset, null);
+		return false;
+	}
+
+	// TODO: this should become part of SpimData2 I'd say? Ultimately this is a property of the dataset that should also be displayed and potentially used during reconstruction
+	public static void writeCoefficients(
+			final N5Writer n5Writer,
+			final String group,
+			final String dataset,
+			final Map<ViewId, Coefficients> coefficients
+	) {
+		coefficients.forEach((viewId, tile) -> {
+			final int setupId = viewId.getViewSetupId();
+			final int timePointId = viewId.getTimePointId();
+			final String path = getCoefficientsDatasetPath(group, dataset, setupId, timePointId);
+			CoefficientsIO.save(tile, n5Writer, path);
+		});
+	}
+
+	public static Coefficients readCoefficients(
+			final N5Reader n5Reader,
+			final String group,
+			final String dataset,
+			final ViewId viewId
+	) {
+		final String path = getCoefficientsDatasetPath(group, dataset, viewId.getViewSetupId(), viewId.getTimePointId());
+		return CoefficientsIO.load(n5Reader, path);
+	}
+
+	/**
+	 * Get N5 path to coefficients for the specified view, as {@code "{group}/setup{setupId}/timepoint{timepointId}/{dataset}"}.
+	 */
+	static String getCoefficientsDatasetPath(
+			final String group,
+			final String dataset,
+			final int setupId,
+			final int timePointId
+	) {
+		return String.format("%s/setup%d/timepoint%d/%s", group, setupId, timePointId, dataset);
+	}
 }

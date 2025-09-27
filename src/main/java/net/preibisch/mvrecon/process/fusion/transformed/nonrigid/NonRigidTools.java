@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import bdv.util.ConstantRandomAccessible;
-import mpicbg.models.AffineModel1D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -48,7 +47,6 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.Converters;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -67,13 +65,12 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxReorientation;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
-import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
+import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformView;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformWeight;
-import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
 import net.preibisch.mvrecon.process.fusion.transformed.nonrigid.grid.ModelGrid;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.weightcombination.CombineWeightsRandomAccessibleInterval.CombineType;
@@ -97,7 +94,6 @@ public class NonRigidTools
 			final boolean virtualGrid,
 			final int interpolation,
 			final Interval boundingBox1,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
 	{
 		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
@@ -135,7 +131,6 @@ public class NonRigidTools
 				virtualGrid,
 				interpolation,
 				boundingBox1,
-				intensityAdjustments,
 				service );
 	}
 
@@ -154,7 +149,6 @@ public class NonRigidTools
 			final boolean virtualGrid,
 			final int interpolation,
 			final Interval boundingBox,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service )
 	{
 		/*
@@ -200,7 +194,6 @@ public class NonRigidTools
 						fusionType,
 						displayDistances,
 						interpolation,
-						intensityAdjustments,
 						defaultOverlapExpansion( uniquePointsData.getB() ) );
 
 		final Fusion fusion;
@@ -316,7 +309,6 @@ public class NonRigidTools
 			final FusionType fusionType,
 			final boolean displayDistances,
 			final int interpolation,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final int overlapExpansion )
 	{
 		final ArrayList< RandomAccessibleInterval< FloatType > > images = new ArrayList<>();
@@ -377,12 +369,6 @@ public class NonRigidTools
 				}
 	
 				inputImg = inputData.getA();
-
-				if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
-					inputImg = Converters.convert(
-							FusionTools.convertInput( inputImg ),
-							new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
-							new FloatType() );
 
 				if ( grid == null )
 					images.add( TransformView.transformView( inputImg, modelAffine, bbDS, 0, interpolation ) );

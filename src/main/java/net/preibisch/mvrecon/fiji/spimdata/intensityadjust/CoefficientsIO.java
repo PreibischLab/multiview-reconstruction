@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.intensity;
+package net.preibisch.mvrecon.fiji.spimdata.intensityadjust;
 
 import java.util.Arrays;
 import org.janelia.saalfeldlab.n5.DataBlock;

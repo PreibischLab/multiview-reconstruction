@@ -86,7 +86,6 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 	final FusionType fusionType;
 	final boolean displayDistances;
 	final int interpolation;
-	final Map< ? extends ViewId, AffineModel1D > intensityAdjustments;
 
 	final double maxDist;
 
@@ -109,7 +108,6 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 			final double alpha,
 			final boolean virtualGrid,
 			final int interpolation,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments,
 			final ExecutorService service,
 			final Interval boundingBox,
 			final long[] globalMin,
@@ -122,7 +120,6 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 		this.fusionType = fusionType;
 		this.displayDistances = displayDistances;
 		this.interpolation = interpolation;
-		this.intensityAdjustments = intensityAdjustments;
 
 		this.converter = converter;
 		this.type = type;
@@ -174,7 +171,6 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						fusionType,
 						displayDistances,
 						interpolation,
-						intensityAdjustments,
 						NonRigidTools.defaultOverlapExpansion( maxDist ) );
 
 		final Fusion fusion;
@@ -235,7 +231,6 @@ public class LazyNonRigidFusion <T extends RealType<T> & NativeType<T>> implemen
 						alpha,
 						virtualGrid,
 						interpolation,
-						intensityAdjustments,
 						service,
 						fusionInterval,
 						fusionInterval.minAsLongArray(),

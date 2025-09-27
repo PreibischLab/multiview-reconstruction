@@ -37,6 +37,7 @@ import mpicbg.models.Tile;
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
 
 
 /**

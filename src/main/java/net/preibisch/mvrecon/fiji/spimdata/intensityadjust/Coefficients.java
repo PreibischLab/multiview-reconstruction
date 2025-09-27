@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.fusion.intensity;
+package net.preibisch.mvrecon.fiji.spimdata.intensityadjust;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -42,7 +42,7 @@ public class Coefficients implements Serializable {
 	 * That is, for linear map {@code y=a*x+b}, {@code flattenedCoefficients[0]} holds all the {@code a}s and
 	 * {@code flattenedCoefficients[1]} holds all the {@code b}s.
 	 */
-	final double[][] flattenedCoefficients;
+	public final double[][] flattenedCoefficients;
 
 	public Coefficients(
 			final double[][] coefficients,
@@ -66,19 +66,19 @@ public class Coefficients implements Serializable {
 		Arrays.setAll(flattenedCoefficients, i -> coefficients[i].clone());
 	}
 
-	int size(final int d) {
+	public int size(final int d) {
 		return size[d];
 	}
 
-	int stride(final int d) {
+	public int stride(final int d) {
 		return strides[d];
 	}
 
-	int numDimensions() {
+	public int numDimensions() {
 		return size.length;
 	}
 
-	int numCoefficients() {
+	public int numCoefficients() {
 		return flattenedCoefficients.length;
 	}
 }

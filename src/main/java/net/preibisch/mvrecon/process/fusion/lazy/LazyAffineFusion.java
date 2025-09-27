@@ -76,7 +76,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 
 	final FusionType fusionType;
 	final int interpolation;
-	final Map< ViewId, AffineModel1D > intensityAdjustments;
 
 	/**
 	 * Creates a consumer that will fill the requested RandomAccessibleInterval single-threaded
@@ -101,7 +100,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 			final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions,
 			final FusionType fusionType,
 			final int interpolation,
-			final Map< ViewId, AffineModel1D > intensityAdjustments,
 			final long[] globalMin,
 			final T type )
 	{
@@ -116,7 +114,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 		this.viewDescriptions = viewDescriptions;
 		this.fusionType = fusionType;
 		this.interpolation = interpolation;
-		this.intensityAdjustments = intensityAdjustments;
 	}
 
 	// Note: the output RAI typically sits at 0,0...0 because it usually is a CachedCellImage
@@ -136,8 +133,7 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewIds,
 						fusionType,
 						interpolation, // linear interpolation
-						targetBlock,
-						intensityAdjustments ); // intensity adjustments
+						targetBlock );
 
 		finish( fused, output, converter, type );
 	}
@@ -187,7 +183,6 @@ public class LazyAffineFusion<T extends RealType<T> & NativeType<T>> implements 
 						viewDescriptions,
 						fusionType,
 						interpolation,
-						intensityAdjustments,
 						fusionInterval.minAsLongArray(),
 						type.createVariable() );
 

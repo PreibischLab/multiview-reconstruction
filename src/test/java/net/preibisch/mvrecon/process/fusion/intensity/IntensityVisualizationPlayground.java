@@ -64,6 +64,9 @@ import net.imglib2.view.Views;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.Coefficients;
+import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.CoefficientsIO;
+
 import org.fife.ui.rsyntaxtextarea.modes.JsonTokenMaker;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;

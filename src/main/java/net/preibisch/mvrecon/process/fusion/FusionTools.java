@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.process.fusion;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,7 +99,6 @@ import net.preibisch.mvrecon.fiji.spimdata.explorer.popup.DisplayFusedImagesPopu
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.export.DisplayImage;
-import net.preibisch.mvrecon.process.fusion.intensityadjust.IntensityAdjuster;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval;
 import net.preibisch.mvrecon.process.fusion.transformed.FusedRandomAccessibleInterval.Fusion;
@@ -184,31 +182,7 @@ public class FusionTools
 				spimData,
 				viewIds,
 				fusionType,
-				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
-				null );
-	}
-
-	/**
-	 * Virtually fuses views using a maximal bounding box around all views
-	 *
-	 * @param spimData - an AbstractSpimData object
-	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
-	 * @param adjustIntensities - adjust intensities according to whats stored in the spimdata
-	 * @param fusionType - how to combine pixels
-	 * @return a virtually fused zeroMin RandomAccessibleInterval
-	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
-			final SpimData2 spimData,
-			final Collection< ? extends ViewId > viewIds,
-			final FusionType fusionType,
-			final boolean adjustIntensities )
-	{
-		return fuseVirtual(
-				spimData,
-				viewIds,
-				fusionType,
-				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ),
-				adjustIntensities ? spimData.getIntensityAdjustments().getIntensityAdjustments() : null );
+				new BoundingBoxMaximal( viewIds, spimData ).estimate( "Full Bounding Box" ) );
 	}
 
 	/**
@@ -231,7 +205,7 @@ public class FusionTools
 			final FusionType fusionType,
 			final Interval bb )
 	{
-		return fuseVirtual( imgloader, registrations, viewDescriptions, views, fusionType, 1, bb, null );
+		return fuseVirtual( imgloader, registrations, viewDescriptions, views, fusionType, 1, bb );
 	}
 
 	/**
@@ -241,26 +215,6 @@ public class FusionTools
 	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
 	 * @param fusionType - how to combine pixels
 	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
-	 *
-	 * @return a virtually fused zeroMin RandomAccessibleInterval and the transformation to map it to global coordinates
-	 */
-	public static RandomAccessibleInterval< FloatType > fuseVirtual(
-			final AbstractSpimData< ? > spimData,
-			final Collection< ? extends ViewId > viewIds,
-			final FusionType fusionType,
-			final Interval bb )
-	{
-		return fuseVirtual( spimData, viewIds, fusionType, bb, null );
-	}
-
-	/**
-	 * Virtually fuses views
-	 *
-	 * @param spimData - an AbstractSpimData object
-	 * @param viewIds - which viewIds to fuse (be careful to remove not present one's first)
-	 * @param fusionType - how to combine pixels
-	 * @param bb - the bounding box in world coordinates (can be loaded from XML or defined through one of the BoundingBoxEstimation implementations)
-	 * @param intensityAdjustments - the intensityadjustsments or null
 	 *
 	 * @return a virtually fused zeroMin RandomAccessibleInterval
 	 */
@@ -268,10 +222,9 @@ public class FusionTools
 			final AbstractSpimData< ? > spimData,
 			final Collection< ? extends ViewId > viewIds,
 			final FusionType fusionType,
-			final Interval bb,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+			final Interval bb )
 	{
-		return fuseVirtual( spimData, viewIds, fusionType, 1, bb, intensityAdjustments );
+		return fuseVirtual( spimData, viewIds, fusionType, 1, bb );
 	}
 
 	public static RandomAccessibleInterval< FloatType > fuseVirtual(
@@ -279,8 +232,7 @@ public class FusionTools
 			final Collection< ? extends ViewId > views,
 			final FusionType fusionType,
 			final int interpolation,
-			final Interval boundingBox,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+			final Interval boundingBox )
 	{
 		final BasicImgLoader imgLoader = spimData.getSequenceDescription().getImgLoader();
 
@@ -295,7 +247,7 @@ public class FusionTools
 
 		final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions = spimData.getSequenceDescription().getViewDescriptions();
 
-		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, fusionType, interpolation, boundingBox, intensityAdjustments );
+		return fuseVirtual( imgLoader, registrations, viewDescriptions, views, fusionType, interpolation, boundingBox );
 	}
 
 	/**
@@ -398,9 +350,10 @@ public class FusionTools
 			final Collection< ? extends ViewId > views,
 			final FusionType fusionType, // see FusionGUI.fusionTypes[]{"Avg", "Avg, Blending", "Avg, Content Based", "Avg, Blending & Content Based", "Max", "First Tile Wins"}
 			final int interpolation,
-			final Interval boundingBox, // is already downsampled
+			final Interval boundingBox // is already downsampled
 			//final double downsampling,
-			final Map< ? extends ViewId, AffineModel1D > intensityAdjustments )
+			//final Map< ? extends ViewId, AffineModel1D > intensityAdjustments
+			)
 	{
 		// go through the views and check if they are all 2-dimensional
 		final boolean is2d = is2d( views.stream().map( v -> viewDescriptions.get( v ) ).collect( Collectors.toList() ) );
@@ -489,12 +442,6 @@ public class FusionTools
 			// input image as reference
 			final double[] usedDownsampleFactors = new double[ 3 ];
 			RandomAccessibleInterval inputImg = DownsampleTools.openDownsampled( imgloader, viewId, model, usedDownsampleFactors );
-
-			if ( intensityAdjustments != null && intensityAdjustments.containsKey( viewId ) )
-				inputImg = Converters.convert(
-						convertInput( inputImg ),
-						new IntensityAdjuster( intensityAdjustments.get( viewId ) ),
-						new FloatType() );
 
 			images.add( TransformView.transformView( inputImg, model, bb, 0, interpolation ) );
 
