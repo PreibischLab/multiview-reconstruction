@@ -153,7 +153,8 @@ public class BlkAffineFusion
 
 			//throw new UnsupportedOperationException( "BlkAffineFusion: Fusion method not supported (yet)." );
 			IOFunctions.println( "BlkAffineFusion: Fusion method not supported (yet). Falling back to LazyAffineFusion." );
-			return BlockSupplier.of( LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize ) );
+			return BlockSupplier.of( 
+					Views.zeroMin( LazyAffineFusion.init( converter, imgloader, viewIds, viewRegistrations, viewDescriptions, fusionType, interpolationMethod, intensityAdjustmentModels, fusionInterval, type, blockSize ) ) );
 		}
 
 		final HashMap< ViewId, Dimensions > viewDimensions = LazyFusionTools.assembleDimensions( viewIds, viewDescriptions );
