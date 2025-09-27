@@ -52,8 +52,8 @@ public class FastLinearIntensityMap {
 	 * The returned factory function creates an operator matching the type a
 	 * given input {@code BlockSupplier<T>}.
 	 *
-	 * @param coefficients
-	 * @param imageDimensions
+	 * @param coefficients coefficients
+	 * @param imageDimensions dimensions of the image
 	 * @param <T>
 	 * 		the input/output type
 	 *
@@ -72,9 +72,9 @@ public class FastLinearIntensityMap {
 	 *
 	 * @param type
 	 * 		instance of the input type
-	 * @param coefficients
-	 * @param imageDimensions
-	 * @param clampType
+	 * @param coefficients coefficients
+	 * @param imageDimensions dimensions of the image
+	 * @param clampType how to clamp when converting to target type
 	 * @param <T>
 	 * 		the input/output type
 	 *

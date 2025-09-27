@@ -760,6 +760,7 @@ public class FusionTools
 	 * @param sigma1 - the target sigma1 for entropy approximation, e.g. 20
 	 * @param sigma2 - the target sigma2 for entropy approximation, e.g. 40
 	 * @param usedDownsampleFactors - the downsampling factors used to load the input image
+	 * @param anisotropyFactor - anisotropyFactor or Double.NaN
 	 */
 	public static void adjustContentBased( final BasicViewDescription< ? > vd, final double[] sigma1, final double[] sigma2, final double[] usedDownsampleFactors, final double anisotropyFactor )
 	{

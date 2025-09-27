@@ -52,7 +52,7 @@ public class MatchIndices
 	 * <p>
 	 * Note that the length of the returned array may be larger than the current {@code size()} of this {@code MatchIndices}.
 	 *
-	 * @return
+	 * @return index array
 	 */
 	public int[] indices()
 	{

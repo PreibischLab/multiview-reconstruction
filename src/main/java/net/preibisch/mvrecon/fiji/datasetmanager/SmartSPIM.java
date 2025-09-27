@@ -145,7 +145,7 @@ public class SmartSPIM implements MultiViewDatasetDefinition
 		return new TimePoints( timepoints );
 	}
 
-	/**
+	/*
 	 * 
 	 * @param meta the metadata object
 	 * @param scaleFactor somehow the foldernames are not in um but 1/10 of um, so we need to scale by 1/10 to get approx positions

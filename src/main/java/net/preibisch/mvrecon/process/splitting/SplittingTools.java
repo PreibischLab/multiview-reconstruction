@@ -84,7 +84,7 @@ public class SplittingTools
 	//public static int minPoints = 20;
 	//public static int maxPoints = 500;
 
-	/**
+	/*
 	 * 
 	 * @param spimData - the spimdata object to split up
 	 * @param overlapPx - the expected overlap
@@ -475,7 +475,7 @@ public class SplittingTools
 		return true;
 	}
 
-	/**
+	/*
 	 * computes a set of overlapping intervals with desired target size and overlap. Importantly, minStepSize is computed from the multi-resolution pyramid and constrains 
 	 * that intervals need to be divisible by minStepSize (except the last one) AND that the offsets where images start are divisble by minStepSize.
 	 * 

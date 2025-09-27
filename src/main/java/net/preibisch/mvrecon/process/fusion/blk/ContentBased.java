@@ -50,7 +50,7 @@ public class ContentBased
 	public static double defaultContentBasedSigma1 = 20;
 	public static double defaultContentBasedSigma2 = 40;
 
-	/**
+	/*
 	 * Conceptually, the given {@code interval} is filled with content-based weights, then transformed with {@code transform}.
 	 * <p>
 	 * Content weights are {@code w => 0}.
@@ -81,7 +81,7 @@ public class ContentBased
 		return new ContentBasedBlockSupplier(inputImg, sigma1, sigma2, scale );
 	}
 
-	/**
+	/*
 	 * compute ( I - gauss(I,sigma1) )^2
 	 */
 	private static class Step1BlockSupplier implements BlockSupplier< FloatType >

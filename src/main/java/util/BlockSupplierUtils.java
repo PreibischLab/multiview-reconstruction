@@ -36,8 +36,7 @@ import net.imglib2.type.NativeType;
 
 public class BlockSupplierUtils
 {
-
-	/**
+	/*
 	 * Made to represent a BlockSupplier as a CachedCellImage, dimensions do not have to match, but should
 	 * 
 	 * for SOFTREF cache call BlockAlgoUtils.cellImg( ... )
@@ -62,7 +61,7 @@ public class BlockSupplierUtils
 				ReadOnlyCachedCellImgOptions.options().cellDimensions( cellDimensions ).cacheType( CacheType.BOUNDED ).maxCacheSize( maxCacheSize ) );
 	}
 
-	/**
+	/*
 	 * Allows you to copy a subset of a BlockSupplier into an ArrayImg
 	 * 
 	 * @param <T>

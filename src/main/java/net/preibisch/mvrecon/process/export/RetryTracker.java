@@ -72,6 +72,11 @@ public class RetryTracker<T>
 
 	/**
 	 * Convenience constructor for grid blocks with default settings
+	 * 
+	 * @param operationName any descriptive name for the operation for output messages
+	 * @param totalBlocks number of blocks that will be processed
+	 * 
+	 * @return the RetryTracker instance
 	 */
 	public static RetryTracker<long[][]> forGridBlocks(final String operationName, final int totalBlocks)
 	{
@@ -83,6 +88,8 @@ public class RetryTracker<T>
 	/**
 	 * Call this before each retry cycle. Returns false if max total attempts
 	 * exceeded.
+	 * 
+	 * @return if begin was successful
 	 */
 	public boolean beginAttempt() {
 		if (++totalAttempts > maxTotalAttempts) {
@@ -160,6 +167,9 @@ public class RetryTracker<T>
 	/**
 	 * Remove successful blocks from the failed set and update retry counts. Returns
 	 * false if should stop due to too many individual block failures.
+	 * 
+	 * @param failedBlocks failed block to re-process
+	 * @return if it did not give up now
 	 */
 	public boolean processFailures(final Set<T> failedBlocks) {
 		IOFunctions.println("Blocks remaining for retry in " + operationName + ": " + failedBlocks.size());

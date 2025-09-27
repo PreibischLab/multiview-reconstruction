@@ -467,7 +467,7 @@ public class URITools
 		return kva.lockForWriting( toNormalPath( kva, uri ) ).newOutputStream();
 	}
 
-	/**
+	/*
 	 * Note: it is up to you to create the correct relative paths using toNormalPath()
 	 *
 	 * @param kva
@@ -566,7 +566,7 @@ public class URITools
 
 	/**
 	 * 
-	 * @param uri
+	 * @param uri a URI
 	 * @return a String representation of a URI, if it starts with file:/ it will be removed
 	 */
 	public static String fromURI( final URI uri )

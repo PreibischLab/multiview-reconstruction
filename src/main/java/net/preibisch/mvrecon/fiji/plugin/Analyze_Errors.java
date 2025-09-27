@@ -74,7 +74,7 @@ public class Analyze_Errors implements PlugIn
 		errors.forEach( e -> IOFunctions.println( Group.pvid( e.getA().getA() ) + " <-> " + Group.pvid( e.getA().getB() ) + ": " + e.getB() + " px.") );
 	}
 
-	/**
+	/*
 	 * @param data
 	 * @param viewIds
 	 * @param labelAndWeights

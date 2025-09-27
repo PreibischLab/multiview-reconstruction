@@ -49,6 +49,7 @@ interface FastModel
 	 * @return indices of {@code candidates} that are inliers, or {@code null}
 	 * if the model could not be fitted (model parameters remain unchanged in
 	 * that case).
+	 * @throws NotEnoughDataPointsException if not enough points available
 	 */
 	MatchIndices fastFilterRansac(
 			final FlattenedMatches candidates,

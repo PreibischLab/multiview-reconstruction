@@ -45,7 +45,7 @@ import util.URITools;
 
 public class OMEZarrAttibutes
 {
-	/**
+	/*
 	 * 
 	 * @param n - num dimensions, 3-5 makes sense here (zyx to tczyx; TODO: which order?)
 	 * @param numResolutionLevels - number of multiresolution levels (e.g. s0, s1, s2 would be 3), always includes full res
