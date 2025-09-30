@@ -25,7 +25,6 @@ package net.preibisch.mvrecon.process.fusion.intensity;
 import bdv.AbstractSpimSource;
 import bdv.BigDataViewer;
 import bdv.cache.SharedQueue;
-import bdv.spimdata.WrapBasicImgLoader;
 import bdv.tools.InitializeViewerState;
 import bdv.tools.transformation.TransformedSource;
 import bdv.ui.UIUtils;
@@ -65,8 +64,6 @@ public class IntensityVisualizationPlayground {
 		final int numTimepoints = seq.getTimePoints().size();
 		final ArrayList<SourceAndConverter<?>> sources = new ArrayList<>();
 		BigDataViewer.initSetups(spimData, new ArrayList<>(), sources);
-		WrapBasicImgLoader.removeWrapperIfPresent(spimData);
-
 
 
 		final URI coefficientsUri = new File("/Users/pietzsch/Desktop/intensity_spark.n5").toURI();
@@ -86,12 +83,12 @@ public class IntensityVisualizationPlayground {
 				return CoefficientsIO.load(n5Reader, path);
 			};
 
-			final SourceAndConverter<?> intensityCorrrectedSource = VisualizeIntensityCorrection.wrapWithIntensityCorrectedSource(
+			final SourceAndConverter<?> intensityCorrectedSource = VisualizeIntensityCorrection.wrapWithIntensityCorrectedSource(
 					source,
 					sharedQueue,
 					timepointToCoefficients,
 					enableIntensityCorrection::get);
-			BdvFunctions.show(intensityCorrrectedSource, numTimepoints, Bdv.options().addTo(bdv));
+			BdvFunctions.show(intensityCorrectedSource, numTimepoints, Bdv.options().addTo(bdv));
 		}
 
 		final ViewerPanel viewerPanel = bdv.getBdvHandle().getViewerPanel();
