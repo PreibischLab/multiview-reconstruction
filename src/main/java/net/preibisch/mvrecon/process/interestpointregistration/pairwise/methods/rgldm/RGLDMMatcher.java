@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.rgldm;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import mpicbg.models.Point;
 import net.imglib2.KDTree;
@@ -40,8 +41,8 @@ import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.similarity.Squar
 public class RGLDMMatcher< I extends InterestPoint >
 {
 	public ArrayList< PointMatchGeneric< I > > extractCorrespondenceCandidates( 
-			final ArrayList< I > nodeListA,
-			final ArrayList< I > nodeListB,
+			final List< I > nodeListA,
+			final List< I > nodeListB,
 			final int numNeighbors,
 			final int redundancy,
 			final double ratioOfDistance,
@@ -126,7 +127,7 @@ public class RGLDMMatcher< I extends InterestPoint >
 
 	protected static < I extends InterestPoint > ArrayList< SimplePointDescriptor< I > > createSimplePointDescriptors(
 			final KDTree< I > tree,
-			final ArrayList< I > basisPoints,
+			final List< I > basisPoints,
 			final int numNeighbors,
 			final Matcher matcher,
 			final SimilarityMeasure similarityMeasure )
