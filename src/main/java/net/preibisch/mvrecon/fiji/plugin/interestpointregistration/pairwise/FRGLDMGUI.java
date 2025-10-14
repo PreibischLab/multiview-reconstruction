@@ -48,6 +48,9 @@ public class FRGLDMGUI extends PairwiseGUI
 	public static boolean defaultRegularize = true;
 	public static int defaultRANSACIterationChoice = 1;
 	public static int defaultMinNumMatches = 12;
+	public static double defaultMinInlierRatio = 0.1;
+	public static boolean defaultMultiConsensus = false;
+
 	protected TransformationModelGUI model = null;
 
 	protected FRGLDMParameters parameters;
@@ -89,7 +92,9 @@ public class FRGLDMGUI extends PairwiseGUI
 
 		gd.addSlider( "Allowed_error_for_RANSAC (px)", 0.5, 100.0, RANSACParameters.max_epsilon );
 		gd.addSlider( "Minmal_number_of_inliers", 4, 100, defaultMinNumMatches );
+		gd.addSlider( "Minmal_inlier_ratio", 0.0, 1.0, defaultMinInlierRatio );
 		gd.addChoice( "RANSAC_iterations", RANSACParameters.ransacChoices, RANSACParameters.ransacChoices[ defaultRANSACIterationChoice ] );
+		gd.addCheckbox( "Multi_consensus_RANSAC", defaultMultiConsensus );
 	}
 
 	@Override
@@ -111,21 +116,15 @@ public class FRGLDMGUI extends PairwiseGUI
 		}
 
 		final int redundancy = FRGLDMParameters.redundancy = (int)Math.round( gd.getNextNumber() );
-		final float ratioOfDistance = FRGLDMParameters.ratioOfDistance = (float)gd.getNextNumber();
-		final float maxEpsilon = RANSACParameters.max_epsilon = (float)gd.getNextNumber();
+		final double ratioOfDistance = FRGLDMParameters.ratioOfDistance = gd.getNextNumber();
+		final double maxEpsilon = RANSACParameters.max_epsilon = gd.getNextNumber();
 		final int minNumMatches = defaultMinNumMatches = (int)Math.round( gd.getNextNumber() );
+		final double minInlierRatio = defaultMinInlierRatio = gd.getNextNumber();
 		final int ransacIterations = RANSACParameters.ransacChoicesIterations[ defaultRANSACIterationChoice = gd.getNextChoiceIndex() ];
-
-		final float minInlierRatio;
-		if ( ratioOfDistance >= 2 )
-			minInlierRatio = RANSACParameters.min_inlier_ratio;
-		else if ( ratioOfDistance >= 1.5 )
-			minInlierRatio = RANSACParameters.min_inlier_ratio / 10;
-		else
-			minInlierRatio = RANSACParameters.min_inlier_ratio / 100;
+		final boolean multiConsensus = defaultMultiConsensus = gd.getNextBoolean();
 
 		this.parameters = new FRGLDMParameters( model.getModel(), ratioOfDistance, redundancy );
-		this.ransacParams = new RANSACParameters( maxEpsilon, minInlierRatio, minNumMatches, ransacIterations );
+		this.ransacParams = new RANSACParameters( maxEpsilon, minInlierRatio, minNumMatches, ransacIterations, multiConsensus );
 
 		IOFunctions.println( "Selected Paramters:" );
 		IOFunctions.println( "model: " + defaultModel );
@@ -134,6 +133,7 @@ public class FRGLDMGUI extends PairwiseGUI
 		IOFunctions.println( "maxEpsilon: " + maxEpsilon );
 		IOFunctions.println( "minNumMatches: " + minNumMatches );
 		IOFunctions.println( "ransacIterations: " + ransacIterations );
+		IOFunctions.println( "ransacMultiConsensus: " + multiConsensus );
 		IOFunctions.println( "minInlierRatio: " + minInlierRatio );
 
 		return true;

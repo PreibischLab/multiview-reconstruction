@@ -26,11 +26,11 @@ import mpicbg.models.Model;
 
 public class GeometricHashingParameters
 {
-	public static float differenceThreshold = Float.MAX_VALUE;
-	public static float ratioOfDistance = 10;
+	public static double differenceThreshold = Float.MAX_VALUE;
+	public static double ratioOfDistance = 10;
 	public static int redundancy = 0;
 
-	protected final float dt, rod;
+	protected final double dt, rod;
 	protected final int re;
 	private Model< ? > model = null;
 
@@ -44,8 +44,8 @@ public class GeometricHashingParameters
 	
 	public GeometricHashingParameters(
 			final Model< ? > model,
-			final float differenceThreshold,
-			final float ratioOfDistance,
+			final double differenceThreshold,
+			final double ratioOfDistance,
 			final int redundancy )
 	{
 		this.dt = differenceThreshold;
@@ -55,7 +55,7 @@ public class GeometricHashingParameters
 	}
 
 	public Model< ? > getModel() { return model.copy(); }
-	public float getDifferenceThreshold() { return dt; }
-	public float getRatioOfDistance() { return rod; }
+	public double getDifferenceThreshold() { return dt; }
+	public double getRatioOfDistance() { return rod; }
 	public int getRedundancy() { return re; }
 }

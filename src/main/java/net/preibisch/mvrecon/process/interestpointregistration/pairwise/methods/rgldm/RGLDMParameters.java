@@ -26,8 +26,8 @@ import mpicbg.models.Model;
 
 public class RGLDMParameters
 {
-	public static float differenceThreshold = Float.MAX_VALUE;
-	public static float ratioOfDistance = 3; 
+	public static double differenceThreshold = Float.MAX_VALUE;
+	public static double ratioOfDistance = 3; 
 
 	public static int numNeighbors = 3;
 	public static int redundancy = 1;
@@ -37,7 +37,7 @@ public class RGLDMParameters
 
 	protected final boolean limitSearchRadius;
 	protected final double searchRadius;
-	protected final float dt, rod;
+	protected final double dt, rod;
 	protected final int nn, re;
 
 	private Model< ? > model = null;
@@ -56,8 +56,8 @@ public class RGLDMParameters
 	
 	public RGLDMParameters(
 			final Model<?> model,
-			final float differenceThreshold,
-			final float ratioOfDistance,
+			final double differenceThreshold,
+			final double ratioOfDistance,
 			final boolean limitSearchRadius,
 			final double searchRadius,
 			final int numNeighbors,
@@ -74,8 +74,8 @@ public class RGLDMParameters
 
 	public boolean limitSearchRadius() { return limitSearchRadius; }
 	public double searchRadius() { return searchRadius; }
-	public float getDifferenceThreshold() { return dt; }
-	public float getRatioOfDistance() { return rod; }
+	public double getDifferenceThreshold() { return dt; }
+	public double getRatioOfDistance() { return rod; }
 	public int getNumNeighbors() { return nn; }
 	public int getRedundancy() { return re; }
 }

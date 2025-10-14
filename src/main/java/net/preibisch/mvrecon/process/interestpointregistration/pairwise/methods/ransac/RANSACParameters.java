@@ -29,23 +29,26 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
  */
 public class RANSACParameters
 {
-	public static final String[] ransacChoices = new String[]{ "Fast", "Normal", "Thorough", "Very thorough", "Ridiculous" };
-	public static final int[] ransacChoicesIterations = new int[]{ 1000, 10000, 100000, 1000000, 10000000 };
+	public static final String[] ransacChoices = new String[]{ "Fast (1,000)", "Normal (10,000)", "Thorough (10^5)", "Very thorough (10^6)", "Ridiculous (10^7)" };
+	public static final int[] ransacChoicesIterations = new int[]{ 1000, 10000, 100_000, 1_000_000, 10_000_000 };
 
-	public static float max_epsilon = 5;
-	public static float min_inlier_ratio = 0.1f;
+	public static double max_epsilon = 5;
+	public static double min_inlier_ratio = 0.1f;
 	public static int num_iterations = 10000;
 	public static int min_num_matches = 12;
-	
-	protected float maxEpsilon, minInlierRatio;
-	protected int minNumMatches, numIterations;
+	public static boolean multi_consensus = false;
 
-	public RANSACParameters( final float maxEpsilon, final float minInlierRatio, final int minNumMatches, final int numIterations )
+	protected double maxEpsilon, minInlierRatio;
+	protected int minNumMatches, numIterations;
+	protected boolean multiConsensus;
+
+	public RANSACParameters( final double maxEpsilon, final double minInlierRatio, final int minNumMatches, final int numIterations, final boolean multiConsensus )
 	{
 		this.maxEpsilon = maxEpsilon;
 		this.minInlierRatio = minInlierRatio;
 		this.minNumMatches = minNumMatches;
 		this.numIterations = numIterations;
+		this.multiConsensus = multiConsensus;
 	}
 
 	public RANSACParameters()
@@ -54,15 +57,12 @@ public class RANSACParameters
 		this.numIterations = num_iterations;
 		this.minInlierRatio = min_inlier_ratio;
 		this.minNumMatches = min_num_matches;
+		this.multiConsensus = multi_consensus;
 	}
 
-	public float getMaxEpsilon() { return maxEpsilon; }
-	public float getMinInlierRatio() { return minInlierRatio; }
+	public double getMaxEpsilon() { return maxEpsilon; }
+	public double getMinInlierRatio() { return minInlierRatio; }
 	public int getMinNumMatches() { return minNumMatches; }
 	public int getNumIterations() { return numIterations; }
-
-	public RANSACParameters setMaxEpsilon( final float maxEpsilon ) { this.maxEpsilon = maxEpsilon; return this; }
-	public RANSACParameters setMinInlierRatio( final float minInlierRatio ) { this.minInlierRatio = minInlierRatio; return this; }
-	public RANSACParameters setMinNumMatches( final int minNumMatches ) { this.minNumMatches = minNumMatches; return this; }
-	public RANSACParameters setNumIterations( final int numIterations ) { this.numIterations = numIterations; return this; }
+	public boolean multiConsensus() { return multiConsensus; }
 }

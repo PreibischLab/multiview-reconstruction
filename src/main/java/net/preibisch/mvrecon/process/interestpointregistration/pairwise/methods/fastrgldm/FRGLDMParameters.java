@@ -26,11 +26,11 @@ import mpicbg.models.Model;
 
 public class FRGLDMParameters
 {
-	public static float ratioOfDistance = 10;
+	public static double ratioOfDistance = 10;
 
 	public static int redundancy = 1;
 
-	protected final float rod;
+	protected final double rod;
 	protected final int nn, re;
 
 	private Model< ? > model = null;
@@ -44,7 +44,7 @@ public class FRGLDMParameters
 		this.model = model;
 	}
 	
-	public FRGLDMParameters( final Model< ? > model, final float ratioOfDistance, final int redundancy )
+	public FRGLDMParameters( final Model< ? > model, final double ratioOfDistance, final int redundancy )
 	{
 		this.model = model;
 		this.rod = ratioOfDistance;
@@ -52,7 +52,7 @@ public class FRGLDMParameters
 		this.re = redundancy;
 	}
 
-	public float getRatioOfDistance() { return rod; }
+	public double getRatioOfDistance() { return rod; }
 	public int getNumNeighbors() { return nn; }
 	public int getRedundancy() { return re; }
 }
