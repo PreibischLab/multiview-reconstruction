@@ -77,7 +77,16 @@ public class GeometricHashingPairwise< I extends InterestPoint > implements Matc
 		// compute ransac and remove inconsistent candidates
 		final ArrayList< PointMatchGeneric< I > > inliers = new ArrayList<>();
 
-		final Pair< String, Double > ransacResult = RANSAC.computeRANSAC( candidates, inliers, gp.getModel(), rp.getMaxEpsilon(), rp.getMinInlierRatio(), rp.getMinNumMatches(), rp.getNumIterations() );
+		final Pair< String, Double > ransacResult =
+				RANSAC.computeRANSAC(
+						candidates,
+						inliers,
+						gp.getModel(),
+						rp.getMaxEpsilon(),
+						rp.getMinInlierRatio(),
+						rp.getMinNumMatches(),
+						rp.getNumIterations(),
+						rp.multiConsensus() );
 
 		result.setInliers( inliers, ransacResult.getB() );
 

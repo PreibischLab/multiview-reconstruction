@@ -54,7 +54,8 @@ public class RANSAC
 			final double maxEpsilon,
 			final double minInlierRatio,
 			final int minNumMatches,
-			final int numIterations )
+			final int numIterations,
+			final boolean multiConsensus ) // TODO: USE
 	{
 		final int numCorrespondences = correspondenceCandidates.size();
 		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), minNumMatches );
