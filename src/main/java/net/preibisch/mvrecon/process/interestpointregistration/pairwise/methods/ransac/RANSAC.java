@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
+import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.ValuePair;
@@ -49,14 +50,16 @@ public class RANSAC
 	public static < I extends InterestPoint > Pair< String, Double > computeRANSAC(
 			final ArrayList< PointMatchGeneric < I > > correspondenceCandidates,
 			final ArrayList< PointMatchGeneric < I > > inlierList,
-			final Model<?> model, 
-			final double maxEpsilon, 
-			final double minInlierRatio, 
-			final double minNumberInlierFactor, 
+			final Model<?> model,
+			final double maxEpsilon,
+			final double minInlierRatio,
+			final int minNumMatches,
 			final int numIterations )
 	{
 		final int numCorrespondences = correspondenceCandidates.size();
-		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), (int)Math.round( model.getMinNumMatches() * minNumberInlierFactor ) );
+		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), minNumMatches );
+
+		IOFunctions.println( "Too few minNumMatches specified " + minNumMatches + ", model requires at least " + model.getMinNumMatches() + ". Adjusting to " + model.getMinNumMatches() );
 
 		// if there are not enough correspondences for the used model
 		if ( numCorrespondences < minNumCorrespondences )
