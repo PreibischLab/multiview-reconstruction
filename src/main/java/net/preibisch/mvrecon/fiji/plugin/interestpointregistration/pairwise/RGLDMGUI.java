@@ -26,6 +26,7 @@ import java.awt.Font;
 
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -69,7 +70,7 @@ public class RGLDMGUI extends PairwiseGUI
 	}
 
 	@Override
-	public RGLDMGUI newInstance() { return new RGLDMGUI(); }
+	public RGLDMGUI newInstance(final SpimData2 spimData) { return new RGLDMGUI(); }
 
 	@Override
 	public String getDescription() { return "Precise descriptor-based (translation invariant)";}

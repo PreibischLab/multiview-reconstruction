@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise;
 import ij.gui.GenericDialog;
 import mpicbg.spim.data.sequence.ViewId;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -97,7 +98,7 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 	}
 
 	@Override
-	public IterativeClosestPointGUI newInstance() { return new IterativeClosestPointGUI(); }
+	public IterativeClosestPointGUI newInstance(final SpimData2 spimData) { return new IterativeClosestPointGUI(); }
 
 	@Override
 	public String getDescription() { return "Assign closest-points with ICP (no invariance)";}

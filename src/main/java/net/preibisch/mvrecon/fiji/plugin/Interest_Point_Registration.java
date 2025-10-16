@@ -40,7 +40,6 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.models.AbstractModel;
 import mpicbg.models.Affine3D;
-import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
@@ -89,14 +88,11 @@ import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOpt;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptIterative;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptTwoRound;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
-import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.IterativeConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.SimpleIterativeConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.linkremoval.MaxErrorLinkRemoval;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.PointMatchCreator;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.ImageCorrelationPointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.InterestPointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.MetaDataWeakLinkFactory;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.WeakLinkFactory;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwiseTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.PairwiseSetup;
@@ -124,6 +120,7 @@ public class Interest_Point_Registration implements PlugIn
 		staticPairwiseAlgorithms.add( new RGLDMGUI() ); // good method
 		staticPairwiseAlgorithms.add( new CenterOfMassGUI() );
 		staticPairwiseAlgorithms.add( new IterativeClosestPointGUI() );
+		//staticPairwiseAlgorithms.add( new LoadCorrespondencesGUI( null ) );
 	}
 
 	// basic dialog
@@ -982,7 +979,7 @@ public class Interest_Point_Registration implements PlugIn
 		if ( channels.size() > 1 )
 			groupChannels = defaultGroupChannels = gd.getNextBoolean();
 
-		final PairwiseGUI pwr = staticPairwiseAlgorithms.get( algorithm ).newInstance();
+		final PairwiseGUI pwr = staticPairwiseAlgorithms.get( algorithm ).newInstance( data );
 
 		IOFunctions.println( "Registration algorithm: " + pwr.getDescription() );
 		IOFunctions.println( "Registration type: " + registrationType.name() );
