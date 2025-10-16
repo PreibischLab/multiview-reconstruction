@@ -27,6 +27,7 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.ransac.RANSAC;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.rgldm.RGLDMMatcher;
 
 public class ExamplePairwiseRegistration
@@ -134,7 +135,7 @@ public class ExamplePairwiseRegistration
 				System.out.println( "Found " + inliers.size() + "/" + candidates.size() + " inliers with model: " + model );
 
 				if ( multiConsenus )
-					candidates = removeInliers( candidates, inliers );
+					candidates = RANSAC.removeInliers( candidates, inliers );
 			}
 			else if ( modelFound )
 			{
@@ -179,12 +180,5 @@ public class ExamplePairwiseRegistration
 			t2inv.apply( p, p );
 			return Intervals.contains( intervalImg2 , p );
 		} ).collect( Collectors.toList() );
-	}
-
-	public static < P extends PointMatch > List< P > removeInliers( final List< P > candidates, final List< P > matches )
-	{
-		final HashSet< P > matchesSet = new HashSet<>( matches );
-
-		return candidates.stream().filter( c -> !matchesSet.contains( c ) ).collect( Collectors.toList() );
 	}
 }
