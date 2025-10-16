@@ -71,11 +71,8 @@ public class GeometricHashingGUI extends PairwiseGUI
 	@Override
 	public void addQuery( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
-			gd.addCheckbox( "Regularize_model", defaultRegularize );
-		}
+		gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
+		gd.addCheckbox( "Regularize_model", defaultRegularize );
 
 		gd.addSlider( "Redundancy for descriptor matching", 0, 10, GeometricHashingParameters.redundancy );
 		gd.addSlider( "Significance required for a descriptor match", 1.0, 20.0, GeometricHashingParameters.ratioOfDistance );
@@ -94,19 +91,12 @@ public class GeometricHashingGUI extends PairwiseGUI
 	@Override
 	public boolean parseDialog( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
+		model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
 
-			if ( defaultRegularize = gd.getNextBoolean() )
-			{
-				if ( !model.queryRegularizedModel() )
-					return false;
-			}
-		}
-		else
+		if ( defaultRegularize = gd.getNextBoolean() )
 		{
-			model = presetModel;
+			if ( !model.queryRegularizedModel() )
+				return false;
 		}
 
 		final int redundancy = GeometricHashingParameters.redundancy = (int)Math.round( gd.getNextNumber() );

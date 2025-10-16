@@ -62,11 +62,8 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 	@Override
 	public void addQuery( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
-			gd.addCheckbox( "Regularize_model", defaultRegularize );
-		}
+		gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
+		gd.addCheckbox( "Regularize_model", defaultRegularize );
 
 		gd.addSlider( "Maximal_distance for correspondence (px)", 0.25, 40.0, IterativeClosestPointParameters.maxDistance );
 		gd.addNumericField( "Maximal_number of iterations", IterativeClosestPointParameters.maxIterations, 0 );
@@ -79,19 +76,12 @@ public class IterativeClosestPointGUI extends PairwiseGUI
 	@Override
 	public boolean parseDialog( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
+		model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
 
-			if ( defaultRegularize = gd.getNextBoolean() )
-			{
-				if ( !model.queryRegularizedModel() )
-					return false;
-			}
-		}
-		else
+		if ( defaultRegularize = gd.getNextBoolean() )
 		{
-			model = presetModel;
+			if ( !model.queryRegularizedModel() )
+				return false;
 		}
 
 		final double maxDistance = IterativeClosestPointParameters.maxDistance = gd.getNextNumber();

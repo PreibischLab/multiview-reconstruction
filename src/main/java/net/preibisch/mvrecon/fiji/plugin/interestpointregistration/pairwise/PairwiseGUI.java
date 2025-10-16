@@ -33,7 +33,7 @@ import mpicbg.spim.data.sequence.ViewId;
 
 public abstract class PairwiseGUI
 {
-	protected TransformationModelGUI presetModel = null;
+	//protected TransformationModelGUI presetModel = null;
 
 	/*
 	 * adds the questions this registration wants to ask
@@ -87,9 +87,4 @@ public abstract class PairwiseGUI
 	 * @return - the error allowed for the global optimization
 	 */
 	public abstract double globalOptError();
-
-	/**
-	 * @param model - predefines a transformation model to use (if applicable)
-	 */
-	public void presetTransformationModel( final TransformationModelGUI model ) { this.presetModel = model; }
 }

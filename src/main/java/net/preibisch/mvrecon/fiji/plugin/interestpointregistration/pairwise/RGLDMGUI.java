@@ -77,11 +77,8 @@ public class RGLDMGUI extends PairwiseGUI
 	@Override
 	public void addQuery( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
-			gd.addCheckbox( "Regularize_model", defaultRegularize );
-		}
+		gd.addChoice( "Transformation model", TransformationModelGUI.modelChoice, TransformationModelGUI.modelChoice[ defaultModel ] );
+		gd.addCheckbox( "Regularize_model", defaultRegularize );
 
 		gd.addSlider( "Number_of_neighbors for the descriptors", 1, 10, RGLDMParameters.numNeighbors );
 		gd.addSlider( "Redundancy for descriptor matching", 0, 10, RGLDMParameters.redundancy );
@@ -103,19 +100,12 @@ public class RGLDMGUI extends PairwiseGUI
 	@Override
 	public boolean parseDialog( final GenericDialog gd )
 	{
-		if ( presetModel == null )
-		{
-			model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
+		model = new TransformationModelGUI( defaultModel = gd.getNextChoiceIndex() );
 
-			if ( defaultRegularize = gd.getNextBoolean() )
-			{
-				if ( !model.queryRegularizedModel() )
-					return false;
-			}
-		}
-		else
+		if ( defaultRegularize = gd.getNextBoolean() )
 		{
-			model = presetModel;
+			if ( !model.queryRegularizedModel() )
+				return false;
 		}
 	
 		final int numNeighbors = RGLDMParameters.numNeighbors = (int)Math.round( gd.getNextNumber() );
