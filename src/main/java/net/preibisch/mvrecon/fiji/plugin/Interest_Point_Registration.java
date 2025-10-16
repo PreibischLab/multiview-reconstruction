@@ -127,10 +127,10 @@ public class Interest_Point_Registration implements PlugIn
 	}
 
 	// basic dialog
-	public static int defaultAlgorithm = 0;
+	public static int defaultAlgorithm = 2;
 	public static int defaultRegistrationType = 0;
 	public static int defaultOverlapType = 1;
-	public static int defaultInterestpointOverlapType = 0;
+	public static int defaultInterestpointOverlapType = 1;
 	public static int defaultLabel = -1;
 	public static boolean defaultMatchAcrossLabels = false;
 	public static boolean defaultGroupTiles = true;
