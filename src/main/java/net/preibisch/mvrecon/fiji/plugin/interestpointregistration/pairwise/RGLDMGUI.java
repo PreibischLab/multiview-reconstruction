@@ -124,8 +124,8 @@ public class RGLDMGUI extends PairwiseGUI
 		final boolean limitSearchRadius = RGLDMParameters.defaultLimitSearchRadius = gd.getNextBoolean();
 		final double searchRadius = RGLDMParameters.defaultSearchRadius = gd.getNextNumber();
 		final double maxEpsilon = RANSACParameters.max_epsilon = gd.getNextNumber();
-		final double minInlierRatio = defaultMinInlierRatio = gd.getNextNumber();
 		final int minNumMatches = defaultMinNumMatches = (int)Math.round( gd.getNextNumber() );
+		final double minInlierRatio = defaultMinInlierRatio = gd.getNextNumber();
 		final int ransacIterations = RANSACParameters.ransacChoicesIterations[ defaultRANSACIterationChoice = gd.getNextChoiceIndex() ];
 		final boolean multiConsensus = defaultMultiConsensus = gd.getNextBoolean();
 
@@ -147,7 +147,6 @@ public class RGLDMGUI extends PairwiseGUI
 		IOFunctions.println( "maxEpsilon: " + maxEpsilon );
 		IOFunctions.println( "minNumMatches: " + minNumMatches );
 		IOFunctions.println( "ransacIterations: " + ransacIterations );
-		IOFunctions.println( "ransacMultiConsensus: " + multiConsensus );
 		IOFunctions.println( "ransacMultiConsensus: " + multiConsensus );
 		IOFunctions.println( "minInlierRatio: " + minInlierRatio );
 
