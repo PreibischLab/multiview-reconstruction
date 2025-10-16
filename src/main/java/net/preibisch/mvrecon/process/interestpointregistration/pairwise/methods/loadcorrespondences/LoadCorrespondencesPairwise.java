@@ -61,7 +61,6 @@ public class LoadCorrespondencesPairwise< I extends InterestPoint > implements M
 		{
 			final ViewInterestPointLists iplA = lists.get( viewsA );
 			final InterestPoints ipA = iplA.getInterestPointList( labelA );
-			// TODO: are the ID's the same, loaded and provided here?? << different context
 
 			// note: we could use loaded points here, but we do not want to in case they got filtered somehow (e.g. overlapping only)
 			final Map<Integer, I> mapA =
