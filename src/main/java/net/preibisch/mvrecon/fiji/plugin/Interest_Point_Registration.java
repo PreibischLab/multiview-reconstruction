@@ -375,6 +375,7 @@ public class Interest_Point_Registration implements PlugIn
 
 					models = GlobalOpt.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									cs,
 									fixedViews,
@@ -384,6 +385,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptIterative.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
 									new MaxErrorLinkRemoval(),
@@ -395,6 +397,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptTwoRound.computeTiles(
 							model,
+							globalOptParameters.preAlign,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
 							new MaxErrorLinkRemoval(),
@@ -480,6 +483,7 @@ public class Interest_Point_Registration implements PlugIn
 
 					models = GlobalOpt.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									cs,
 									fixedViews,
@@ -489,6 +493,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptIterative.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
 									new MaxErrorLinkRemoval(),
@@ -501,6 +506,7 @@ public class Interest_Point_Registration implements PlugIn
 					// TODO: returns HashMap< ViewId, AffineModel3D>????
 					models = GlobalOptTwoRound.computeTiles(
 							model,
+							globalOptParameters.preAlign,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
 							new MaxErrorLinkRemoval(),

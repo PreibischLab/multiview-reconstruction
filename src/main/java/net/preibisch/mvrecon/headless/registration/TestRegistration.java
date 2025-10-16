@@ -233,7 +233,7 @@ public class TestRegistration
 		final PointMatchCreator pmc = new InterestPointMatchCreator( result, labelMap );
 
 		// run global optimization
-		return GlobalOpt.computeTiles( new AffineModel3D(), pmc, cs, fixedViews, subset.getGroups() );
+		return GlobalOpt.computeTiles( new AffineModel3D(), true, pmc, cs, fixedViews, subset.getGroups() );
 	}
 
 	public static final HashMap< ViewId, Tile< AffineModel3D > > groupedSubsetTest(
@@ -292,6 +292,6 @@ public class TestRegistration
 		final ConvergenceStrategy cs = new ConvergenceStrategy( 10.0 );
 		final PointMatchCreator pmc = new InterestPointMatchCreator( resultG, labelMap );
 
-		return GlobalOpt.computeTiles( new AffineModel3D(), pmc, cs, fixedViews, groups );
+		return GlobalOpt.computeTiles( new AffineModel3D(), true, pmc, cs, fixedViews, groups );
 	}
 }
