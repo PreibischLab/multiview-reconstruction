@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -55,12 +56,15 @@ public class RANSAC
 			final double minInlierRatio,
 			final int minNumMatches,
 			final int numIterations,
-			final boolean multiConsensus ) // TODO: USE
+			final boolean multiConsensus )
 	{
+		System.out.println( minNumMatches + ", " + multiConsensus );
+
 		final int numCorrespondences = correspondenceCandidates.size();
 		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), minNumMatches );
 
-		IOFunctions.println( "Too few minNumMatches specified " + minNumMatches + ", model requires at least " + model.getMinNumMatches() + ". Adjusting to " + model.getMinNumMatches() );
+		if ( minNumMatches < model.getMinNumMatches() )
+			IOFunctions.println( "WARNING: Too few minNumMatches specified " + minNumMatches + ", model requires at least " + model.getMinNumMatches() + ". Adjusting to " + model.getMinNumMatches() );
 
 		// if there are not enough correspondences for the used model
 		if ( numCorrespondences < minNumCorrespondences )
@@ -70,8 +74,8 @@ public class RANSAC
 		 * The ArrayList that stores the inliers after RANSAC, contains PointMatches of LinkedPoints
 		 * so that MultiThreading is possible
 		 */
-		ArrayList< PointMatch > candidates = new ArrayList< PointMatch >();
-		ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
+		List< PointMatch > candidates = new ArrayList<>();
+		List< PointMatch > inliers = new ArrayList<>();
 		
 		// clone the beads for the RANSAC as we are working multithreaded and they will be modified
 		for ( final PointMatchGeneric< I > correspondence : correspondenceCandidates )
@@ -86,47 +90,107 @@ public class RANSAC
 
 			candidates.add( new PointMatchGeneric< LinkedPoint< I > >( pA, pB, weight ) );
 		}
-		
-		boolean modelFound = false;
-		
-		try
-		{
-			/*modelFound = m.ransac(
-  					candidates,
-					inliers,
-					numIterations,
-					maxEpsilon, minInlierRatio );*/
-		
-			modelFound = model.filterRansac(
-					candidates,
-					inliers,
-					numIterations,
-					maxEpsilon, minInlierRatio ); 
-		}
-		catch ( NotEnoughDataPointsException e )
-		{
-			return new ValuePair< String, Double >( e.toString(), Double.NaN );
-		}
 
 		final NumberFormat nf = NumberFormat.getPercentInstance();
-		final double ratio = ( (double)inliers.size() / (double)candidates.size() );
-		
-		if ( modelFound && inliers.size() >= minNumCorrespondences )
+		final NumberFormat nfErrors = NumberFormat.getNumberInstance();
+		nfErrors.setMinimumFractionDigits( 2 );
+		nfErrors.setMaximumFractionDigits( 2 );
+
+		boolean modelFound = false;
+
+		if ( !multiConsensus )
 		{
-			// remove the inconsistent inliers
-			final int numCorr = inliers.size();
-			inliers = removeInconsistentMatches( inliers );
-
-			if ( inliers.size() < minNumCorrespondences )
+			try
 			{
-				final int numRemoved = numCorr - inliers.size();
+				modelFound = model.filterRansac(
+						candidates,
+						inliers,
+						numIterations,
+						maxEpsilon, minInlierRatio ); 
+			}
+			catch ( NotEnoughDataPointsException e )
+			{
+				return new ValuePair< String, Double >( e.toString(), Double.NaN );
+			}
 
-				// and try again with cleaned correspondences
-				candidates = removeInconsistentMatches( candidates );
+			final double ratio = ( (double)inliers.size() / (double)candidates.size() );
+			
+			if ( modelFound && inliers.size() >= minNumCorrespondences )
+			{
+				// remove the inconsistent inliers
+				final int numCorr = inliers.size();
+				inliers = removeInconsistentMatches( inliers );
+
+				if ( inliers.size() < minNumCorrespondences )
+				{
+					final int numRemoved = numCorr - inliers.size();
+
+					// and try again with cleaned correspondences
+					candidates = removeInconsistentMatches( candidates );
+					inliers.clear();
+
+					try
+					{
+						modelFound = model.filterRansac(
+								candidates,
+								inliers,
+								numIterations,
+								maxEpsilon,
+								minInlierRatio );
+					}
+					catch ( NotEnoughDataPointsException e )
+					{
+						return new ValuePair< String, Double >( e.toString(), Double.NaN );
+					}
+
+					if ( !modelFound || inliers.size() < minNumCorrespondences )
+						return new ValuePair< String, Double >( "NO Model found after removing " + numRemoved + " inconsistent matches and re-running RANSAC using " + candidates.size(), Double.NaN );
+				}
+
+				for ( final PointMatch pointMatch : inliers )
+				{
+					@SuppressWarnings("unchecked")
+					final PointMatchGeneric<LinkedPoint< I > > pm = (PointMatchGeneric< LinkedPoint< I > >) pointMatch;
+
+					final I detectionA = pm.getPoint1().getLinkedObject();
+					final I detectionB = pm.getPoint2().getLinkedObject();
+
+					inlierList.add( new PointMatchGeneric< I >( detectionA, detectionB ) );
+				}
+
+				String inconsistent = "";
+				if ( numCorr != inliers.size() )
+					inconsistent = " [removed " + (numCorr - inliers.size() ) + " inconsistent inliers]";
+
+				return new ValuePair< String, Double >( "Remaining inliers after RANSAC: " + inliers.size() + " of " + candidates.size() + " (" + nf.format(ratio) + ") with average error " + nfErrors.format( model.getCost() ) + "" + inconsistent, model.getCost() );
+			}
+			else
+			{
+				if ( modelFound )
+					return new ValuePair< String, Double >( "Model found but not enough remaining inliers (" + inliers.size() + "/" + minNumCorrespondences + ") after RANSAC of " + candidates.size(), Double.NaN );
+				else
+					return new ValuePair< String, Double >( "NO Model found after RANSAC of " + candidates.size(), Double.NaN );
+			}
+		}
+		else
+		{
+			// multi-consensus
+			candidates = removeInconsistentMatches( candidates );
+
+			final int sizeCandidatea = candidates.size();
+
+			final ArrayList< ArrayList< PointMatch > > inlierSets = new ArrayList<>();
+			final ArrayList< Double > errors = new ArrayList<>();
+
+			String lastMessage = "";
+
+			do
+			{
 				inliers.clear();
 
 				try
 				{
+					// TODO: the inlier-ratio requests a smaller and smaller set of inliers as the candidate set size decreases
 					modelFound = model.filterRansac(
 							candidates,
 							inliers,
@@ -135,37 +199,83 @@ public class RANSAC
 				}
 				catch ( NotEnoughDataPointsException e )
 				{
-					return new ValuePair< String, Double >( e.toString(), Double.NaN );
+					System.out.println( "Not enough points for matching. stopping.");
+					System.exit( 1 );
+				}
+		
+				if ( modelFound && inliers.size() >= minNumCorrespondences )
+				{
+					// debug output for now
+					System.out.println( "Found " + inliers.size() + "/" + candidates.size() + " inliers with model: " + model + ", error " + model.getCost() );
+
+					inlierSets.add( new ArrayList<>( inliers ) );
+					errors.add( model.getCost() );
+
+					candidates = removeInliers( candidates, inliers );
+				}
+				else if ( modelFound )
+				{
+					lastMessage = "Model found, but not enough remaining inliers (" + inliers.size() + "/" + minNumCorrespondences + ") after RANSAC of " + candidates.size();
+				}
+				else
+				{
+					lastMessage = "NO model found after RANSAC of " + candidates.size();
+				}
+			} while ( modelFound && inliers.size() >= minNumCorrespondences );
+
+			if ( inlierSets.size() > 0 )
+			{
+				double minError = Double.MAX_VALUE;
+				double maxError = -1.0;
+				double avgError = 0.0;
+				long sumInliers = 0;
+				String setSizes = "";
+
+				for ( int i = 0; i < inlierSets.size(); ++i )
+				{
+					final List< PointMatch > inlierSet = inlierSets.get( i );
+					final double error = errors.get( i );
+
+					sumInliers += inlierSet.size();
+					avgError += inlierSet.size() * error;
+					minError = Math.min( minError, error );
+					maxError = Math.max( maxError, error );
+					setSizes += inlierSet.size() + ",";
+
+					for ( final PointMatch pointMatch : inlierSet )
+					{
+						@SuppressWarnings("unchecked")
+						final PointMatchGeneric<LinkedPoint< I > > pm = (PointMatchGeneric< LinkedPoint< I > >) pointMatch;
+
+						final I detectionA = pm.getPoint1().getLinkedObject();
+						final I detectionB = pm.getPoint2().getLinkedObject();
+
+						inlierList.add( new PointMatchGeneric< I >( detectionA, detectionB ) );
+					}
 				}
 
-				if ( !modelFound || inliers.size() < minNumCorrespondences )
-					return new ValuePair< String, Double >( "NO Model found after removing " + numRemoved + " inconsistent matches and re-running RANSAC using " + candidates.size(), Double.NaN );
+				avgError /= (double)sumInliers;
+				setSizes = setSizes.substring( 0, setSizes.length() - 1);
+
+				return new ValuePair< String, Double >(
+						"Found " + inlierSets.size() + " set(s) containing " + sumInliers + "/" + sizeCandidatea + " inliers (" + 
+						nf.format(sumInliers/(double)sizeCandidatea) + ") with min/avg/max set-error ("+nfErrors.format(minError)+"/"+
+						nfErrors.format(avgError)+"/"+nfErrors.format(maxError)+") and set sizes (" + setSizes + ")." ,
+						Double.NaN );
 			}
-
-			for ( final PointMatch pointMatch : inliers )
-			{
-				@SuppressWarnings("unchecked")
-				final PointMatchGeneric<LinkedPoint< I > > pm = (PointMatchGeneric< LinkedPoint< I > >) pointMatch;
-
-				final I detectionA = pm.getPoint1().getLinkedObject();
-				final I detectionB = pm.getPoint2().getLinkedObject();
-
-				inlierList.add( new PointMatchGeneric< I >( detectionA, detectionB ) );
-			}
-
-			String inconsistent = "";
-			if ( numCorr != inliers.size() )
-				inconsistent = " [removed " + (numCorr - inliers.size() ) + " inconsistent inliers]";
-
-			return new ValuePair< String, Double >( "Remaining inliers after RANSAC: " + inliers.size() + " of " + candidates.size() + " (" + nf.format(ratio) + ") with average error " + model.getCost() + "" + inconsistent, model.getCost() );
-		}
-		else
-		{
-			if ( modelFound )
-				return new ValuePair< String, Double >( "Model found but not enough remaining inliers (" + inliers.size() + "/" + minNumCorrespondences + ") after RANSAC of " + candidates.size(), Double.NaN );
 			else
-				return new ValuePair< String, Double >( "NO Model found after RANSAC of " + candidates.size(), Double.NaN );
+			{
+				return new ValuePair< String, Double >( lastMessage, Double.NaN );
+			}
 		}
+
+	}
+
+	public static < P extends PointMatch > List< P > removeInliers( final List< P > candidates, final List< P > matches )
+	{
+		final HashSet< P > matchesSet = new HashSet<>( matches );
+
+		return candidates.stream().filter( c -> !matchesSet.contains( c ) ).collect( Collectors.toList() );
 	}
 
 	/**
