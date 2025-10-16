@@ -359,6 +359,12 @@ public class Interest_Point_Registration implements PlugIn
 						statistics.add( p );
 				}
 
+				if ( globalOptParameters.method == GlobalOptType.NO_OPTIMIZATION )
+				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): DONE matching only (no global optimization)." );
+					return true;
+				}
+
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( result, labelMap ); // TODO: Add weights!!!
 				final M model = pairwiseMatching.getMatchingModel().getModel();
@@ -455,6 +461,12 @@ public class Interest_Point_Registration implements PlugIn
 						System.out.println( Group.pvid( p.getA().getA() ) + " " + Group.pvid( p.getA().getB() ) + ": " + p.getB().getInliers().size() +"/" + p.getB().getCandidates().size() + " with " + p.getB().getError() + " px." );
 						statistics.add( p );
 					}
+
+				if ( globalOptParameters.method == GlobalOptType.NO_OPTIMIZATION )
+				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): DONE matching only (no global optimization)." );
+					return true;
+				}
 
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed, labelMap );
