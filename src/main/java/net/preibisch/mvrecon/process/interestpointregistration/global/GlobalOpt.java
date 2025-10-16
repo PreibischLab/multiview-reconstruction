@@ -112,6 +112,8 @@ public class GlobalOpt
 					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 			}
 
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): starting solve ..." );
+
 			tc.optimizeSilently(new ErrorStatistic( cs.getMaxPlateauWidth() + 1 ), cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
 			//tc.optimize( cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
 

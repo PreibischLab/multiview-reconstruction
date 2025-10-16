@@ -118,6 +118,8 @@ public class GlobalOptIterative
 						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 				}
 
+				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): starting solve ..." );
+
 				tc.optimizeSilently(new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ), ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth() );
 				/*TileUtil.optimizeConcurrently(
 						new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ),  ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth(), 1.0f,
