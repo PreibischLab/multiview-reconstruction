@@ -35,6 +35,12 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
 
+/**
+ * Holds sizes and transformations related to one view (a {@code ViewId} from a
+ * {@code AbstractSpimData}) that is split into coefficient-regions.
+ * <p>
+ * Used by {@link IntensityMatcher}.
+ */
 class TileInfo {
 
 	final int[] numCoeffs;
