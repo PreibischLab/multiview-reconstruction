@@ -31,6 +31,7 @@ import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.Coefficie
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 
 public class HistogramPlayground {
@@ -38,11 +39,6 @@ public class HistogramPlayground {
     private static final double minIntensityThreshold = 5.0;
     private static final double maxIntensityThreshold = 250.0;
     private static final int minNumCandidates = 1000;
-    private static final int iterations = 1000;
-    private static final double maxEpsilon = 0.1 * 255;
-    private static final double minInlierRatio = 0.1;
-    private static final int minNumInliers = 10;
-    private static final double maxTrust = 3.0;
 
 	public static void main(String[] args) throws URISyntaxException, SpimDataException {
 		final URI xml = new URI("file:/Users/pietzsch/Desktop/data/Janelia/keller-shadingcorrected/dataset.xml");
@@ -55,8 +51,9 @@ public class HistogramPlayground {
 
 		final double renderScale = 0.25;
 		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, new int[] {8, 8, 8});
-        final List<CoefficientMatch> coefficientMatches = matcher.match(id0, id1,
-                minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-
+        final List<CoefficientMatch> coefficientMatches = matcher.match(
+                id0, Collections.emptyList(),
+                id1, Collections.emptyList(),
+                minIntensityThreshold, maxIntensityThreshold, minNumCandidates);
     }
 }

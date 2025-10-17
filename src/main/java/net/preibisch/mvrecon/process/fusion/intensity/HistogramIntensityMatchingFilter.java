@@ -11,10 +11,11 @@ import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class HistogramMatchingFilter implements IntensityMatchingFilter {
+class HistogramIntensityMatchingFilter implements IntensityMatchingFilter {
+
     private final FastAffineModel1D model;
 
-    public HistogramMatchingFilter(final FastAffineModel1D model) {
+    public HistogramIntensityMatchingFilter(final FastAffineModel1D model) {
         this.model = model;
     }
 
