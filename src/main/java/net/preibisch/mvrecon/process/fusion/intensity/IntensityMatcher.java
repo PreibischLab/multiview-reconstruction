@@ -297,8 +297,7 @@ class IntensityMatcher {
                 final List<PointMatch> reducedMatches = new ArrayList<>();
                 final FastAffineModel1D model = new FastAffineModel1D();
                 if (USE_HISTOGRAMS) {
-					final boolean DEBUG_THIS_ONE = false; // r1.index == 344 && r2.index == 351;
-					matchHistograms(model, flatCandidates, coefficientMatches, reducedMatches, DEBUG_THIS_ONE );
+                    matchHistograms(model, flatCandidates, coefficientMatches, reducedMatches);
                 } else { // use RANSAC
                     final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
                             model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
@@ -321,10 +320,7 @@ class IntensityMatcher {
 			final FastAffineModel1D model,
             final FlattenedMatches flatCandidates,
             final List<CoefficientMatch> coefficientMatches,
-            final List<PointMatch> reducedMatches,
-			final boolean DEBUG_THIS_ONE ) { // TODO REMOVE
-
-		System.out.println( "IntensityMatcher.matchHistograms" );
+            final List<PointMatch> reducedMatches ) {
 
 		reducedMatches.clear();
 
@@ -355,17 +351,6 @@ class IntensityMatcher {
 		final double max = histo1[ histo1.length - 1 ];
 		reducedMatches.add( new PointMatch1D( new Point1D( min ), new Point1D( model.apply( min ) ), 1.0 ) );
 		reducedMatches.add( new PointMatch1D( new Point1D( max ), new Point1D( model.apply( max ) ), 1.0 ) );
-
-		if ( DEBUG_THIS_ONE )
-		{
-			System.out.println( "flatCandidates.size() = " + flatCandidates.size() );
-			DEBUG_writeHistogram("/Users/pietzsch/Desktop/histo1.txt", histo1);
-			DEBUG_writeHistogram("/Users/pietzsch/Desktop/histo2.txt", histo2);
-
-			final double[] histo1mod = new double[ histo1.length ];
-			Arrays.setAll( histo1mod, i -> model.apply( histo1[ i ] ) );
-			DEBUG_writeHistogram( "/Users/pietzsch/Desktop/histo1mod.txt", histo1mod );
-		}
 	}
 
     private static void DEBUG_writeHistogram(String filename, double[] data) {
