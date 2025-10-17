@@ -22,7 +22,11 @@
  */
 package net.preibisch.mvrecon.process.fusion.intensity;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +37,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
@@ -65,6 +72,8 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -284,24 +293,93 @@ class IntensityMatcher {
 			}
 			flatCandidates.flip();
 
-			if (flatCandidates.size() > minNumCandidates) {
-				final FastAffineModel1D model = new FastAffineModel1D();
-				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
-						model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-				final List<PointMatch> reducedMatches = new ArrayList<>();
-				filter.filter(flatCandidates, reducedMatches);
-				if (reducedMatches.isEmpty()) {
-					LOG.debug("({}, {}) not matched", r1.index, r2.index);
-				} else {
-					LOG.debug("({}, {}) matched: {}", r1.index, r2.index, model);
-					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
-				}
-			}
-		}
+            if (flatCandidates.size() > minNumCandidates) {
+                final List<PointMatch> reducedMatches = new ArrayList<>();
+                final FastAffineModel1D model = new FastAffineModel1D();
+                if (USE_HISTOGRAMS) {
+					final boolean DEBUG_THIS_ONE = false; // r1.index == 344 && r2.index == 351;
+					matchHistograms(model, flatCandidates, coefficientMatches, reducedMatches, DEBUG_THIS_ONE );
+                } else { // use RANSAC
+                    final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
+                            model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+                    filter.filter(flatCandidates, reducedMatches);
+                }
+                if (reducedMatches.isEmpty()) {
+                    LOG.debug("({}, {}) not matched", r1.index, r2.index);
+                } else {
+                    LOG.debug("({}, {}) matched: {}", r1.index, r2.index, model);
+                    coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
+                }
+            }
+        }
 		return coefficientMatches;
 	}
 
-	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
+    private final boolean USE_HISTOGRAMS = true;
+
+    private void matchHistograms(
+			final FastAffineModel1D model,
+            final FlattenedMatches flatCandidates,
+            final List<CoefficientMatch> coefficientMatches,
+            final List<PointMatch> reducedMatches,
+			final boolean DEBUG_THIS_ONE ) { // TODO REMOVE
+
+		System.out.println( "IntensityMatcher.matchHistograms" );
+
+		reducedMatches.clear();
+
+		final double[] histo1 = Arrays.copyOf( flatCandidates.p()[0], flatCandidates.size() );
+		Arrays.sort(histo1);
+		final double[] histo2 = Arrays.copyOf( flatCandidates.q()[0], flatCandidates.size() );
+        Arrays.sort(histo2);
+
+        final int numSamples = 100; // TODO: make this a parameter?
+        final FlattenedMatches matches = new FlattenedMatches(1, numSamples);
+        matches.setWeighted(false);
+        for ( int i = 0; i < numSamples; ++i ) {
+            final double p = histo1[histo1.length * i / numSamples];
+            final double q = histo2[histo2.length * i / numSamples];
+            matches.put(p, q, 1);
+        }
+		try
+		{
+			model.fit( matches );
+		}
+		catch ( NotEnoughDataPointsException | IllDefinedDataPointsException e )
+		{
+			e.printStackTrace();
+			return;
+		}
+
+		final double min = histo1[ 0 ];
+		final double max = histo1[ histo1.length - 1 ];
+		reducedMatches.add( new PointMatch1D( new Point1D( min ), new Point1D( model.apply( min ) ), 1.0 ) );
+		reducedMatches.add( new PointMatch1D( new Point1D( max ), new Point1D( model.apply( max ) ), 1.0 ) );
+
+		if ( DEBUG_THIS_ONE )
+		{
+			System.out.println( "flatCandidates.size() = " + flatCandidates.size() );
+			DEBUG_writeHistogram("/Users/pietzsch/Desktop/histo1.txt", histo1);
+			DEBUG_writeHistogram("/Users/pietzsch/Desktop/histo2.txt", histo2);
+
+			final double[] histo1mod = new double[ histo1.length ];
+			Arrays.setAll( histo1mod, i -> model.apply( histo1[ i ] ) );
+			DEBUG_writeHistogram( "/Users/pietzsch/Desktop/histo1mod.txt", histo1mod );
+		}
+	}
+
+    private static void DEBUG_writeHistogram(String filename, double[] data) {
+        try (BufferedWriter writer = Files.newBufferedWriter(new File(filename).toPath())) {
+            for (double d : data) {
+                writer.write(Double.toString(d));
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error writing file: " + filename, e);
+        }
+    }
+
+    private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
 		final int[] coeffPos = new int[3];
 		IntervalIndexer.indexToPosition(coeff, tile.numCoeffs, coeffPos);
 		return scaleTileCoefficient(renderScale, tile, coeffPos);
