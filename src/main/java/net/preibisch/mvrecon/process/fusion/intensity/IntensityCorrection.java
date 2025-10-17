@@ -26,6 +26,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -133,65 +134,93 @@ public class IntensityCorrection {
 		return viewBleachers;
 	}
 
-	public static ViewPairCoefficientMatches match(
-			final AbstractSpimData<?> spimData,
-			final ViewId viewId1,
-			final ViewId viewId2,
-			final double renderScale,
-			final int[] coefficientsSize
-	) {
-		return match(spimData, viewId1, viewId2, renderScale, coefficientsSize,
-				1.0, Double.NaN, 1000, 1000, 0.02 * 255, 0.1, 10, 3.0);
-	}
+    public static ViewPairCoefficientMatches matchRansac(
+            final AbstractSpimData<?> spimData,
+            final ViewId viewId1,
+            final ViewId viewId2,
+            final double renderScale,
+            final int[] coefficientsSize,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates,
+            final int iterations,
+            final double maxEpsilon,
+            final double minInlierRatio,
+            final int minNumInliers,
+            final double maxTrust
+    ) {
+        return matchRansac(spimData,
+                viewId1, Collections.emptyList(),
+                viewId2, Collections.emptyList(),
+                (v, i) -> v,
+                renderScale, coefficientsSize, minIntensity, maxIntensity, minNumCandidates,
+                iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+    }
 
-	public static ViewPairCoefficientMatches match(
-			final AbstractSpimData<?> spimData,
-			final ViewId viewId1,
-			final ViewId viewId2,
-			final double renderScale,
-			final int[] coefficientsSize,
-			final double minIntensity,
-			final double maxIntensity,
-			final int minNumCandidates,
-			final int iterations,
-			final double maxEpsilon,
-			final double minInlierRatio,
-			final int minNumInliers,
-			final double maxTrust
-	) {
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize);
-		final List<CoefficientMatch> match = matcher.match(viewId1, viewId2,
-				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
-				minInlierRatio, minNumInliers, maxTrust);
-		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
-	}
+    public static ViewPairCoefficientMatches matchRansac(
+            final AbstractSpimData<?> spimData,
+            final ViewId viewId1,
+            final List<ViewId> viewId1Bleachers,
+            final ViewId viewId2,
+            final List<ViewId> viewId2Bleachers,
+            final UnbleachFunction unbleachFunction,
+            final double renderScale,
+            final int[] coefficientsSize,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates,
+            final int iterations,
+            final double maxEpsilon,
+            final double minInlierRatio,
+            final int minNumInliers,
+            final double maxTrust
+    ) {
+        final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize, unbleachFunction);
+        final List<CoefficientMatch> match = matcher.match(
+                viewId1, viewId1Bleachers, viewId2, viewId2Bleachers,
+                minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
+                minInlierRatio, minNumInliers, maxTrust);
+        return new ViewPairCoefficientMatches(viewId1, viewId2, match);
+    }
 
-	public static ViewPairCoefficientMatches match(
-			final AbstractSpimData<?> spimData,
-			final ViewId viewId1,
-			final List<ViewId> viewId1Bleachers,
-			final ViewId viewId2,
-			final List<ViewId> viewId2Bleachers,
-			final UnbleachFunction unbleachFunction,
-			final double renderScale,
-			final int[] coefficientsSize,
-			final double minIntensity,
-			final double maxIntensity,
-			final int minNumCandidates,
-			final int iterations,
-			final double maxEpsilon,
-			final double minInlierRatio,
-			final int minNumInliers,
-			final double maxTrust
-	) {
-		final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize, unbleachFunction);
-		final List<CoefficientMatch> match = matcher.match(viewId1, viewId1Bleachers, viewId2, viewId2Bleachers,
-				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon,
-				minInlierRatio, minNumInliers, maxTrust);
-		return new ViewPairCoefficientMatches(viewId1, viewId2, match);
-	}
+    public static ViewPairCoefficientMatches matchHistograms(
+            final AbstractSpimData<?> spimData,
+            final ViewId viewId1,
+            final ViewId viewId2,
+            final double renderScale,
+            final int[] coefficientsSize,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates
+    ) {
+        return matchHistograms(spimData,
+                viewId1, Collections.emptyList(),
+                viewId2, Collections.emptyList(),
+                (v, i) -> v,
+                renderScale, coefficientsSize, minIntensity, maxIntensity, minNumCandidates);
+    }
 
-	public static Map<ViewId, Coefficients> solve(
+    public static ViewPairCoefficientMatches matchHistograms(
+            final AbstractSpimData<?> spimData,
+            final ViewId viewId1,
+            final List<ViewId> viewId1Bleachers,
+            final ViewId viewId2,
+            final List<ViewId> viewId2Bleachers,
+            final UnbleachFunction unbleachFunction,
+            final double renderScale,
+            final int[] coefficientsSize,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates
+    ) {
+        final IntensityMatcher matcher = new IntensityMatcher(spimData, renderScale, coefficientsSize, unbleachFunction);
+        final List<CoefficientMatch> match = matcher.match(
+                viewId1, viewId1Bleachers, viewId2, viewId2Bleachers,
+                minIntensity, maxIntensity, minNumCandidates);
+        return new ViewPairCoefficientMatches(viewId1, viewId2, match);
+    }
+
+    public static Map<ViewId, Coefficients> solve(
 			final int[] coefficientsSize,
 			final Collection<ViewPairCoefficientMatches> pairwiseMatches,
 			final int iterations

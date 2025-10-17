@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.sequence.ViewId;
@@ -65,7 +66,6 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
-import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.RansacRegressionReduceFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,189 +119,210 @@ class IntensityMatcher {
 		this(spimData, renderScale, coefficientsSize, (v, i) -> v);
 	}
 
-	/**
-	 *
-	 * @param view1
-	 * @param view2
-	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
-	 * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
-	 * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
-	 * @param iterations number of RANSAC iterations
-	 * @param maxEpsilon maximal allowed transfer error
-	 * @param minInlierRatio minimal number of inliers to number of candidates
-	 * @param minNumInliers minimally required absolute number of inliers
-	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
-	 * @return
-	 */
-	public List<CoefficientMatch> match(
-			final ViewId view1,
-			final ViewId view2,
-			final double minIntensity,
-			final double maxIntensity,
-			final int minNumCandidates,
-			final int iterations,
-			final double maxEpsilon,
-			final double minInlierRatio,
-			final int minNumInliers,
-			final double maxTrust
-	) {
-		return match(view1, Collections.emptyList(), view2, Collections.emptyList(),
-				minIntensity, maxIntensity, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-	}
+    /**
+     * Match using RANSAC
+     *
+     * @param view1
+     * @param view1Bleachers
+     * @param view2
+     * @param view2Bleachers
+     * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
+     * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
+     * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
+     * @param iterations number of RANSAC iterations (only for RANSAC)
+     * @param maxEpsilon maximal allowed transfer error (only for RANSAC)
+     * @param minInlierRatio minimal number of inliers to number of candidates (only for RANSAC)
+     * @param minNumInliers minimally required absolute number of inliers (only for RANSAC)
+     * @param maxTrust reject candidates with a cost larger than maxTrust * median cost (only for RANSAC)
+     * @return
+     */
+    public List<CoefficientMatch> match(
+            final ViewId view1,
+            final List<ViewId> view1Bleachers,
+            final ViewId view2,
+            final List<ViewId> view2Bleachers,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates,
+            final int iterations,
+            final double maxEpsilon,
+            final double minInlierRatio,
+            final int minNumInliers,
+            final double maxTrust
+    ) {
+        final IntensityMatchingFilter filter = new RansacIntensityMatchingFilter(
+                new FastAffineModel1D(),
+                iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+        return match(view1, view1Bleachers, view2, view2Bleachers, minIntensity, maxIntensity, minNumCandidates, filter);
+    }
 
-	/**
-	 *
-	 * @param view1
-	 * @param view1Bleachers
-	 * @param view2
-	 * @param view2Bleachers
-	 * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
-	 * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
-	 * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
-	 * @param iterations number of RANSAC iterations
-	 * @param maxEpsilon maximal allowed transfer error
-	 * @param minInlierRatio minimal number of inliers to number of candidates
-	 * @param minNumInliers minimally required absolute number of inliers
-	 * @param maxTrust reject candidates with a cost larger than maxTrust * median cost
-	 * @return
-	 */
-	public List<CoefficientMatch> match(
-			final ViewId view1,
-			final List<ViewId> view1Bleachers,
-			final ViewId view2,
-			final List<ViewId> view2Bleachers,
-			final double minIntensity,
-			final double maxIntensity,
-			final int minNumCandidates,
-			final int iterations,
-			final double maxEpsilon,
-			final double minInlierRatio,
-			final int minNumInliers,
-			final double maxTrust
-	) {
-		final TileInfo t1 = getTileInfo(view1);
-		final TileInfo t2 = getTileInfo(view2);
+    /**
+     * Match using Histograms
+     *
+     * @param view1
+     * @param view1Bleachers
+     * @param view2
+     * @param view2Bleachers
+     * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
+     * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
+     * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
+     * @return
+     */
+    public List<CoefficientMatch> match(
+            final ViewId view1,
+            final List<ViewId> view1Bleachers,
+            final ViewId view2,
+            final List<ViewId> view2Bleachers,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates
+    ) {
+        final IntensityMatchingFilter filter = new HistogramIntensityMatchingFilter(new FastAffineModel1D());
+        return match(view1, view1Bleachers, view2, view2Bleachers, minIntensity, maxIntensity, minNumCandidates, filter);
+    }
 
-		// Find the overlap between the ViewIds (in global coordinates).
-		// This is where we need to look for overlapping CoefficientRegions.
-		final RealInterval overlap = getOverlap(t1, t2);
-		if (Intervals.isEmpty(overlap))
-			return Collections.emptyList();
+    /**
+     *
+     * @param view1
+     * @param view1Bleachers
+     * @param view2
+     * @param view2Bleachers
+     * @param minIntensity threshold for intensities to consider for RANSAC, anything below that value will be discarded
+     * @param maxIntensity threshold for intensities to consider for RANSAC, anything above that value will be discarded
+     * @param minNumCandidates minimum number of (non-discarded) overlapping pixels required to consider two coefficient regions overlapping
+     * @param filter {@link RansacIntensityMatchingFilter} or {@link HistogramIntensityMatchingFilter}
+     * @return
+     */
+    public List<CoefficientMatch> match(
+            final ViewId view1,
+            final List<ViewId> view1Bleachers,
+            final ViewId view2,
+            final List<ViewId> view2Bleachers,
+            final double minIntensity,
+            final double maxIntensity,
+            final int minNumCandidates,
+            final IntensityMatchingFilter filter
+    ) {
+        final TileInfo t1 = getTileInfo(view1);
+        final TileInfo t2 = getTileInfo(view2);
 
-		// Now find out for which CoefficientRegions (transformed into global
-		// coordinates) the intersection with overlap is non-empty. Those are
-		// candidate regions for matching between tiles.
-		final List<CoefficientRegion> r1s = overlappingCoefficientRegions(t1, overlap);
-		final List<CoefficientRegion> r2s = overlappingCoefficientRegions(t2, overlap);
+        // Find the overlap between the ViewIds (in global coordinates).
+        // This is where we need to look for overlapping CoefficientRegions.
+        final RealInterval overlap = getOverlap(t1, t2);
+        if (Intervals.isEmpty(overlap))
+            return Collections.emptyList();
 
-		// Find intersecting CoefficientRegion pairs.
-		final List<Pair<CoefficientRegion, CoefficientRegion>> pairs = new ArrayList<>();
-		for (final CoefficientRegion r1 : r1s) {
-			for (final CoefficientRegion r2 : r2s) {
-				if (!isEmpty(intersect(r1.wbounds, r2.wbounds))) {
-					pairs.add(new ValuePair<>(r1, r2));
-				}
-			}
-		}
+        // Now find out for which CoefficientRegions (transformed into global
+        // coordinates) the intersection with overlap is non-empty. Those are
+        // candidate regions for matching between tiles.
+        final List<CoefficientRegion> r1s = overlappingCoefficientRegions(t1, overlap);
+        final List<CoefficientRegion> r2s = overlappingCoefficientRegions(t2, overlap);
 
-		LOG.debug("found {} CoefficientRegions of t1 in overlap.", r1s.size());
-		LOG.debug("found {} CoefficientRegions of t2 in overlap.", r2s.size());
-		LOG.debug("found {} CoefficientRegion pairs.", pairs.size());
+        // Find intersecting CoefficientRegion pairs.
+        final List<Pair<CoefficientRegion, CoefficientRegion>> pairs = new ArrayList<>();
+        for (final CoefficientRegion r1 : r1s) {
+            for (final CoefficientRegion r2 : r2s) {
+                if (!isEmpty(intersect(r1.wbounds, r2.wbounds))) {
+                    pairs.add(new ValuePair<>(r1, r2));
+                }
+            }
+        }
 
-		final List<RandomAccess<UnsignedByteType>> view1BleacherMasks = view1Bleachers.stream()
-				.map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
-				.map(RandomAccessible::randomAccess)
-				.collect(Collectors.toList());
-		final List<RandomAccess<UnsignedByteType>> view2BleacherMasks = view2Bleachers.stream()
-				.map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
-				.map(RandomAccessible::randomAccess)
-				.collect(Collectors.toList());
+        LOG.debug("found {} CoefficientRegions of t1 in overlap.", r1s.size());
+        LOG.debug("found {} CoefficientRegions of t2 in overlap.", r2s.size());
+        LOG.debug("found {} CoefficientRegion pairs.", pairs.size());
 
-		// Next steps:
-		// [ ] blk optimizations? E.g., render and match single line from both coefficient masks?
+        final List<RandomAccess<UnsignedByteType>> view1BleacherMasks = view1Bleachers.stream()
+                .map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
+                .map(RandomAccessible::randomAccess)
+                .collect(Collectors.toList());
+        final List<RandomAccess<UnsignedByteType>> view2BleacherMasks = view2Bleachers.stream()
+                .map(v -> scaleTileBounds(renderScale, getTileInfo(v)))
+                .map(RandomAccessible::randomAccess)
+                .collect(Collectors.toList());
 
-		final int mipmapLevel1 = bestMipmapLevel(renderScale, t1);
-		final int mipmapLevel2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, mipmapLevel1, renderScale)));
-		LOG.debug("using mipmapLevel {} for t1, mipmapLevel {} for t2", mipmapLevel1, mipmapLevel2);
+        // Next steps:
+        // [ ] blk optimizations? E.g., render and match single line from both coefficient masks?
 
-		final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, mipmapLevel1, renderScale));
-		final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
+        final int mipmapLevel1 = bestMipmapLevel(renderScale, t1);
+        final int mipmapLevel2 = bestMatchingMipmapLevel(renderScale, t2, getPixelSize(mipmapToRenderCoordinates(t1, mipmapLevel1, renderScale)));
+        LOG.debug("using mipmapLevel {} for t1, mipmapLevel {} for t2", mipmapLevel1, mipmapLevel2);
 
-		final List<CoefficientMatch> coefficientMatches = new ArrayList<>();
-		for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
-			final CoefficientRegion r1 = pair.getA();
-			final CoefficientRegion r2 = pair.getB();
+        final RandomAccessible<? extends RealType<?>> scaledTile1 = Cast.unchecked(scaleTile(t1, mipmapLevel1, renderScale));
+        final RandomAccessible<? extends RealType<?>> scaledTile2 = Cast.unchecked(scaleTile(t2, mipmapLevel2, renderScale));
 
-			final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
-			final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
-			final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
-			final int numElements = (int) Intervals.numElements(renderInterval);
-			final FlattenedMatches flatCandidates = new FlattenedMatches(1, numElements);
-			flatCandidates.setWeighted(false);
+        final List<CoefficientMatch> coefficientMatches = new ArrayList<>();
+        for (final Pair<CoefficientRegion, CoefficientRegion> pair : pairs) {
+            final CoefficientRegion r1 = pair.getA();
+            final CoefficientRegion r2 = pair.getB();
+
+            final FinalRealInterval intersection = intersect(r1.wbounds, r2.wbounds);
+            final FinalRealInterval scaledIntersection = renderScale.estimateBounds(intersection);
+            final Interval renderInterval = Intervals.smallestContainingInterval(scaledIntersection);
+            final int numElements = (int) Intervals.numElements(renderInterval);
+            final FlattenedMatches flatCandidates = new FlattenedMatches(1, numElements);
+            flatCandidates.setWeighted(false);
 //			final List<PointMatch> candidates = new ArrayList<>(numElements);
 
-			final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
-			final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
+            final RandomAccessible<UnsignedByteType> mask1 = scaleTileCoefficient(renderScale, t1, r1.index);
+            final RandomAccessible<UnsignedByteType> mask2 = scaleTileCoefficient(renderScale, t2, r2.index);
 
-			final Cursor<UnsignedByteType> cMask1 = mask1.view().interval(renderInterval).flatIterable().cursor();
-			final Cursor<UnsignedByteType> cMask2 = mask2.view().interval(renderInterval).flatIterable().cursor();
-			final RandomAccess<? extends RealType<?>> raTile1 = scaledTile1.randomAccess();
-			final RandomAccess<? extends RealType<?>> raTile2 = scaledTile2.randomAccess();
+            final Cursor<UnsignedByteType> cMask1 = mask1.view().interval(renderInterval).flatIterable().cursor();
+            final Cursor<UnsignedByteType> cMask2 = mask2.view().interval(renderInterval).flatIterable().cursor();
+            final RandomAccess<? extends RealType<?>> raTile1 = scaledTile1.randomAccess();
+            final RandomAccess<? extends RealType<?>> raTile2 = scaledTile2.randomAccess();
 
-			final boolean hasMinIntensity = Double.isFinite( minIntensity );
-			final boolean hasMaxIntensity = Double.isFinite( maxIntensity );
+            final boolean hasMinIntensity = Double.isFinite( minIntensity );
+            final boolean hasMaxIntensity = Double.isFinite( maxIntensity );
 
-			while (cMask1.hasNext()) {
-				final boolean m1 = cMask1.next().get() != 0;
-				final boolean m2 = cMask2.next().get() != 0;
-				if (m1 && m2) {
-					raTile1.setPosition(cMask1);
-					double p = raTile1.get().getRealDouble();
-					if ( ( hasMinIntensity && p < minIntensity ) || ( hasMaxIntensity && p > maxIntensity ) )
-						continue;
+            while (cMask1.hasNext()) {
+                final boolean m1 = cMask1.next().get() != 0;
+                final boolean m2 = cMask2.next().get() != 0;
+                if (m1 && m2) {
+                    raTile1.setPosition(cMask1);
+                    double p = raTile1.get().getRealDouble();
+                    if ( ( hasMinIntensity && p < minIntensity ) || ( hasMaxIntensity && p > maxIntensity ) )
+                        continue;
 
-					raTile2.setPosition(cMask1);
-					double q = raTile2.get().getRealDouble();
-					if ( ( hasMinIntensity && q < minIntensity ) || ( hasMaxIntensity && q > maxIntensity ) )
-						continue;
+                    raTile2.setPosition(cMask1);
+                    double q = raTile2.get().getRealDouble();
+                    if ( ( hasMinIntensity && q < minIntensity ) || ( hasMaxIntensity && q > maxIntensity ) )
+                        continue;
 
-					int numBleaches1 = 0;
-					for (final RandomAccess<UnsignedByteType> b : view1BleacherMasks) {
-						if (b.setPositionAndGet(cMask1).get() != 0)
-							++numBleaches1;
-					}
-					p = unbleach.unbleach(p, numBleaches1);
+                    int numBleaches1 = 0;
+                    for (final RandomAccess<UnsignedByteType> b : view1BleacherMasks) {
+                        if (b.setPositionAndGet(cMask1).get() != 0)
+                            ++numBleaches1;
+                    }
+                    p = unbleach.unbleach(p, numBleaches1);
 
-					int numBleaches2 = 0;
-					for (final RandomAccess<UnsignedByteType> b : view2BleacherMasks) {
-						if (b.setPositionAndGet(cMask1).get() != 0)
-							++numBleaches2;
-					}
-					q = unbleach.unbleach(q, numBleaches2);
+                    int numBleaches2 = 0;
+                    for (final RandomAccess<UnsignedByteType> b : view2BleacherMasks) {
+                        if (b.setPositionAndGet(cMask1).get() != 0)
+                            ++numBleaches2;
+                    }
+                    q = unbleach.unbleach(q, numBleaches2);
 
-					flatCandidates.put(p, q, 1);
-				}
-			}
-			flatCandidates.flip();
+                    flatCandidates.put(p, q, 1);
+                }
+            }
+            flatCandidates.flip();
 
-			if (flatCandidates.size() > minNumCandidates) {
-				final FastAffineModel1D model = new FastAffineModel1D();
-				final RansacRegressionReduceFilter filter = new RansacRegressionReduceFilter(
-						model, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-				final List<PointMatch> reducedMatches = new ArrayList<>();
-				filter.filter(flatCandidates, reducedMatches);
-				if (reducedMatches.isEmpty()) {
-					LOG.debug("({}, {}) not matched", r1.index, r2.index);
-				} else {
-					LOG.debug("({}, {}) matched: {}", r1.index, r2.index, model);
-					coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
-				}
-			}
-		}
-		return coefficientMatches;
-	}
+            if (flatCandidates.size() > minNumCandidates) {
+                final List<PointMatch> reducedMatches = new ArrayList<>();
+                filter.filter(flatCandidates, reducedMatches);
+                if (reducedMatches.isEmpty()) {
+                    LOG.debug("({}, {}) not matched", r1.index, r2.index);
+                } else {
+                    LOG.debug("({}, {}) matched: {}", r1.index, r2.index, filter.model());
+                    coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
+                }
+            }
+        }
+        return coefficientMatches;
+    }
 
-	private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
+    private static RandomAccessible<UnsignedByteType> scaleTileCoefficient(final AffineTransform3D renderScale, final TileInfo tile, final int coeff) {
 		final int[] coeffPos = new int[3];
 		IntervalIndexer.indexToPosition(coeff, tile.numCoeffs, coeffPos);
 		return scaleTileCoefficient(renderScale, tile, coeffPos);
