@@ -51,6 +51,8 @@ import util.URITools;
 
 public class Split_Views implements PlugIn
 {
+	public enum InterestPointAdding { IP, CORR, NONE };
+
 	public static boolean roundMipmapResolutions = false;
 
 	public static long defaultImgX = 256;
@@ -63,17 +65,20 @@ public class Split_Views implements PlugIn
 
 	public static boolean defaultOptimize = true;
 
-	public static boolean defaultAddIPs = true;
+	public static int defaultIPChoice = 1;
+
 	public static double defaultDensity = 100;
 	public static int defaultMinPoints = 20;
 	public static int defaultMaxPoints = 500;
 	public static double defaultError = 0.5;
-	public static double defaultExclusionRadius = 20;
+	public static double defaultExclusionRadiusIP = 20;
+	public static double defaultExclusionRadiusCorr = 0;
 
 	public static boolean defaultAssignIlluminations = true;
 
 	public static int defaultChoice = 0;
-	private static final String[] resultChoice = new String[] { "Display", "Save & Close" };
+	private static final String[] resultChoices = new String[] { "Display", "Save & Close" };
+	private static final String[] ipChoices = new String[] { "Add 'fake' interest points (that can be matched)", "Add 'fake' corresponding points", "NO interest point adding" };
 
 	@Override
 	public void run(String arg)
@@ -96,7 +101,7 @@ public class Split_Views implements PlugIn
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
-			final boolean addIPs,
+			final InterestPointAdding ipAdding,
 			final double pointDensity,
 			final int minPoints,
 			final int maxPoints,
@@ -104,7 +109,7 @@ public class Split_Views implements PlugIn
 			final double excludeRadius,
 			final boolean display )
 	{
-		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, addIPs, pointDensity, minPoints, maxPoints, error, excludeRadius );
+		final SpimData2 newSD = SplittingTools.splitImages( data, overlap, targetSize, minStepSize, assingIlluminationsFromTileIds, optimize, ipAdding, pointDensity, minPoints, maxPoints, error, excludeRadius );
 
 		if ( display )
 		{
@@ -156,12 +161,8 @@ public class Split_Views implements PlugIn
 		gd.addMessage( "Note: overlap will be adjusted to be divisible by " + Arrays.toString( minStepSize ), GUIHelper.mediumstatusfont, Color.RED );
 		gd.addMessage( "Minimal image sizes per dimension: " + Util.printCoordinates( imgSizes.getB() ), GUIHelper.mediumstatusfont, Color.DARK_GRAY );
 
-		gd.addCheckbox( "Add_fake_interest_points", defaultAddIPs );
-		gd.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 2 );
-		gd.addNumericField( "Min_total number of points", defaultMinPoints, 0 );
-		gd.addNumericField( "Max_total number of points", defaultMaxPoints, 0 );
-		gd.addNumericField( "Artificial error (px)", defaultError, 2 );
-		gd.addNumericField( "Exclusion_radius (px)", defaultExclusionRadius, 2 );
+		gd.addChoice( "Interest_points", ipChoices, ipChoices[ defaultIPChoice ] );
+
 		gd.addMessage( "" );
 
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
@@ -178,7 +179,7 @@ public class Split_Views implements PlugIn
 			suggestion = filePath.toString() + ".split.xml";
 
 		gd.addFileField("New_XML_File", suggestion, 30);
-		gd.addChoice( "Split_Result", resultChoice, resultChoice[ defaultChoice ] );
+		gd.addChoice( "Split_Result", resultChoices, resultChoices[ defaultChoice ] );
 
 		gd.showDialog();
 
@@ -195,12 +196,7 @@ public class Split_Views implements PlugIn
 		final long oy = defaultOverlapY = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 1 ] );
 		final long oz = defaultOverlapZ = closestLargerLongDivisableBy( Math.round( gd.getNextNumber() ), minStepSize[ 2 ] );
 
-		final boolean addIPs = defaultAddIPs = gd.getNextBoolean();
-		final double density = defaultDensity = gd.getNextNumber();
-		final int minPoints = defaultMinPoints = (int)Math.round(gd.getNextNumber());
-		final int maxPoints = defaultMaxPoints = (int)Math.round(gd.getNextNumber());
-		final double error = defaultError = gd.getNextNumber();
-		final double exclusionRadius = defaultExclusionRadius = gd.getNextNumber();
+		final int ipChoice = defaultIPChoice = gd.getNextChoiceIndex();
 
 		final boolean assignIllum;
 		if ( data.getSequenceDescription().getAllIlluminationsOrdered().size() == 1 )
@@ -220,7 +216,48 @@ public class Split_Views implements PlugIn
 			return false;
 		}
 
-		return split( data, URITools.toURI( saveAs ), new long[]{ sx, sy, sz }, new long[]{ ox, oy, oz }, minStepSize, assignIllum, optimize, addIPs, density, minPoints, maxPoints, error, exclusionRadius, choice == 0 );
+		double density = defaultDensity;
+		int minPoints = defaultMinPoints;
+		int maxPoints = defaultMaxPoints;
+		double error = defaultError;
+		double exclusionRadius = defaultExclusionRadiusCorr;
+
+		InterestPointAdding ipAdding = InterestPointAdding.NONE;
+
+		if ( ipChoice < 2 )
+		{
+			final GenericDialogPlus gd2 = new GenericDialogPlus( (ipChoice == 0) ? "Add fake interest points" : "Add fake CORRESPONDING interest points" );
+
+			gd2.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 2 );
+			gd2.addNumericField( "Min_total number of points", defaultMinPoints, 0 );
+			gd2.addNumericField( "Max_total number of points", defaultMaxPoints, 0 );
+			gd2.addNumericField( "Artificial error (px)", defaultError, 2 );
+			gd2.addNumericField( "Exclusion_radius (px)", (ipChoice == 0) ? defaultExclusionRadiusIP : defaultExclusionRadiusCorr, 2 );
+
+			gd2.showDialog();
+
+			if ( gd2.wasCanceled() )
+				return false;
+
+			density = defaultDensity = gd2.getNextNumber();
+			minPoints = defaultMinPoints = (int)Math.round(gd2.getNextNumber());
+			maxPoints = defaultMaxPoints = (int)Math.round(gd2.getNextNumber());
+			error = defaultError = gd2.getNextNumber();
+
+			if (ipChoice == 0 )
+			{
+				exclusionRadius = defaultExclusionRadiusIP = gd2.getNextNumber();
+				ipAdding = InterestPointAdding.IP;
+			}
+			else
+			{
+				exclusionRadius = defaultExclusionRadiusCorr = gd2.getNextNumber();
+				ipAdding = InterestPointAdding.CORR;
+			}
+		}
+
+		return split(data, URITools.toURI(saveAs), new long[] { sx, sy, sz }, new long[] { ox, oy, oz }, minStepSize,
+				assignIllum, optimize, ipAdding, density, minPoints, maxPoints, error, exclusionRadius, choice == 0);
 	}
 
 	public static Pair< HashMap< String, Integer >, long[] > collectImageSizes( final AbstractSpimData< ? > data )
