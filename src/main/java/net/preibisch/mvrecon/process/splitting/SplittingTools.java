@@ -64,6 +64,7 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Split_Views;
+import net.preibisch.mvrecon.fiji.plugin.Split_Views.InterestPointAdding;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitMultiResolutionImgLoader;
@@ -107,7 +108,7 @@ public class SplittingTools
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
-			final boolean addIPs,
+			final InterestPointAdding ipAdding,
 			final double pointDensity,
 			final int minPoints,
 			final int maxPoints,
@@ -148,6 +149,10 @@ public class SplittingTools
 		final String fakeLabel = "splitPoints_" + System.currentTimeMillis();
 
 		final Random rnd = new Random( 23424459 );
+
+		// TODO: in order to assign existing corresponding points, we need to build the Map from old to new viewId's and their transformations/sizes first
+		// TODO: because we need to know what the new corresponding point(s) is/are, 1:1 correspondence mappings become 1:n since the corresponding point
+		// TODO: may be in an overlapping area and are thus multiplied
 
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
@@ -225,6 +230,8 @@ public class SplittingTools
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
+							// TODO: keep the old ids so they stay unique and we can look up correspondences easier later
+							// TODO: note that the same old ID will occur more than once in overlapping areas, but that's fine
 							int id = 0;
 
 							final ArrayList< InterestPoint > newIp1 = new ArrayList<>();
@@ -250,7 +257,10 @@ public class SplittingTools
 							newVipl.addInterestPointList( label + "_split", newIpl1 ); // still add
 						}
 
-						// adding random corresponding interest points in overlapping areas of introduced split views
+						// TODO: this must be done in the second round since we need to know the full layout of the new dataset for correspondences
+						// TODO: no, that is simply not true, the only thing we need to do in the second run is the existing correspondences
+
+						// adding random [corresponding] interest points in overlapping areas of introduced split views
 						if ( addIPs )
 						{
 							final ArrayList< InterestPoint > newIp = new ArrayList<>();
