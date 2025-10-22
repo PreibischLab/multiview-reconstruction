@@ -93,7 +93,7 @@ public class SplittingTools
 	 * @param minStepSize - step size or multipleOf for coordinates and sizes (except size of last tile), e.g. 8 - defined by the lowest downsampling step
 	 * @param assingIlluminationsFromTileIds - use illumination attribute to remember former tiles
 	 * @param optimize - whether to optimize overlap size
-	 * @param addIPs - if fake interest points should be added
+	 * @param ipAdding - if fake (corresponding) interest points should be added
 	 * @param pointDensity - how many points per 100x100x100 volume
 	 * @param minPoints - min number of generated fake points per pair
 	 * @param maxPoints - max number of generated fake points per pair
