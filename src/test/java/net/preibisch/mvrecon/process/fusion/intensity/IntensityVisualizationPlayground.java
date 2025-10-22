@@ -26,6 +26,7 @@ import bdv.AbstractSpimSource;
 import bdv.BigDataViewer;
 import bdv.cache.SharedQueue;
 import bdv.tools.InitializeViewerState;
+import bdv.tools.brightness.ConverterSetup;
 import bdv.tools.transformation.TransformedSource;
 import bdv.ui.UIUtils;
 import bdv.util.Bdv;
@@ -38,10 +39,14 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -56,18 +61,25 @@ public class IntensityVisualizationPlayground {
 		System.setProperty( "apple.laf.useScreenMenuBar", "true" );
 		UIUtils.installFlatLafInfos();
 
-		final URI datasetUri = new URI("file:/groups/scicompsoft/home/preibischs/Keller/fly_brain_3/full/BASIC/dataset.xml");
+		final URI datasetUri = new URI("file:/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/dataset_fix_ids.xml");
 		final XmlIoSpimData2 io = new XmlIoSpimData2();
 		final SpimData2 spimData = io.load(datasetUri);
 
 		final AbstractSequenceDescription<?, ?, ?> seq = spimData.getSequenceDescription();
 		final int numTimepoints = seq.getTimePoints().size();
-		final ArrayList<SourceAndConverter<?>> sources = new ArrayList<>();
-		BigDataViewer.initSetups(spimData, new ArrayList<>(), sources);
+		final ArrayList<SourceAndConverter<?>> allsources = new ArrayList<>();
+
+		BigDataViewer.initSetups(spimData, new ArrayList<>(), allsources);
+
+		// filter for channel 0
+		final List<SourceAndConverter<?>> sources = allsources.stream().filter( source -> getSetupId(source.getSpimSource()) <= 559 ).collect( Collectors.toList() );
+
+		// filter for channel 2
+		//final List<SourceAndConverter<?>> sources = allsources.stream().filter( source -> getSetupId(source.getSpimSource()) >= 1120 ).collect( Collectors.toList() );
 
 		// TODO: if a setup??/timepoint??/ does not exist, what does that mean?
 		// TODO: why are they missing in the first place? seems like the match process was simply interrupted? double-check threshold-8,8,8
-		final URI coefficientsUri = new File("/groups/scicompsoft/home/preibischs/Keller/fly_brain_3/full/BASIC/intensity_spark-2,2,2.n5").toURI();
+		final URI coefficientsUri = new File("/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/intensity_spark.n5").toURI();
 		final N5Reader n5Reader = URITools.instantiateN5Reader(StorageFormat.N5, coefficientsUri);
 
 		final AtomicBoolean enableIntensityCorrection = new AtomicBoolean(false);
