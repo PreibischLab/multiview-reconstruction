@@ -70,8 +70,8 @@ public class VisualizeIntensityCorrection {
 			return new SourceAndConverter<>(ics, converter);
 		} else {
 			final SharedQueue queue = sharedQueue != null ? sharedQueue : new SharedQueue(Runtime.getRuntime().availableProcessors());
-			final Source<V> vsource = (Source<V>) soc.asVolatile().getSpimSource();
-			final Converter<V, ARGBType> vconverter = (Converter<V, ARGBType>) soc.asVolatile().getConverter();
+			final Source<V> vsource = (Source<V>)(Object) soc.asVolatile().getSpimSource();
+			final Converter<V, ARGBType> vconverter = (Converter<V, ARGBType>)(Object) soc.asVolatile().getConverter();
 			final Source<V> vics = new VolatileIntensityCorrectedSource<>(source, vsource, sharedQueue, timepointToCoefficients, enableIntensityCorrection);
 			return new SourceAndConverter<>(ics, converter, new SourceAndConverter<>(vics, vconverter));
 		}
