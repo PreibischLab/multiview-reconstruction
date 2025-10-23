@@ -80,7 +80,7 @@ class IntensitySolver {
 			final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1());
 			final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2());
 			if (disconnected) {
-				identityConnect(st1, st2, 0.1);
+				identityConnect(st1, st2, 1E-6);
 			} else {
 				final Collection<PointMatch> matches = coefficientMatch.matches();
 				if (!matches.isEmpty()) {
