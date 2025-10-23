@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.fusion.intensity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,6 @@ import mpicbg.models.TranslationModel1D;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.iterator.IntervalIterator;
 import net.preibisch.mvrecon.process.fusion.intensity.IntensityMatcher.CoefficientMatch;
-import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.Point1D;
 import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.PointMatch1D;
 import org.slf4j.Logger;
@@ -70,12 +70,23 @@ class IntensitySolver {
 		if (coefficientMatches.isEmpty())
 			return;
 
+		final boolean disconnected = coefficientMatches.stream()
+				.map(CoefficientMatch::matches)
+				.allMatch(Collection::isEmpty);
+
 		final IntensityTile p1IntensityTile = getIntensityTile(p1);
 		final IntensityTile p2IntensityTile = getIntensityTile(p2);
 		for (final CoefficientMatch coefficientMatch : coefficientMatches) {
 			final Tile<?> st1 = p1IntensityTile.getSubTileAtIndex(coefficientMatch.coeff1());
 			final Tile<?> st2 = p2IntensityTile.getSubTileAtIndex(coefficientMatch.coeff2());
-			st1.connect(st2, coefficientMatch.matches());
+			if (disconnected) {
+				identityConnect(st1, st2, 0.1);
+			} else {
+				final Collection<PointMatch> matches = coefficientMatch.matches();
+				if (!matches.isEmpty()) {
+					st1.connect(st2, matches);
+				}
+			}
 		}
 		p1IntensityTile.connectTo(p2IntensityTile);
 	}
@@ -177,11 +188,21 @@ class IntensitySolver {
 		coefficientTile.connect(equilibrationTile, Collections.singletonList(eqMatch));
 	}
 
-	private static void identityConnect(final Tile<?> t1, final Tile<?> t2) {
+	// TODO: Here we use (0 -> 0) and (1 -> 1) as point matches that represent
+	//       the identity transform. This made sense in Render (where this code
+	//       is copied from), because image intensities are normalized to [0,1].
+	//       However, we don't normalize intensities in multiview-reconstruciton,
+	//       so probably something else should be used here? Dataset min/max?
+	//       Tile min/max?
+	private static void identityConnect(final Tile<?> t1, final Tile<?> t2, final double weight) {
 		final ArrayList<PointMatch> matches = new ArrayList<>();
-		matches.add(new PointMatch1D(new Point1D(0), new Point1D(0)));
-		matches.add(new PointMatch1D(new Point1D(1), new Point1D(1)));
+		matches.add(new PointMatch1D(new Point1D(0), new Point1D(0), weight));
+		matches.add(new PointMatch1D(new Point1D(1), new Point1D(1), weight));
 		t1.connect(t2, matches);
+	}
+
+	private static void identityConnect(final Tile<?> t1, final Tile<?> t2) {
+		identityConnect(t1, t2, 1.0);
 	}
 
 }
