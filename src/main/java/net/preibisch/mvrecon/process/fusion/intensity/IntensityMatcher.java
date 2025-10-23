@@ -308,16 +308,16 @@ class IntensityMatcher {
             }
             flatCandidates.flip();
 
+            final List<PointMatch> reducedMatches = new ArrayList<>();
             if (flatCandidates.size() > minNumCandidates) {
-                final List<PointMatch> reducedMatches = new ArrayList<>();
                 filter.filter(flatCandidates, reducedMatches);
                 if (reducedMatches.isEmpty()) {
                     LOG.debug("({}, {}) not matched", r1.index, r2.index);
                 } else {
                     LOG.debug("({}, {}) matched: {}", r1.index, r2.index, filter.model());
-                    coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
                 }
             }
+            coefficientMatches.add(new CoefficientMatch(r1.index, r2.index, flatCandidates.size(), reducedMatches));
         }
         return coefficientMatches;
     }
