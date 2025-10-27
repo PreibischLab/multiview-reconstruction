@@ -261,7 +261,7 @@ public class SplittingTools
 						// TODO: no, that is simply not true, the only thing we need to do in the second run is the existing correspondences
 
 						// adding random [corresponding] interest points in overlapping areas of introduced split views
-						if ( addIPs )
+						if ( ipAdding == InterestPointAdding.CORR )
 						{
 							final ArrayList< InterestPoint > newIp = new ArrayList<>();
 							int id = 0;
