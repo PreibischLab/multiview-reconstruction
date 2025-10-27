@@ -61,7 +61,7 @@ public class IntensityVisualizationPlayground {
 		System.setProperty( "apple.laf.useScreenMenuBar", "true" );
 		UIUtils.installFlatLafInfos();
 
-		final URI datasetUri = new URI("file:/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/dataset_fix_ids.xml");
+		final URI datasetUri = new URI("file:/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/dataset_fix_ids_bg.xml");
 		final XmlIoSpimData2 io = new XmlIoSpimData2();
 		final SpimData2 spimData = io.load(datasetUri);
 
@@ -71,15 +71,20 @@ public class IntensityVisualizationPlayground {
 
 		BigDataViewer.initSetups(spimData, new ArrayList<>(), allsources);
 
+		System.out.println( "init done.");
+
 		// filter for channel 0
 		final List<SourceAndConverter<?>> sources = allsources.stream().filter( source -> getSetupId(source.getSpimSource()) <= 559 ).collect( Collectors.toList() );
+
+		// filter for channel 1
+		//final List<SourceAndConverter<?>> sources = allsources.stream().filter( source -> getSetupId(source.getSpimSource()) >= 560 && getSetupId(source.getSpimSource()) < 1120 ).collect( Collectors.toList() );
 
 		// filter for channel 2
 		//final List<SourceAndConverter<?>> sources = allsources.stream().filter( source -> getSetupId(source.getSpimSource()) >= 1120 ).collect( Collectors.toList() );
 
 		// TODO: if a setup??/timepoint??/ does not exist, what does that mean?
 		// TODO: why are they missing in the first place? seems like the match process was simply interrupted? double-check threshold-8,8,8
-		final URI coefficientsUri = new File("/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/intensity_spark.n5").toURI();
+		final URI coefficientsUri = new File("/nrs/tavakoli/data_internal/s12c/samples_for_stitching/20250902_mouse_hipp_3_channels/intensity_spark_histogram_bg.n5").toURI();
 		final N5Reader n5Reader = URITools.instantiateN5Reader(StorageFormat.N5, coefficientsUri);
 
 		final AtomicBoolean enableIntensityCorrection = new AtomicBoolean(false);
