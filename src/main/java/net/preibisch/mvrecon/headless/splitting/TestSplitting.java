@@ -27,6 +27,7 @@ import java.net.URI;
 import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import net.preibisch.mvrecon.fiji.plugin.Split_Views;
+import net.preibisch.mvrecon.fiji.plugin.Split_Views.InterestPointAdding;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.explorer.ViewSetupExplorer;
@@ -74,7 +75,7 @@ public class TestSplitting
 						minStepSize,
 						true, // assingIlluminationsFromTileIds
 						true, // optimize
-						true, // addIPs
+                        InterestPointAdding.CORR, // IPadding
 						100,
 						20,
 						50,
