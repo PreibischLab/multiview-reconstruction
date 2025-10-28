@@ -553,7 +553,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 	public static void whiteSources( final List< ConverterSetup > cs )
 	{
 		for ( int i = 0; i < cs.size(); ++i )
-			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 0 ) ) );
+			cs.get( i ).setColor( new ARGBType( ARGBType.rgba( 255, 255, 255, 255 ) ) );
 	}
 
 	public static void setVisibleSources( final VisibilityAndGrouping vag, final boolean[] active )
