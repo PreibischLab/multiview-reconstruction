@@ -245,7 +245,7 @@ public class ExportN5Api implements ImgExport
 						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
 						// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
 						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx );
 
 						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
 
@@ -368,7 +368,7 @@ public class ExportN5Api implements ImgExport
 			// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
 			// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
 			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
+			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx );
 
 			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
 

@@ -99,8 +99,8 @@ public class OMEZarrAttibutes
 
 			for ( int d = 0; d < 3; ++d )
 			{
-				translation[ d ] = m.getTranslation()[ d ];
-				scale[ d ] = resolutionS0[ d ] * m.get( d, d );
+				translation[ d ] = resolutionS0[d] * m.getTranslation()[ d ];
+				scale[ d ] = resolutionS0[d] * m.get( d, d );
 			}
 
 			// if 4d and 5d, add 1's for C and T
@@ -130,23 +130,10 @@ public class OMEZarrAttibutes
 		return meta;
 	}
 
-	// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
-	public static double[] getResolutionS0( final VoxelDimensions vx, final double anisoF, final double downsamplingF )
+	// The method assumes that the voxel dimensions are at scale S0, so it simply returns the dimensions as double array.
+	public static double[] getResolutionS0( final VoxelDimensions vx )
 	{
-		final double[] resolutionS0 = vx.dimensionsAsDoubleArray();
-
-		// not preserving anisotropy
-		if ( Double.isNaN( anisoF ) )
-			resolutionS0[ 2 ] = resolutionS0[ 0 ];
-
-		// downsampling
-		if ( !Double.isNaN( downsamplingF ) )
-			Arrays.setAll( resolutionS0, d -> resolutionS0[ d ] * downsamplingF );
-
-		// TODO: this is a hack so the export downsampling pyramid is working
-		Arrays.setAll( resolutionS0, d -> 1 );
-
-		return resolutionS0;
+		return vx.dimensionsAsDoubleArray();
 	}
 
 	public static void loadOMEZarr( final N5Reader n5, final String dataset )

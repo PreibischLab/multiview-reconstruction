@@ -194,7 +194,7 @@ public class Resave_N5Api implements PlugIn
 										viewId,
 										dataTypes.get( viewId.getViewSetupId() ),
 										dimensions.get( viewId.getViewSetupId() ),
-										//data.getSequenceDescription().getViewDescription( viewId ).getViewSetup().getVoxelSize().dimensionsAsDoubleArray(),
+										data.getSequenceDescription().getViewDescription( viewId ).getViewSetup().getVoxelSize().dimensionsAsDoubleArray(), // resolutionS0
 										compression,
 										blockSize,
 										downsamplings);
