@@ -129,6 +129,10 @@ public class SplittingTools
 		final HashMap< Integer, Integer > new2oldSetupId = new HashMap<>();
 		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
 
+		// for quickly setting up the corresponding interest points
+		final Map< ViewInterestPointLists, ViewInterestPointLists > new2oldViewInterestPointLists = new HashMap<>();
+		final Map< ViewSetup, ArrayList< Interval > > oldSetup2Intervals = new HashMap<>();
+
 		final ArrayList< ViewSetup > newSetups = new ArrayList<>();
 		final Map< ViewId, ViewRegistration > newRegistrations = new HashMap<>();
 		final Map< ViewId, ViewInterestPointLists > newInterestpoints = new HashMap<>();
@@ -171,6 +175,8 @@ public class SplittingTools
 
 			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize, minStepSize, optimize );
 
+			oldSetup2Intervals.put( oldSetup, intervals );
+
 			final HashMap< Interval, ViewSetup > interval2ViewSetup = new HashMap<>();
 
 			for ( int i = 0; i < intervals.size(); ++i )
@@ -178,7 +184,6 @@ public class SplittingTools
 				final Interval interval = intervals.get( i );
 
 				IOFunctions.println( "Interval " + (i+1) + ": " + Util.printInterval( interval ) );
-				//System.out.println( "Interval " + i + ": " + Util.printInterval( interval ) );
 
 				// from the new ID get the old ID and the corresponding interval
 				new2oldSetupId.put( newId, oldID );
@@ -209,10 +214,12 @@ public class SplittingTools
 					final ArrayList< ViewTransform > transformList = new ArrayList<>( oldVR.getTransformList() );
 
 					final AffineTransform3D translation = new AffineTransform3D();
-					translation.set( 1.0f, 0.0f, 0.0f, interval.min( 0 ),
+					translation.set(
+							1.0f, 0.0f, 0.0f, interval.min( 0 ),
 							0.0f, 1.0f, 0.0f, interval.min( 1 ),
 							0.0f, 0.0f, 1.0f, interval.min( 2 ) );
 
+					// very first transform is for splitting
 					final ViewTransformAffine transform = new ViewTransformAffine( "Image Splitting", translation );
 					transformList.add( transform );
 
@@ -253,13 +260,14 @@ public class SplittingTools
 							final InterestPoints newIpl1 = InterestPoints.newInstance( oldIpl1.getBaseDir(), newViewId, label + "_split" );
 							newIpl1.setInterestPoints( newIp1 );
 							newIpl1.setParameters( oldIpl1.getParameters() );
+							// TODO: fill up corresponding points
 							newIpl1.setCorrespondingInterestPoints( new ArrayList<>() );
 							newVipl.addInterestPointList( label + "_split", newIpl1 ); // still add
 						}
 
 						// TODO: this must be done in the second round since we need to know the full layout of the new dataset for correspondences
 						// TODO: no, that is simply not true, the only thing we need to do in the second run is the existing correspondences
-
+						/*
 						// adding random [corresponding] interest points in overlapping areas of introduced split views
 						if ( addIPs )
 						{
@@ -386,9 +394,10 @@ public class SplittingTools
 							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
 							newVipl.addInterestPointList( fakeLabel, newIpl ); // still add
 						}
-
+						*/
 					}
 					newInterestpoints.put( newViewId, newVipl );
+					new2oldViewInterestPointLists.put( newVipl, oldVipl );
 				}
 
 				newId++;
@@ -404,6 +413,31 @@ public class SplittingTools
 				for ( final int newSetupId : new2oldSetupId.keySet() )
 					if ( new2oldSetupId.get( newSetupId ) == id.getViewSetupId() )
 						missingViews.add( new ViewId( id.getTimePointId(), newSetupId ) );
+
+		// TODO: existing corresponding interest points
+		for ( final ViewSetup oldSetup : oldSetups )
+		{
+			for ( final Interval interval : oldSetup2Intervals.get( oldSetup ) )
+			{
+				// update corresponding interest points for all timepoints
+				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
+				{
+					final ViewId oldViewId = new ViewId( t.getId(), oldSetup.getId() );
+
+					// only update interest points for present views
+					// oldVipl may be null for missing views
+					if (spimData.getSequenceDescription().getMissingViews() != null && !spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
+					{
+						final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
+
+						for ( final String label : oldVipl.getHashMap().keySet() )
+						{
+							
+						}
+					}
+				}
+			}
+		}
 
 		// instantiate the sequencedescription
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, newSetups, null, new MissingViews( missingViews ) );
