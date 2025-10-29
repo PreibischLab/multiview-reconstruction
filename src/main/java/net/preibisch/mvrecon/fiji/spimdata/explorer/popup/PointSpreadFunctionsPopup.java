@@ -211,7 +211,7 @@ public class PointSpreadFunctionsPopup extends JMenu implements ExplorerWindowSe
 									"PSF " + Group.pvid( v ),
 									Double.NaN,
 									Double.NaN,
-									DisplayImage.service).show();
+									null ).show();
 							}
 						}
 					}
