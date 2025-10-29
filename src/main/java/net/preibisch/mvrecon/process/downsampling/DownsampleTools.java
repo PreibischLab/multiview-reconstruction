@@ -304,7 +304,8 @@ public class DownsampleTools
 		else
 			exp2 = Math.pow( 2, Math.ceil( log2ratio ) );
 
-		return (int)Math.round( exp2 );
+		// in some cases of extreme calibrations exp2 can be smaller than 0.5, which would case exceptions downstream
+		return Math.max(1, (int)Math.round( exp2 ) );
 	}
 
 	@SuppressWarnings("rawtypes")
