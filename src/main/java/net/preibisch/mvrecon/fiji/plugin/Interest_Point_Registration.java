@@ -288,6 +288,7 @@ public class Interest_Point_Registration implements PlugIn
 		final List< ViewId > viewIds = setup.getViews();
 		final ArrayList< Subset< ViewId > > subsets = setup.getSubsets();
 
+		// TODO: do this in parallel
 		// load & transform all interest points
 		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
