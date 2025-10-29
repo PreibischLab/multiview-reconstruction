@@ -254,7 +254,7 @@ public class ExportN5Api implements ImgExport
 								5, // int n
 								"/", // String name, I also saw "/"
 								resolutionS0, // double[] resolutionS0,
-								"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+								vx.unit(), //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 								mrInfoZarr.length, // int numResolutionLevels,
 								levelToName,
 								levelToMipmapTransform );
@@ -377,7 +377,7 @@ public class ExportN5Api implements ImgExport
 					3, // int n
 					omeZarrSubContainer, // String name, I also saw "/"
 					resolutionS0, // double[] resolutionS0,
-					"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+					vx.unit(), //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
 					(level) -> "/" + level,
 					levelToMipmapTransform );

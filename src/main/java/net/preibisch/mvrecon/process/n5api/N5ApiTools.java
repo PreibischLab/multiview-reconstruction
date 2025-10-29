@@ -381,6 +381,7 @@ public class N5ApiTools
 			final DataType dataType,
 			final long[] dimensions,
 			final double[] resolutionS0,
+			final String resolutionUnit,
 			final Compression compression,
 			final int[] blockSize,
 			int[][] downsamplings )
@@ -417,7 +418,7 @@ public class N5ApiTools
 				5, // int n
 				"/", // String name, I also saw "/"
 				resolutionS0, // double[] resolutionS0,
-				"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+				resolutionUnit, //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 				mrInfo.length, // int numResolutionLevels,
 				levelToName,
 				levelToMipmapTransform );
