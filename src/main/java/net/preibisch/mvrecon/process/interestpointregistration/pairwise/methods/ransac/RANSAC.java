@@ -58,8 +58,6 @@ public class RANSAC
 			final int numIterations,
 			final boolean multiConsensus )
 	{
-		System.out.println( minNumMatches + ", " + multiConsensus );
-
 		final int numCorrespondences = correspondenceCandidates.size();
 		final int minNumCorrespondences = Math.max( model.getMinNumMatches(), minNumMatches );
 
