@@ -245,13 +245,19 @@ public class ExportN5Api implements ImgExport, Calibrateable
 						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
 
-						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( cal ) + " " + unit ); //vx.unit() might not be OME-ZARR compatible
+						double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( cal, anisoF, downsamplingF );
+
+						IOFunctions.println( "!!!!!!!ANISOTROPY: " + anisoF + " DOWNSAMPLING: " + downsamplingF );
+
+						IOFunctions.println( "Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ));
+
+						System.out.println("!!!!!!!!!!!!!!!!!!! CALIBRATION FOR OME-ZARR: " + Util.printCoordinates( cal ) + " " + Util.printCoordinates(resolutionS0) + " " + unit );
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 								5, // int n
 								"/", // String name, I also saw "/"
-								cal, // double[] resolutionS0,
+								resolutionS0, // double[] resolutionS0,
 								unit, //"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 								mrInfoZarr.length, // int numResolutionLevels,
 								levelToName,
@@ -362,14 +368,19 @@ public class ExportN5Api implements ImgExport, Calibrateable
 			final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 					(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfo[level].absoluteDownsamplingDouble() );
 
-			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( cal ) + " micrometer" );
+			double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( cal, anisoF, downsamplingF );
 
+			IOFunctions.println( "!!!!!!!ANISOTROPY: " + anisoF + " DOWNSAMPLING: " + downsamplingF );
+
+			IOFunctions.println( "!!!!!!!Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ));
+
+			System.out.println("!!!!!!!!!!!!!!!!!!! CALIBRATION FOR OME-ZARR: " + Util.printCoordinates( cal ) + " " + Util.printCoordinates(resolutionS0) + " " + unit );
 			// create metadata
 			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 					3, // int n
 					omeZarrSubContainer, // String name, I also saw "/"
-					cal, // double[] resolutionS0,
-					unit, //"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+					resolutionS0, // double[] resolutionS0,
+					unit, // might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
 					(level) -> "/" + level,
 					levelToMipmapTransform );
