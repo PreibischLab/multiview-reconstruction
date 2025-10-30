@@ -41,6 +41,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 
 import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import util.URITools;
 
 public class OMEZarrAttibutes
@@ -60,6 +61,12 @@ public class OMEZarrAttibutes
 			final Function<Integer, String> levelToName,
 			final Function<Integer, AffineTransform3D > levelToMipmapTransform )
 	{
+		// TODO: make sure the unit is supported by OME-ZARR, if not replace it because otherwise readers will fail
+		// TODO: e.g. um -> micrometer
+		// TODO: etc.
+		// TODO: can you find out what the correct unit for 'unit unknown' is, because that is what I would replace it with, otherwise micrometer
+		// TOOD: then please also change in TransformationTools.computeCalibration
+		
 		final OmeNgffMultiScaleMetadata[] meta = new OmeNgffMultiScaleMetadata[ 1 ];
 
 		// dataset name and co
@@ -128,12 +135,6 @@ public class OMEZarrAttibutes
 		meta[ 0 ] = new OmeNgffMultiScaleMetadata( n, path, name, type, "0.4", axes, datasets, childrenAttributes, coordinateTransformations, metadata );
 
 		return meta;
-	}
-
-	// The method assumes that the voxel dimensions are at scale S0, so it simply returns the dimensions as double array.
-	public static double[] getResolutionS0( final VoxelDimensions vx )
-	{
-		return vx.dimensionsAsDoubleArray();
 	}
 
 	public static void loadOMEZarr( final N5Reader n5, final String dataset )

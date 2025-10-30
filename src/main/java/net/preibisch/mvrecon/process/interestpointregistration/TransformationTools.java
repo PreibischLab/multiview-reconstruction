@@ -292,12 +292,14 @@ public class TransformationTools
 		scale[ 2 ] = z.length();
 	}
 
-	public static Pair< Double, String > computeAverageCalibration(
+	public static Pair< double[], String > computeAverageCalibration(
 			final Iterable< ? extends  BasicViewDescription< ? > > group,
 			final ViewRegistrations vrs)
 	{
 		String unit = null;
-		double avgCal = 0;
+		double avgCalX = 0;
+		double avgCalY = 0;
+		double avgCalZ = 0;
 		int count = 0;
 
 		for ( final BasicViewDescription< ? > vd : group )
@@ -306,10 +308,10 @@ public class TransformationTools
 
 			final Pair< double[], String > transformedCal = TransformationTools.computeCalibration( vd, vrs );
 
-			avgCal += transformedCal.getA()[ 0 ];
-			avgCal += transformedCal.getA()[ 1 ];
-			avgCal += transformedCal.getA()[ 2 ];
-			count += 3;
+			avgCalX += transformedCal.getA()[ 0 ];
+			avgCalY += transformedCal.getA()[ 1 ];
+			avgCalZ += transformedCal.getA()[ 2 ];
+			++count;
 
 			if ( unit == null )
 				unit = transformedCal.getB();
@@ -322,9 +324,9 @@ public class TransformationTools
 		}
 
 		if ( count == 0 )
-			return new ValuePair<>( 1.0, "px" );
+			return new ValuePair<>( new double[] { 1, 1, 1 }, "px" );
 		else
-			return new ValuePair<>( avgCal / (double)count, unit );
+			return new ValuePair<>( new double[] { avgCalX / (double)count, avgCalY / (double)count, avgCalZ / (double)count }, unit );
 	}
 	
 	public static Pair< double[], String > computeCalibration( final BasicViewDescription< ? > vd, final ViewRegistrations vrs )
@@ -349,6 +351,7 @@ public class TransformationTools
 		vr.updateModel();
 		TransformationTools.getScaling( vr.getModel(), scale );
 
+		// e.g. in z it is 3 um/px, if we scale 3x, it is 1 um/px
 		cal[ 0 ] /= scale[ 0 ];
 		cal[ 1 ] /= scale[ 1 ];
 		cal[ 2 ] /= scale[ 2 ];
