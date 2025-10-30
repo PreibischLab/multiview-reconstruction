@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -121,8 +122,8 @@ public class Image_Deconvolution implements PlugIn
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): Deconvolving group " + (++i) + "/" + deconGroupBatches.size() + " (group=" + deconGroup + ")" );
 
-			final Pair< Double, String > transformedCal = TransformationTools.computeAverageCalibration( deconGroup, spimData.getViewRegistrations() );
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of fused image (without downsampling): " + transformedCal.getA() + " " + transformedCal.getB() );
+			final Pair< double[], String > transformedCal = TransformationTools.computeAverageCalibration( deconGroup, spimData.getViewRegistrations() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of fused image (without downsampling): " + Arrays.toString( transformedCal.getA() ) + " " + transformedCal.getB() );
 
 			if ( Calibrateable.class.isInstance( exporter ) )
 				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );

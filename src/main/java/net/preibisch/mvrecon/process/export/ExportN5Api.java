@@ -89,7 +89,7 @@ import util.BlockSupplierUtils;
 import util.Grid;
 import util.URITools;
 
-public class ExportN5Api implements ImgExport
+public class ExportN5Api implements ImgExport, Calibrateable
 {
 	public static String defaultPathURI = null;
 	public static int defaultOption = 0;
@@ -122,6 +122,9 @@ public class ExportN5Api implements ImgExport
 	public static int defaultBlocksizeFactorX_H5 = 4;
 	public static int defaultBlocksizeFactorY_H5 = 4;
 	public static int defaultBlocksizeFactorZ_H5 = 4;
+
+	String unit = "px";
+	double[] cal = new double[] { 1.0, 1.0, 1.0 };
 
 	StorageFormat storageType = StorageFormat.values()[ defaultOption ];
 	URI path = (defaultPathURI != null && defaultPathURI.trim().length() > 0 ) ? URITools.toURI( defaultPathURI ) : null;
@@ -194,6 +197,7 @@ public class ExportN5Api implements ImgExport
 		if ( !supportedDataTypes.contains( dataType ) )
 			throw new RuntimeException( "dataType " + type.getClass().getSimpleName() + " not supported." );
 
+		// the container is created the first time this method is called, usually it is called many times, for each channel and timepoint (but depends on the settings)
 		if ( driverVolumeWriter == null )
 		{
 			IOFunctions.println( "Creating " + storageType + " container '" + path + "' (assuming it doesn't already exist) ... " );
@@ -241,20 +245,14 @@ public class ExportN5Api implements ImgExport
 						final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 								(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfoZarr[level].absoluteDownsamplingDouble() );
 
-						// extract the resolution of the s0 export
-						// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
-						// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
-						final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-						final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
-
-						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " " + "m" ); //vx.unit() might not be OME-ZARR compatiblevx.unit() );
+						IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( cal ) + " " + unit ); //vx.unit() might not be OME-ZARR compatible
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 								5, // int n
 								"/", // String name, I also saw "/"
-								resolutionS0, // double[] resolutionS0,
-								"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+								cal, // double[] resolutionS0,
+								unit, //"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 								mrInfoZarr.length, // int numResolutionLevels,
 								levelToName,
 								levelToMipmapTransform );
@@ -364,20 +362,14 @@ public class ExportN5Api implements ImgExport
 			final Function<Integer, AffineTransform3D> levelToMipmapTransform =
 					(level) -> MipmapTransforms.getMipmapTransformDefault( mrInfo[level].absoluteDownsamplingDouble() );
 
-			// extract the resolution of the s0 export
-			// TODO: this is inaccurate, we should actually estimate it from the final transformn that is applied
-			// TODO: this is a hack (returns 1,1,1) so the export downsampling pyramid is working
-			final VoxelDimensions vx = fusionGroup.iterator().next().getViewSetup().getVoxelSize();
-			final double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( vx, anisoF, downsamplingF );
-
-			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( resolutionS0 ) + " micrometer" );
+			IOFunctions.println( "Resolution of level 0: " + Util.printCoordinates( cal ) + " micrometer" );
 
 			// create metadata
 			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 					3, // int n
 					omeZarrSubContainer, // String name, I also saw "/"
-					resolutionS0, // double[] resolutionS0,
-					"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
+					cal, // double[] resolutionS0,
+					unit, //"micrometer", //vx.unit() might not be OME-ZARR compatible // String unitXYZ, // e.g micrometer
 					mrInfo.length, // int numResolutionLevels,
 					(level) -> "/" + level,
 					levelToMipmapTransform );
@@ -1039,6 +1031,19 @@ public class ExportN5Api implements ImgExport
 
 		return true;
 	}
+
+	@Override
+	public void setCalibration( final double[] pixelSize, final String unit )
+	{
+		this.cal = pixelSize;
+		this.unit = unit;
+	}
+
+	@Override
+	public String getUnit() { return unit; }
+
+	@Override
+	public double[] getPixelSize() { return cal; }
 
 	public static int[][] estimateMultiResPyramid( final Dimensions dimensions, final double aniso )
 	{
