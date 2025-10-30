@@ -56,7 +56,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	boolean compress;
 
 	String unit = "px";
-	double cal = 1.0;
+	double[] cal = new double[] { 1.0, 1.0, 1.0 };
 
 	public Save3dTIFF( final String path ) { this( path, false ); }
 	public Save3dTIFF( final String path, final boolean compress )
@@ -209,7 +209,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	}
 
 	@Override
-	public void setCalibration( final double pixelSize, final String unit )
+	public void setCalibration( final double[] pixelSize, final String unit )
 	{
 		this.cal = pixelSize;
 		this.unit = unit;
@@ -219,7 +219,7 @@ public class Save3dTIFF implements ImgExport, Calibrateable
 	public String getUnit() { return unit; }
 
 	@Override
-	public double getPixelSize() { return cal; }
+	public double[] getPixelSize() { return cal; }
 
 	@Override
 	public int[] blocksize() { return new int[] { 128, 128, 1}; }
