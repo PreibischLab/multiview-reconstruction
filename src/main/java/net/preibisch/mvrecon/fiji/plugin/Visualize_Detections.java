@@ -22,6 +22,7 @@
  */
 package net.preibisch.mvrecon.fiji.plugin;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -38,6 +39,7 @@ import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.img.Img;
 import net.imglib2.img.imageplus.ImagePlusImgFactory;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
@@ -49,6 +51,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.process.export.DisplayImage;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.interestpointdetection.InterestPointTools;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class Visualize_Detections implements PlugIn
 {
@@ -201,19 +204,30 @@ public class Visualize_Detections implements PlugIn
 			final double downsample )
 	{
 		final InterestPoints ipl = data.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label );
-		final List< InterestPoint > list = ipl.getInterestPointsCopy();
+		final Collection< InterestPoint > list = ipl.getInterestPointsCopy().values();
+
+		if ( list.size() == 0 )
+		{
+			IOFunctions.println( "No interest points available for " + Group.pvid( viewId ) );
+
+			if ( interval == null )
+				return new ImagePlusImgFactory< UnsignedShortType >( new UnsignedShortType() ).create( Intervals.createMinMax( 0, 0, 0, 1, 1, 1) );
+			else
+				return new ImagePlusImgFactory< UnsignedShortType >( new UnsignedShortType() ).create( interval );
+		}
 
 		if ( interval == null )
 		{
-			final int n = list.get( 0 ).getL().length;
+			final InterestPoint firstPoint = list.iterator().next();
+			final int n = firstPoint.getL().length;
 
 			final long[] min = new long[ n ];
 			final long[] max = new long[ n ];
 
 			for ( int d = 0; d < n; ++d )
 			{
-				min[ d ] = Math.round( list.get( 0 ).getL()[ d ] ) - 1;
-				max[ d ] = Math.round( list.get( 0 ).getL()[ d ] ) + 1;
+				min[ d ] = Math.round( firstPoint.getL()[ d ] ) - 1;
+				max[ d ] = Math.round( firstPoint.getL()[ d ] ) + 1;
 			}
 
 			for ( final InterestPoint ip : list )
@@ -240,7 +254,7 @@ public class Visualize_Detections implements PlugIn
 		
 		interval = new FinalInterval( min, max );
 	
-		final Img< UnsignedShortType > s = new ImagePlusImgFactory< UnsignedShortType >().create( interval, new UnsignedShortType() );
+		final Img< UnsignedShortType > s = new ImagePlusImgFactory< UnsignedShortType >( new UnsignedShortType() ).create( interval );
 		final RandomAccess< UnsignedShortType > r = Views.extendZero( s ).randomAccess();
 		
 		final int n = s.numDimensions();
