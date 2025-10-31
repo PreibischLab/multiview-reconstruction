@@ -133,8 +133,8 @@ public class Analyze_Errors implements PlugIn
 					final double[] tmpA = new double[ 3 ];
 					final double[] tmpB = new double[ 3 ];
 
-					final List<InterestPoint> plA = vipA.getInterestPointList( l ).getInterestPointsCopy();
-					final List<InterestPoint> plB = vipB.getInterestPointList( l ).getInterestPointsCopy();
+					final Map<Integer,InterestPoint> plA = vipA.getInterestPointList( l ).getInterestPointsCopy();
+					final Map<Integer,InterestPoint> plB = vipB.getInterestPointList( l ).getInterestPointsCopy();
 	
 					//System.out.println( Group.pvid( pair.getA() ) + " <-> " + Group.pvid( pair.getB() ) + ": " + pA.size() + ", " + pB.size() );
 					final List<CorrespondingInterestPoints> cA = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
