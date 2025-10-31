@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise;
 import ij.gui.GenericDialog;
 
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -73,7 +74,7 @@ public class CenterOfMassGUI extends PairwiseGUI
 	}
 
 	@Override
-	public CenterOfMassGUI newInstance() { return new CenterOfMassGUI(); }
+	public CenterOfMassGUI newInstance(final SpimData2 spimData) { return new CenterOfMassGUI(); }
 
 	@Override
 	public String getDescription() { return "Center of mass (translation invariant)";}

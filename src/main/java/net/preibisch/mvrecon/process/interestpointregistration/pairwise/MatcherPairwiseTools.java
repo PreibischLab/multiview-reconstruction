@@ -418,7 +418,15 @@ public class MatcherPairwiseTools
 				@Override
 				public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
 				{
-					final PairwiseResult< I > pwr = matcher.match( listA, listB );
+					final PairwiseResult< I > pwr =
+							matcher.match(
+									listA,
+									listB,
+									task.getPair().getA(),
+									task.getPair().getB(),
+									task.labelA,
+									task.labelB );
+
 					pwr.setLabelA( task.labelA );
 					pwr.setLabelB( task.labelB );
 					assignLoggingDescriptions( task.getPair(), pwr );

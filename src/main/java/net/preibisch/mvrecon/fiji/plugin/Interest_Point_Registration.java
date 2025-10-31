@@ -40,7 +40,6 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import mpicbg.models.AbstractModel;
 import mpicbg.models.Affine3D;
-import mpicbg.models.AffineModel3D;
 import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
@@ -63,6 +62,7 @@ import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.Cent
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.FRGLDMGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.GeometricHashingGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.IterativeClosestPointGUI;
+import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.LoadCorrespondencesGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.PairwiseGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise.RGLDMGUI;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.parameters.AdvancedRegistrationParameters;
@@ -89,14 +89,11 @@ import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOpt;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptIterative;
 import net.preibisch.mvrecon.process.interestpointregistration.global.GlobalOptTwoRound;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.ConvergenceStrategy;
-import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.IterativeConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.convergence.SimpleIterativeConvergenceStrategy;
 import net.preibisch.mvrecon.process.interestpointregistration.global.linkremoval.MaxErrorLinkRemoval;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.PointMatchCreator;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.ImageCorrelationPointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.strong.InterestPointMatchCreator;
 import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.MetaDataWeakLinkFactory;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.weak.WeakLinkFactory;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwiseTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.PairwiseResult;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.PairwiseSetup;
@@ -124,6 +121,7 @@ public class Interest_Point_Registration implements PlugIn
 		staticPairwiseAlgorithms.add( new RGLDMGUI() ); // good method
 		staticPairwiseAlgorithms.add( new CenterOfMassGUI() );
 		staticPairwiseAlgorithms.add( new IterativeClosestPointGUI() );
+		staticPairwiseAlgorithms.add( new LoadCorrespondencesGUI( null ) );
 	}
 
 	// basic dialog
@@ -342,24 +340,33 @@ public class Interest_Point_Registration implements PlugIn
 						MatcherPairwiseTools.computePairs( pairs, interestpoints, pairwiseMatching.pairwiseMatchingInstance(), matchAcrossLabels );
 
 				// clear correspondences
-				MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
-
-				// add the corresponding detections and output result
-				for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > p : result )
+				if ( !LoadCorrespondencesGUI.class.isInstance( pairwiseMatching ) )
 				{
-					final ViewId vA = p.getA().getA();
-					final ViewId vB = p.getA().getB();
+					MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
 
-					final String labelA = p.getB().getLabelA();
-					final String labelB = p.getB().getLabelB();
+					// add the corresponding detections and output result
+					for ( final Pair< Pair< ViewId, ViewId >, PairwiseResult< InterestPoint > > p : result )
+					{
+						final ViewId vA = p.getA().getA();
+						final ViewId vB = p.getA().getB();
 
-					final InterestPoints listA = interestpointLists.get( vA ).getInterestPointList( labelA );
-					final InterestPoints listB = interestpointLists.get( vB ).getInterestPointList( labelB );
+						final String labelA = p.getB().getLabelA();
+						final String labelB = p.getB().getLabelB();
 
-					MatcherPairwiseTools.addCorrespondences( p.getB().getInliers(), vA, vB, labelA, labelB, listA, listB );
+						final InterestPoints listA = interestpointLists.get( vA ).getInterestPointList( labelA );
+						final InterestPoints listB = interestpointLists.get( vB ).getInterestPointList( labelB );
 
-					if ( collectStatistics )
-						statistics.add( p );
+						MatcherPairwiseTools.addCorrespondences( p.getB().getInliers(), vA, vB, labelA, labelB, listA, listB );
+					}
+				}
+
+				if ( collectStatistics )
+					statistics.addAll( result );
+
+				if ( globalOptParameters.method == GlobalOptType.NO_OPTIMIZATION )
+				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): DONE matching only (no global optimization)." );
+					return true;
 				}
 
 				// run global optimization
@@ -372,6 +379,7 @@ public class Interest_Point_Registration implements PlugIn
 
 					models = GlobalOpt.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									cs,
 									fixedViews,
@@ -381,6 +389,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptIterative.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
 									new MaxErrorLinkRemoval(),
@@ -392,6 +401,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptTwoRound.computeTiles(
 							model,
+							globalOptParameters.preAlign,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
 							new MaxErrorLinkRemoval(),
@@ -444,9 +454,12 @@ public class Interest_Point_Registration implements PlugIn
 				final List< Pair< Pair< Group< ViewId >, Group< ViewId > >, PairwiseResult< GroupedInterestPoint< ViewId > > > > resultGroup =
 						MatcherPairwiseTools.computePairs( groupedPairs, groupedInterestpoints, pairwiseMatching.pairwiseGroupedMatchingInstance(), matchAcrossLabels );
 
+				if ( LoadCorrespondencesGUI.class.isInstance( pairwiseMatching ) )
+					throw new RuntimeException( "we need to implement that correspondences are not cleared and stored when loading them below." );
+
 				// clear correspondences and get a map linking ViewIds to the correspondence lists
 				final Map< ViewId, HashMap< String, List< CorrespondingInterestPoints > > > cMap =
-						MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
+					MatcherPairwiseTools.clearCorrespondences( subset.getViews(), interestpointLists, labelMap );
 
 				// add the corresponding detections and transform HashMap< Pair< Group < V >, Group< V > >, PairwiseResult > to HashMap< Pair< V, V >, PairwiseResult >
 				final List< Pair< Pair< ViewId, ViewId >, PairwiseResult< GroupedInterestPoint< ViewId > > > > resultTransformed =
@@ -458,6 +471,12 @@ public class Interest_Point_Registration implements PlugIn
 						System.out.println( Group.pvid( p.getA().getA() ) + " " + Group.pvid( p.getA().getB() ) + ": " + p.getB().getInliers().size() +"/" + p.getB().getCandidates().size() + " with " + p.getB().getError() + " px." );
 						statistics.add( p );
 					}
+
+				if ( globalOptParameters.method == GlobalOptType.NO_OPTIMIZATION )
+				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): DONE matching only (no global optimization)." );
+					return true;
+				}
 
 				// run global optimization
 				final PointMatchCreator pmc = new InterestPointMatchCreator( resultTransformed, labelMap );
@@ -471,6 +490,7 @@ public class Interest_Point_Registration implements PlugIn
 
 					models = GlobalOpt.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									cs,
 									fixedViews,
@@ -480,6 +500,7 @@ public class Interest_Point_Registration implements PlugIn
 				{
 					models = GlobalOptIterative.computeTiles(
 									model,
+									globalOptParameters.preAlign,
 									pmc,
 									new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ),
 									new MaxErrorLinkRemoval(),
@@ -492,6 +513,7 @@ public class Interest_Point_Registration implements PlugIn
 					// TODO: returns HashMap< ViewId, AffineModel3D>????
 					models = GlobalOptTwoRound.computeTiles(
 							model,
+							globalOptParameters.preAlign,
 							pmc,
 							new SimpleIterativeConvergenceStrategy( Double.MAX_VALUE, globalOptParameters.relativeThreshold, globalOptParameters.absoluteThreshold ), // if it's simple, both will be Double.MAX
 							new MaxErrorLinkRemoval(),
@@ -983,7 +1005,7 @@ public class Interest_Point_Registration implements PlugIn
 		if ( channels.size() > 1 )
 			groupChannels = defaultGroupChannels = gd.getNextBoolean();
 
-		final PairwiseGUI pwr = staticPairwiseAlgorithms.get( algorithm ).newInstance();
+		final PairwiseGUI pwr = staticPairwiseAlgorithms.get( algorithm ).newInstance( data );
 
 		IOFunctions.println( "Registration algorithm: " + pwr.getDescription() );
 		IOFunctions.println( "Registration type: " + registrationType.name() );

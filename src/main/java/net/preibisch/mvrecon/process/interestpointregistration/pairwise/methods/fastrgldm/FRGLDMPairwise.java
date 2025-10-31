@@ -47,7 +47,13 @@ public class FRGLDMPairwise< I extends InterestPoint > implements MatcherPairwis
 	}
 
 	@Override
-	public PairwiseResult< I > match( final List< I > listAIn, final List< I > listBIn )
+	public <V> PairwiseResult<I> match(
+			final List<I> listAIn,
+			final List<I> listBIn,
+			final V viewsA,
+			final V viewsB,
+			final String labelA,
+			final String labelB )
 	{
 		final PairwiseResult< I > result = new PairwiseResult<>( true );
 		final FRGLDMMatcher< I > hasher = new FRGLDMMatcher<>();

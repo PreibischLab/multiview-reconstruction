@@ -42,7 +42,13 @@ public class CenterOfMassPairwise< I extends InterestPoint > implements MatcherP
 	}
 
 	@Override
-	public PairwiseResult< I > match( final List< I > listAIn, final List< I > listBIn )
+	public <V> PairwiseResult<I> match(
+			final List<I> listAIn,
+			final List<I> listBIn,
+			final V viewsA,
+			final V viewsB,
+			final String labelA,
+			final String labelB )
 	{
 		final PairwiseResult< I > result = new PairwiseResult< I >( false ); // these are bogus correspondences
 

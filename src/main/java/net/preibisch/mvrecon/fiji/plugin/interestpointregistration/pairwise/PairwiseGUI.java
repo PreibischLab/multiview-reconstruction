@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.plugin.interestpointregistration.pairwise;
 import ij.gui.GenericDialog;
 
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -51,9 +52,10 @@ public abstract class PairwiseGUI
 	public abstract boolean parseDialog( final GenericDialog gd );
 	
 	/**
+	 * @param spimData the current spimdata object (needed to load corresponding points)
 	 * @return - a new instance without any special properties
 	 */
-	public abstract PairwiseGUI newInstance();
+	public abstract PairwiseGUI newInstance( final SpimData2 spimData );
 
 	/**
 	 * @return - to be displayed in the generic dialog

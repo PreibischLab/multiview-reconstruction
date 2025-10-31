@@ -34,7 +34,6 @@ import mpicbg.models.Model;
 import mpicbg.models.RigidModel3D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
-import mpicbg.models.TileUtil;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.util.Pair;
 import net.preibisch.legacy.io.IOFunctions;
@@ -48,17 +47,19 @@ public class GlobalOptIterative
 {
 	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy ics,
 			final LinkRemovalStrategy lms,
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return computeModels( model, pmc, ics, lms, null, fixedViews, groupsIn );
+		return computeModels( model, preAlign, pmc, ics, lms, null, fixedViews, groupsIn );
 	}
 
 	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy ics,
 			final LinkRemovalStrategy lms,
@@ -66,11 +67,12 @@ public class GlobalOptIterative
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return GlobalOpt.toModels( computeTiles( model, pmc, ics, lms, null, fixedViews, groupsIn ) );
+		return GlobalOpt.toModels( computeTiles( model, preAlign, pmc, ics, lms, null, fixedViews, groupsIn ) );
 	}
 
 	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy ics,
 			final LinkRemovalStrategy lms,
@@ -107,11 +109,16 @@ public class GlobalOptIterative
 		{
 			try 
 			{
-				int unaligned = tc.preAlign().size();
-				if ( unaligned > 0 )
-					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
-				else
-					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+				if ( preAlign )
+				{
+					int unaligned = tc.preAlign().size();
+					if ( unaligned > 0 )
+						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+					else
+						IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+				}
+
+				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): starting solve ..." );
 
 				tc.optimizeSilently(new ErrorStatistic( ics.getMaxPlateauWidth() + 1 ), ics.getMaxError(), ics.getMaxIterations(), ics.getMaxPlateauWidth() );
 				/*TileUtil.optimizeConcurrently(
