@@ -93,7 +93,7 @@ public class DistanceHistogram
 			// assemble the list of points
 			final List< RealPoint > list = new ArrayList< RealPoint >();
 
-			for ( final InterestPoint ip : ipl.getInterestPointsCopy() )
+			for ( final InterestPoint ip : ipl.getInterestPointsCopy().values() )
 			{
 				list.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),

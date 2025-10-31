@@ -113,7 +113,7 @@ public class RelativeDistanceHistogram
 			// assemble the list of points
 			final List< RealPoint > list = new ArrayList< RealPoint >();
 
-			for ( final InterestPoint ip : ipl.getInterestPointsCopy() )
+			for ( final InterestPoint ip : ipl.getInterestPointsCopy().values() )
 			{
 				list.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),
@@ -124,7 +124,7 @@ public class RelativeDistanceHistogram
 			// assemble the list of relative
 			final List< RealPoint > listRelative = new ArrayList< RealPoint >();
 
-			for ( final InterestPoint ip : iplRelative.getInterestPointsCopy() )
+			for ( final InterestPoint ip : iplRelative.getInterestPointsCopy().values() )
 			{
 				listRelative.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),

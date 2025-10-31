@@ -67,7 +67,7 @@ public class ThinOut
 			final List< RealPoint > list2 = new ArrayList< RealPoint >();
 			final List< double[] > points = new ArrayList< double[] >();
 
-			for ( final InterestPoint ip : oldIpl.getInterestPointsCopy() )
+			for ( final InterestPoint ip : oldIpl.getInterestPointsCopy().values() )
 			{
 				list1.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),
