@@ -714,11 +714,11 @@ public class TransformationTools
 
 		labelMap.get( viewId ).forEach( ( label, weight ) -> {
 
-			final List< InterestPoint > listLocal = interestpoints.get( viewId ).getInterestPointList( label ).getInterestPointsCopy();
+			final Map< Integer, InterestPoint > mapLocal = interestpoints.get( viewId ).getInterestPointList( label ).getInterestPointsCopy();
 
-			lists.put( label, listLocal );
+			lists.put( label, new ArrayList<>( mapLocal.values() ) );
 
-			if ( listLocal.size() == 0 )
+			if ( mapLocal.size() == 0 )
 			{
 				if ( ViewId.class.isInstance( viewId ))
 					IOFunctions.println( "WARNING: no interestpoints available for " + Group.pvid( (ViewId)viewId ) + ", label '" + label + "'" );
