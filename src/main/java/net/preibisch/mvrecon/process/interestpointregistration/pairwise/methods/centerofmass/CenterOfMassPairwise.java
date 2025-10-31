@@ -23,7 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.centerofmass;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 import net.imglib2.util.RealSum;
 import net.imglib2.util.Util;
@@ -43,8 +43,8 @@ public class CenterOfMassPairwise< I extends InterestPoint > implements MatcherP
 
 	@Override
 	public <V> PairwiseResult<I> match(
-			final List<I> listAIn,
-			final List<I> listBIn,
+			final Collection<I> listAIn,
+			final Collection<I> listBIn,
 			final V viewsA,
 			final V viewsB,
 			final String labelA,
@@ -79,7 +79,7 @@ public class CenterOfMassPairwise< I extends InterestPoint > implements MatcherP
 		final ArrayList< PointMatchGeneric< I > > inliers = new ArrayList< PointMatchGeneric< I > >();
 
 		// TODO: is this good?
-		inliers.add( new PointMatchGeneric< I >( (I)listAIn.get( 0 ).newInstance( 0, centerA ), (I)listBIn.get( 0 ).newInstance( 0, centerB ) ) );
+		inliers.add( new PointMatchGeneric< I >( (I)listAIn.iterator().next().newInstance( 0, centerA ), (I)listBIn.iterator().next().newInstance( 0, centerB ) ) );
 
 		result.setCandidates( inliers );
 		result.setInliers( inliers, 0 );
@@ -91,9 +91,9 @@ public class CenterOfMassPairwise< I extends InterestPoint > implements MatcherP
 		return result;
 	}
 
-	private static final double[] average( final List< ? extends InterestPoint > list )
+	private static final double[] average( final Collection< ? extends InterestPoint > list )
 	{
-		final int n = list.get( 0 ).getL().length;
+		final int n = list.iterator().next().getL().length;
 		final RealSum[] sum = new RealSum[ n ];
 
 		for ( int d = 0; d < n; ++d )
@@ -115,17 +115,19 @@ public class CenterOfMassPairwise< I extends InterestPoint > implements MatcherP
 		return center;
 	}
 
-	private static final double[] median( final List< ? extends InterestPoint > list )
+	private static final double[] median( final Collection< ? extends InterestPoint > list )
 	{
-		final int n = list.get( 0 ).getL().length;
+		final int n = list.iterator().next().getL().length;
 		final double[][] values = new double[ n ][ list.size() ];
 
-		for ( int j = 0; j < list.size(); ++j )
+		int j = 0;
+
+		for ( final InterestPoint i : list )
 		{
-			final double[] l = list.get( j ).getL();
+			final double[] l = i.getL();
 
 			for ( int d = 0; d < n; ++d )
-				values[ d ][ j ] = l[ d ];
+				values[ d ][ j++ ] = l[ d ];
 		}
 
 		final double[] center = new double[ n ];

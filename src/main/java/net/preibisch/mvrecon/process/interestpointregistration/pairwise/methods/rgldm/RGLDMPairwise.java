@@ -23,7 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.rgldm;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
@@ -52,8 +52,8 @@ public class RGLDMPairwise< I extends InterestPoint > implements MatcherPairwise
 
 	@Override
 	public <V> PairwiseResult<I> match(
-			final List<I> listAIn,
-			final List<I> listBIn,
+			final Collection<I> listAIn,
+			final Collection<I> listBIn,
 			final V viewsA,
 			final V viewsB,
 			final String labelA,
