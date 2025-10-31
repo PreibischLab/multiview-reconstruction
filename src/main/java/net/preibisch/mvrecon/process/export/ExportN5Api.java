@@ -247,11 +247,7 @@ public class ExportN5Api implements ImgExport, Calibrateable
 
 						double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( cal, anisoF, downsamplingF );
 
-						IOFunctions.println( "!!!!!!!ANISOTROPY: " + anisoF + " DOWNSAMPLING: " + downsamplingF );
-
-						IOFunctions.println( "Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ));
-
-						System.out.println("!!!!!!!!!!!!!!!!!!! CALIBRATION FOR OME-ZARR: " + Util.printCoordinates( cal ) + " " + Util.printCoordinates(resolutionS0) + " " + unit );
+						IOFunctions.println( "Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ) + " " + unit);
 
 						// create metadata
 						final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
@@ -264,10 +260,6 @@ public class ExportN5Api implements ImgExport, Calibrateable
 								levelToMipmapTransform );
 
 						// save metadata
-
-						//org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata
-						// for this to work you need to register an adapter in the N5Factory class
-						// final GsonBuilder builder = new GsonBuilder().registerTypeAdapter( CoordinateTransformation.class, new CoordinateTransformationAdapter() );
 						driverVolumeWriter.setAttribute( "/", "multiscales", meta );
 					}
 				}
@@ -370,11 +362,8 @@ public class ExportN5Api implements ImgExport, Calibrateable
 
 			double[] resolutionS0 = OMEZarrAttibutes.getResolutionS0( cal, anisoF, downsamplingF );
 
-			IOFunctions.println( "!!!!!!!ANISOTROPY: " + anisoF + " DOWNSAMPLING: " + downsamplingF );
+			IOFunctions.println( "Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ) + " " + unit);
 
-			IOFunctions.println( "!!!!!!!Calibration: " + Util.printCoordinates( cal ) + " micrometer; resolution at S0: " + Util.printCoordinates( resolutionS0 ));
-
-			System.out.println("!!!!!!!!!!!!!!!!!!! CALIBRATION FOR OME-ZARR: " + Util.printCoordinates( cal ) + " " + Util.printCoordinates(resolutionS0) + " " + unit );
 			// create metadata
 			final OmeNgffMultiScaleMetadata[] meta = OMEZarrAttibutes.createOMEZarrMetadata(
 					3, // int n

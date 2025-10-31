@@ -39,9 +39,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
-import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import util.URITools;
 
 public class OMEZarrAttibutes
@@ -79,7 +77,7 @@ public class OMEZarrAttibutes
 		if ( n >= 4 )
 			axes[ index++ ] = new Axis( "channel", "c", null );
 
-		String unit = adaptSpaceUnit( unitXYZ );
+		String unit = adaptSpatialUnit( unitXYZ );
 		axes[ index ] = new Axis( "space", "z", unit );
 		axes[ index + 1 ] = new Axis( "space", "y", unit );
 		axes[ index + 2 ] = new Axis( "space", "x", unit );
@@ -150,11 +148,11 @@ public class OMEZarrAttibutes
 
 	/**
 	 * Adapt various space unit namings to the units supported by Neuroglancer.
-	 * OME NGFF spec does not have any restrictions on units but Neuroglancer only supports a few the ones that end in meter or the US customary units.
+	 * OME NGFF spec does not have any restrictions on units but Neuroglancer only supports the ones that end in meter or the US customary units.
 	 * @param unit
 	 * @return
 	 */
-	private static String adaptSpaceUnit(String unit)
+	private static String adaptSpatialUnit(String unit)
 	{
 		if ( unit == null )
 			return "micrometer";
