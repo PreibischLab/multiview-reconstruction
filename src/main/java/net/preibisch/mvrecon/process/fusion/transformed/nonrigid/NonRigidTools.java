@@ -874,10 +874,7 @@ public class NonRigidTools
 		final HashSet< ViewId > views = new HashSet<>( viewsToUse );
 
 		// sort all interest points into a HashMap
-		final HashMap< Integer, InterestPoint > ips = new HashMap<>();
-
-		for ( final InterestPoint ip : ipList.getInterestPointsCopy() )
-			ips.put( ip.getId(), ip );
+		final Map< Integer, InterestPoint > ips = ipList.getInterestPointsCopy();
 
 		// sort all corresponding interest points into a HashMap
 		final HashMap< ViewId, List< IPL > > loadedIps = new HashMap<>();
@@ -936,11 +933,8 @@ public class NonRigidTools
 					return null;
 				}
 
-				final HashMap< Integer, InterestPoint > corrIps = new HashMap<>();
-
-				// sort all corresponding interest points into a HashMap
-				for ( final InterestPoint corrIp : corrIpList.getInterestPointsCopy() )
-					corrIps.put( corrIp.getId(), corrIp );
+				// get all corresponding interest points as a HashMap
+				final Map< Integer, InterestPoint > corrIps = corrIpList.getInterestPointsCopy();
 
 				ipl = new IPL( corrLabel, corrIps );
 
