@@ -22,15 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
-import java.io.File;
 import java.net.URI;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import mpicbg.spim.data.sequence.ViewId;
-import util.URITools;
 
 /**
  * A list of interest points for a certain label, can save and load from textfile as specified in the XML
@@ -109,23 +105,23 @@ public abstract class InterestPoints
 	public abstract Map< Integer, InterestPoint > getInterestPointsCopy();
 
 	/**
-	 * @return - the list of corresponding interest points (copied), tries to load from disc if null
+	 * @return - the collection of corresponding interest points (copied), tries to load from disc if null
 	 */
-	public abstract List< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy();
+	public abstract Collection< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy();
 
 	public void setInterestPoints( final Collection< InterestPoint > list )
 	{
 		this.modifiedInterestPoints = true;
 		setInterestPointsLocal( list );
 	}
-	public void setCorrespondingInterestPoints( final List< CorrespondingInterestPoints > list )
+	public void setCorrespondingInterestPoints( final Collection< CorrespondingInterestPoints > list )
 	{
 		this.modifiedCorrespondingInterestPoints = true;
 		setCorrespondingInterestPointsLocal( list );
 	}
 
 	protected abstract void setInterestPointsLocal( final Collection< InterestPoint > list );
-	protected abstract void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list );
+	protected abstract void setCorrespondingInterestPointsLocal( final Collection< CorrespondingInterestPoints > list );
 
 	public abstract boolean saveInterestPoints( final boolean forceWrite );
 	public abstract boolean saveCorrespondingInterestPoints( final boolean forceWrite );

@@ -104,7 +104,7 @@ public class InterestPointsN5 extends InterestPoints
 	/**
 	 * @return - the list of corresponding interest points (copied), tries to load from disc if null
 	 */
-	public synchronized List< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy()
+	public synchronized Collection< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy()
 	{
 		if ( this.correspondingInterestPoints == null )
 			loadCorrespondences();
@@ -141,7 +141,7 @@ public class InterestPointsN5 extends InterestPoints
 	}
 
 	@Override
-	protected void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list )
+	protected void setCorrespondingInterestPointsLocal( final Collection< CorrespondingInterestPoints > list )
 	{
 		if ( ArrayList.class.isInstance( list ))
 			this.correspondingInterestPoints = (ArrayList<CorrespondingInterestPoints>)list;
