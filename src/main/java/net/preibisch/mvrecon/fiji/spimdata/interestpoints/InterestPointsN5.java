@@ -25,11 +25,15 @@ package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -56,7 +60,10 @@ public class InterestPointsN5 extends InterestPoints
 	public static final String baseN5 = "interestpoints.n5";
 
 	final String n5path;
-	ArrayList< InterestPoint > interestPoints;
+
+	int[] ids = null;
+	double[][] locations = null;
+
 	ArrayList< CorrespondingInterestPoints > correspondingInterestPoints;
 
 	protected InterestPointsN5( final URI baseDir, final String n5path )
@@ -83,17 +90,15 @@ public class InterestPointsN5 extends InterestPoints
 	 * @return - a list of interest points (copied), tries to load from disc if null
 	 */
 	@Override
-	public synchronized List< InterestPoint > getInterestPointsCopy()
+	public synchronized Map< Integer, InterestPoint > getInterestPointsCopy()
 	{
-		if ( this.interestPoints == null )
+		if ( this.locations == null || this.ids == null )
 			loadInterestPoints();
 
-		final ArrayList< InterestPoint > list = new ArrayList< InterestPoint >();
+		if ( ids.length == 0 )
+			return new HashMap<>();
 
-		for ( final InterestPoint p : this.interestPoints )
-			list.add( new InterestPoint( p.id, p.getL().clone() ) );
-
-		return list;
+		return IntStream.range( 0, ids.length ).parallel().mapToObj( i -> new InterestPoint( ids[ i ], locations[ i ].clone() ) ).collect( Collectors.toMap( InterestPoint::getId, ip -> ip ) );
 	}
 
 	/**
@@ -113,12 +118,26 @@ public class InterestPointsN5 extends InterestPoints
 	}
 
 	@Override
-	protected void setInterestPointsLocal( final List< InterestPoint > list )
+	protected void setInterestPointsLocal( final Collection< InterestPoint > collection )
 	{
-		if ( list.getClass().isInstance( ArrayList.class ))
-			this.interestPoints = (ArrayList<InterestPoint>)list;
-		else
-			this.interestPoints = new ArrayList<>( list );
+		if ( collection == null || collection.size() == 0 )
+		{
+			this.ids = new int[0];
+			this.locations = new double[0][0];
+
+			return;
+		}
+
+		this.ids = new int[ collection.size() ];
+		this.locations = new double[ collection.size() ][];
+
+		final Iterator< InterestPoint > it = collection.iterator();
+
+		IntStream.range( 0, ids.length ).forEach( i -> {
+			final InterestPoint ip = it.next();
+			ids[ i ] = ip.getId();
+			locations[ i ] = ip.getL().clone();
+		});
 	}
 
 	@Override
@@ -139,9 +158,7 @@ public class InterestPointsN5 extends InterestPoints
 		if ( !modifiedInterestPoints && !forceWrite )
 			return true;
 
-		final ArrayList< InterestPoint > list = this.interestPoints;
-
-		if ( list == null )
+		if ( ids == null || locations == null )
 			return false;
 
 		final String dataset = ipDataset();
@@ -149,13 +166,6 @@ public class InterestPointsN5 extends InterestPoints
 		try
 		{
 			final N5Writer n5Writer = URITools.instantiateN5Writer( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
-
-			/*
-			if ( URITools.isFile( baseDir ) )
-				n5Writer = new N5FSWriter( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
-			else
-				n5Writer = new N5Factory().openWriter( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
-			*/
 
 			if (n5Writer.exists(dataset))
 				n5Writer.remove(dataset);
@@ -169,7 +179,7 @@ public class InterestPointsN5 extends InterestPoints
 			final String idDataset = dataset + "/id";
 			final String locDataset = dataset + "/loc";
 
-			if ( list.size() == 0 )
+			if ( ids.length == 0 )
 			{
 				n5Writer.createDataset(
 						idDataset,
@@ -185,43 +195,41 @@ public class InterestPointsN5 extends InterestPoints
 						DataType.FLOAT64,
 						new GzipCompression());
 
-				return true;
+				IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + " (was empty)" );
+			}
+			else
+			{
+				final int n = locations[ 0 ].length;
+
+				// 1 x N array (which is a 2D array)
+				final FunctionRandomAccessible< UnsignedLongType > id =
+						new FunctionRandomAccessible<>(
+								2,
+								(location, value) -> value.set( this.ids[ location.getIntPosition( 1 ) ] ),
+								UnsignedLongType::new );
+
+				// DIM x N array (which is a 2D array)
+				final FunctionRandomAccessible< DoubleType > loc =
+						new FunctionRandomAccessible<>(
+								2,
+								(location, value) -> value.set( this.locations[ location.getIntPosition( 1 ) ][ location.getIntPosition( 0 ) ] ),
+								DoubleType::new );
+
+				final RandomAccessibleInterval< UnsignedLongType > idData =
+						Views.interval( id, new long[] { 0, 0 }, new long[] { 0, ids.length - 1 } );
+
+				final RandomAccessibleInterval< DoubleType > locData =
+						Views.interval( loc, new long[] { 0, 0 }, new long[] { n - 1, ids.length - 1 } );
+
+				N5Utils.save( idData, n5Writer, idDataset, new int[] { 1, defaultBlockSize }, new GzipCompression() );
+				N5Utils.save( locData, n5Writer, locDataset, new int[] { (int)locData.dimension( 0 ), defaultBlockSize }, new GzipCompression() );
+
+				IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
 			}
 
-			final int n = list.get( 0 ).getL().length;
-
-			// 1 x N array (which is a 2D array)
-			final FunctionRandomAccessible< UnsignedLongType > id =
-					new FunctionRandomAccessible<>(
-							2,
-							(location, value) -> value.set( list.get( location.getIntPosition( 1 ) ).id ),
-							UnsignedLongType::new );
-
-			// DIM x N array (which is a 2D array)
-			final FunctionRandomAccessible< DoubleType > loc =
-					new FunctionRandomAccessible<>(
-							2,
-							(location, value) ->
-							{
-								final InterestPoint ip = list.get( location.getIntPosition( 1 ) );
-								value.set( ip.getL()[ location.getIntPosition( 0 ) ] );
-							},
-							DoubleType::new );
-
-			final RandomAccessibleInterval< UnsignedLongType > idData =
-					Views.interval( id, new long[] { 0, 0 }, new long[] { 0, list.size() - 1 } );
-
-			final RandomAccessibleInterval< DoubleType > locData =
-					Views.interval( loc, new long[] { 0, 0 }, new long[] { n - 1, list.size() - 1 } );
-
-			N5Utils.save( idData, n5Writer, idDataset, new int[] { 1, defaultBlockSize }, new GzipCompression() );
-			N5Utils.save( locData, n5Writer, locDataset, new int[] { (int)locData.dimension( 0 ), defaultBlockSize }, new GzipCompression() );
-
 			n5Writer.close();
-
-			IOFunctions.println( "Saved: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset );
-
 			modifiedInterestPoints = false;
+			return true;
 		}
 		catch (Exception e)
 		{
@@ -229,8 +237,6 @@ public class InterestPointsN5 extends InterestPoints
 			e.printStackTrace();
 			return false;
 		}
-
-		return true;
 	}
 
 	@Override
@@ -367,13 +373,6 @@ public class InterestPointsN5 extends InterestPoints
 			
 			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
-			/*
-			if ( URITools.isFile( baseDir ) )
-				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
-			else
-				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
-			*/
-
 			final String dataset = ipDataset();
 
 			if (!n5.exists(dataset))
@@ -382,9 +381,8 @@ public class InterestPointsN5 extends InterestPoints
 				return false;
 			}
 
-			String version = n5.getAttribute(dataset, "pointcloud", String.class );
-			String type = n5.getAttribute(dataset, "type", String.class );
-
+			//final String version = n5.getAttribute(dataset, "pointcloud", String.class );
+			final String type = n5.getAttribute(dataset, "type", String.class );
 			//System.out.println( "Version: " + version + ", type: " + type );
 
 			if ( !type.equals("list") )
@@ -402,67 +400,61 @@ public class InterestPointsN5 extends InterestPoints
 			// DIM x N array (which is a 2D array)
 			final RandomAccessibleInterval< DoubleType > locData = N5Utils.open( n5, locDataset );
 			final int n = (int)locData.dimension( 0 );
+			final int size = (int)idData.dimension( 1 );
 
+			if( locData.dimension( 1 ) != size )
+				throw new RuntimeException( "Sizes of N5 datasets for interest points do not match, stopping." );
+				
 			// empty list
-			if ( n == 0 )
+			if ( size == 0 )
 			{
-				this.interestPoints = new ArrayList<>();
-				modifiedInterestPoints = false;
-
-				n5.close();
-				return true;
+				this.ids = new int[0];
+				this.locations = new double[0][0];
 			}
-
-			final RandomAccess< UnsignedLongType > idRA = idData.randomAccess();
-			final RandomAccess< DoubleType > locRA = locData.randomAccess();
-
-			final ArrayList< InterestPoint > list = new ArrayList<>();
-
-			idRA.setPosition( 0, 0 );
-			idRA.setPosition( 0, 1 );
-			locRA.setPosition( 0, 0 );
-			locRA.setPosition( 0, 1 );
-
-			for ( int i = 0; i < idData.dimension( 1 ); ++ i )
+			else
 			{
-				final long id = idRA.get().get();
-				final double[] loc = new double[ n ];
+				this.ids = new int[size];
+				this.locations = new double[size][n];
 
-				for ( int d = 0; d < n; ++d )
+				final RandomAccess< UnsignedLongType > idRA = idData.randomAccess();
+				final RandomAccess< DoubleType > locRA = locData.randomAccess();
+
+				idRA.setPosition( 0, 0 );
+				idRA.setPosition( 0, 1 );
+				locRA.setPosition( 0, 0 );
+				locRA.setPosition( 0, 1 );
+
+				for ( int i = 0; i < size; ++ i )
 				{
-					loc[ d ] = locRA.get().get();
+					ids[ i ] = (int)idRA.get().get();
 
-					if ( d != n - 1 )
-						locRA.fwd( 0 );
+					for ( int d = 0; d < n; ++d )
+					{
+						locations[ i ][ d ] = locRA.get().get();
+
+						if ( d != n - 1 )
+							locRA.fwd( 0 );
+					}
+
+					for ( int d = 0; d < n - 1; ++d )
+						locRA.bck( 0 );
+
+					if ( i != idData.dimension( 1 ) - 1 )
+					{
+						idRA.fwd( 1 );
+						locRA.fwd( 1 );
+					}
 				}
-
-				for ( int d = 0; d < n - 1; ++d )
-					locRA.bck( 0 );
-
-				if ( i != idData.dimension( 1 ) - 1 )
-				{
-					idRA.fwd( 1 );
-					locRA.fwd( 1 );
-				}
-
-				list.add( new InterestPoint( (int)id, loc) );
 			}
-
-			/*
-			final DatasetAttributes datasetAttributes = n5.getDatasetAttributes(dataset);
-
-			this.interestPoints = n5.readSerializedBlock( dataset, datasetAttributes, 0 );*/
-
-			this.interestPoints = list;
-			modifiedInterestPoints = false;
 
 			n5.close();
-
+			modifiedInterestPoints = false;
 			return true;
 		} 
 		catch ( final Exception e )
 		{
-			this.interestPoints = new ArrayList<>();
+			this.ids = new int[0];
+			this.locations = new double[0][0];
 			IOFunctions.println( "InterestPointsN5.loadInterestPoints(): " + e );
 			e.printStackTrace();
 			return false;
@@ -476,13 +468,6 @@ public class InterestPointsN5 extends InterestPoints
 		{
 			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );;
 
-			/*
-			if ( URITools.isFile( baseDir ) )
-				n5 = new N5FSReader( new File( URITools.removeFilePrefix( baseDir ), baseN5 ).getAbsolutePath() );
-			else
-				n5 = new N5Factory().openReader( URITools.appendName( baseDir, baseN5 ) ); // cloud support, avoid dependency hell if it is a local file
-			*/
-
 			final String dataset = corrDataset();
 
 			if (!n5.exists(dataset))
@@ -491,12 +476,11 @@ public class InterestPointsN5 extends InterestPoints
 				return false;
 			}
 
-			final String version = n5.getAttribute(dataset, "correspondences", String.class );
+			//final String version = n5.getAttribute(dataset, "correspondences", String.class );
+			//System.out.println( "Version: " + version + ", " + idMap.size() + " correspondence codes" );
 
 			@SuppressWarnings("unchecked")
 			final Map< String, Long > idMap = n5.getAttribute(dataset, "idMap", Map.class ); // to store ID (viewId.getTimePointId() + "," + viewId.getViewSetupId() + "," + label)
-
-			//System.out.println( "Version: " + version + ", " + idMap.size() + " correspondence codes" );
 
 			if ( idMap.size() == 0 )
 			{
@@ -589,7 +573,8 @@ public class InterestPointsN5 extends InterestPoints
 		} 
 		catch ( final Exception e )
 		{
-			this.interestPoints = new ArrayList<>();
+			this.ids = new int[0];
+			this.locations = new double[0][0];
 			IOFunctions.println( "InterestPointsN5.loadCorrespondingInterestPoints(): " + e );
 			e.printStackTrace();
 			return false;
