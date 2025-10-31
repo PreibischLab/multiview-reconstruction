@@ -280,7 +280,7 @@ public class Visualize_Detections implements PlugIn
 			for ( final InterestPoint ip : list )
 				map.put( ip.getId(), ip );
 
-			final List< CorrespondingInterestPoints > cList = ipl.getCorrespondingInterestPointsCopy();
+			final Collection< CorrespondingInterestPoints > cList = ipl.getCorrespondingInterestPointsCopy();
 
 			if ( cList.size() == 0 )
 			{

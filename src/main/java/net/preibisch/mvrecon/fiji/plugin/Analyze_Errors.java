@@ -24,6 +24,7 @@ package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -137,7 +138,7 @@ public class Analyze_Errors implements PlugIn
 					final Map<Integer,InterestPoint> plB = vipB.getInterestPointList( l ).getInterestPointsCopy();
 	
 					//System.out.println( Group.pvid( pair.getA() ) + " <-> " + Group.pvid( pair.getB() ) + ": " + pA.size() + ", " + pB.size() );
-					final List<CorrespondingInterestPoints> cA = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
+					final Collection<CorrespondingInterestPoints> cA = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
 					//final List<CorrespondingInterestPoints> cB = vipA.getInterestPointList( l ).getCorrespondingInterestPointsCopy();
 
 					//final ArrayList< PointMatch > pm = new ArrayList<>();

@@ -2,7 +2,7 @@ package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
 import java.net.URI;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 import mpicbg.spim.data.SpimDataException;
 
@@ -19,9 +19,9 @@ public class ExampleDirectLoading
 				URI.create("/nrs/saalfeld/john/for/keller/danio_1_488/dataset-orig-tifs/3/"),
 				"tpId_0_viewSetupId_" + viewSetupId  + "/beads8v2" );
 
-		List<InterestPoint> points = ip.getInterestPointsCopy();
+		Map< Integer, InterestPoint> points = ip.getInterestPointsCopy();
 
-		for ( final InterestPoint p : points )
+		for ( final InterestPoint p : points.values() )
 		{
 			System.out.println( p.getId() + " " + Arrays.toString( p.getL() ));
 		}

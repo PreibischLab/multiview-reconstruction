@@ -218,8 +218,8 @@ public class MatcherPairwiseTools
 			final InterestPoints listA,
 			final InterestPoints listB )
 	{
-		final List< CorrespondingInterestPoints > corrListA = listA.getCorrespondingInterestPointsCopy();
-		final List< CorrespondingInterestPoints > corrListB = listB.getCorrespondingInterestPointsCopy();
+		final Collection< CorrespondingInterestPoints > corrListA = listA.getCorrespondingInterestPointsCopy();
+		final Collection< CorrespondingInterestPoints > corrListB = listB.getCorrespondingInterestPointsCopy();
 
 		for ( final PointMatchGeneric< I > pm : correspondences )
 		{

@@ -2,6 +2,7 @@ package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -70,7 +71,7 @@ public class ExampleXMLBased
 		InterestPoints ips = iplists.getInterestPointList( myLabel ); // this is net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPointsN5
 
 		// load interest points
-		List<InterestPoint> p = ips.getInterestPointsCopy();
+		Map< Integer, InterestPoint> p = ips.getInterestPointsCopy();
 
 		for ( int j = 0; j < Math.min( 15, p.size() ) ; ++j )
 		{
@@ -79,15 +80,14 @@ public class ExampleXMLBased
 		}
 
 		// load correspondences
-		List<CorrespondingInterestPoints> cp = ips.getCorrespondingInterestPointsCopy();
+		Collection<CorrespondingInterestPoints> cp = ips.getCorrespondingInterestPointsCopy();
 
 		AffineTransform3D myModel = rMap.get( myViewId ).getModel();
 
 		System.out.println( "\nCorrespondences" );
-		for ( int k = 0; k < cp.size(); ++k )
-		{
-			CorrespondingInterestPoints cpoint = cp.get( k );
 
+		for ( final CorrespondingInterestPoints cpoint : cp )
+		{
 			int myId = cpoint.getDetectionId();
 			String otherLabel = cpoint.getCorrespodingLabel();
 			ViewId otherViewId = cpoint.getCorrespondingViewId();

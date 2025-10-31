@@ -2,10 +2,8 @@ package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import mpicbg.spim.data.sequence.ViewId;
@@ -74,7 +72,7 @@ public class LoadCorrespondencesPairwise< I extends InterestPoint > implements M
 							ip -> ip.getId(),
 							ip -> ip ) );
 
-			final List<CorrespondingInterestPoints> corrA =
+			final Collection<CorrespondingInterestPoints> corrA =
 					ipA.getCorrespondingInterestPointsCopy();
 
 			System.out.println( "Loaded " + corrA.size() + " corresponding interest points.");

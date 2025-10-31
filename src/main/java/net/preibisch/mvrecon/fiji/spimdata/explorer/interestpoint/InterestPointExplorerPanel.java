@@ -226,8 +226,8 @@ public class InterestPointExplorerPanel extends JPanel
 	
 				IOFunctions.println( "Removing label '' for timepoint_id " + vd.getTimePointId() + " viewsetup_id " + vd.getViewSetupId() + " -- Parsing through all correspondences to remove any links to this interest point list." );
 	
-				final List< CorrespondingInterestPoints > correspondencesList =
-						vip.getViewInterestPointLists( vd ).getInterestPointList( label ).getCorrespondingInterestPointsCopy();
+				final List< CorrespondingInterestPoints > correspondencesList = new ArrayList<>(
+						vip.getViewInterestPointLists( vd ).getInterestPointList( label ).getCorrespondingInterestPointsCopy());
 
 				// sort by timepointid, setupid, and detectionid 
 				Collections.sort( correspondencesList );
@@ -260,7 +260,7 @@ public class InterestPointExplorerPanel extends JPanel
 						IOFunctions.println( "Removing correspondences in timepointid=" + viewIdCorr.getTimePointId() + ", viewid=" + viewIdCorr.getViewSetupId() );
 						lastViewIdCorr = viewIdCorr;
 						//lastLabelCorr = labelCorr;
-						cList = vip.getViewInterestPointLists( viewIdCorr ).getInterestPointList( labelCorr ).getCorrespondingInterestPointsCopy();
+						cList = new ArrayList<>( vip.getViewInterestPointLists( viewIdCorr ).getInterestPointList( labelCorr ).getCorrespondingInterestPointsCopy() );
 						size = cList.size();
 					}
 	

@@ -70,6 +70,7 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitMultiResolutionImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
@@ -245,9 +246,9 @@ public class SplittingTools
 
 							// TODO: load outside the loop for efficiency
 							final InterestPoints oldIps = oldVipl.getInterestPointList( label );
-							final List< InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
+							final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
 
-							for ( final InterestPoint ip : oldIpList )
+							for ( final InterestPoint ip : oldIpList.values() )
 							{
 								if ( contains( ip.getL(), interval ) )
 								{
@@ -436,18 +437,22 @@ public class SplittingTools
 
 					// only update interest points for present views
 					// oldVipl may be null for missing views
-					if (spimData.getSequenceDescription().getMissingViews() != null && !spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
+					if ( spimData.getSequenceDescription().getMissingViews() != null && !spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
 							final String newLabel = label + "_split";
 
 							final InterestPoints oldIps = oldVipl.getInterestPointList( label );
-							final List< InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
+							final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
+
+							
+							final List<CorrespondingInterestPoints> corr = oldIps.getCorrespondingInterestPointsCopy();
 
 							final InterestPoints newIps = newVipl.getInterestPointList( newLabel );
-							final List< InterestPoint > newIpList = newIps.getInterestPointsCopy();
+							final Map< Integer, InterestPoint > newIpList = newIps.getInterestPointsCopy();
 
+							
 						}
 					}
 				}
