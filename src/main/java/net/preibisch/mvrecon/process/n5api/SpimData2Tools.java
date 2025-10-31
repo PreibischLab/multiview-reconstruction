@@ -630,11 +630,11 @@ public class SpimData2Tools
 
 					ipLists.getHashMap().forEach( (label,interestpoints) ->
 					{
-						final List<InterestPoint> points = interestpoints.getInterestPointsCopy();
+						final Map<Integer, InterestPoint> points = interestpoints.getInterestPointsCopy();
 						final List<CorrespondingInterestPoints> corr = interestpoints.getCorrespondingInterestPointsCopy();
 
 						final InterestPoints interestpointsNew = InterestPoints.newInstance( basePath, viewId, label );
-						interestpointsNew.setInterestPoints( points );
+						interestpointsNew.setInterestPoints( points.values() );
 						interestpointsNew.setCorrespondingInterestPoints( corr );
 
 						ipListsNew.addInterestPointList( label, interestpointsNew );
