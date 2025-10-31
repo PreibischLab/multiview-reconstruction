@@ -475,7 +475,7 @@ public class TransformationTools
 		matrix.m30 = 0;
 		matrix.m31 = 0;
 		matrix.m32 = 0;
-		matrix.m33 = 0;
+		matrix.m33 = 1;
 
 		return matrix;
 	}
@@ -502,7 +502,7 @@ public class TransformationTools
 		matrix.m30 = 0;
 		matrix.m31 = 0;
 		matrix.m32 = 0;
-		matrix.m33 = 0;
+		matrix.m33 = 1;
 
 		return matrix;
 	}
