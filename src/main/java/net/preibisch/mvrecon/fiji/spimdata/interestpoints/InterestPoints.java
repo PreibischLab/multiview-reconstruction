@@ -25,6 +25,7 @@ package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import mpicbg.spim.data.sequence.ViewId;
 import util.URITools;
@@ -116,9 +117,9 @@ public abstract class InterestPoints
 	public abstract String createXMLRepresentation( final ViewId viewId, final String label );
 
 	/**
-	 * @return - a list of interest points (copied), tries to load from disc if null
+	 * @return - a map from interest point ID to interest points (copied), tries to load from disc if null
 	 */
-	public abstract List< InterestPoint > getInterestPointsCopy();
+	public abstract Map< Integer, InterestPoint > getInterestPointsCopy();
 
 	/**
 	 * @return - the list of corresponding interest points (copied), tries to load from disc if null
