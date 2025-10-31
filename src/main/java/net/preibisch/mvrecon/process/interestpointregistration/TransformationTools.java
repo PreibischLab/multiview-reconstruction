@@ -31,6 +31,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import bdv.BigDataViewer;
 import mpicbg.models.AbstractAffineModel3D;
@@ -608,16 +610,16 @@ public class TransformationTools
 	}
 
 	public static void filterForOverlappingInterestPoints(
-			final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints,
+			final Map< ViewId, HashMap< String, Collection< InterestPoint > > > interestpoints,
 			final Collection< ? extends Group< ViewId > > groups,
 			final Map< ViewId, ViewRegistration > registrations,
 			final Map< ViewId, ViewDescription > viewDescriptions )
 	{
-		for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
+		for ( final Entry< ViewId, HashMap< String, Collection< InterestPoint > > > element: interestpoints.entrySet() )
 		{
 			final ViewId viewId = element.getKey();
 
-			for ( final Entry< String, List< InterestPoint > > subElement : element.getValue().entrySet() )
+			for ( final Entry< String, Collection< InterestPoint > > subElement : element.getValue().entrySet() )
 			{
 				final List< InterestPoint > points = new ArrayList<>( subElement.getValue() );
 				final List< InterestPoint > overlappingPoints = new ArrayList<>();
@@ -667,7 +669,7 @@ public class TransformationTools
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> Map< V, HashMap< String, List< InterestPoint > > > getAllTransformedInterestPoints(
+	public static <V> Map< V, HashMap< String, Collection< InterestPoint > > > getAllTransformedInterestPoints(
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -677,14 +679,14 @@ public class TransformationTools
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> Map< V, HashMap< String, List< InterestPoint > > > getAllInterestPoints(
+	public static <V> Map< V, HashMap< String, Collection< InterestPoint > > > getAllInterestPoints(
 			final Collection< ? extends V > viewIds,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
 			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
-		final HashMap< V, HashMap< String, List< InterestPoint > > > transformedInterestpoints = new HashMap<>();
+		final HashMap< V, HashMap< String, Collection< InterestPoint > > > transformedInterestpoints = new HashMap<>();
 
 		for ( final V viewId : viewIds )
 			transformedInterestpoints.put( viewId, getInterestPoints( viewId, registrations, interestpoints, labelMap, transform ) );
@@ -693,7 +695,7 @@ public class TransformationTools
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> HashMap< String, List< InterestPoint > > getTransformedInterestPoints(
+	public static <V> HashMap< String, Collection< InterestPoint > > getTransformedInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -703,20 +705,20 @@ public class TransformationTools
 	}
 
 	/* call this method to load interestpoints and apply current transformation if necessary */
-	public static <V> HashMap< String, List< InterestPoint > > getInterestPoints(
+	public static <V> HashMap< String, Collection< InterestPoint > > getInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
 			final Map< V, HashMap< String, Double > > labelMap,
 			final boolean transform )
 	{
-		final HashMap< String, List< InterestPoint > > lists = new HashMap<>();
+		final HashMap< String, Collection< InterestPoint > > collections = new HashMap<>();
 
 		labelMap.get( viewId ).forEach( ( label, weight ) -> {
 
 			final Map< Integer, InterestPoint > mapLocal = interestpoints.get( viewId ).getInterestPointList( label ).getInterestPointsCopy();
 
-			lists.put( label, new ArrayList<>( mapLocal.values() ) );
+			collections.put( label, mapLocal.values() );
 
 			if ( mapLocal.size() == 0 )
 			{
@@ -730,16 +732,16 @@ public class TransformationTools
 		if ( transform )
 		{
 			final AffineTransform3D t = getTransform( viewId, registrations );
-			return applyTransformation( lists, t );
+			return applyTransformation( collections, t );
 		}
 		else
 		{
-			return lists;
+			return collections;
 		}
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> List< InterestPoint > getTransformedCorrespondingInterestPoints(
+	public static <V> Collection< InterestPoint > getTransformedCorrespondingInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -749,7 +751,7 @@ public class TransformationTools
 	}
 
 	/* call this method to load interestpoints and apply current transformation */
-	public static <V> List< InterestPoint > getCorrespondingInterestPoints(
+	public static <V> Collection< InterestPoint > getCorrespondingInterestPoints(
 			final V viewId,
 			final Map< V, ViewRegistration > registrations,
 			final Map< V, ViewInterestPointLists > interestpoints,
@@ -798,28 +800,23 @@ public class TransformationTools
 		return r.getModel();
 	}
 
-	public static HashMap< String, List< InterestPoint > > applyTransformation( final HashMap< String, List< InterestPoint > > lists, final AffineTransform3D m )
+	public static HashMap< String, Collection< InterestPoint > > applyTransformation( final HashMap< String, Collection< InterestPoint > > lists, final AffineTransform3D m )
 	{
-		final HashMap< String, List< InterestPoint > > transformedLists = new HashMap<>();
+		final HashMap< String, Collection< InterestPoint > > transformedLists = new HashMap<>();
 
 		lists.forEach( (label,list) -> transformedLists.put(label, applyTransformation( list, m ) ) );
 
 		return transformedLists;
 	}
 
-	public static List< InterestPoint > applyTransformation( final List< InterestPoint > list, final AffineTransform3D m )
+	public static Collection< InterestPoint > applyTransformation( final Collection< InterestPoint > list, final AffineTransform3D m )
 	{
-		final ArrayList< InterestPoint > transformedList = new ArrayList<>();
-
-		for ( final InterestPoint p : list )
+		return list.parallelStream().map( ip ->
 		{
 			final double[] l = new double[ 3 ];
-			m.apply( p.getL(), l );
-			
-			transformedList.add( new InterestPoint( p.getId(), l ) );
-		}
-
-		return transformedList;
+			m.apply( ip.getL(), l );
+			return new InterestPoint( ip.getId(), l );
+		}).collect( Collectors.toList() );
 	}
 
 	public static <V> void storeTransformation(
