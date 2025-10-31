@@ -22,7 +22,6 @@
  */
 package net.preibisch.mvrecon.headless.interestpointdetection;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -97,10 +96,12 @@ public class VerifyDownsamplingCorrection
 		for ( final ViewId viewId : sdTiff.getSequenceDescription().getViewDescriptions().values() )
 		{
 			final List< InterestPoint > ipListTiff =
-					sdTiff.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label ).getInterestPointsCopy();
+					new ArrayList<>(
+							sdTiff.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label ).getInterestPointsCopy().values());
 
 			final List< InterestPoint > ipListHdf5 =
-					sdHdf5.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label ).getInterestPointsCopy();
+					new ArrayList<>(
+							sdHdf5.getViewInterestPoints().getViewInterestPointLists( viewId ).getInterestPointList( label ).getInterestPointsCopy().values());
 
 			statistics( viewId, ipListTiff, ipListHdf5 );
 		}
