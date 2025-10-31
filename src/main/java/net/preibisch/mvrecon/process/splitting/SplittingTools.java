@@ -23,8 +23,9 @@
 package net.preibisch.mvrecon.process.splitting;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,12 +54,8 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
-import net.imglib2.KDTree;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
-import net.imglib2.neighborsearch.RadiusNeighborSearch;
-import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -421,6 +418,8 @@ public class SplittingTools
 		//
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Processing corresponding interest points for old setup " + oldSetup.getId() );
+
 			for ( final Pair< ViewSetup, Interval > newSetupInterval : old2NewSetups.get( oldSetup ) )
 			{
 				final ViewSetup newSetup = newSetupInterval.getA();
@@ -444,15 +443,24 @@ public class SplittingTools
 							final String newLabel = label + "_split";
 
 							final InterestPoints oldIps = oldVipl.getInterestPointList( label );
-							final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
-
-							
-							final List<CorrespondingInterestPoints> corr = oldIps.getCorrespondingInterestPointsCopy();
+							//final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
+							final Collection<CorrespondingInterestPoints> corr = oldIps.getCorrespondingInterestPointsCopy();
 
 							final InterestPoints newIps = newVipl.getInterestPointList( newLabel );
 							final Map< Integer, InterestPoint > newIpList = newIps.getInterestPointsCopy();
 
-							
+							corr.stream().parallel()
+								.filter( c -> newIpList.containsKey( c.getDetectionId() ) ) // only those that are in the current new viewid
+								.forEach( c -> {
+									// find all new setups this overlaps with
+									final ViewId corrViewId = c.getCorrespondingViewId();
+								});
+								;
+
+							for ( final CorrespondingInterestPoints c : corr )
+							{
+								//if ( c.)
+							}
 						}
 					}
 				}
