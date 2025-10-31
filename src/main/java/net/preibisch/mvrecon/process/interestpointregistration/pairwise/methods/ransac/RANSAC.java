@@ -219,7 +219,7 @@ public class RANSAC
 				{
 					lastMessage = "Not enough points for matching: " + candidates.size();
 				}
-			} while ( modelFound && candidates.size() >= minNumCorrespondences );
+			} while ( modelFound && inliers.size() >= minNumCorrespondences && candidates.size() >= minNumCorrespondences );
 
 			if ( inlierSets.size() > 0 )
 			{
