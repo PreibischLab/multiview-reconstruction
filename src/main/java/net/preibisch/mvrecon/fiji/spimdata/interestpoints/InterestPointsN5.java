@@ -143,7 +143,7 @@ public class InterestPointsN5 extends InterestPoints
 	@Override
 	protected void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list )
 	{
-		if ( list.getClass().isInstance( ArrayList.class ))
+		if ( ArrayList.class.isInstance( list ))
 			this.correspondingInterestPoints = (ArrayList<CorrespondingInterestPoints>)list;
 		else
 			this.correspondingInterestPoints = new ArrayList<>( list );
