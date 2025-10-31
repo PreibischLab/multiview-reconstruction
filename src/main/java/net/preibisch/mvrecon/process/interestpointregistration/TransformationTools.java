@@ -757,7 +757,7 @@ public class TransformationTools
 			final boolean transform )
 	{
 		final InterestPoints ipList = interestpoints.get( viewId ).getInterestPointList( labelMap.get( viewId ) );
-		final List< InterestPoint > allPoints = ipList.getInterestPointsCopy();
+		final Map< Integer, InterestPoint > allPoints = ipList.getInterestPointsCopy();
 		final ArrayList< InterestPoint > corrPoints = new ArrayList<>();
 
 		if ( allPoints == null )
@@ -776,7 +776,7 @@ public class TransformationTools
 		for ( final CorrespondingInterestPoints cip : ipList.getCorrespondingInterestPointsCopy() )
 			idSet.add( cip.getDetectionId() );
 
-		for ( final InterestPoint ip : allPoints )
+		for ( final InterestPoint ip : allPoints.values() )
 			if ( idSet.contains( ip.getId() ) )
 				corrPoints.add( ip );
 
