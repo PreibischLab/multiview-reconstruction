@@ -181,6 +181,7 @@ public class RANSAC
 			final ArrayList< Double > errors = new ArrayList<>();
 
 			String lastMessage = "";
+			int j = 0;
 
 			do
 			{
@@ -194,32 +195,31 @@ public class RANSAC
 							inliers,
 							numIterations,
 							maxEpsilon, minInlierRatio );
+
+					if ( modelFound && inliers.size() >= minNumCorrespondences )
+					{
+						// debug output for now
+						System.out.println( j++ + ": found " + inliers.size() + "/" + candidates.size() + " inliers with model: " + model + ", error " + model.getCost() );
+
+						inlierSets.add( new ArrayList<>( inliers ) );
+						errors.add( model.getCost() );
+
+						candidates = removeInliers( candidates, inliers );
+					}
+					else if ( modelFound )
+					{
+						lastMessage = "Model found, but not enough remaining inliers (" + inliers.size() + "/" + minNumCorrespondences + ") after RANSAC of " + candidates.size();
+					}
+					else
+					{
+						lastMessage = "NO model found after RANSAC of " + candidates.size();
+					}
 				}
 				catch ( NotEnoughDataPointsException e )
 				{
-					System.out.println( "Not enough points for matching. stopping.");
-					System.exit( 1 );
+					lastMessage = "Not enough points for matching: " + candidates.size();
 				}
-		
-				if ( modelFound && inliers.size() >= minNumCorrespondences )
-				{
-					// debug output for now
-					System.out.println( "Found " + inliers.size() + "/" + candidates.size() + " inliers with model: " + model + ", error " + model.getCost() );
-
-					inlierSets.add( new ArrayList<>( inliers ) );
-					errors.add( model.getCost() );
-
-					candidates = removeInliers( candidates, inliers );
-				}
-				else if ( modelFound )
-				{
-					lastMessage = "Model found, but not enough remaining inliers (" + inliers.size() + "/" + minNumCorrespondences + ") after RANSAC of " + candidates.size();
-				}
-				else
-				{
-					lastMessage = "NO model found after RANSAC of " + candidates.size();
-				}
-			} while ( modelFound && inliers.size() >= minNumCorrespondences );
+			} while ( modelFound && inliers.size() >= minNumCorrespondences && candidates.size() >= minNumCorrespondences );
 
 			if ( inlierSets.size() > 0 )
 			{

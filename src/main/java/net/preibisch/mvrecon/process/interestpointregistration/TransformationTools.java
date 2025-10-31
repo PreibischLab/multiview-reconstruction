@@ -695,16 +695,6 @@ public class TransformationTools
 		return transformedInterestpoints;
 	}
 
-	/* call this method to load interestpoints and apply current transformation */
-	public static <V> HashMap< String, List< InterestPoint > > getTransformedInterestPoints(
-			final V viewId,
-			final Map< V, ViewRegistration > registrations,
-			final Map< V, ViewInterestPointLists > interestpoints,
-			final Map< V, HashMap< String, Double > > labelMap )
-	{
-		return getInterestPoints( viewId, registrations, interestpoints, labelMap, true );
-	}
-
 	/* call this method to load interestpoints and apply current transformation if necessary */
 	public static <V> HashMap< String, List< InterestPoint > > getInterestPoints(
 			final V viewId,
