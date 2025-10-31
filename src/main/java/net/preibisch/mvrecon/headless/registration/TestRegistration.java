@@ -114,7 +114,7 @@ public class TestRegistration
 		}
 
 		// load & transform all interest points
-		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
+		final Map< ViewId, HashMap< String, Map< Integer, InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
 					viewIds,
 					spimData.getViewRegistrations().getViewRegistrations(),
@@ -125,9 +125,9 @@ public class TestRegistration
 		final Set< Group< ViewId > > groups = new HashSet<>();
 
 		// only keep those interestpoints that currently overlap with a view to register against
-		for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
-			for ( final Entry< String, List< InterestPoint > > subelement: element.getValue().entrySet() )
-			System.out.println( element.getKey() + ", " + subelement.getKey() + ": " + subelement.getValue().size() );
+		for ( final Entry< ViewId, HashMap< String, Map< Integer, InterestPoint > > > element: interestpoints.entrySet() )
+			for ( final Entry< String, Map< Integer, InterestPoint > > subelement: element.getValue().entrySet() )
+				System.out.println( element.getKey() + ", " + subelement.getKey() + ": " + subelement.getValue().size() );
 
 		TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, spimData.getViewRegistrations().getViewRegistrations(), spimData.getSequenceDescription().getViewDescriptions() );
 

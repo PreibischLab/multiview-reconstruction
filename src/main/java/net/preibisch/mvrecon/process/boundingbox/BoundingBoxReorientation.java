@@ -469,7 +469,7 @@ public class BoundingBoxReorientation implements BoundingBoxEstimation
 					registrations,
 					interestpoints,
 					labelMap1,
-					transform ) );
+					transform ).values() );
 			}
 			else
 			{
@@ -478,7 +478,7 @@ public class BoundingBoxReorientation implements BoundingBoxEstimation
 					registrations,
 					interestpoints,
 					labelMap2,
-					transform ).get( label ) );
+					transform ).get( label ).values() );
 			}
 		}
 
