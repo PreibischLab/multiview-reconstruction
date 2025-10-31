@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.table.AbstractTableModel;
 
@@ -275,20 +276,15 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 				this.points = new HashMap<>();
 
 				for ( final ViewId v : currentVDs )
-					this.points.put( v, viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label ).getInterestPointsCopy() );
+					this.points.put( v, viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label ).getInterestPointsCopy().values() );
 			}
 			else //if ( col == 2 )
 			{
 				for ( final ViewId v : currentVDs )
 				{
-					System.out.println( Group.pvid( v ) );
-					final HashMap< Integer, InterestPoint > map = new HashMap< Integer, InterestPoint >();
-
+					//System.out.println( Group.pvid( v ) );
 					final InterestPoints ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
-
-					for ( final InterestPoint ip : ipList.getInterestPointsCopy() )
-						map.put( ip.getId(), ip );
-
+					final Map< Integer, InterestPoint > map = ipList.getInterestPointsCopy();
 					final Collection< InterestPoint > tmp = new HashSet<>();
 	
 					for ( final CorrespondingInterestPoints ip : ipList.getCorrespondingInterestPointsCopy() )
