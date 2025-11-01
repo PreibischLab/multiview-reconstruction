@@ -159,10 +159,8 @@ public class InterestPointExplorerPanel extends JPanel
 				int row = table.rowAtPoint( e.getPoint() );
 				int col = table.columnAtPoint( e.getPoint() );
 
-				if ( tableModel.getSelectedRow() == row && tableModel.getSelectedCol() == col )
-					tableModel.setSelected( -1, -1 );
-				else
-					tableModel.setSelected( row, col );
+				// Always pass the click to the table model - it will handle state cycling
+				tableModel.setSelected( row, col );
 
 				// update everything
 				final int sr = table.getSelectedRow();
@@ -179,15 +177,19 @@ public class InterestPointExplorerPanel extends JPanel
 		private static final long serialVersionUID = 1L;
 
 		Color backgroundColor = getBackground();
-		
+
 		@Override
 		public Component getTableCellRendererComponent( JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column )
 		{
 			final Component c = super.getTableCellRendererComponent( table, value, isSelected, hasFocus, row, column );
 			final InterestPointTableModel model = (InterestPointTableModel) table.getModel();
 
-			if ( model.getState( row, column ) )
+			final int state = model.getState( row, column );
+
+			if ( state == 1 )
 				c.setBackground( Color.red );
+			else if ( state == 2 )
+				c.setBackground( Color.green );
 			else if ( !isSelected )
 				c.setBackground( backgroundColor );
 

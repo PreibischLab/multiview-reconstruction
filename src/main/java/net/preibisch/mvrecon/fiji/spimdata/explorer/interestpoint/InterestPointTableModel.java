@@ -61,6 +61,7 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 
 	private int selectedRow = -1;
 	private int selectedCol = -1;
+	private int selectedState = 0; // 0=none, 1=red/all-corresponding, 2=green/inter-visible
 
 	final ArrayList< InterestPointSource > interestPointSources;
 	volatile InterestPointOverlay interestPointOverlay = null;
@@ -158,7 +159,19 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 			else if ( column == 1 )
 				return numDetections( viewInterestPoints, currentVDs, label );
 			else if ( column == 2 )
-				return numCorresponding( viewInterestPoints, currentVDs, label );
+			{
+				// Show fraction when in green state (state 2) for the selected row
+				if ( selectedState == 2 && selectedRow == row )
+				{
+					final int interVisible = numCorrespondingBetweenVisible( viewInterestPoints, currentVDs, label );
+					final int total = numCorresponding( viewInterestPoints, currentVDs, label );
+					return interVisible + "/" + total;
+				}
+				else
+				{
+					return numCorresponding( viewInterestPoints, currentVDs, label );
+				}
+			}
 			else if ( column == 3 )
 				return numCorrespondences( viewInterestPoints, currentVDs, label );
 			else if ( column == 4 )
@@ -204,7 +217,32 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 			if ( vip.getViewInterestPointLists( v ).getHashMap().containsKey( label ) )
 				for ( final CorrespondingInterestPoints c : vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy() )
 					cips.add( c.getDetectionId() );
-	
+
+			sum += cips.size();
+		}
+
+		return sum;
+	}
+
+	protected int numCorrespondingBetweenVisible( final ViewInterestPoints vip, final List< ? extends ViewId > views, final String label )
+	{
+		int sum = 0;
+		final HashSet< ViewId > visibleViewSet = new HashSet<>( views );
+
+		for ( final ViewId v : views )
+		{
+			final HashSet< Integer > cips = new HashSet< Integer >();
+
+			if ( vip.getViewInterestPointLists( v ).getHashMap().containsKey( label ) )
+			{
+				for ( final CorrespondingInterestPoints c : vip.getViewInterestPointLists( v ).getInterestPointList( label ).getCorrespondingInterestPointsCopy() )
+				{
+					// Only count if correspondence is to another visible view
+					if ( visibleViewSet.contains( c.getCorrespondingViewId() ) )
+						cips.add( c.getDetectionId() );
+				}
+			}
+
 			sum += cips.size();
 		}
 
@@ -247,12 +285,12 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 		return columnNames.get( column );
 	}
 
-	public boolean getState( final int row, final int column )
+	public int getState( final int row, final int column )
 	{
 		if ( row == selectedRow && column == selectedCol )
-			return true;
+			return selectedState;
 		else
-			return false;
+			return 0;
 	}
 
 	public void setSelected( final int row, final int col )
@@ -261,14 +299,43 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 
 		if ( currentVDs != null && currentVDs.size() != 0 && bdvPopup.bdvRunning() && row >= 0 && row < getRowCount() && col >= 1 && col <= 2  )
 		{
-			this.selectedRow = row;
-			this.selectedCol = col;
+			// Handle state cycling for column 2
+			if ( row == selectedRow && col == selectedCol && col == 2 )
+			{
+				// Cycle through states: 1 (red) -> 2 (green) -> 0 (none)
+				selectedState = (selectedState % 2) + 1; // cycles: 1->2, 2->1 (we'll handle 2->0 below)
+				if ( selectedState == 2 )
+				{
+					// Moving from red to green
+					selectedState = 2;
+				}
+				else
+				{
+					// Moving from green back to none
+					selectedState = 0;
+					this.selectedRow = this.selectedCol = -1;
+					this.points = new HashMap<>();
+					if ( bdvPopup.bdvRunning() )
+						bdvPopup.updateBDV();
+					return;
+				}
+			}
+			else
+			{
+				this.selectedRow = row;
+				this.selectedCol = col;
+				if ( col == 2 )
+					selectedState = 1; // Start with red (all corresponding)
+				else
+					selectedState = 1; // Column 1 also uses state 1
+			}
 
 			final String label = label( InterestPointTools.getAllInterestPointMap( viewInterestPoints, currentVDs ), row );
 
 			if ( label == null )
 			{
 				this.selectedRow = this.selectedCol = -1;
+				this.selectedState = 0;
 				this.points = new HashMap<>();
 			}
 			else if ( col == 1 )
@@ -278,29 +345,65 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 				for ( final ViewId v : currentVDs )
 					this.points.put( v, viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label ).getInterestPointsCopy().values() );
 			}
-			else //if ( col == 2 )
+			else // col == 2
 			{
-				for ( final ViewId v : currentVDs )
-				{
-					//System.out.println( Group.pvid( v ) );
-					final InterestPoints ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
-					final Map< Integer, InterestPoint > map = ipList.getInterestPointsCopy();
-					final Collection< InterestPoint > tmp = new HashSet<>();
-	
-					for ( final CorrespondingInterestPoints ip : ipList.getCorrespondingInterestPointsCopy() )
-					{
-						if ( !map.containsKey( ip.getDetectionId() ) )
-						{
-							IOFunctions.println( "Inconsistency in the interest points of view: " + Group.pvid( v ) );
-							IOFunctions.println( "Cannot find interestpoint for id = " + ip.getDetectionId() );
-						}
-						else
-						{
-							tmp.add( map.get( ip.getDetectionId() ) );
-						}
-					}
+				this.points = new HashMap<>();
 
-					points.put( v, tmp );
+				if ( selectedState == 1 )
+				{
+					// State 1: Show all interest points with any correspondences
+					for ( final ViewId v : currentVDs )
+					{
+						final InterestPoints ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
+						final Map< Integer, InterestPoint > map = ipList.getInterestPointsCopy();
+						final Collection< InterestPoint > tmp = new HashSet<>();
+
+						for ( final CorrespondingInterestPoints ip : ipList.getCorrespondingInterestPointsCopy() )
+						{
+							if ( !map.containsKey( ip.getDetectionId() ) )
+							{
+								IOFunctions.println( "Inconsistency in the interest points of view: " + Group.pvid( v ) );
+								IOFunctions.println( "Cannot find interestpoint for id = " + ip.getDetectionId() );
+							}
+							else
+							{
+								tmp.add( map.get( ip.getDetectionId() ) );
+							}
+						}
+
+						points.put( v, tmp );
+					}
+				}
+				else // selectedState == 2
+				{
+					// State 2: Show only interest points with correspondences between currently visible views
+					final HashSet< ViewId > visibleViewSet = new HashSet<>( currentVDs );
+
+					for ( final ViewId v : currentVDs )
+					{
+						final InterestPoints ipList = viewInterestPoints.getViewInterestPointLists( v ).getInterestPointList( label );
+						final Map< Integer, InterestPoint > map = ipList.getInterestPointsCopy();
+						final Collection< InterestPoint > tmp = new HashSet<>();
+
+						for ( final CorrespondingInterestPoints ip : ipList.getCorrespondingInterestPointsCopy() )
+						{
+							// Only include if correspondence is to another visible view
+							if ( visibleViewSet.contains( ip.getCorrespondingViewId() ) )
+							{
+								if ( !map.containsKey( ip.getDetectionId() ) )
+								{
+									IOFunctions.println( "Inconsistency in the interest points of view: " + Group.pvid( v ) );
+									IOFunctions.println( "Cannot find interestpoint for id = " + ip.getDetectionId() );
+								}
+								else
+								{
+									tmp.add( map.get( ip.getDetectionId() ) );
+								}
+							}
+						}
+
+						points.put( v, tmp );
+					}
 				}
 			}
 
@@ -316,6 +419,7 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 		else
 		{
 			this.selectedRow = this.selectedCol = -1;
+			this.selectedState = 0;
 			this.points = new HashMap<>();
 		}
 
