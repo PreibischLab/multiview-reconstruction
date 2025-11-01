@@ -370,7 +370,6 @@ public class InterestPointsN5 extends InterestPoints
 	{
 		try
 		{
-			
 			final N5Reader n5 = URITools.instantiateN5Reader( StorageFormat.N5, URITools.toURI( URITools.appendName( baseDir, baseN5 ) ) );
 
 			final String dataset = ipDataset();
@@ -381,9 +380,8 @@ public class InterestPointsN5 extends InterestPoints
 				return false;
 			}
 
-			//final String version = n5.getAttribute(dataset, "pointcloud", String.class );
+			final String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			final String type = n5.getAttribute(dataset, "type", String.class );
-			//System.out.println( "Version: " + version + ", type: " + type );
 
 			if ( !type.equals("list") )
 			{
@@ -404,9 +402,11 @@ public class InterestPointsN5 extends InterestPoints
 
 			if( locData.dimension( 1 ) != size )
 				throw new RuntimeException( "Sizes of N5 datasets for interest points do not match, stopping." );
-				
-			// empty list
-			if ( size == 0 )
+
+			System.out.println( "Version: " + version + ", type: " + type + " loading: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + " " + n + " " + size );
+
+			// empty list (n is correct here, it's a contract, check saveInterestPoints())
+			if ( n == 0 )
 			{
 				this.ids = new int[0];
 				this.locations = new double[0][0];
@@ -420,7 +420,7 @@ public class InterestPointsN5 extends InterestPoints
 				final RandomAccess< DoubleType > locRA = locData.randomAccess();
 
 				idRA.setPosition( 0, 0 );
-				idRA.setPosition( 0, 1 );
+				idRA.setPosition( 0, 1 ); // TODO: java.lang.ArrayIndexOutOfBoundsException: 1 at net.preibisch.mvrecon.fiji.spimdata.explorer.interestpoint.InterestPointTableModel.numDetections(InterestPointTableModel.java:239), new Tile 23
 				locRA.setPosition( 0, 0 );
 				locRA.setPosition( 0, 1 );
 
