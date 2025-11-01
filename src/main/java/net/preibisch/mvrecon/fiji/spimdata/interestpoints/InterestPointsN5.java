@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -380,7 +379,7 @@ public class InterestPointsN5 extends InterestPoints
 				return false;
 			}
 
-			final String version = n5.getAttribute(dataset, "pointcloud", String.class );
+			//final String version = n5.getAttribute(dataset, "pointcloud", String.class );
 			final String type = n5.getAttribute(dataset, "type", String.class );
 
 			if ( !type.equals("list") )
@@ -403,7 +402,7 @@ public class InterestPointsN5 extends InterestPoints
 			if( locData.dimension( 1 ) != size )
 				throw new RuntimeException( "Sizes of N5 datasets for interest points do not match, stopping." );
 
-			System.out.println( "Version: " + version + ", type: " + type + " loading: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + " " + n + " " + size );
+			//System.out.println( "Version: " + version + ", type: " + type + " loading: " + URITools.appendName( baseDir, baseN5 ) + "/" + dataset + " " + n + " " + size );
 
 			// empty list (n is correct here, it's a contract, check saveInterestPoints())
 			if ( n == 0 )
@@ -420,7 +419,7 @@ public class InterestPointsN5 extends InterestPoints
 				final RandomAccess< DoubleType > locRA = locData.randomAccess();
 
 				idRA.setPosition( 0, 0 );
-				idRA.setPosition( 0, 1 ); // TODO: java.lang.ArrayIndexOutOfBoundsException: 1 at net.preibisch.mvrecon.fiji.spimdata.explorer.interestpoint.InterestPointTableModel.numDetections(InterestPointTableModel.java:239), new Tile 23
+				idRA.setPosition( 0, 1 );
 				locRA.setPosition( 0, 0 );
 				locRA.setPosition( 0, 1 );
 
