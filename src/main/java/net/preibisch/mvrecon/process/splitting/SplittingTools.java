@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -470,7 +471,7 @@ public class SplittingTools
 														return null;
 											})
 											.filter( Objects::nonNull ) ) // .collect( Collectors.toList() ); << we can directly concatenate the streams without collecting as list and streaming again
-										.flatMap( Stream::unordered ) // List::stream ) << we can directly concatenate the streams without collecting as list and streaming again
+										.flatMap( Function.identity() ) // List::stream ) << we can directly concatenate the streams without collecting as list and streaming again
 										.collect( Collectors.toList() ) );
 						}
 					}
@@ -756,16 +757,6 @@ public class SplittingTools
 
 	public static void main( String[] args )
 	{
-		List<String> names = Arrays.asList("Alice", "Jim", "Bob");
-		
-		List<String> list = names.stream().map( name ->
-			IntStream.range( 0, 10 ).mapToObj( i -> name + "_" + i )
-		).flatMap( Stream::unordered ).collect( Collectors.toList() );
-		
-		
-		list.forEach( s -> System.out.println( s ) );
-		System.exit( 0 );
-		
 		Interval input = new FinalInterval( new long[]{ 0 }, new long[] { 14192 - 1 } );
 
 		long[] overlapPx = new long[] { 128 };
