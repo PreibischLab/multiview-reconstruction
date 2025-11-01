@@ -86,6 +86,9 @@ public class AnalyzeErrorPopup extends JMenuItem implements ExplorerWindowSetabl
 					final HashMap<String, Double > labelAndWeights =
 							Analyze_Errors.getParameters( panel.getSpimData(), viewIds );
 
+					if ( labelAndWeights == null )
+						return;
+
 					final ArrayList<Pair<Pair<ViewId, ViewId>, Double>> errors =
 							Analyze_Errors.getErrors( panel.getSpimData(), viewIds, labelAndWeights );
 
