@@ -81,6 +81,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class SplittingTools
 {
@@ -424,13 +425,14 @@ public class SplittingTools
 		//
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
-			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Processing corresponding interest points for old setup " + oldSetup.getId() );
-
 			for ( final int newSetupId : old2NewSetups.get( oldSetup.getId() ) )
 			{
 				// update corresponding interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
 				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Processing corresponding interest points for old >>> new ViewId pair: " + 
+							Group.pvid( new ViewId( t.getId(), oldSetup.getId() ) ) + " >>> " + Group.pvid( new ViewId( t.getId(), newSetupId ) ) );
+
 					final ViewId oldViewId = new ViewId( t.getId(), oldSetup.getId() );
 					final ViewId newViewId = new ViewId( t.getId(), newSetupId );
 
@@ -462,13 +464,17 @@ public class SplittingTools
 												final ViewId newCorrViewId = new ViewId( t.getId(), corrNewSetupId );
 		
 												if ( newInterestpoints.get( newCorrViewId ).getInterestPointList( newCorrLabel ).getInterestPointsCopy().containsKey( c.getCorrespondingDetectionId() ) )
+												{
 													return new CorrespondingInterestPoints(
 															c.getDetectionId(),
 															newCorrViewId,
 															newCorrLabel,
 															c.getCorrespondingDetectionId() );
-													else
-														return null;
+												}
+												else
+												{
+													return null;
+												}
 											})
 											.filter( Objects::nonNull ) ) // .collect( Collectors.toList() ); << we can directly concatenate the streams without collecting as list and streaming again
 										.flatMap( Function.identity() ) // List::stream ) << we can directly concatenate the streams without collecting as list and streaming again
