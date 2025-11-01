@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.splitting;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -30,7 +31,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import bdv.ViewerImgLoader;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -128,7 +133,7 @@ public class SplittingTools
 		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
 
 		// for setting up the corresponding interest points
-		final Map< ViewSetup, ArrayList< Pair< ViewSetup, Interval > > > old2NewSetups = new HashMap<>();
+		final Map< Integer, ArrayList< Integer > > old2NewSetups = new HashMap<>();
 
 		final ArrayList< ViewSetup > newSetups = new ArrayList<>();
 		final Map< ViewId, ViewRegistration > newRegistrations = new HashMap<>();
@@ -172,8 +177,8 @@ public class SplittingTools
 
 			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize, minStepSize, optimize );
 
-			final ArrayList< Pair< ViewSetup, Interval > > newSetupsAndIntervals = new ArrayList<>();
-			old2NewSetups.put( oldSetup, newSetupsAndIntervals );
+			final ArrayList< Integer > newSetupsIds = new ArrayList<>();
+			old2NewSetups.put( oldSetup.getId(), newSetupsIds );
 
 			for ( int i = 0; i < intervals.size(); ++i )
 			{
@@ -200,7 +205,7 @@ public class SplittingTools
 				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, newIllum );
 				newSetups.add( newSetup );
 
-				newSetupsAndIntervals.add( new ValuePair<>(newSetup, interval));
+				newSetupsIds.add( newSetup.getId() );
 
 				// update registrations and interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
@@ -414,22 +419,19 @@ public class SplittingTools
 						missingViews.add( new ViewId( id.getTimePointId(), newSetupId ) );
 
 		//
-		// TODO: add existing corresponding interest points
+		// add existing corresponding interest points
 		//
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
 			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Processing corresponding interest points for old setup " + oldSetup.getId() );
 
-			for ( final Pair< ViewSetup, Interval > newSetupInterval : old2NewSetups.get( oldSetup ) )
+			for ( final int newSetupId : old2NewSetups.get( oldSetup.getId() ) )
 			{
-				final ViewSetup newSetup = newSetupInterval.getA();
-				final Interval interval = newSetupInterval.getB();
-
 				// update corresponding interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
 				{
 					final ViewId oldViewId = new ViewId( t.getId(), oldSetup.getId() );
-					final ViewId newViewId = new ViewId( t.getId(), newSetup.getId() );
+					final ViewId newViewId = new ViewId( t.getId(), newSetupId );
 
 					final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
 					final ViewInterestPointLists newVipl = newInterestpoints.get( newViewId );
@@ -440,27 +442,36 @@ public class SplittingTools
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
-							final String newLabel = label + "_split";
+							final Collection<CorrespondingInterestPoints> corr = oldVipl.getInterestPointList( label ).getCorrespondingInterestPointsCopy();
 
-							final InterestPoints oldIps = oldVipl.getInterestPointList( label );
-							//final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
-							final Collection<CorrespondingInterestPoints> corr = oldIps.getCorrespondingInterestPointsCopy();
+							final InterestPoints newIpl = newVipl.getInterestPointList( label + "_split" );
+							final Map< Integer, InterestPoint > newIpList = newIpl.getInterestPointsCopy();
 
-							final InterestPoints newIps = newVipl.getInterestPointList( newLabel );
-							final Map< Integer, InterestPoint > newIpList = newIps.getInterestPointsCopy();
-
-							corr.stream().parallel()
-								.filter( c -> newIpList.containsKey( c.getDetectionId() ) ) // only those that are in the current new viewid
-								.forEach( c -> {
-									// find all new setups this overlaps with
-									final ViewId corrViewId = c.getCorrespondingViewId();
-								});
-								;
-
-							for ( final CorrespondingInterestPoints c : corr )
-							{
-								//if ( c.)
-							}
+							newIpl.setCorrespondingInterestPoints(
+									// for each corresponding interest point entry
+									corr.stream()
+										.parallel()
+										.filter( c -> newIpList.containsKey( c.getDetectionId() ) ) // only look at those that are in the current new viewid
+										.map( c ->
+											// find all new setups we have correspondences with,
+											// this could be in more than one of the new views if it falls into an overlapping area
+											old2NewSetups.get( c.getCorrespondingViewId().getViewSetupId() ).stream().map( corrNewSetupId ->
+											{
+												final String newCorrLabel = c.getCorrespodingLabel() + "_split";
+												final ViewId newCorrViewId = new ViewId( t.getId(), corrNewSetupId );
+		
+												if ( newInterestpoints.get( newCorrViewId ).getInterestPointList( newCorrLabel ).getInterestPointsCopy().containsKey( c.getCorrespondingDetectionId() ) )
+													return new CorrespondingInterestPoints(
+															c.getDetectionId(),
+															newCorrViewId,
+															newCorrLabel,
+															c.getCorrespondingDetectionId() );
+													else
+														return null;
+											})
+											.filter( Objects::nonNull ) ) // .collect( Collectors.toList() ); << we can directly concatenate the streams without collecting as list and streaming again
+										.flatMap( Stream::unordered ) // List::stream ) << we can directly concatenate the streams without collecting as list and streaming again
+										.collect( Collectors.toList() ) );
 						}
 					}
 				}
@@ -745,6 +756,16 @@ public class SplittingTools
 
 	public static void main( String[] args )
 	{
+		List<String> names = Arrays.asList("Alice", "Jim", "Bob");
+		
+		List<String> list = names.stream().map( name ->
+			IntStream.range( 0, 10 ).mapToObj( i -> name + "_" + i )
+		).flatMap( Stream::unordered ).collect( Collectors.toList() );
+		
+		
+		list.forEach( s -> System.out.println( s ) );
+		System.exit( 0 );
+		
 		Interval input = new FinalInterval( new long[]{ 0 }, new long[] { 14192 - 1 } );
 
 		long[] overlapPx = new long[] { 128 };
