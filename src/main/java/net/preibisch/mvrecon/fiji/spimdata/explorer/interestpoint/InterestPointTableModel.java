@@ -299,19 +299,32 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 
 		if ( currentVDs != null && currentVDs.size() != 0 && bdvPopup.bdvRunning() && row >= 0 && row < getRowCount() && col >= 1 && col <= 2  )
 		{
-			// Handle state cycling for column 2
-			if ( row == selectedRow && col == selectedCol && col == 2 )
+			// Handle state cycling when clicking the same cell again
+			if ( row == selectedRow && col == selectedCol )
 			{
-				// Cycle through states: 1 (red) -> 2 (green) -> 0 (none)
-				selectedState = (selectedState % 2) + 1; // cycles: 1->2, 2->1 (we'll handle 2->0 below)
-				if ( selectedState == 2 )
+				if ( col == 2 )
 				{
-					// Moving from red to green
-					selectedState = 2;
+					// Column 2: Cycle through states 1 (red) -> 2 (green) -> 0 (none)
+					selectedState = (selectedState % 2) + 1; // cycles: 1->2, 2->1 (we'll handle 2->0 below)
+					if ( selectedState == 2 )
+					{
+						// Moving from red to green
+						selectedState = 2;
+					}
+					else
+					{
+						// Moving from green back to none
+						selectedState = 0;
+						this.selectedRow = this.selectedCol = -1;
+						this.points = new HashMap<>();
+						if ( bdvPopup.bdvRunning() )
+							bdvPopup.updateBDV();
+						return;
+					}
 				}
-				else
+				else if ( col == 1 )
 				{
-					// Moving from green back to none
+					// Column 1: Toggle between selected (1) and unselected (0)
 					selectedState = 0;
 					this.selectedRow = this.selectedCol = -1;
 					this.points = new HashMap<>();
