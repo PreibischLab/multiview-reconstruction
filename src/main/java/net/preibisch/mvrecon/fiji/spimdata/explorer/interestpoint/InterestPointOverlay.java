@@ -50,11 +50,28 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 	private final ViewerPanel viewer;
 
 	private Color col = Color.green.darker();
+	private final HashMap< ViewId, Color > viewColors = new HashMap<>();
 
 	public void setColor( final Color col ) { this.col = col; }
 
+	private Color getGreenShadeForView( final ViewId viewId )
+	{
+		if ( !viewColors.containsKey( viewId ) )
+		{
+			// Use view setup ID to generate consistent but distinct green shades
+			final int id = viewId.getViewSetupId();
+			// Generate green variations using HSB color space
+			// Vary hue in wide range: from yellow through green to cyan
+			final float hue = 0.15f + (id * 0.11f) % 0.40f; // 0.15-0.55 (yellow to cyan)
+			final float saturation = 0.7f; // Keep saturation consistent
+			final float brightness = 0.8f; // Keep brightness consistent
+			viewColors.put( viewId, Color.getHSBColor( hue, saturation, brightness ) );
+		}
+		return viewColors.get( viewId );
+	}
+
 	/** screen pixels [x,y,z] **/
-	private Color getColor( final double[] gPos )
+	private Color getColor( final double[] gPos, final ViewId viewId )
 	{
 		if ( Math.abs( gPos[ 2 ] ) < 3 )
 			return Color.red;
@@ -64,7 +81,8 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		if ( alpha < 64 )
 			alpha = 64;
 
-		return new Color( col.getRed(), col.getGreen(), col.getBlue(), alpha );
+		final Color baseColor = getGreenShadeForView( viewId );
+		return new Color( baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha );
 	}
 
 	private double getPointSize( final double[] gPos )
@@ -111,7 +129,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 					final int x = ( int ) ( gPos[ 0 ] - 0.5 * size );
 					final int y = ( int ) ( gPos[ 1 ] - 0.5 * size );
 					final int w = ( int ) size;
-					graphics.setColor( getColor( gPos ) );
+					graphics.setColor( getColor( gPos, viewId ) );
 					graphics.fillOval( x, y, w, w );
 				}
 			}
