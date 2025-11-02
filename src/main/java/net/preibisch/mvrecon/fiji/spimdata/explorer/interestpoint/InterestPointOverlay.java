@@ -44,6 +44,8 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		public void getLocalToGlobalTransform( final ViewId viewId, final int timepointIndex, final AffineTransform3D transform );
 		public int getCorrespondenceColorId( final ViewId viewId, final int detectionId, final int timepointIndex );
 		public int getShapeType( final ViewId viewId, final int timepointIndex );
+		public double getDistanceFade();
+		public boolean isFilterMode();
 	}
 
 	private final Collection< ? extends InterestPointSource > interestPointSources;
@@ -86,13 +88,26 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 	/** screen pixels [x,y,z] **/
 	private Color getColor( final double[] gPos, final ViewId viewId, final int detectionId, final InterestPointSource pointSource, final int t )
 	{
-		if ( Math.abs( gPos[ 2 ] ) < 3 )
+		// In filter mode, don't color points red - show them in their normal colors
+		if ( !pointSource.isFilterMode() && Math.abs( gPos[ 2 ] ) < 3 )
 			return Color.red;
 
-		int alpha = 255 - (int)Math.round( Math.abs( gPos[ 2 ] ) );
+		// Apply distance fade factor with exponential decay
+		final double fadeFactor = pointSource.getDistanceFade();
+		final int alpha;
 
-		if ( alpha < 64 )
-			alpha = 64;
+		if ( fadeFactor > 0 )
+		{
+			// Exponential decay: alpha drops off exponentially with distance
+			// Scale factor 0.3 makes points at distance ~10 nearly invisible at max fade
+			final double distance = Math.abs( gPos[ 2 ] );
+			alpha = (int)( 255.0 * Math.exp( -distance * fadeFactor * 0.3 ) );
+		}
+		else
+		{
+			// No fade - all points fully opaque
+			alpha = 255;
+		}
 
 		// Check if we should use correspondence-based coloring
 		final int corrId = pointSource.getCorrespondenceColorId( viewId, detectionId, t );
@@ -156,6 +171,8 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		{
 			final HashMap< ? extends ViewId, ? extends Collection< ? extends RealLocalizable > > coordinates = pointSource.getLocalCoordinates( t );
 
+			final boolean filterMode = pointSource.isFilterMode();
+
 			for ( final ViewId viewId : coordinates.keySet() )
 			{
 				pointSource.getLocalToGlobalTransform( viewId, t, transform );
@@ -167,6 +184,11 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 				{
 					p.localize( lPos );
 					transform.apply( lPos, gPos );
+
+					// In filter mode, skip points that are not on the current plane (performance optimization)
+					if ( filterMode && Math.abs( gPos[ 2 ] ) >= 3 )
+						continue;
+
 					final double size = getPointSize( gPos );
 					final int x = ( int ) ( gPos[ 0 ] - 0.5 * size );
 					final int y = ( int ) ( gPos[ 1 ] - 0.5 * size );

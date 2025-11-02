@@ -62,6 +62,8 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 	private int selectedRow = -1;
 	private int selectedCol = -1;
 	private int selectedState = 0; // 0=none, 1=red/all-corresponding, 2=green/inter-visible
+	private double distanceFade = 0.125; // 0.0 = no fade, 1.0 = full fade (default: 0.5^3 = 0.125)
+	private boolean filterMode = false; // true = only draw points on current plane (performance mode)
 
 	final ArrayList< InterestPointSource > interestPointSources;
 	volatile InterestPointOverlay interestPointOverlay = null;
@@ -549,5 +551,28 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 			return 2; // Diagonal cross
 
 		return 0; // Circle (fallback)
+	}
+
+	@Override
+	public double getDistanceFade()
+	{
+		return distanceFade;
+	}
+
+	@Override
+	public boolean isFilterMode()
+	{
+		return filterMode;
+	}
+
+	public void setDistanceFade( final double distanceFade, final boolean filterMode )
+	{
+		this.distanceFade = distanceFade;
+		this.filterMode = filterMode;
+
+		// Update BDV if it's running
+		final BasicBDVPopup bdvPopup = panel.viewSetupExplorer.getPanel().bdvPopup();
+		if ( bdvPopup.bdvRunning() )
+			bdvPopup.updateBDV();
 	}
 }

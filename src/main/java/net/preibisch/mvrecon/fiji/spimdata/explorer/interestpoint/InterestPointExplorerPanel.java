@@ -26,6 +26,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,8 +44,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
@@ -126,10 +130,51 @@ public class InterestPointExplorerPanel extends JPanel
 		final Font f = table.getFont();
 		
 		table.setFont( new Font( f.getName(), f.getStyle(), 11 ) );
-		
+
 		this.setLayout( new BorderLayout() );
 		this.label = new JLabel( "View Description --- " );
-		this.add( label, BorderLayout.NORTH );
+
+		// Create top panel with label and distance fade slider
+		final JPanel topPanel = new JPanel( new BorderLayout() );
+		topPanel.add( label, BorderLayout.WEST );
+
+		// Create slider panel on the right
+		final JPanel sliderPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT ) );
+		final JLabel sliderLabel = new JLabel( "Distance Fade:" );
+		final JSlider distanceFadeSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (medium fade)
+		distanceFadeSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		distanceFadeSlider.addChangeListener( new ChangeListener()
+		{
+			@Override
+			public void stateChanged( ChangeEvent e )
+			{
+				final int sliderValue = distanceFadeSlider.getValue();
+
+				// Check if we're at maximum (filter mode)
+				final boolean filterMode = (sliderValue == 100);
+
+				// Change appearance when in filter mode
+				if ( filterMode )
+				{
+					sliderPanel.setBackground( new Color( 255, 200, 200 ) ); // Light red
+					sliderLabel.setForeground( Color.red );
+				}
+				else
+				{
+					sliderPanel.setBackground( null ); // Default background
+					sliderLabel.setForeground( null ); // Default foreground
+				}
+
+				// Apply exponential scaling for better control (cubic for very aggressive fade at max)
+				final double fadeFactor = Math.pow( sliderValue / 100.0, 3.0 );
+				tableModel.setDistanceFade( fadeFactor, filterMode );
+			}
+		});
+		sliderPanel.add( sliderLabel );
+		sliderPanel.add( distanceFadeSlider );
+		topPanel.add( sliderPanel, BorderLayout.EAST );
+
+		this.add( topPanel, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
 
 		table.getColumnModel().getColumn( 0 ).setPreferredWidth( 30 );
