@@ -295,6 +295,9 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 
 	public void setSelected( final int row, final int col )
 	{
+		// Clear correspondence color map cache when selection changes
+		correspondenceColorMap = null;
+
 		final BasicBDVPopup bdvPopup = panel.viewSetupExplorer.getPanel().bdvPopup();
 
 		if ( currentVDs != null && currentVDs.size() != 0 && bdvPopup.bdvRunning() && row >= 0 && row < getRowCount() && col >= 1 && col <= 2  )
@@ -479,5 +482,72 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 			vr.updateModel();
 			transform.set( vr.getModel() );
 		}
+	}
+
+	private HashMap< ViewId, HashMap< Integer, Integer > > correspondenceColorMap = null;
+	private int correspondenceColorIdCounter = 0;
+
+	@Override
+	public int getCorrespondenceColorId( final ViewId viewId, final int detectionId, final int timepointIndex )
+	{
+		// Only use correspondence coloring in green mode (state 2) with exactly 2 views
+		if ( selectedState != 2 || currentVDs == null || currentVDs.size() != 2 )
+			return -1;
+
+		// Build correspondence color map if not already done
+		if ( correspondenceColorMap == null )
+		{
+			correspondenceColorMap = new HashMap<>();
+			correspondenceColorIdCounter = 0;
+
+			final HashMap< String, Integer > labels = InterestPointTools.getAllInterestPointMap( viewInterestPoints, currentVDs );
+			final String label = label( labels, selectedRow );
+
+			if ( label != null )
+			{
+				final ViewId viewIdA = currentVDs.get( 0 );
+				final ViewId viewIdB = currentVDs.get( 1 );
+
+				correspondenceColorMap.put( viewIdA, new HashMap<>() );
+				correspondenceColorMap.put( viewIdB, new HashMap<>() );
+
+				if ( viewInterestPoints.getViewInterestPointLists( viewIdA ).getHashMap().containsKey( label ) )
+				{
+					final InterestPoints ipListA = viewInterestPoints.getViewInterestPointLists( viewIdA ).getInterestPointList( label );
+
+					for ( final CorrespondingInterestPoints cip : ipListA.getCorrespondingInterestPointsCopy() )
+					{
+						if ( cip.getCorrespondingViewId().equals( viewIdB ) )
+						{
+							final int colorId = correspondenceColorIdCounter++;
+							correspondenceColorMap.get( viewIdA ).put( cip.getDetectionId(), colorId );
+							correspondenceColorMap.get( viewIdB ).put( cip.getCorrespondingDetectionId(), colorId );
+						}
+					}
+				}
+			}
+		}
+
+		// Look up color ID for this detection
+		if ( correspondenceColorMap.containsKey( viewId ) && correspondenceColorMap.get( viewId ).containsKey( detectionId ) )
+			return correspondenceColorMap.get( viewId ).get( detectionId );
+
+		return -1;
+	}
+
+	@Override
+	public int getShapeType( final ViewId viewId, final int timepointIndex )
+	{
+		// Only use different shapes in green mode (state 2) with exactly 2 views
+		if ( selectedState != 2 || currentVDs == null || currentVDs.size() != 2 )
+			return 0; // Circle
+
+		// First view gets cross (+), second view gets diagonal cross (×)
+		if ( viewId.equals( currentVDs.get( 0 ) ) )
+			return 1; // Cross
+		else if ( viewId.equals( currentVDs.get( 1 ) ) )
+			return 2; // Diagonal cross
+
+		return 0; // Circle (fallback)
 	}
 }

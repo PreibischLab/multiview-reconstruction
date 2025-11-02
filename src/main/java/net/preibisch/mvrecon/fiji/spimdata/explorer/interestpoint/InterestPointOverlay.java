@@ -30,6 +30,7 @@ import java.util.HashMap;
 
 import net.imglib2.RealLocalizable;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import bdv.viewer.OverlayRenderer;
 import bdv.viewer.TransformListener;
 import bdv.viewer.ViewerPanel;
@@ -41,6 +42,8 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 	{
 		public HashMap< ? extends ViewId, ? extends Collection< ? extends RealLocalizable > > getLocalCoordinates( final int timepointIndex );
 		public void getLocalToGlobalTransform( final ViewId viewId, final int timepointIndex, final AffineTransform3D transform );
+		public int getCorrespondenceColorId( final ViewId viewId, final int detectionId, final int timepointIndex );
+		public int getShapeType( final ViewId viewId, final int timepointIndex );
 	}
 
 	private final Collection< ? extends InterestPointSource > interestPointSources;
@@ -70,8 +73,18 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		return viewColors.get( viewId );
 	}
 
+	private Color getColorForCorrespondence( final int corrId )
+	{
+		// Generate distinct colors for correspondence pairs
+		// Vary hue across spectrum (avoiding red ~0.0 which is reserved for current plane)
+		final float hue = 0.15f + (corrId * 0.17f) % 0.70f; // 0.15-0.85, skipping red
+		final float saturation = 0.8f;
+		final float brightness = 0.9f;
+		return Color.getHSBColor( hue, saturation, brightness );
+	}
+
 	/** screen pixels [x,y,z] **/
-	private Color getColor( final double[] gPos, final ViewId viewId )
+	private Color getColor( final double[] gPos, final ViewId viewId, final int detectionId, final InterestPointSource pointSource, final int t )
 	{
 		if ( Math.abs( gPos[ 2 ] ) < 3 )
 			return Color.red;
@@ -81,13 +94,40 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		if ( alpha < 64 )
 			alpha = 64;
 
-		final Color baseColor = getGreenShadeForView( viewId );
+		// Check if we should use correspondence-based coloring
+		final int corrId = pointSource.getCorrespondenceColorId( viewId, detectionId, t );
+		final Color baseColor;
+		if ( corrId >= 0 )
+		{
+			// Use correspondence-based color
+			baseColor = getColorForCorrespondence( corrId );
+		}
+		else
+		{
+			// Use view-based color
+			baseColor = getGreenShadeForView( viewId );
+		}
+
 		return new Color( baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha );
 	}
 
 	private double getPointSize( final double[] gPos )
 	{
 		return 3.0;
+	}
+
+	private void drawCross( final Graphics2D graphics, final int x, final int y, final int size )
+	{
+		// Draw horizontal and vertical lines (+ shape)
+		graphics.drawLine( x - size, y, x + size, y );
+		graphics.drawLine( x, y - size, x, y + size );
+	}
+
+	private void drawDiagonalCross( final Graphics2D graphics, final int x, final int y, final int size )
+	{
+		// Draw diagonal lines at 45° (× shape)
+		graphics.drawLine( x - size, y - size, x + size, y + size );
+		graphics.drawLine( x - size, y + size, x + size, y - size );
 	}
 
 	public InterestPointOverlay( final ViewerPanel viewer, final Collection< ? extends InterestPointSource > interestPointSources )
@@ -121,6 +161,8 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 				pointSource.getLocalToGlobalTransform( viewId, t, transform );
 				transform.preConcatenate( viewerTransform );
 
+				final int shapeType = pointSource.getShapeType( viewId, t );
+
 				for ( final RealLocalizable p : coordinates.get( viewId ) )
 				{
 					p.localize( lPos );
@@ -129,8 +171,29 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 					final int x = ( int ) ( gPos[ 0 ] - 0.5 * size );
 					final int y = ( int ) ( gPos[ 1 ] - 0.5 * size );
 					final int w = ( int ) size;
-					graphics.setColor( getColor( gPos, viewId ) );
-					graphics.fillOval( x, y, w, w );
+
+					// Get detection ID if this is an InterestPoint
+					final int detectionId = ( p instanceof InterestPoint ) ?
+						((InterestPoint)p).getId() : -1;
+
+					graphics.setColor( getColor( gPos, viewId, detectionId, pointSource, t ) );
+
+					// Draw shape based on type
+					if ( shapeType == 1 )
+					{
+						// Cross (+) - 3x larger than default
+						drawCross( graphics, x + w / 2, y + w / 2, (w * 3) / 2 );
+					}
+					else if ( shapeType == 2 )
+					{
+						// Diagonal cross (×) - 3x larger than default
+						drawDiagonalCross( graphics, x + w / 2, y + w / 2, (w * 3) / 2 );
+					}
+					else
+					{
+						// Circle (default)
+						graphics.fillOval( x, y, w, w );
+					}
 				}
 			}
 		}
