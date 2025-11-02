@@ -427,7 +427,16 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 
 		};
 	}
-	
+
+	@Override
+	protected void clearGroupingCheckboxes()
+	{
+		if ( groupTilesCheckbox != null )
+			groupTilesCheckbox.setSelected( false );
+		if ( groupIllumsCheckbox != null )
+			groupIllumsCheckbox.setSelected( false );
+	}
+
 	public static void updateBDV(final BigDataViewer bdv, final boolean colorMode, final AbstractSpimData< ? > data,
 			BasicViewDescription< ? > firstVD,
 			final Collection< List< BasicViewDescription< ? >> > selectedRows)

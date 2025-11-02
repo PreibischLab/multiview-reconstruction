@@ -39,6 +39,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -234,6 +235,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	}
 
 	public abstract void initComponent();
+
+	/**
+	 * Update UI checkboxes when grouping is programmatically cleared.
+	 * Override this method to uncheck grouping checkboxes in subclasses.
+	 */
+	protected abstract void clearGroupingCheckboxes();
 
 	public void updateFilter( Class< ? extends Entity > entityClass, Entity selectedInstance )
 	{
@@ -662,7 +669,15 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 			{
 				if ( arg0.getKeyChar() == '+' )
 				{
-					openSelectionDialog();
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> openSelectionDialog() );
+					}
+					else
+					{
+						openSelectionDialog();
+					}
 				}
 			}
 		} );
@@ -784,6 +799,18 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 		}
 	}
 
+	protected boolean disableGroupingIfActive()
+	{
+		if ( tableModel != null && tableModel.getGroupingFactors() != null && !tableModel.getGroupingFactors().isEmpty() )
+		{
+			tableModel.clearGroupingFactors();
+			clearGroupingCheckboxes();
+			IOFunctions.println( "Disabled grouping for selection operations" );
+			return true;
+		}
+		return false;
+	}
+
 	protected void addHistoryNavigation()
 	{
 		table.addKeyListener( new KeyAdapter()
@@ -793,11 +820,27 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 			{
 				if ( e.getKeyChar() == '<' || e.getKeyChar() == ',' )
 				{
-					navigateHistoryBackward();
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> navigateHistoryBackward() );
+					}
+					else
+					{
+						navigateHistoryBackward();
+					}
 				}
 				else if ( e.getKeyChar() == '>' || e.getKeyChar() == '.' )
 				{
-					navigateHistoryForward();
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> navigateHistoryForward() );
+					}
+					else
+					{
+						navigateHistoryForward();
+					}
 				}
 			}
 		} );
