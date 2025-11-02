@@ -142,7 +142,8 @@ public class InterestPointExplorerPanel extends JPanel
 		final JPanel slidersPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT ) );
 
 		// Point Size slider
-		final JLabel sizeSliderLabel = new JLabel( "Point Size:" );
+		final JLabel sizeSliderLabel = new JLabel( "<html>Point<br>Size:</html>" );
+		sizeSliderLabel.setFont( sizeSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider sizeSlider = new JSlider( 0, 100, 30 ); // Initialize at 30 to give scale = 1.0 (current size 3.0)
 		sizeSlider.setPreferredSize( new Dimension( 150, 25 ) );
 		sizeSlider.addChangeListener( new ChangeListener()
@@ -159,7 +160,8 @@ public class InterestPointExplorerPanel extends JPanel
 		});
 
 		// Plane Thickness slider
-		final JLabel planeThicknessSliderLabel = new JLabel( "Plane Thickness:" );
+		final JLabel planeThicknessSliderLabel = new JLabel( "<html>Plane<br>Thickness:</html>" );
+		planeThicknessSliderLabel.setFont( planeThicknessSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider planeThicknessSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (thickness=3)
 		planeThicknessSlider.setPreferredSize( new Dimension( 150, 25 ) );
 		planeThicknessSlider.addChangeListener( new ChangeListener()
@@ -177,7 +179,8 @@ public class InterestPointExplorerPanel extends JPanel
 
 		// Distance Fade slider
 		final JPanel distanceFadeSliderPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0 ) );
-		final JLabel distanceFadeSliderLabel = new JLabel( "Distance Fade:" );
+		final JLabel distanceFadeSliderLabel = new JLabel( "<html>Distance<br>Fade:</html>" );
+		distanceFadeSliderLabel.setFont( distanceFadeSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider distanceFadeSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (medium fade)
 		distanceFadeSlider.setPreferredSize( new Dimension( 150, 25 ) );
 		distanceFadeSlider.addChangeListener( new ChangeListener()
