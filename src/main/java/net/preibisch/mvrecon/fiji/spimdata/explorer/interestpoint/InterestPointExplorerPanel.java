@@ -30,6 +30,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
@@ -46,6 +48,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -146,6 +149,8 @@ public class InterestPointExplorerPanel extends JPanel
 		sizeSliderLabel.setFont( sizeSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider sizeSlider = new JSlider( 0, 100, 30 ); // Initialize at 30 to give scale = 1.0 (current size 3.0)
 		sizeSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		final JTextField sizeTextField = new JTextField( 4 );
+		sizeTextField.setPreferredSize( new Dimension( 40, 20 ) );
 		sizeSlider.addChangeListener( new ChangeListener()
 		{
 			@Override
@@ -156,14 +161,67 @@ public class InterestPointExplorerPanel extends JPanel
 				// At 0: scale~0.44, At 30: scale=1.0, At 100: scale~6.67 (size=20)
 				final double scale = Math.pow( 10.0, (sliderValue - 30.0) / 85.0 );
 				tableModel.setPointSizeScale( scale );
+				// Display actual pixel size (scale * 3.0)
+				final double pixelSize = scale * 3.0;
+				sizeTextField.setText( String.format( "%.1f", pixelSize ) );
 			}
 		});
+		final ActionListener sizeTextFieldListener = new ActionListener()
+		{
+			@Override
+			public void actionPerformed( ActionEvent e )
+			{
+				try
+				{
+					final double pixelSize = Double.parseDouble( sizeTextField.getText() );
+					// Convert to scale factor and apply directly to model
+					final double scale = pixelSize / 3.0;
+					tableModel.setPointSizeScale( scale );
+
+					// Inverse formula: sliderValue = 30 + 85 * log10(scale)
+					int sliderValue = (int)( 30 + 85.0 * Math.log10( scale ) );
+					// Clamp slider to valid range (0-100) but don't constrain the actual value
+					sliderValue = Math.max( 0, Math.min( 100, sliderValue ) );
+
+					// Temporarily remove listener to avoid overwriting text field
+					final ChangeListener[] listeners = sizeSlider.getChangeListeners();
+					for ( ChangeListener listener : listeners )
+						sizeSlider.removeChangeListener( listener );
+
+					sizeSlider.setValue( sliderValue );
+
+					// Re-add listeners
+					for ( ChangeListener listener : listeners )
+						sizeSlider.addChangeListener( listener );
+				}
+				catch ( NumberFormatException ex )
+				{
+					// Reset to current value from model
+					final double scale = tableModel.getPointSizeScale();
+					final double pixelSize = scale * 3.0;
+					sizeTextField.setText( String.format( "%.1f", pixelSize ) );
+				}
+			}
+		};
+		sizeTextField.addActionListener( sizeTextFieldListener );
+		sizeTextField.addFocusListener( new FocusAdapter()
+		{
+			@Override
+			public void focusLost( FocusEvent e )
+			{
+				sizeTextFieldListener.actionPerformed( null );
+			}
+		});
+		// Initialize text field
+		sizeTextField.setText( "3.0" );
 
 		// Plane Thickness slider
 		final JLabel planeThicknessSliderLabel = new JLabel( "<html>Plane<br>Thickness:</html>" );
 		planeThicknessSliderLabel.setFont( planeThicknessSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider planeThicknessSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (thickness=3)
 		planeThicknessSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		final JTextField planeThicknessTextField = new JTextField( 4 );
+		planeThicknessTextField.setPreferredSize( new Dimension( 40, 20 ) );
 		planeThicknessSlider.addChangeListener( new ChangeListener()
 		{
 			@Override
@@ -174,8 +232,55 @@ public class InterestPointExplorerPanel extends JPanel
 				// At 0: thickness=0, At 50: thickness~3.125, At 100: thickness=100
 				final double thickness = 100.0 * Math.pow( sliderValue / 100.0, 5.0 );
 				tableModel.setPlaneThickness( thickness );
+				planeThicknessTextField.setText( String.format( "%.1f", thickness ) );
 			}
 		});
+		final ActionListener planeThicknessTextFieldListener = new ActionListener()
+		{
+			@Override
+			public void actionPerformed( ActionEvent e )
+			{
+				try
+				{
+					final double thickness = Double.parseDouble( planeThicknessTextField.getText() );
+					// Apply directly to model
+					tableModel.setPlaneThickness( thickness );
+
+					// Inverse formula: sliderValue = 100 * (thickness/100)^(1/5)
+					int sliderValue = (int)( 100.0 * Math.pow( Math.max( 0.0, thickness ) / 100.0, 0.2 ) );
+					// Clamp slider to valid range (0-100) but don't constrain the actual value
+					sliderValue = Math.max( 0, Math.min( 100, sliderValue ) );
+
+					// Temporarily remove listener to avoid overwriting text field
+					final ChangeListener[] listeners = planeThicknessSlider.getChangeListeners();
+					for ( ChangeListener listener : listeners )
+						planeThicknessSlider.removeChangeListener( listener );
+
+					planeThicknessSlider.setValue( sliderValue );
+
+					// Re-add listeners
+					for ( ChangeListener listener : listeners )
+						planeThicknessSlider.addChangeListener( listener );
+				}
+				catch ( NumberFormatException ex )
+				{
+					// Reset to current value from model
+					final double thickness = tableModel.getPlaneThickness();
+					planeThicknessTextField.setText( String.format( "%.1f", thickness ) );
+				}
+			}
+		};
+		planeThicknessTextField.addActionListener( planeThicknessTextFieldListener );
+		planeThicknessTextField.addFocusListener( new FocusAdapter()
+		{
+			@Override
+			public void focusLost( FocusEvent e )
+			{
+				planeThicknessTextFieldListener.actionPerformed( null );
+			}
+		});
+		// Initialize text field
+		planeThicknessTextField.setText( "3.1" );
 
 		// Distance Fade slider
 		final JPanel distanceFadeSliderPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0 ) );
@@ -183,6 +288,8 @@ public class InterestPointExplorerPanel extends JPanel
 		distanceFadeSliderLabel.setFont( distanceFadeSliderLabel.getFont().deriveFont( 9.0f ) );
 		final JSlider distanceFadeSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (medium fade)
 		distanceFadeSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		final JTextField distanceFadeTextField = new JTextField( 4 );
+		distanceFadeTextField.setPreferredSize( new Dimension( 40, 20 ) );
 		distanceFadeSlider.addChangeListener( new ChangeListener()
 		{
 			@Override
@@ -208,16 +315,82 @@ public class InterestPointExplorerPanel extends JPanel
 				// Apply exponential scaling for better control (cubic for very aggressive fade at max)
 				final double fadeFactor = Math.pow( sliderValue / 100.0, 3.0 );
 				tableModel.setDistanceFade( fadeFactor, filterMode );
+				distanceFadeTextField.setText( String.format( "%.1f", fadeFactor ) );
 			}
 		});
+		final ActionListener distanceFadeTextFieldListener = new ActionListener()
+		{
+			@Override
+			public void actionPerformed( ActionEvent e )
+			{
+				try
+				{
+					final double fadeFactor = Double.parseDouble( distanceFadeTextField.getText() );
+
+					// Inverse formula: sliderValue = 100 * fadeFactor^(1/3)
+					int sliderValue = (int)( 100.0 * Math.pow( Math.max( 0.0, fadeFactor ), 1.0 / 3.0 ) );
+					// Clamp slider to valid range (0-100) but don't constrain the actual value
+					sliderValue = Math.max( 0, Math.min( 100, sliderValue ) );
+
+					// Determine filter mode (>= 1.0)
+					final boolean filterMode = fadeFactor >= 1.0;
+
+					// Apply directly to model
+					tableModel.setDistanceFade( fadeFactor, filterMode );
+
+					// Update slider panel appearance if at max
+					if ( filterMode )
+					{
+						distanceFadeSliderPanel.setBackground( new Color( 255, 200, 200 ) );
+						distanceFadeSliderLabel.setForeground( Color.red );
+					}
+					else
+					{
+						distanceFadeSliderPanel.setBackground( null );
+						distanceFadeSliderLabel.setForeground( null );
+					}
+
+					// Temporarily remove listener to avoid overwriting text field
+					final ChangeListener[] listeners = distanceFadeSlider.getChangeListeners();
+					for ( ChangeListener listener : listeners )
+						distanceFadeSlider.removeChangeListener( listener );
+
+					distanceFadeSlider.setValue( sliderValue );
+
+					// Re-add listeners
+					for ( ChangeListener listener : listeners )
+						distanceFadeSlider.addChangeListener( listener );
+				}
+				catch ( NumberFormatException ex )
+				{
+					// Reset to current value from model
+					final double fadeFactor = tableModel.getDistanceFade();
+					distanceFadeTextField.setText( String.format( "%.1f", fadeFactor ) );
+				}
+			}
+		};
+		distanceFadeTextField.addActionListener( distanceFadeTextFieldListener );
+		distanceFadeTextField.addFocusListener( new FocusAdapter()
+		{
+			@Override
+			public void focusLost( FocusEvent e )
+			{
+				distanceFadeTextFieldListener.actionPerformed( null );
+			}
+		});
+		// Initialize text field
+		distanceFadeTextField.setText( "0.1" );
 		distanceFadeSliderPanel.add( distanceFadeSliderLabel );
 		distanceFadeSliderPanel.add( distanceFadeSlider );
+		distanceFadeSliderPanel.add( distanceFadeTextField );
 
-		// Add all sliders to the combined panel
+		// Add all sliders and text fields to the combined panel
 		slidersPanel.add( sizeSliderLabel );
 		slidersPanel.add( sizeSlider );
+		slidersPanel.add( sizeTextField );
 		slidersPanel.add( planeThicknessSliderLabel );
 		slidersPanel.add( planeThicknessSlider );
+		slidersPanel.add( planeThicknessTextField );
 		slidersPanel.add( distanceFadeSliderPanel );
 
 		topPanel.add( slidersPanel, BorderLayout.EAST );

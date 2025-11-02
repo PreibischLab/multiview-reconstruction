@@ -98,17 +98,18 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		final double fadeFactor = pointSource.getDistanceFade();
 		final int alpha;
 
-		if ( fadeFactor > 0 )
+		// In filter mode, disable distance fade (all points within plane thickness should be fully visible)
+		if ( pointSource.isFilterMode() || fadeFactor == 0 )
+		{
+			// No fade - all points fully opaque
+			alpha = 255;
+		}
+		else
 		{
 			// Exponential decay: alpha drops off exponentially with distance
 			// Scale factor 0.3 makes points at distance ~10 nearly invisible at max fade
 			final double distance = Math.abs( gPos[ 2 ] );
 			alpha = (int)( 255.0 * Math.exp( -distance * fadeFactor * 0.3 ) );
-		}
-		else
-		{
-			// No fade - all points fully opaque
-			alpha = 255;
 		}
 
 		// Check if we should use correspondence-based coloring
