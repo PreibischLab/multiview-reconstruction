@@ -163,7 +163,7 @@ public class InterestPointExplorerPanel extends JPanel
 				tableModel.setPointSizeScale( scale );
 				// Display actual pixel size (scale * 3.0)
 				final double pixelSize = scale * 3.0;
-				sizeTextField.setText( String.format( "%.1f", pixelSize ) );
+				sizeTextField.setText( String.format( "%.2f", pixelSize ) );
 			}
 		});
 		final ActionListener sizeTextFieldListener = new ActionListener()
@@ -199,7 +199,7 @@ public class InterestPointExplorerPanel extends JPanel
 					// Reset to current value from model
 					final double scale = tableModel.getPointSizeScale();
 					final double pixelSize = scale * 3.0;
-					sizeTextField.setText( String.format( "%.1f", pixelSize ) );
+					sizeTextField.setText( String.format( "%.2f", pixelSize ) );
 				}
 			}
 		};
@@ -213,7 +213,7 @@ public class InterestPointExplorerPanel extends JPanel
 			}
 		});
 		// Initialize text field
-		sizeTextField.setText( "3.0" );
+		sizeTextField.setText( "3.00" );
 
 		// Plane Thickness slider
 		final JLabel planeThicknessSliderLabel = new JLabel( "<html>Plane<br>Thickness:</html>" );
@@ -232,7 +232,7 @@ public class InterestPointExplorerPanel extends JPanel
 				// At 0: thickness=0, At 50: thickness~3.125, At 100: thickness=100
 				final double thickness = 100.0 * Math.pow( sliderValue / 100.0, 5.0 );
 				tableModel.setPlaneThickness( thickness );
-				planeThicknessTextField.setText( String.format( "%.1f", thickness ) );
+				planeThicknessTextField.setText( String.format( "%.2f", thickness ) );
 			}
 		});
 		final ActionListener planeThicknessTextFieldListener = new ActionListener()
@@ -266,7 +266,7 @@ public class InterestPointExplorerPanel extends JPanel
 				{
 					// Reset to current value from model
 					final double thickness = tableModel.getPlaneThickness();
-					planeThicknessTextField.setText( String.format( "%.1f", thickness ) );
+					planeThicknessTextField.setText( String.format( "%.2f", thickness ) );
 				}
 			}
 		};
@@ -280,7 +280,7 @@ public class InterestPointExplorerPanel extends JPanel
 			}
 		});
 		// Initialize text field
-		planeThicknessTextField.setText( "3.1" );
+		planeThicknessTextField.setText( "3.13" );
 
 		// Distance Fade slider
 		final JPanel distanceFadeSliderPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0 ) );
@@ -315,7 +315,7 @@ public class InterestPointExplorerPanel extends JPanel
 				// Apply exponential scaling for better control (cubic for very aggressive fade at max)
 				final double fadeFactor = Math.pow( sliderValue / 100.0, 3.0 );
 				tableModel.setDistanceFade( fadeFactor, filterMode );
-				distanceFadeTextField.setText( String.format( "%.1f", fadeFactor ) );
+				distanceFadeTextField.setText( String.format( "%.2f", fadeFactor ) );
 			}
 		});
 		final ActionListener distanceFadeTextFieldListener = new ActionListener()
@@ -365,7 +365,7 @@ public class InterestPointExplorerPanel extends JPanel
 				{
 					// Reset to current value from model
 					final double fadeFactor = tableModel.getDistanceFade();
-					distanceFadeTextField.setText( String.format( "%.1f", fadeFactor ) );
+					distanceFadeTextField.setText( String.format( "%.2f", fadeFactor ) );
 				}
 			}
 		};
@@ -379,7 +379,7 @@ public class InterestPointExplorerPanel extends JPanel
 			}
 		});
 		// Initialize text field
-		distanceFadeTextField.setText( "0.1" );
+		distanceFadeTextField.setText( "0.13" );
 		distanceFadeSliderPanel.add( distanceFadeSliderLabel );
 		distanceFadeSliderPanel.add( distanceFadeSlider );
 		distanceFadeSliderPanel.add( distanceFadeTextField );
