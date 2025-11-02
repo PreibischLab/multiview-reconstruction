@@ -242,6 +242,7 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		addHelp();
 		addReCenterShortcut();
 		addViewSetupIdShortcut(); // 'v' or 'V'
+		addSelectionDialog(); // '+' to open selection dialog
 
 		addScreenshot(); // 's' or 'S'
 

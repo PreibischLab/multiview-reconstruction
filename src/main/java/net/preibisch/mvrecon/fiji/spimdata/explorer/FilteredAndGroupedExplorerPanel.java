@@ -645,6 +645,60 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 		} );
 	}
 
+	protected void addSelectionDialog()
+	{
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent arg0 )
+			{
+				if ( arg0.getKeyChar() == '+' )
+				{
+					openSelectionDialog();
+				}
+			}
+		} );
+	}
+
+	protected void openSelectionDialog()
+	{
+		final net.preibisch.mvrecon.fiji.spimdata.explorer.selection.SelectionDialog dialog =
+			new net.preibisch.mvrecon.fiji.spimdata.explorer.selection.SelectionDialog(
+				explorer().getFrame(), data );
+		dialog.setVisible( true );
+
+		if ( !dialog.wasCanceled() )
+		{
+			final List<BasicViewDescription<?>> selectedViews = dialog.getSelectedViews();
+			if ( selectedViews != null && !selectedViews.isEmpty() )
+			{
+				// Select the views in the table
+				selectViews( selectedViews );
+				IOFunctions.println( "Selected " + selectedViews.size() + " views based on criteria." );
+			}
+		}
+	}
+
+	protected void selectViews( final List<BasicViewDescription<?>> views )
+	{
+		// Clear current selection
+		table.clearSelection();
+
+		// Find and select matching rows
+		for ( int row = 0; row < tableModel.getRowCount(); row++ )
+		{
+			final List<BasicViewDescription<?>> rowViews = tableModel.getElements().get( row );
+			for ( final BasicViewDescription<?> vd : rowViews )
+			{
+				if ( views.contains( vd ) )
+				{
+					table.addRowSelectionInterval( row, row );
+					break;
+				}
+			}
+		}
+	}
+
 	protected void addAppleA()
 	{
 		table.addKeyListener( new KeyListener()
