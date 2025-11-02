@@ -65,6 +65,7 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 	private double distanceFade = 0.125; // 0.0 = no fade, 1.0 = full fade (default: 0.5^3 = 0.125)
 	private boolean filterMode = false; // true = only draw points on current plane (performance mode)
 	private double pointSizeScale = 1.0; // scaling factor for point size (1.0 = default size of 3.0)
+	private double planeThickness = 3.0; // thickness of current plane in screen pixels
 
 	final ArrayList< InterestPointSource > interestPointSources;
 	volatile InterestPointOverlay interestPointOverlay = null;
@@ -586,6 +587,22 @@ public class InterestPointTableModel extends AbstractTableModel implements Inter
 	public void setPointSizeScale( final double pointSizeScale )
 	{
 		this.pointSizeScale = pointSizeScale;
+
+		// Update BDV if it's running
+		final BasicBDVPopup bdvPopup = panel.viewSetupExplorer.getPanel().bdvPopup();
+		if ( bdvPopup.bdvRunning() )
+			bdvPopup.updateBDV();
+	}
+
+	@Override
+	public double getPlaneThickness()
+	{
+		return planeThickness;
+	}
+
+	public void setPlaneThickness( final double planeThickness )
+	{
+		this.planeThickness = planeThickness;
 
 		// Update BDV if it's running
 		final BasicBDVPopup bdvPopup = panel.viewSetupExplorer.getPanel().bdvPopup();

@@ -47,6 +47,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		public double getDistanceFade();
 		public boolean isFilterMode();
 		public double getPointSizeScale();
+		public double getPlaneThickness();
 	}
 
 	private final Collection< ? extends InterestPointSource > interestPointSources;
@@ -90,7 +91,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 	private Color getColor( final double[] gPos, final ViewId viewId, final int detectionId, final InterestPointSource pointSource, final int t )
 	{
 		// In filter mode, don't color points red - show them in their normal colors
-		if ( !pointSource.isFilterMode() && Math.abs( gPos[ 2 ] ) < 3 )
+		if ( !pointSource.isFilterMode() && Math.abs( gPos[ 2 ] ) < pointSource.getPlaneThickness() )
 			return Color.red;
 
 		// Apply distance fade factor with exponential decay
@@ -187,7 +188,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 					transform.apply( lPos, gPos );
 
 					// In filter mode, skip points that are not on the current plane (performance optimization)
-					if ( filterMode && Math.abs( gPos[ 2 ] ) >= 3 )
+					if ( filterMode && Math.abs( gPos[ 2 ] ) >= pointSource.getPlaneThickness() )
 						continue;
 
 					final double size = getPointSize( pointSource );

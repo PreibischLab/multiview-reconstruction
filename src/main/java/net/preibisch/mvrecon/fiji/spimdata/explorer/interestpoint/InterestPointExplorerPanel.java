@@ -158,6 +158,23 @@ public class InterestPointExplorerPanel extends JPanel
 			}
 		});
 
+		// Plane Thickness slider
+		final JLabel planeThicknessSliderLabel = new JLabel( "Plane Thickness:" );
+		final JSlider planeThicknessSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (thickness=3)
+		planeThicknessSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		planeThicknessSlider.addChangeListener( new ChangeListener()
+		{
+			@Override
+			public void stateChanged( ChangeEvent e )
+			{
+				final int sliderValue = planeThicknessSlider.getValue();
+				// Power scaling: thickness = 100 * (sliderValue/100)^5
+				// At 0: thickness=0, At 50: thickness~3.125, At 100: thickness=100
+				final double thickness = 100.0 * Math.pow( sliderValue / 100.0, 5.0 );
+				tableModel.setPlaneThickness( thickness );
+			}
+		});
+
 		// Distance Fade slider
 		final JPanel distanceFadeSliderPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0 ) );
 		final JLabel distanceFadeSliderLabel = new JLabel( "Distance Fade:" );
@@ -193,9 +210,11 @@ public class InterestPointExplorerPanel extends JPanel
 		distanceFadeSliderPanel.add( distanceFadeSliderLabel );
 		distanceFadeSliderPanel.add( distanceFadeSlider );
 
-		// Add both sliders to the combined panel
+		// Add all sliders to the combined panel
 		slidersPanel.add( sizeSliderLabel );
 		slidersPanel.add( sizeSlider );
+		slidersPanel.add( planeThicknessSliderLabel );
+		slidersPanel.add( planeThicknessSlider );
 		slidersPanel.add( distanceFadeSliderPanel );
 
 		topPanel.add( slidersPanel, BorderLayout.EAST );
