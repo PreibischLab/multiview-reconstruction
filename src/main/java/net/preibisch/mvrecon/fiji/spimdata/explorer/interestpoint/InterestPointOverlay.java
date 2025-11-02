@@ -204,12 +204,12 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 					if ( shapeType == 1 )
 					{
 						// Cross (+) - 3x larger than default
-						drawCross( graphics, x + w / 2, y + w / 2, (w * 3) / 2 );
+						drawCross( graphics, x + w / 2, y + w / 2, (w * 2) / 2 );
 					}
 					else if ( shapeType == 2 )
 					{
 						// Diagonal cross (×) - 3x larger than default
-						drawDiagonalCross( graphics, x + w / 2, y + w / 2, (w * 3) / 2 );
+						drawDiagonalCross( graphics, x + w / 2, y + w / 2, (w * 2) / 2 );
 					}
 					else
 					{
