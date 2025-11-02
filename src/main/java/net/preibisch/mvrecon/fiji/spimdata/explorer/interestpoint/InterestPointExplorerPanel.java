@@ -98,7 +98,7 @@ public class InterestPointExplorerPanel extends JPanel
 				viewDescriptions.add( vd );
 
 		if ( viewDescriptions.size() == 1 && label != null )
-			this.label.setText("View Description --- Timepoint: " + viewDescriptions.get( 0 ).getTimePointId() + ", View Setup Id: " + viewDescriptions.get( 0 ).getViewSetupId() );
+			this.label.setText( "Timepoint: " + viewDescriptions.get( 0 ).getTimePointId() + ", ViewSetup: " + viewDescriptions.get( 0 ).getViewSetupId() );
 		else if ( viewDescriptions == null || viewDescriptions.size() == 0 )
 			this.label.setText( "No View Descriptions selected");
 		else
@@ -134,13 +134,33 @@ public class InterestPointExplorerPanel extends JPanel
 		this.setLayout( new BorderLayout() );
 		this.label = new JLabel( "View Description --- " );
 
-		// Create top panel with label and distance fade slider
+		// Create top panel with label and sliders
 		final JPanel topPanel = new JPanel( new BorderLayout() );
 		topPanel.add( label, BorderLayout.WEST );
 
-		// Create slider panel on the right
-		final JPanel sliderPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT ) );
-		final JLabel sliderLabel = new JLabel( "Distance Fade:" );
+		// Create combined slider panel on the right with both sliders
+		final JPanel slidersPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT ) );
+
+		// Point Size slider
+		final JLabel sizeSliderLabel = new JLabel( "Point Size:" );
+		final JSlider sizeSlider = new JSlider( 0, 100, 30 ); // Initialize at 30 to give scale = 1.0 (current size 3.0)
+		sizeSlider.setPreferredSize( new Dimension( 150, 25 ) );
+		sizeSlider.addChangeListener( new ChangeListener()
+		{
+			@Override
+			public void stateChanged( ChangeEvent e )
+			{
+				final int sliderValue = sizeSlider.getValue();
+				// Exponential scaling: scale = 10^((sliderValue-30)/85)
+				// At 0: scale~0.44, At 30: scale=1.0, At 100: scale~6.67 (size=20)
+				final double scale = Math.pow( 10.0, (sliderValue - 30.0) / 85.0 );
+				tableModel.setPointSizeScale( scale );
+			}
+		});
+
+		// Distance Fade slider
+		final JPanel distanceFadeSliderPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0 ) );
+		final JLabel distanceFadeSliderLabel = new JLabel( "Distance Fade:" );
 		final JSlider distanceFadeSlider = new JSlider( 0, 100, 50 ); // 0-100, default 50 (medium fade)
 		distanceFadeSlider.setPreferredSize( new Dimension( 150, 25 ) );
 		distanceFadeSlider.addChangeListener( new ChangeListener()
@@ -156,13 +176,13 @@ public class InterestPointExplorerPanel extends JPanel
 				// Change appearance when in filter mode
 				if ( filterMode )
 				{
-					sliderPanel.setBackground( new Color( 255, 200, 200 ) ); // Light red
-					sliderLabel.setForeground( Color.red );
+					distanceFadeSliderPanel.setBackground( new Color( 255, 200, 200 ) ); // Light red
+					distanceFadeSliderLabel.setForeground( Color.red );
 				}
 				else
 				{
-					sliderPanel.setBackground( null ); // Default background
-					sliderLabel.setForeground( null ); // Default foreground
+					distanceFadeSliderPanel.setBackground( null ); // Default background
+					distanceFadeSliderLabel.setForeground( null ); // Default foreground
 				}
 
 				// Apply exponential scaling for better control (cubic for very aggressive fade at max)
@@ -170,9 +190,15 @@ public class InterestPointExplorerPanel extends JPanel
 				tableModel.setDistanceFade( fadeFactor, filterMode );
 			}
 		});
-		sliderPanel.add( sliderLabel );
-		sliderPanel.add( distanceFadeSlider );
-		topPanel.add( sliderPanel, BorderLayout.EAST );
+		distanceFadeSliderPanel.add( distanceFadeSliderLabel );
+		distanceFadeSliderPanel.add( distanceFadeSlider );
+
+		// Add both sliders to the combined panel
+		slidersPanel.add( sizeSliderLabel );
+		slidersPanel.add( sizeSlider );
+		slidersPanel.add( distanceFadeSliderPanel );
+
+		topPanel.add( slidersPanel, BorderLayout.EAST );
 
 		this.add( topPanel, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );

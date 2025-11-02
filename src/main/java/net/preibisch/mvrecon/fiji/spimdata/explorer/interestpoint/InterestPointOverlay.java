@@ -46,6 +46,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		public int getShapeType( final ViewId viewId, final int timepointIndex );
 		public double getDistanceFade();
 		public boolean isFilterMode();
+		public double getPointSizeScale();
 	}
 
 	private final Collection< ? extends InterestPointSource > interestPointSources;
@@ -126,9 +127,9 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		return new Color( baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha );
 	}
 
-	private double getPointSize( final double[] gPos )
+	private double getPointSize( final InterestPointSource pointSource )
 	{
-		return 3.0;
+		return 3.0 * pointSource.getPointSizeScale();
 	}
 
 	private void drawCross( final Graphics2D graphics, final int x, final int y, final int size )
@@ -189,7 +190,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 					if ( filterMode && Math.abs( gPos[ 2 ] ) >= 3 )
 						continue;
 
-					final double size = getPointSize( gPos );
+					final double size = getPointSize( pointSource );
 					final int x = ( int ) ( gPos[ 0 ] - 0.5 * size );
 					final int y = ( int ) ( gPos[ 1 ] - 0.5 * size );
 					final int w = ( int ) size;
