@@ -78,6 +78,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 
 	protected ArrayList< ExplorerWindowSetable > popups;
 
+	// Selection history
+	private static final int MAX_HISTORY_SIZE = 10;
+	private static final List<List<BasicViewDescription<?>>> selectionHistory = new ArrayList<>();
+	private static int historyIndex = -1;
+	private static boolean navigatingHistory = false;
+
 	static
 	{
 		IOFunctions.printIJLog = true;
@@ -350,6 +356,8 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 
 				}
 
+				// Save selection to history
+				saveSelectionToHistory();
 
 			}
 
@@ -697,6 +705,102 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 				}
 			}
 		}
+	}
+
+	protected void saveSelectionToHistory()
+	{
+		if ( navigatingHistory )
+			return;
+
+		// Get current selection
+		final List<BasicViewDescription<?>> currentSelection = new ArrayList<>();
+		for ( final int row : table.getSelectedRows() )
+		{
+			currentSelection.addAll( tableModel.getElements().get( row ) );
+		}
+
+		// Don't save empty selections or identical to current history position
+		if ( currentSelection.isEmpty() )
+			return;
+
+		if ( historyIndex >= 0 && historyIndex < selectionHistory.size() )
+		{
+			final List<BasicViewDescription<?>> lastSelection = selectionHistory.get( historyIndex );
+			if ( new HashSet<>( currentSelection ).equals( new HashSet<>( lastSelection ) ) )
+				return;
+		}
+
+		// Remove everything after current index (when navigating back and making new selection)
+		if ( historyIndex < selectionHistory.size() - 1 )
+		{
+			selectionHistory.subList( historyIndex + 1, selectionHistory.size() ).clear();
+		}
+
+		// Add new selection
+		selectionHistory.add( new ArrayList<>( currentSelection ) );
+		historyIndex++;
+
+		// Limit history size
+		if ( selectionHistory.size() > MAX_HISTORY_SIZE )
+		{
+			selectionHistory.remove( 0 );
+			historyIndex--;
+		}
+
+		IOFunctions.println( "Saved selection to history (" + (historyIndex + 1) + "/" + selectionHistory.size() + ")" );
+	}
+
+	protected void navigateHistoryBackward()
+	{
+		if ( historyIndex > 0 )
+		{
+			historyIndex--;
+			navigatingHistory = true;
+			final List<BasicViewDescription<?>> selection = selectionHistory.get( historyIndex );
+			selectViews( selection );
+			navigatingHistory = false;
+			IOFunctions.println( "History: " + (historyIndex + 1) + "/" + selectionHistory.size() );
+		}
+		else
+		{
+			IOFunctions.println( "Already at oldest selection in history" );
+		}
+	}
+
+	protected void navigateHistoryForward()
+	{
+		if ( historyIndex < selectionHistory.size() - 1 )
+		{
+			historyIndex++;
+			navigatingHistory = true;
+			final List<BasicViewDescription<?>> selection = selectionHistory.get( historyIndex );
+			selectViews( selection );
+			navigatingHistory = false;
+			IOFunctions.println( "History: " + (historyIndex + 1) + "/" + selectionHistory.size() );
+		}
+		else
+		{
+			IOFunctions.println( "Already at newest selection in history" );
+		}
+	}
+
+	protected void addHistoryNavigation()
+	{
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent e )
+			{
+				if ( e.getKeyChar() == '<' || e.getKeyChar() == ',' )
+				{
+					navigateHistoryBackward();
+				}
+				else if ( e.getKeyChar() == '>' || e.getKeyChar() == '.' )
+				{
+					navigateHistoryForward();
+				}
+			}
+		} );
 	}
 
 	protected void addAppleA()
