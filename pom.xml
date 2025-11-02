@@ -325,22 +325,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
-		<!-- JavaFX dependencies (system scope) -->
-		<!--
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-controls</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-base</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-swing</artifactId>
-		</dependency>
-		-->
-
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
