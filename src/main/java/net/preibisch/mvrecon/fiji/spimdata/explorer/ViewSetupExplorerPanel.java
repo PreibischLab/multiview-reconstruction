@@ -413,15 +413,18 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 				*/
 
 				if ( b != null && b.bdv != null )
-				{	
+				{
 					updateBDV( b.bdv, colorMode, data, firstSelectedVD, selectedRows);
-					
+
 				}
-					
-				
+
+				// Save selection to history
+				saveSelectionToHistory();
+
+
 			}
 
-			
+
 		};
 	}
 	
