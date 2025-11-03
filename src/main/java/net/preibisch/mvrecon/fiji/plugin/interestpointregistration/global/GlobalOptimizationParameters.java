@@ -74,14 +74,15 @@ public class GlobalOptimizationParameters
 
 	public GlobalOptimizationParameters()
 	{
-		this( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+		this( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, true, false );
 	}
 
-	public GlobalOptimizationParameters(double relativeThreshold, double absoluteThreshold, GlobalOptType method, boolean showExpertGrouping)
+	public GlobalOptimizationParameters(double relativeThreshold, double absoluteThreshold, GlobalOptType method, boolean preAlign, boolean showExpertGrouping)
 	{
 		this.relativeThreshold = relativeThreshold;
 		this.absoluteThreshold = absoluteThreshold;
 		this.method = method;
+		this.preAlign = preAlign;
 		this.showExpertGrouping = showExpertGrouping;
 	}
 
@@ -94,31 +95,31 @@ public class GlobalOptimizationParameters
 	public static GlobalOptimizationParameters parseSimpleParametersFromDialog( final GenericDialog gd )
 	{
 		GlobalOptimizationParameters gp = 
-				getGlobalOptimizationParametersForSelection( defaultSimple = gd.getNextChoiceIndex() );
-
-		gp.preAlign = defaultPrealign = gd.getNextBoolean();
+				getGlobalOptimizationParametersForSelection(
+						defaultSimple = gd.getNextChoiceIndex(),
+						defaultPrealign = gd.getNextBoolean() );
 
 		return gp;
 	}
 
-	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected )
+	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected, boolean preAlign )
 	{
 		if ( selected == 7 )
-			return askUserForParameters( false );
+			return askUserForParameters( false, preAlign );
 		else if ( selected == 0 )
-			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, false );
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, preAlign, false );
 		else if ( selected == 1 )
-			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, preAlign, false );
 		else if ( selected == 2 )
-			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, preAlign, false );
 		else if ( selected == 3 )
-			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.TWO_ROUND_SIMPLE, false );
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.TWO_ROUND_SIMPLE, preAlign, false );
 		else if ( selected == 4 )
-			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, preAlign, false );
 		else if ( selected == 5 )
-			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, preAlign, false );
 		else //if ( selected == 6 )
-			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.NO_OPTIMIZATION, false );
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.NO_OPTIMIZATION, preAlign, false );
 	}
 
 	public static GlobalOptimizationParameters askUserForSimpleParameters()
@@ -135,7 +136,7 @@ public class GlobalOptimizationParameters
 		return parseSimpleParametersFromDialog( gd );
 	}
 
-	private static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping )
+	public static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping, final boolean preAlign )
 	{
 		// ask user for parameters
 		final GenericDialog gd = new GenericDialog("Global optimization options");
@@ -169,6 +170,6 @@ public class GlobalOptimizationParameters
 		else
 			method = GlobalOptType.NO_OPTIMIZATION;
 
-		return new GlobalOptimizationParameters(relTh, absTh, method, expertGrouping);
+		return new GlobalOptimizationParameters(relTh, absTh, method, preAlign, expertGrouping);
 	}
 }
