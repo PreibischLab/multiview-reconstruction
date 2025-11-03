@@ -56,10 +56,7 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 
 	private final ViewerPanel viewer;
 
-	private Color col = Color.green.darker();
 	private final HashMap< ViewId, Color > viewColors = new HashMap<>();
-
-	public void setColor( final Color col ) { this.col = col; }
 
 	private Color getGreenShadeForView( final ViewId viewId )
 	{
