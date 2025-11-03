@@ -47,6 +47,13 @@ public class GlobalOptimizationParameters
 		NO_OPTIMIZATION
 	}
 
+	public enum PreAlign
+	{
+		TRUE,
+		FALSE,
+		ASK
+	}
+
 	private final static String[] methodDescriptions = {
 			"One-Round",
 			"One-Round with iterative dropping of bad links",
@@ -102,10 +109,10 @@ public class GlobalOptimizationParameters
 		return gp;
 	}
 
-	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected, boolean preAlign )
+	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected, final boolean preAlign )
 	{
 		if ( selected == 7 )
-			return askUserForParameters( false, preAlign );
+			return askUserForParameters( false, preAlign ? PreAlign.TRUE : PreAlign.FALSE );
 		else if ( selected == 0 )
 			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, preAlign, false );
 		else if ( selected == 1 )
@@ -136,11 +143,13 @@ public class GlobalOptimizationParameters
 		return parseSimpleParametersFromDialog( gd );
 	}
 
-	public static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping, final boolean preAlign )
+	public static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping, final PreAlign preAlign )
 	{
 		// ask user for parameters
 		final GenericDialog gd = new GenericDialog("Global optimization options");
 		gd.addChoice( "Global_optimization_strategy", methodDescriptions, methodDescriptions[ defaultGlobalOpt ] );
+		if ( preAlign == PreAlign.ASK)
+			gd.addCheckbox( "Pre-align images (otherwise use current transforms as initialization)", defaultPrealign );
 		gd.addNumericField( "relative error threshold (for handling wrong links)", 2.5, 3 );
 		gd.addNumericField( "absolute error threshold (for handling wrong links)", 3.5, 3 );
 		if (askForGrouping )
@@ -153,6 +162,12 @@ public class GlobalOptimizationParameters
 		double relTh = gd.getNextNumber();
 		double absTh = gd.getNextNumber();
 		final int methodIdx = defaultGlobalOpt = gd.getNextChoiceIndex();
+		final boolean preAlignValue;
+		if ( preAlign == PreAlign.ASK )
+			preAlignValue = defaultPrealign = gd.getNextBoolean();
+		else
+			preAlignValue = (preAlign == PreAlign.TRUE);
+
 		final boolean expertGrouping = askForGrouping ? gd.getNextBoolean() : false;
 
 		final GlobalOptType method;
@@ -170,6 +185,6 @@ public class GlobalOptimizationParameters
 		else
 			method = GlobalOptType.NO_OPTIMIZATION;
 
-		return new GlobalOptimizationParameters(relTh, absTh, method, preAlign, expertGrouping);
+		return new GlobalOptimizationParameters(relTh, absTh, method, preAlignValue, expertGrouping);
 	}
 }
