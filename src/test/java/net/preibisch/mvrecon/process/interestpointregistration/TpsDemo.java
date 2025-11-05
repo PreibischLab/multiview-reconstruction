@@ -1,7 +1,10 @@
 package net.preibisch.mvrecon.process.interestpointregistration;
 
 
+import ch.epfl.biop.bdv.img.imageplus.ImagePlusToSpimData;
 import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -12,13 +15,16 @@ import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
 import net.imglib2.view.fluent.RealRandomAccessibleView;
 
+/* written by John Bogovic */
 public class TpsDemo {
 
 	public static void main(String[] args) {
 
-		// Img img = ImageJFunctions.wrap(
-		// IJ.openImage("http://imagej.net/images/boats.gif"));
-		Img img = ImageJFunctions.wrapByte(IJ.openImage("/home/john/tmp/boats.tif"));
+		new ImageJ();
+		ImagePlus imp = IJ.openImage("http://imagej.net/images/boats.gif");
+		imp.show();
+
+		Img img = ImageJFunctions.wrapByte( imp );
 		System.out.println(Intervals.toString(img));
 
 		double sx = img.dimension(0);
