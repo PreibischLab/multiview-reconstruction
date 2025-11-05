@@ -32,6 +32,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import bdv.tools.HelpDialog;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.sequence.ViewId;
@@ -436,6 +439,31 @@ public class InterestPointExplorerPanel extends JPanel
 		});
 
 		addPopupMenu( table );
+		addHelpListener( table );
+	}
+
+	protected void addHelpListener( final JTable table )
+	{
+		// Add to both panel and table to catch F1 regardless of focus
+		final KeyAdapter helpKeyListener = new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent e )
+			{
+				if ( e.getKeyCode() == KeyEvent.VK_F1 || e.getKeyCode() == 112 )
+				{
+					showHelp();
+				}
+			}
+		};
+
+		table.addKeyListener( helpKeyListener );
+		this.addKeyListener( helpKeyListener );
+	}
+
+	protected void showHelp()
+	{
+		new HelpDialog( viewSetupExplorer.getFrame(), InterestPointExplorerPanel.class.getResource( "/mvr/InterestPointHelp.html" ) ).setVisible( true );
 	}
 
 	protected static class MyRenderer extends DefaultTableCellRenderer
