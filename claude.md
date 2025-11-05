@@ -277,8 +277,13 @@ This pattern ensures:
 - Slider shows clamped position
 - No circular update loops
 
-## Recent Commits (splitCorr branch)
+## Recent Commits
 
+### Master Branch
+1. `34bff636` - Fix F1 help focus issue in InterestPointExplorer
+2. `8994af77` - Add comprehensive F1 help window for InterestPointExplorer
+
+### splitCorr Branch (Previous Work)
 1. `5ffb2c2b` - Change text field precision from 1 to 2 decimal digits
 2. `55c09e4c` - Add editable text fields to sliders and fix filter mode transparency
 3. `acd3c93e` - Format slider labels with smaller font and two-line layout
