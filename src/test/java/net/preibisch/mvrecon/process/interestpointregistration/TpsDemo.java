@@ -1,7 +1,6 @@
 package net.preibisch.mvrecon.process.interestpointregistration;
 
 
-import ch.epfl.biop.bdv.img.imageplus.ImagePlusToSpimData;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
