@@ -65,20 +65,19 @@ public class Split_Views implements PlugIn
 
 	public static boolean defaultOptimize = true;
 
-	public static int defaultIPChoice = 1;
-
 	public static double defaultDensity = 100;
 	public static int defaultMinPoints = 20;
 	public static int defaultMaxPoints = 500;
 	public static double defaultError = 0.5;
 	public static double defaultExclusionRadiusIP = 20;
-	public static double defaultExclusionRadiusCorr = 0;
 
 	public static boolean defaultAssignIlluminations = true;
 
-	public static int defaultChoice = 0;
+	public static int defaultResultChoice = 0;
 	private static final String[] resultChoices = new String[] { "Display", "Save & Close" };
-	private static final String[] ipChoices = new String[] { "Add 'fake' interest points (that can be matched)", "Add 'fake' corresponding points", "NO interest point adding" };
+
+	public static int defaultIPChoice = 1;
+	private static final String[] ipChoices = new String[] { "Add 'fake' interest points (deprecated)", "Add 'fake' corresponding points", "NO interest point adding" };
 
 	@Override
 	public void run(String arg)
@@ -179,7 +178,7 @@ public class Split_Views implements PlugIn
 			suggestion = filePath.toString() + ".split.xml";
 
 		gd.addFileField("New_XML_File", suggestion, 30);
-		gd.addChoice( "Split_Result", resultChoices, resultChoices[ defaultChoice ] );
+		gd.addChoice( "Split_Result", resultChoices, resultChoices[ defaultResultChoice ] );
 
 		gd.showDialog();
 
@@ -205,7 +204,7 @@ public class Split_Views implements PlugIn
 			assignIllum = false;
 
 		final String saveAs = gd.getNextString();
-		final int choice = defaultChoice = gd.getNextChoiceIndex();
+		final int choice = defaultResultChoice = gd.getNextChoiceIndex();
 
 		System.out.println( sx + ", " + sy + ", " + sz + ", " + ox  + ", " + oy  + ", " + oz );
 
@@ -220,19 +219,20 @@ public class Split_Views implements PlugIn
 		int minPoints = defaultMinPoints;
 		int maxPoints = defaultMaxPoints;
 		double error = defaultError;
-		double exclusionRadius = defaultExclusionRadiusCorr;
+		double exclusionRadius = Double.NaN;
 
 		InterestPointAdding ipAdding = InterestPointAdding.NONE;
 
 		if ( ipChoice < 2 )
 		{
-			final GenericDialogPlus gd2 = new GenericDialogPlus( (ipChoice == 0) ? "Add fake interest points" : "Add fake CORRESPONDING interest points" );
+			final GenericDialogPlus gd2 = new GenericDialogPlus( (ipChoice == 0) ? "Add fake interest points (DEPRECATED)" : "Add fake CORRESPONDING interest points" );
 
 			gd2.addNumericField( "Density (# per 100x100x100 px)", defaultDensity, 2 );
 			gd2.addNumericField( "Min_total number of points", defaultMinPoints, 0 );
 			gd2.addNumericField( "Max_total number of points", defaultMaxPoints, 0 );
 			gd2.addNumericField( "Artificial error (px)", defaultError, 2 );
-			gd2.addNumericField( "Exclusion_radius (px)", (ipChoice == 0) ? defaultExclusionRadiusIP : defaultExclusionRadiusCorr, 2 );
+			if (ipChoice == 0)
+				gd2.addNumericField( "Exclusion_radius (px)", defaultExclusionRadiusIP, 2 );
 
 			gd2.showDialog();
 
@@ -251,7 +251,6 @@ public class Split_Views implements PlugIn
 			}
 			else
 			{
-				exclusionRadius = defaultExclusionRadiusCorr = gd2.getNextNumber();
 				ipAdding = InterestPointAdding.CORR;
 			}
 		}
