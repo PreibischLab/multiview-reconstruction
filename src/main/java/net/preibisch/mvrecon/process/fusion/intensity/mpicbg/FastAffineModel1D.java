@@ -46,6 +46,12 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		return m;
 	}
 
+	public void fit( final FlattenedMatches matches )
+			throws NotEnoughDataPointsException, IllDefinedDataPointsException
+	{
+		fit( matches, null );
+	}
+
 	/**
 	 * Estimate a {@code AffineModel1D} from a set with many outliers by first
 	 * filtering the worst outliers with RANSAC and filter potential outliers by
@@ -144,9 +150,7 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		final double[] p = matches.p()[ 0 ];
 		final double[] q = matches.q()[ 0 ];
 		final double[] w = matches.w();
-
-		final int size = indices.size();
-		final int[] samples = indices.indices();
+		final int size = indices != null ? indices.size() : matches.size();
 
 		if ( size < MIN_NUM_MATCHES )
 			throw new NotEnoughDataPointsException( size + " data points are not enough to estimate a 2d affine model, at least " + MIN_NUM_MATCHES + " data points required." );
@@ -160,17 +164,33 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 			double S_pp = 0;
 			double S_pq = 0;
 
-			for ( int i = 0; i < size; i++ )
+			if ( indices != null )
 			{
-				final int sample = samples[ i ];
-				final double p_i = p[ sample ];
-				final double q_i = q[ sample ];
-				final double w_i = w[ sample ];
-				W += w_i;
-				S_p += w_i * p_i;
-				S_q += w_i * q_i;
-				S_pp += w_i * p_i * p_i;
-				S_pq += w_i * p_i * q_i;
+				final int[] samples = indices.indices();
+				for ( int i = 0; i < size; i++ )
+				{
+					final int sample = samples[ i ];
+					final double p_i = p[ sample ];
+					final double q_i = q[ sample ];
+					final double w_i = w[ sample ];
+					W += w_i;
+					S_p += w_i * p_i;
+					S_q += w_i * q_i;
+					S_pp += w_i * p_i * p_i;
+					S_pq += w_i * p_i * q_i;
+				}
+			} else {
+				for ( int i = 0; i < size; i++ )
+				{
+					final double p_i = p[ i ];
+					final double q_i = q[ i ];
+					final double w_i = w[ i ];
+					W += w_i;
+					S_p += w_i * p_i;
+					S_q += w_i * q_i;
+					S_pp += w_i * p_i * p_i;
+					S_pq += w_i * p_i * q_i;
+				}
 			}
 
 			final double a = W * S_pp - S_p * S_p;
@@ -186,15 +206,31 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 			double S_pp = 0;
 			double S_pq = 0;
 
-			for ( int i = 0; i < size; i++ )
+			if ( indices != null )
 			{
-				final int sample = samples[ i ];
-				final double p_i = p[ sample ];
-				final double q_i = q[ sample ];
-				S_p += p_i;
-				S_q += q_i;
-				S_pp += p_i * p_i;
-				S_pq += p_i * q_i;
+				final int[] samples = indices.indices();
+				for ( int i = 0; i < size; i++ )
+				{
+					final int sample = samples[ i ];
+					final double p_i = p[ sample ];
+					final double q_i = q[ sample ];
+					S_p += p_i;
+					S_q += q_i;
+					S_pp += p_i * p_i;
+					S_pq += p_i * q_i;
+				}
+			}
+			else
+			{
+				for ( int i = 0; i < size; i++ )
+				{
+					final double p_i = p[ i ];
+					final double q_i = q[ i ];
+					S_p += p_i;
+					S_q += q_i;
+					S_pp += p_i * p_i;
+					S_pq += p_i * q_i;
+				}
 			}
 
 			final double a = size * S_pp - S_p * S_p;
@@ -277,7 +313,7 @@ public class FastAffineModel1D extends AffineModel1D implements FastModel
 		return true;
 	}
 
-	double apply( final double l )
+	public double apply( final double l )
 	{
 		return l * m00 + m01;
 	}

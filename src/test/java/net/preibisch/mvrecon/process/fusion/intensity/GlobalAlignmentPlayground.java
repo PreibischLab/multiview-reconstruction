@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,9 +78,11 @@ public class GlobalAlignmentPlayground {
 			for (int i = 0; i < views.length; ++i) {
 				for (int j = i + 1; j < views.length; ++j) {
 					System.out.println("matching view " + views[i] + " and " + views[j]);
-					final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(views[i], views[j],
-							minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
-					intensitySolver.connect(views[i], views[j], coefficientMatches);
+                    final List<IntensityMatcher.CoefficientMatch> coefficientMatches = matcher.match(
+                            views[i], Collections.emptyList(),
+                            views[j], Collections.emptyList(),
+                            minIntensityThreshold, maxIntensityThreshold, minNumCandidates, iterations, maxEpsilon, minInlierRatio, minNumInliers, maxTrust);
+                    intensitySolver.connect(views[i], views[j], coefficientMatches);
 					matchesIO.write(views[i], views[j], coefficientMatches);
 				}
 			}

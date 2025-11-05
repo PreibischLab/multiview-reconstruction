@@ -517,7 +517,10 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Wrapping ImagePlus around input image ... " );
 
-		return FusionTools.getImagePlusInstance( img, false, "tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(), minIntensity, maxIntensity, DisplayImage.service );
+		return FusionTools.getImagePlusInstance(
+				img, false,
+				"tp: " + viewDescription.getTimePoint().getName() + " viewSetup: " + viewDescription.getViewSetupId(),
+				minIntensity, maxIntensity, null );
 	}
 
 	protected ImagePlus getGroupedImagePlusForInteractive( final String dialogHeader )
@@ -689,12 +692,13 @@ public abstract class DifferenceOfGUI extends InterestPointDetectionGUI
 						Double.NaN,
 						ds );
 
+		// TODO: change to block processing
 		RandomAccessibleInterval< FloatType > img = FusionTools.fuseVirtual(
 				imgLoader,
 				registrationsAdjusted,
 				viewDescriptions,
 				group.getViews(),
-				FusionType.LOWEST_VIEWID_WINS,
+				FusionType.AVG_BLEND,
 				DisplayFusedImagesPopup.defaultInterpolation,
 				bbDS,
 				null );

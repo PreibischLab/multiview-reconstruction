@@ -63,7 +63,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 	
 	boolean virtualDisplay;
 	String unit = "px";
-	double cal = 1.0;
+	double[] cal = new double[] { 1.0, 1.0, 1.0 };
 	int bsX = defaultBlocksizeVirtualX;
 	int bsY = defaultBlocksizeVirtualY;
 	int bsZ = defaultBlocksizeVirtualZ;
@@ -101,18 +101,19 @@ public class DisplayImage implements ImgExport, Calibrateable
 		return true;
 	}
 
-	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling, final double anisoF, final double cal, final String unit )
+	public static void setCalibration( final ImagePlus imp, final Interval bb, final double downsampling, final double anisoF, final double[] cal, final String unit )
 	{
 		final double ds = Double.isNaN( downsampling ) ? 1.0 : downsampling;
 		final double ai = Double.isNaN( anisoF ) ? 1.0 : anisoF;
 
 		if ( bb != null )
 		{
-			imp.getCalibration().xOrigin = -(bb.min( 0 ) / ds) * cal;
-			imp.getCalibration().yOrigin = -(bb.min( 1 ) / ds) * cal;
-			imp.getCalibration().zOrigin = -(bb.min( 2 ) / ds) * cal;
-			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = ds * cal;
-			imp.getCalibration().pixelDepth = ds * ai * cal;
+			final double calXY = ( cal[0] + cal[1] ) / 2.0;
+			imp.getCalibration().xOrigin = -(bb.min( 0 ) / ds) * calXY;
+			imp.getCalibration().yOrigin = -(bb.min( 1 ) / ds) * calXY;
+			imp.getCalibration().zOrigin = -(bb.min( 2 ) / ds) * cal[2];
+			imp.getCalibration().pixelWidth = imp.getCalibration().pixelHeight = ds * calXY;
+			imp.getCalibration().pixelDepth = ds * ai * cal[2];
 		}
 
 		imp.getCalibration().setUnit( unit );
@@ -330,7 +331,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 	}
 
 	@Override
-	public void setCalibration( final double pixelSize, final String unit )
+	public void setCalibration( final double[] pixelSize, final String unit )
 	{
 		this.cal = pixelSize;
 		this.unit = unit;
@@ -340,7 +341,7 @@ public class DisplayImage implements ImgExport, Calibrateable
 	public String getUnit() { return unit; }
 
 	@Override
-	public double getPixelSize() { return cal; }
+	public double[] getPixelSize() { return cal; }
 
 	@Override
 	public int[] blocksize() { return new int[] { bsX, bsY, bsZ }; }

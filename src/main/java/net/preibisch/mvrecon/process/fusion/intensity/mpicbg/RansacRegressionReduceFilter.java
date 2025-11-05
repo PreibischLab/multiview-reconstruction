@@ -85,7 +85,6 @@ public class RansacRegressionReduceFilter
 				final double[] minMax = minMax( candidates, flatInliers );
 				final double min = minMax[ 0 ];
 				final double max = minMax[ 1 ];
-				inliers.clear();
 				inliers.add( new PointMatch1D( new Point1D( min ), new Point1D( model.apply( min ) ), 1.0 ) );
 				inliers.add( new PointMatch1D( new Point1D( max ), new Point1D( model.apply( max ) ), 1.0 ) );
 			}

@@ -20,11 +20,17 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package net.preibisch.mvrecon.process.export;
+package net.preibisch.mvrecon.process.fusion.intensity;
 
-public interface Calibrateable
-{
-	public void setCalibration( final double[] pixelSize, final String unit );
-	public String getUnit();
-	public double[] getPixelSize();
+import mpicbg.models.PointMatch;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FastAffineModel1D;
+import net.preibisch.mvrecon.process.fusion.intensity.mpicbg.FlattenedMatches;
+
+import java.util.Collection;
+
+interface IntensityMatchingFilter {
+
+    FastAffineModel1D model();
+
+    void filter(FlattenedMatches candidates, Collection<PointMatch> reducedMatches);
 }

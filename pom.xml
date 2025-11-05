@@ -11,7 +11,7 @@
 
 	<groupId>net.preibisch</groupId>
 	<artifactId>multiview-reconstruction</artifactId>
-	<version>7.0.8-SNAPSHOT</version>
+	<version>8.0.1-SNAPSHOT</version>
 
 	<name>Multiview Reconstruction</name>
 	<description>Software for the reconstruction of multi-view microscopic acquisitions
@@ -104,6 +104,10 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
+
+		<imglib2.version>8.0.0</imglib2.version>
+		<imglib2-cache.version>1.0.0-beta-20</imglib2-cache.version>
+		<bigdataviewer-core.version>10.6.5</bigdataviewer-core.version>
 
 		<bigdataviewer-n5.version>1.0.2</bigdataviewer-n5.version>
 		<mpicbg.mpicbg.version>1.6.5</mpicbg.mpicbg.version>

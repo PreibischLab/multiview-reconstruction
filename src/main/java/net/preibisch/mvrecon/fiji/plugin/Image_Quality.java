@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.fiji.plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -126,8 +127,8 @@ public class Image_Quality implements PlugIn
 		{
 			IOFunctions.println( "(" + new Date(System.currentTimeMillis()) + "): FRC-Quality estimating group " + (++i) + "/" + groups.size() + " (group=" + group + ")" );
 
-			final Pair< Double, String > transformedCal = TransformationTools.computeAverageCalibration( group, spimData.getViewRegistrations() );
-			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of quality image (without downsampling): " + transformedCal.getA() + " " + transformedCal.getB() );
+			final Pair< double[], String > transformedCal = TransformationTools.computeAverageCalibration( group, spimData.getViewRegistrations() );
+			IOFunctions.println( new Date( System.currentTimeMillis() ) + ": Approximate pixel size of quality image (without downsampling): " + Arrays.toString( transformedCal.getA() ) + " " + transformedCal.getB() );
 
 			if ( Calibrateable.class.isInstance( exporter ) )
 				((Calibrateable)exporter).setCalibration( transformedCal.getA(), transformedCal.getB() );
