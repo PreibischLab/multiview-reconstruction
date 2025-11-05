@@ -43,7 +43,7 @@ public class ViewSetupExplorer< AS extends SpimData2 > extends FilteredAndGroupe
 
 	public ViewSetupExplorer( final AS data, final URI xml, final XmlIoSpimData2 io )
 	{
-		frame = new JFrame( "ViewSetup Explorer" );
+		frame = new JFrame( "ViewSetup Explorer (Press F1 for help)" );
 		panel = new ViewSetupExplorerPanel< AS >( this, data, xml, io, true );
 
 		frame.add( panel, BorderLayout.CENTER );

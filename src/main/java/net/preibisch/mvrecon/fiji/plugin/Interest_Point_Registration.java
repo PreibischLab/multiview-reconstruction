@@ -288,7 +288,7 @@ public class Interest_Point_Registration implements PlugIn
 
 		// TODO: do this in parallel
 		// load & transform all interest points
-		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
+		final Map< ViewId, HashMap< String, Collection< InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
 					viewIds,
 					registrations,
@@ -307,8 +307,8 @@ public class Interest_Point_Registration implements PlugIn
 			TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, registrations, viewDescriptions );
 
 			IOFunctions.println( "Remaining interest points for alignment: " );
-			for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
-				for ( final Entry< String, List< InterestPoint > > subElement : element.getValue().entrySet() )
+			for ( final Entry< ViewId, HashMap< String, Collection< InterestPoint > > > element: interestpoints.entrySet() )
+				for ( final Entry< String, Collection< InterestPoint > > subElement : element.getValue().entrySet() )
 					IOFunctions.println( Group.pvid( element.getKey() ) + ", '" + subElement.getKey() + "' : " + subElement.getValue().size() );
 		}
 
@@ -418,7 +418,7 @@ public class Interest_Point_Registration implements PlugIn
 			{
 				// test grouped registration
 				final List< Pair< Group< ViewId >, Group< ViewId > > > groupedPairs = subset.getGroupedPairs();
-				final Map< Group< ViewId >, HashMap< String, List< GroupedInterestPoint< ViewId > > > > groupedInterestpoints = new HashMap<>();
+				final Map< Group< ViewId >, HashMap< String, Collection< GroupedInterestPoint< ViewId > > > > groupedInterestpoints = new HashMap<>();
 				
 				final double maxError = interestPointMergeDistance;
 				final InterestPointGroupingMinDistance< ViewId > ipGrouping;

@@ -24,13 +24,12 @@ package net.preibisch.mvrecon.process.interestpointregistration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.PointMatch;
 import mpicbg.models.TranslationModel3D;
 import mpicbg.spim.data.SpimData;
 import mpicbg.spim.data.SpimDataException;
@@ -70,8 +69,8 @@ public class ExamplePairwiseRegistration
 		final ViewId viewId2 = new ViewId( 0, 2 );
 
 		// get interest points
-		final List<InterestPoint> ipListLocal1 = getInterestPoints( data, viewId1, "beadsL" );
-		final List<InterestPoint> ipListLocal2 = getInterestPoints( data, viewId2, "beadsL" );
+		final Map< Integer, InterestPoint> ipListLocal1 = getInterestPoints( data, viewId1, "beadsL" );
+		final Map< Integer, InterestPoint> ipListLocal2 = getInterestPoints( data, viewId2, "beadsL" );
 
 		System.out.println( "Loaded " + ipListLocal1.size() + " and " + ipListLocal2.size() + " interest points (in local coordinates of each view)." );
 
@@ -83,8 +82,8 @@ public class ExamplePairwiseRegistration
 		System.out.println( "Transform2: " + t2 );
 
 		// transform interest points into global coordinate space
-		final List<InterestPoint> ip1 = TransformationTools.applyTransformation( ipListLocal1, t1 );
-		final List<InterestPoint> ip2 = TransformationTools.applyTransformation( ipListLocal2, t2 );
+		final Collection<InterestPoint> ip1 = TransformationTools.applyTransformation( ipListLocal1.values(), t1 );
+		final Collection<InterestPoint> ip2 = TransformationTools.applyTransformation( ipListLocal2.values(), t2 );
 
 		// find which points currently overlap with the other view
 		final Dimensions dim1 = sd.getViewDescription( viewId1 ).getViewSetup().getSize();
@@ -178,7 +177,7 @@ public class ExamplePairwiseRegistration
 		return reg.getModel();
 	}
 
-	public static List<InterestPoint> getInterestPoints( final SpimData2 data, final ViewId viewId, final String label )
+	public static Map< Integer, InterestPoint> getInterestPoints( final SpimData2 data, final ViewId viewId, final String label )
 	{
 		final Map<ViewId, ViewInterestPointLists> iMap = data.getViewInterestPoints().getViewInterestPoints();
 		final ViewInterestPointLists iplists = iMap.get( viewId );
@@ -190,7 +189,7 @@ public class ExamplePairwiseRegistration
 		return ips.getInterestPointsCopy();
 	}
 
-	public static List<InterestPoint> overlappingPoints( final List<InterestPoint> ip1, final Interval intervalImg2, final AffineTransform3D t2 )
+	public static List<InterestPoint> overlappingPoints( final Collection<InterestPoint> ip1, final Interval intervalImg2, final AffineTransform3D t2 )
 	{
 		// use the inverse affine transform of the other view to map the points into the local interval of img2
 		final AffineTransform3D t2inv = t2.inverse();

@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.headless.registration;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -114,7 +115,7 @@ public class TestRegistration
 		}
 
 		// load & transform all interest points
-		final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints =
+		final Map< ViewId, HashMap< String, Collection< InterestPoint > > > interestpoints =
 				TransformationTools.getAllTransformedInterestPoints(
 					viewIds,
 					spimData.getViewRegistrations().getViewRegistrations(),
@@ -125,14 +126,14 @@ public class TestRegistration
 		final Set< Group< ViewId > > groups = new HashSet<>();
 
 		// only keep those interestpoints that currently overlap with a view to register against
-		for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
-			for ( final Entry< String, List< InterestPoint > > subelement: element.getValue().entrySet() )
-			System.out.println( element.getKey() + ", " + subelement.getKey() + ": " + subelement.getValue().size() );
+		for ( final Entry< ViewId, HashMap< String, Collection< InterestPoint > > > element: interestpoints.entrySet() )
+			for ( final Entry< String, Collection< InterestPoint > > subelement: element.getValue().entrySet() )
+				System.out.println( element.getKey() + ", " + subelement.getKey() + ": " + subelement.getValue().size() );
 
 		TransformationTools.filterForOverlappingInterestPoints( interestpoints, groups, spimData.getViewRegistrations().getViewRegistrations(), spimData.getSequenceDescription().getViewDescriptions() );
 
-		for ( final Entry< ViewId, HashMap< String, List< InterestPoint > > > element: interestpoints.entrySet() )
-			for ( final Entry< String, List< InterestPoint > > subelement: element.getValue().entrySet() )
+		for ( final Entry< ViewId, HashMap< String, Collection< InterestPoint > > > element: interestpoints.entrySet() )
+			for ( final Entry< String, Collection< InterestPoint > > subelement: element.getValue().entrySet() )
 			System.out.println( element.getKey() + ", " + subelement.getKey() + ": " + subelement.getValue().size() );
 
 		// setup pairwise registration
@@ -186,7 +187,7 @@ public class TestRegistration
 	public static final HashMap< ViewId, Tile< AffineModel3D > > pairSubsetTest(
 			final SpimData2 spimData,
 			final Subset< ViewId > subset,
-			final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints,
+			final Map< ViewId, HashMap< String, Collection< InterestPoint > > > interestpoints,
 			final Map< ViewId, HashMap< String, Double > > labelMap,
 			final RANSACParameters rp,
 			final GeometricHashingParameters gp,
@@ -239,7 +240,7 @@ public class TestRegistration
 	public static final HashMap< ViewId, Tile< AffineModel3D > > groupedSubsetTest(
 			final SpimData2 spimData,
 			final Subset< ViewId > subset,
-			final Map< ViewId, HashMap< String, List< InterestPoint > > > interestpoints,
+			final Map< ViewId, HashMap< String, Collection< InterestPoint > > > interestpoints,
 			final Map< ViewId, HashMap< String, Double > > labelMap,
 			final RANSACParameters rp,
 			final GeometricHashingParameters gp,
@@ -247,7 +248,7 @@ public class TestRegistration
 			final boolean matchAcrossLabels )
 	{
 		final List< Pair< Group< ViewId >, Group< ViewId > > > groupedPairs = subset.getGroupedPairs();
-		final Map< Group< ViewId >, HashMap< String, List< GroupedInterestPoint< ViewId > > > > groupedInterestpoints = new HashMap<>();
+		final Map< Group< ViewId >, HashMap< String, Collection< GroupedInterestPoint< ViewId > > > > groupedInterestpoints = new HashMap<>();
 		final InterestPointGrouping< ViewId > ipGrouping = new InterestPointGroupingAll<>( interestpoints );
 
 		// which groups exist

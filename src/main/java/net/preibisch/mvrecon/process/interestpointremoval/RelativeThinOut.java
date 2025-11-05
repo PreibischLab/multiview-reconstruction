@@ -79,7 +79,7 @@ public class RelativeThinOut
 			final List< RealPoint > list = new ArrayList< RealPoint >();
 			final List< double[] > points = new ArrayList< double[] >();
 
-			for ( final InterestPoint ip : oldIpl.getInterestPointsCopy() )
+			for ( final InterestPoint ip : oldIpl.getInterestPointsCopy().values() )
 			{
 				list.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),
@@ -92,7 +92,7 @@ public class RelativeThinOut
 			// assemble the list of relative
 			final List< RealPoint > listRelative = new ArrayList< RealPoint >();
 
-			for ( final InterestPoint ip : iplRelative.getInterestPointsCopy() )
+			for ( final InterestPoint ip : iplRelative.getInterestPointsCopy().values() )
 			{
 				listRelative.add ( new RealPoint(
 						ip.getL()[ 0 ] * voxelSize.dimension( 0 ),

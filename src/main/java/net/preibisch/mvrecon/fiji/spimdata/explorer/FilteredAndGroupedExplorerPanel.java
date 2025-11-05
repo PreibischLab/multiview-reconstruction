@@ -39,6 +39,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -77,6 +78,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 	public static FilteredAndGroupedExplorerPanel< ? > currentInstance = null;
 
 	protected ArrayList< ExplorerWindowSetable > popups;
+
+	// Selection history
+	private static final int MAX_HISTORY_SIZE = 10;
+	private static final List<List<BasicViewDescription<?>>> selectionHistory = new ArrayList<>();
+	private static int historyIndex = -1;
+	private static boolean navigatingHistory = false;
 
 	static
 	{
@@ -229,6 +236,12 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 
 	public abstract void initComponent();
 
+	/**
+	 * Update UI checkboxes when grouping is programmatically cleared.
+	 * Override this method to uncheck grouping checkboxes in subclasses.
+	 */
+	protected abstract void clearGroupingCheckboxes();
+
 	public void updateFilter( Class< ? extends Entity > entityClass, Entity selectedInstance )
 	{
 		ArrayList< Entity > selectedInstances = new ArrayList<>();
@@ -350,6 +363,8 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 
 				}
 
+				// Save selection to history
+				saveSelectionToHistory();
 
 			}
 
@@ -639,6 +654,192 @@ public abstract class FilteredAndGroupedExplorerPanel< AS extends SpimData2 >
 										HashSet< BasicViewDescription< ? > >::new,
 										( a, b ) -> a.addAll( b ), ( a, b ) -> a.addAll( b ) ),
 								data.getViewRegistrations() );
+					}
+				}
+			}
+		} );
+	}
+
+	protected void addSelectionDialog()
+	{
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent arg0 )
+			{
+				if ( arg0.getKeyChar() == '+' )
+				{
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> openSelectionDialog() );
+					}
+					else
+					{
+						openSelectionDialog();
+					}
+				}
+			}
+		} );
+	}
+
+	protected void openSelectionDialog()
+	{
+		final net.preibisch.mvrecon.fiji.spimdata.explorer.selection.SelectionDialog dialog =
+			new net.preibisch.mvrecon.fiji.spimdata.explorer.selection.SelectionDialog(
+				explorer().getFrame(), data );
+		dialog.setVisible( true );
+
+		if ( !dialog.wasCanceled() )
+		{
+			final List<BasicViewDescription<?>> selectedViews = dialog.getSelectedViews();
+			if ( selectedViews != null && !selectedViews.isEmpty() )
+			{
+				// Select the views in the table
+				selectViews( selectedViews );
+				IOFunctions.println( "Selected " + selectedViews.size() + " views based on criteria." );
+			}
+		}
+	}
+
+	protected void selectViews( final List<BasicViewDescription<?>> views )
+	{
+		// Clear current selection
+		table.clearSelection();
+
+		// Find and select matching rows
+		for ( int row = 0; row < tableModel.getRowCount(); row++ )
+		{
+			final List<BasicViewDescription<?>> rowViews = tableModel.getElements().get( row );
+			for ( final BasicViewDescription<?> vd : rowViews )
+			{
+				if ( views.contains( vd ) )
+				{
+					table.addRowSelectionInterval( row, row );
+					break;
+				}
+			}
+		}
+	}
+
+	protected void saveSelectionToHistory()
+	{
+		if ( navigatingHistory )
+			return;
+
+		// Get current selection
+		final List<BasicViewDescription<?>> currentSelection = new ArrayList<>();
+		for ( final int row : table.getSelectedRows() )
+		{
+			currentSelection.addAll( tableModel.getElements().get( row ) );
+		}
+
+		// Don't save empty selections or identical to current history position
+		if ( currentSelection.isEmpty() )
+			return;
+
+		if ( historyIndex >= 0 && historyIndex < selectionHistory.size() )
+		{
+			final List<BasicViewDescription<?>> lastSelection = selectionHistory.get( historyIndex );
+			if ( new HashSet<>( currentSelection ).equals( new HashSet<>( lastSelection ) ) )
+				return;
+		}
+
+		// Remove everything after current index (when navigating back and making new selection)
+		if ( historyIndex < selectionHistory.size() - 1 )
+		{
+			selectionHistory.subList( historyIndex + 1, selectionHistory.size() ).clear();
+		}
+
+		// Add new selection
+		selectionHistory.add( new ArrayList<>( currentSelection ) );
+		historyIndex++;
+
+		// Limit history size
+		if ( selectionHistory.size() > MAX_HISTORY_SIZE )
+		{
+			selectionHistory.remove( 0 );
+			historyIndex--;
+		}
+
+		IOFunctions.println( "Saved selection to history (" + (historyIndex + 1) + "/" + selectionHistory.size() + ")" );
+	}
+
+	protected void navigateHistoryBackward()
+	{
+		if ( historyIndex > 0 )
+		{
+			historyIndex--;
+			navigatingHistory = true;
+			final List<BasicViewDescription<?>> selection = selectionHistory.get( historyIndex );
+			selectViews( selection );
+			navigatingHistory = false;
+			IOFunctions.println( "History: " + (historyIndex + 1) + "/" + selectionHistory.size() );
+		}
+		else
+		{
+			IOFunctions.println( "Already at oldest selection in history" );
+		}
+	}
+
+	protected void navigateHistoryForward()
+	{
+		if ( historyIndex < selectionHistory.size() - 1 )
+		{
+			historyIndex++;
+			navigatingHistory = true;
+			final List<BasicViewDescription<?>> selection = selectionHistory.get( historyIndex );
+			selectViews( selection );
+			navigatingHistory = false;
+			IOFunctions.println( "History: " + (historyIndex + 1) + "/" + selectionHistory.size() );
+		}
+		else
+		{
+			IOFunctions.println( "Already at newest selection in history" );
+		}
+	}
+
+	protected boolean disableGroupingIfActive()
+	{
+		if ( tableModel != null && tableModel.getGroupingFactors() != null && !tableModel.getGroupingFactors().isEmpty() )
+		{
+			tableModel.clearGroupingFactors();
+			clearGroupingCheckboxes();
+			IOFunctions.println( "Disabled grouping for selection operations" );
+			return true;
+		}
+		return false;
+	}
+
+	protected void addHistoryNavigation()
+	{
+		table.addKeyListener( new KeyAdapter()
+		{
+			@Override
+			public void keyPressed( final KeyEvent e )
+			{
+				if ( e.getKeyChar() == '<' || e.getKeyChar() == ',' )
+				{
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> navigateHistoryBackward() );
+					}
+					else
+					{
+						navigateHistoryBackward();
+					}
+				}
+				else if ( e.getKeyChar() == '>' || e.getKeyChar() == '.' )
+				{
+					if ( disableGroupingIfActive() )
+					{
+						// Wait for table to update after clearing grouping
+						SwingUtilities.invokeLater( () -> navigateHistoryForward() );
+					}
+					else
+					{
+						navigateHistoryForward();
 					}
 				}
 			}

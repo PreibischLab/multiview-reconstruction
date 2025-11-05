@@ -1,10 +1,9 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.loadcorrespondences;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import mpicbg.spim.data.sequence.ViewId;
@@ -33,8 +32,8 @@ public class LoadCorrespondencesPairwise< I extends InterestPoint > implements M
 	// I is either InterestPoint or GroupedInterestPoint<ViewId>
 	@Override
 	public <V> PairwiseResult<I> match(
-			final List<I> listA,
-			final List<I> listB,
+			final Collection<I> listA,
+			final Collection<I> listB,
 			final V viewsA,
 			final V viewsB,
 			final String labelA,
@@ -53,7 +52,7 @@ public class LoadCorrespondencesPairwise< I extends InterestPoint > implements M
 		final Map<ViewId, ViewInterestPointLists> lists = spimData.getViewInterestPoints().getViewInterestPoints();
 
 		if ( Group.class.isInstance( viewsA ) || Group.class.isInstance( viewsB ) ||
-			 GroupedInterestPoint.class.isInstance( listA.get( 0 ) ) || GroupedInterestPoint.class.isInstance( listB.get( 0 ) ) )
+			 GroupedInterestPoint.class.isInstance( listA.iterator().next() ) || GroupedInterestPoint.class.isInstance( listB.iterator().next() ) )
 		{
 			throw new RuntimeException( "Grouped views not yet supported for loading correspondences.");
 		}
@@ -73,7 +72,7 @@ public class LoadCorrespondencesPairwise< I extends InterestPoint > implements M
 							ip -> ip.getId(),
 							ip -> ip ) );
 
-			final List<CorrespondingInterestPoints> corrA =
+			final Collection<CorrespondingInterestPoints> corrA =
 					ipA.getCorrespondingInterestPointsCopy();
 
 			System.out.println( "Loaded " + corrA.size() + " corresponding interest points.");

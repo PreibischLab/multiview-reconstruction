@@ -22,7 +22,7 @@
  */
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise;
 
-import java.util.List;
+import java.util.Collection;
 
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 
@@ -43,8 +43,8 @@ public interface MatcherPairwise< I extends InterestPoint >
 	 * @return matched pairwise results
 	 */
 	public <V> PairwiseResult< I > match(
-			final List< I > listAIn,
-			final List< I > listBIn,
+			final Collection< I > listAIn,
+			final Collection< I > listBIn,
 			final V viewsA,
 			final V viewsB,
 			final String labelA,
