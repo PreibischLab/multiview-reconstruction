@@ -60,8 +60,12 @@ import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
+import net.imglib2.KDTree;
 import net.imglib2.iterator.LocalizingZeroMinIntervalIterator;
+import net.imglib2.neighborsearch.RadiusNeighborSearch;
+import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -179,6 +183,8 @@ public class SplittingTools
 
 			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize, minStepSize, optimize );
 
+			final HashMap< Integer, ViewSetup > intervalId2ViewSetup = new HashMap<>();
+
 			final ArrayList< Integer > newSetupsIds = new ArrayList<>();
 			old2NewSetups.put( oldSetup.getId(), newSetupsIds );
 
@@ -206,6 +212,8 @@ public class SplittingTools
 				final Illumination newIllum = assingIlluminationsFromTileIds ? new Illumination( oldTile.getId(), "old_tile_" + oldTile.getId() ) : illum;
 				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, newIllum );
 				newSetups.add( newSetup );
+
+				intervalId2ViewSetup.put( i, newSetup );
 
 				newSetupsIds.add( newSetup.getId() );
 
@@ -272,13 +280,11 @@ public class SplittingTools
 							newVipl.addInterestPointList( newLabel, newIps ); // still add
 						}
 
-						// TODO: this must be done in the second round since we need to know the full layout of the new dataset for correspondences
-						// TODO: no, that is simply not true, the only thing we need to do in the second run is the existing correspondences
-						/*
 						// adding random [corresponding] interest points in overlapping areas of introduced split views
-						if ( addIPs )
+						if ( ipAdding != InterestPointAdding.NONE )
 						{
 							final ArrayList< InterestPoint > newIp = new ArrayList<>();
+							final ArrayList< CorrespondingInterestPoints > newCorrIp = new ArrayList<>();
 							int id = 0;
 
 							// for each overlapping tile that has not been processed yet
@@ -293,7 +299,7 @@ public class SplittingTools
 								// find the overlap
 								if ( !Intervals.isEmpty( intersection ) )
 								{
-									final ViewSetup otherSetup = interval2ViewSetup.get( otherInterval );
+									final ViewSetup otherSetup = intervalId2ViewSetup.get( j );
 									final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
 									final ViewInterestPointLists otherIPLists = newInterestpoints.get( otherViewId );
 
@@ -309,14 +315,17 @@ public class SplittingTools
 									final int numPoints = Math.min( maxPoints, Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) ) );
 									System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
 
-									final List< InterestPoint > otherPoints = otherIPLists.getInterestPointList( fakeLabel ).getInterestPointsCopy();
+									final ArrayList< InterestPoint > otherPoints = new ArrayList<>( otherIPLists.getInterestPointList( fakeLabel ).getInterestPointsCopy().values() );
+									final ArrayList<CorrespondingInterestPoints> otherCorrIp = new ArrayList<>( otherIPLists.getInterestPointList( fakeLabel ).getCorrespondingInterestPointsCopy() );
+
+									// we know the last one is the highest because we just created them this way
 									int otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
 
 									// find the area that does not contain interest points yet
 									final KDTree< InterestPoint > tree2;
 									final RadiusNeighborSearch< InterestPoint > search2;
 
-									if ( excludeRadius > 0 )
+									if ( excludeRadius > 0 && ipAdding == InterestPointAdding.IP )
 									{
 										// build a tree that contains new added interest points
 										final List< InterestPoint > otherIPglobal = new ArrayList<>();
@@ -342,7 +351,7 @@ public class SplittingTools
 									}
 									else
 									{
-										tree2  = null;
+										tree2 = null;
 										search2 = null;
 									}
 
@@ -364,7 +373,7 @@ public class SplittingTools
 
 										int numNeighbors = 0;
 
-										if ( excludeRadius > 0 )
+										if ( excludeRadius > 0 && ipAdding == InterestPointAdding.IP )
 										{
 											final InterestPoint tmpIP = new InterestPoint( 0, tmp );
 											if ( search2 != null )
@@ -377,12 +386,24 @@ public class SplittingTools
 										// if it's not too close to other points add the same point to both overlapping split tiles
 										if ( numNeighbors == 0 )
 										{
-											newIp.add( new InterestPoint( id++, p ) );
-											otherPoints.add( new InterestPoint( otherId++, op ) );
+											final InterestPoint myNewIp = new InterestPoint( id++, p );
+											final InterestPoint otherNewIp = new InterestPoint( otherId++, op );
+
+											newIp.add( myNewIp );
+											otherPoints.add( otherNewIp );
+
+											if ( ipAdding == InterestPointAdding.CORR )
+											{
+												newCorrIp.add( new CorrespondingInterestPoints( myNewIp.getId(), otherViewId, fakeLabel, otherNewIp.getId() ) );
+												otherCorrIp.add( new CorrespondingInterestPoints( otherNewIp.getId(), newViewId, fakeLabel, myNewIp.getId() ) );
+											}
 										}
 									}
 
 									otherIPLists.getInterestPointList( fakeLabel ).setInterestPoints( otherPoints );
+
+									if ( ipAdding == InterestPointAdding.CORR )
+										otherIPLists.getInterestPointList( fakeLabel ).setCorrespondingInterestPoints( otherCorrIp );
 								}
 							}
 
@@ -398,10 +419,13 @@ public class SplittingTools
 									", maxPoints=" + maxPoints +
 									", error=" + error +
 									", excludeRadius=" + excludeRadius );
-							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
+
+							if ( ipAdding == InterestPointAdding.CORR )
+								newIpl.setCorrespondingInterestPoints( newCorrIp );
+							else
+								newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
 							newVipl.addInterestPointList( fakeLabel, newIpl ); // still add
 						}
-						*/
 					}
 					newInterestpoints.put( newViewId, newVipl );
 				}
