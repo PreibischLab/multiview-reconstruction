@@ -293,10 +293,49 @@ This pattern ensures:
 7. `e41ea3a8` - Add correspondence-based coloring and cross shapes for 2-view mode
 8. `d58f6ad3` - Add per-view color variation in interest point overlay
 
+### 5. F1 Help Window System
+
+#### Comprehensive Help Documentation
+A complete help system was added to the InterestPointExplorer:
+
+**Help Content** (InterestPointHelp.html):
+- Table columns and their meanings (#Detections, #Corresponding, #Correspondences)
+- Point Size and Plane Thickness slider controls with mathematical formulas
+- Distance Fade slider and filter mode
+- Color coding system for visualization
+- Interactive 3-state selection cycling (all corresponding → inter-visible → deselect)
+- Cell clicking and editing capabilities
+- Context menu operations (delete)
+- Common workflows (detection quality inspection, correspondence analysis, cleanup)
+- Best practices and tips
+- Technical details including scaling formulas and data structures
+
+**Implementation** (InterestPointExplorerPanel.java):
+- F1 key listener attached to both table and panel
+- Supports both `KeyEvent.VK_F1` and keyCode `112`
+- Panel made focusable with `setFocusable(true)`
+- Auto-focus on mouse enter/press for immediate F1 functionality
+- Help dialog displayed with `HelpDialog` from BDV tools
+
+**User Experience**:
+- Window title shows "(Press F1 for help)"
+- F1 works immediately when hovering or clicking anywhere in the window
+- No need to click on table rows first
+
+**Files**:
+- `src/main/resources/mvr/InterestPointHelp.html` (219 lines)
+- `src/main/java/net/preibisch/mvrecon/fiji/spimdata/explorer/interestpoint/InterestPointExplorerPanel.java`
+- `src/main/java/net/preibisch/mvrecon/fiji/spimdata/explorer/interestpoint/InterestPointExplorer.java`
+
+**Commits**:
+- `8994af77` - Initial help window implementation
+- `34bff636` - Fixed focus issue for immediate F1 response
+
 ## Important Notes
 
 - **Never commit without explicit user consent**
-- Current branch: `splitCorr`
+- Current branch: `master` (recent F1 help work)
+- Previous work branch: `splitCorr` (slider implementations)
 - Main branch: `master`
 - Build system: Maven (`mvn compile`)
 - Java version: 8
@@ -307,10 +346,19 @@ This pattern ensures:
 **Problem**: Plane thickness appeared to stop working above ~10 pixels in filter mode
 **Cause**: Exponential decay formula still being applied, making points nearly invisible
 **Fix**: Disable distance fade when `isFilterMode()` is true, set alpha=255 for all points
-**Commit**: 55c09e4c
+**Commit**: `55c09e4c`
 
 ### Text Field Circular Update Bug
 **Problem**: Typed values were overwritten by slider's ChangeListener
 **Cause**: Setting slider position triggered ChangeListener which updated text field
 **Fix**: Temporarily remove/re-add ChangeListeners when updating slider from text field
-**Commit**: 55c09e4c
+**Commit**: `55c09e4c`
+
+### F1 Help Focus Issue
+**Problem**: F1 key didn't work until user clicked on the interest point table
+**Cause**: Panel wasn't focusable and didn't have focus by default
+**Fix**:
+- Made panel focusable with `setFocusable(true)`
+- Added mouse listeners to auto-request focus on mouse enter/press
+- F1 key listener attached to both panel and table
+**Commits**: `8994af77`, `34bff636`
