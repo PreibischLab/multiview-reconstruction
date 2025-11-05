@@ -10,6 +10,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.RealTransformRealRandomAccessible;
 import net.imglib2.realtransform.ThinplateSplineTransform;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
@@ -24,7 +25,7 @@ public class TpsDemo {
 		ImagePlus imp = IJ.openImage("http://imagej.net/images/boats.gif");
 		imp.show();
 
-		Img img = ImageJFunctions.wrapByte( imp );
+		Img< UnsignedByteType > img = ImageJFunctions.wrapByte( imp );
 		System.out.println(Intervals.toString(img));
 
 		double sx = img.dimension(0);
@@ -41,8 +42,8 @@ public class TpsDemo {
 
 		ThinplateSplineTransform transform = buildTransform(points, displacements);
 
-		RealRandomAccessibleView interp = img.view().extend(Extension.zero()).interpolate(Interpolation.nLinear());
-		RandomAccessibleInterval tformedImg = new RealTransformRealRandomAccessible(interp, transform).realView().raster().interval(img);
+		RealRandomAccessibleView< UnsignedByteType > interp = img.view().extend(Extension.zero()).interpolate(Interpolation.nLinear());
+		RandomAccessibleInterval< UnsignedByteType > tformedImg = new RealTransformRealRandomAccessible<>(interp, transform).realView().raster().interval(img);
 		ImageJFunctions.show(tformedImg);
 	}
 
