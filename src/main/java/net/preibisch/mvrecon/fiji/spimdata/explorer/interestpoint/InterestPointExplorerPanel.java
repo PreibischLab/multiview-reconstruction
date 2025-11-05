@@ -89,6 +89,10 @@ public class InterestPointExplorerPanel extends JPanel
 		this.delete = new ArrayList< Pair< InterestPoints, ViewId > >();
 
 		this.viewSetupExplorer = viewSetupExplorer;
+
+		// Make the panel focusable to receive key events
+		setFocusable( true );
+
 		initComponent( viewInterestPoints );
 	}
 
@@ -440,6 +444,25 @@ public class InterestPointExplorerPanel extends JPanel
 
 		addPopupMenu( table );
 		addHelpListener( table );
+
+		// Request focus on this panel when the mouse enters, so F1 works
+		this.addMouseListener( new MouseListener()
+		{
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+
+			@Override
+			public void mousePressed(MouseEvent e) { requestFocusInWindow(); }
+
+			@Override
+			public void mouseExited(MouseEvent e) {}
+
+			@Override
+			public void mouseEntered(MouseEvent e) { requestFocusInWindow(); }
+
+			@Override
+			public void mouseClicked(MouseEvent e) {}
+		});
 	}
 
 	protected void addHelpListener( final JTable table )
