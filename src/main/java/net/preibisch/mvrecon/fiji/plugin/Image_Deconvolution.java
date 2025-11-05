@@ -241,7 +241,7 @@ public class Image_Deconvolution implements PlugIn
 					if ( !ComputeBlockMulThreadCPUFactory.class.isInstance( cptf ) )
 					{
 						IOFunctions.println( "For multiplicative deconvolution only CPU is supported so far, sorry. Please open a github issue and I'll implement it." );
-						IOFunctions.println( "GITHUB page: https://github.com/PreibischLab/multiview-reconstruction/issues" );
+						IOFunctions.println( "GITHUB page: https://github.com/JaneliaSciComp/multiview-reconstruction/issues" );
 						return false;
 					}
 

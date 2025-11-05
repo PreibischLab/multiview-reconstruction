@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build.yml/badge.svg)](https://github.com/PreibischLab/multiview-reconstruction/actions/workflows/build.yml)
+[![Build Status](https://github.com/JaneliaSciComp/multiview-reconstruction/actions/workflows/build.yml/badge.svg)](https://github.com/JaneliaSciComp/multiview-reconstruction/actions/workflows/build.yml)
 
 ##  Introduction & Overview
 

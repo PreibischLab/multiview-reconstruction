@@ -16,7 +16,7 @@
 	<name>Multiview Reconstruction</name>
 	<description>Software for the reconstruction of multi-view microscopic acquisitions
 like Selective Plane Illumination Microscopy (SPIM) Data.</description>
-	<url>https://github.com/PreibischLab/multiview-reconstruction</url>
+	<url>https://github.com/JaneliaSciComp/multiview-reconstruction</url>
 	<inceptionYear>2012</inceptionYear>
 	<organization>
 		<name>Preibisch Lab</name>
@@ -79,18 +79,18 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:https://github.com/PreibischLab/multiview-reconstruction</connection>
-		<developerConnection>scm:git:git@github.com:PreibischLab/multiview-reconstruction</developerConnection>
+		<connection>scm:git:https://github.com/JaneliaSciComp/multiview-reconstruction</connection>
+		<developerConnection>scm:git:git@github.com:JaneliaSciComp/multiview-reconstruction</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/PreibischLab/multiview-reconstruction</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/PreibischLab/multiview-reconstruction/issues</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction/issues</url>
 	</issueManagement>
 	<ciManagement>
 		<system>GitHub Actions</system>
-		<url>https://github.com/PreibischLab/multiview-reconstruction/actions</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction/actions</url>
 	</ciManagement>
 
 	<properties>
