@@ -410,7 +410,8 @@ public class SplittingTools
 							final InterestPoints newIpl = InterestPoints.newInstance( spimData.getBasePathURI(), newViewId, fakeLabel );
 							newIpl.setInterestPoints( newIp );
 							newIpl.setParameters(
-									"Fake points for image splitting: overlapPx=" + Arrays.toString( overlapPx ) +
+									( ipAdding == InterestPointAdding.CORR ? "Fake corresponding points " : "Fake points " ) + 
+									"for image splitting: overlapPx=" + Arrays.toString( overlapPx ) +
 									", targetSize=" + Arrays.toString( targetSize ) +
 									", minStepSize=" + Arrays.toString( minStepSize ) +
 									", optimize=" + optimize +
@@ -418,7 +419,7 @@ public class SplittingTools
 									", minPoints=" + minPoints +
 									", maxPoints=" + maxPoints +
 									", error=" + error +
-									", excludeRadius=" + excludeRadius );
+									( ipAdding == InterestPointAdding.CORR ? "" : ", excludeRadius=" + excludeRadius ) );
 
 							if ( ipAdding == InterestPointAdding.CORR )
 								newIpl.setCorrespondingInterestPoints( newCorrIp );
