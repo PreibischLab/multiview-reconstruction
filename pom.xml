@@ -5,18 +5,18 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>42.0.0</version>
+		<version>43.0.0</version>
 		<relativePath />
 	</parent>
 
 	<groupId>net.preibisch</groupId>
 	<artifactId>multiview-reconstruction</artifactId>
-	<version>8.0.1-SNAPSHOT</version>
+	<version>8.1.2-SNAPSHOT</version>
 
 	<name>Multiview Reconstruction</name>
 	<description>Software for the reconstruction of multi-view microscopic acquisitions
 like Selective Plane Illumination Microscopy (SPIM) Data.</description>
-	<url>https://github.com/PreibischLab/multiview-reconstruction</url>
+	<url>https://github.com/JaneliaSciComp/multiview-reconstruction</url>
 	<inceptionYear>2012</inceptionYear>
 	<organization>
 		<name>Preibisch Lab</name>
@@ -79,18 +79,18 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:https://github.com/PreibischLab/multiview-reconstruction</connection>
-		<developerConnection>scm:git:git@github.com:PreibischLab/multiview-reconstruction</developerConnection>
+		<connection>scm:git:https://github.com/JaneliaSciComp/multiview-reconstruction</connection>
+		<developerConnection>scm:git:git@github.com:JaneliaSciComp/multiview-reconstruction</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/PreibischLab/multiview-reconstruction</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/PreibischLab/multiview-reconstruction/issues</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction/issues</url>
 	</issueManagement>
 	<ciManagement>
 		<system>GitHub Actions</system>
-		<url>https://github.com/PreibischLab/multiview-reconstruction/actions</url>
+		<url>https://github.com/JaneliaSciComp/multiview-reconstruction/actions</url>
 	</ciManagement>
 
 	<properties>
@@ -99,19 +99,17 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 		<license.licenseName>gpl_v2</license.licenseName>
 		<license.copyrightOwners>Multiview Reconstruction developers.</license.copyrightOwners>
 
-		<pyramidio.version>1.1.0</pyramidio.version>
-		<ijp-kheops.version>0.6.2</ijp-kheops.version>
-
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
+		<pyramidio.version>1.1.0</pyramidio.version>
+		<ijp-kheops.version>0.6.2</ijp-kheops.version>
+		<generic-archiver.version>1.1.0</generic-archiver.version>
+
+		<!-- TEMP: Until pom-scijava 44.0.0 is released. -->
 		<imglib2.version>8.0.0</imglib2.version>
 		<imglib2-cache.version>1.0.0-beta-20</imglib2-cache.version>
 		<bigdataviewer-core.version>10.6.5</bigdataviewer-core.version>
-
-		<bigdataviewer-n5.version>1.0.2</bigdataviewer-n5.version>
-		<mpicbg.mpicbg.version>1.6.5</mpicbg.mpicbg.version>
-		<generic-archiver.version>1.1.0</generic-archiver.version>
 	</properties>
 
 	<repositories>
@@ -328,25 +326,6 @@ like Selective Plane Illumination Microscopy (SPIM) Data.</description>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
-
-		<!-- JavaFX dependencies (system scope) -->
-		<!--
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-controls</artifactId>
-			<version>21</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-base</artifactId>
-			<version>21</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-swing</artifactId>
-			<version>21</version>
-		</dependency>
-		-->
 
 		<!-- Test dependencies -->
 		<dependency>

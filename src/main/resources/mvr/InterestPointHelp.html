@@ -1,0 +1,217 @@
+<!--
+  #%L
+  Software for the reconstruction of multi-view microscopic acquisitions
+  like Selective Plane Illumination Microscopy (SPIM) Data.
+  %%
+  Copyright (C) 2012 - 2025 Multiview Reconstruction developers.
+  %%
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as
+  published by the Free Software Foundation, either version 2 of the
+  License, or (at your option) any later version.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  You should have received a copy of the GNU General Public
+  License along with this program.  If not, see
+  <http://www.gnu.org/licenses/gpl-2.0.html>.
+  #L%
+  -->
+<!-- vim::set expandtab tabstop=4 softtabstop=2 shiftwidth=2: -->
+<html>
+<style TYPE="text/css">
+h2
+{
+  margin-bottom: 0px;
+}
+h3
+{
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+table, tr, td
+{
+  border-spacing: 0px;
+}
+table
+{
+  width:100%;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  background-color:#f8f8f8;
+}
+td
+{
+  padding:5px;
+  padding-right:10px;
+  padding-left:10px;
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+}
+td.a
+{
+  text-align:center;
+}
+body
+{
+  background-color:white;
+  margin-left:10px;
+}
+ul
+{
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+li
+{
+  margin-bottom: 5px;
+}
+</style>
+<body>
+<h1>Interest Point Explorer</h1>
+<p>
+The <b>Interest Point Explorer</b> allows you to visualize, analyze, and manage interest points (features) detected in your views.
+Interest points are used for image registration and stitching.
+</p>
+
+<h2>Overview</h2>
+<p>
+The explorer displays a table showing all interest point detections for the selected view(s). Each row represents
+a different interest point detection/label, showing statistics about the number of detections, correspondences,
+and which views contain them.
+</p>
+
+<h3>Table Columns</h3>
+<ul>
+  <li><b>Interest Point Label:</b> The name/identifier of the detection (e.g., "beads", "DoG")</li>
+  <li><b>#Detections:</b> Total number of interest points detected</li>
+  <li><b>#Corresponding:</b> Number of points that have correspondences to other views</li>
+  <li><b>#Correspondences:</b> Total number of point-to-point correspondences established</li>
+  <li><b>Present in Views:</b> List of ViewSetup IDs and Timepoints where this detection exists</li>
+  <li><b>Parameters:</b> Detection parameters used (if saved)</li>
+</ul>
+
+<h2>Visualization Features</h2>
+
+<h3>Point Size Control</h3>
+<p>
+Use the <b>Point Size</b> slider (top right) to adjust the size of displayed interest points in BigDataViewer:
+</p>
+<ul>
+  <li><b>Left</b> (smaller values): Tiny points for detailed inspection</li>
+  <li><b>Center</b> (value ~30): Default size</li>
+  <li><b>Right</b> (larger values): Large points for easier visibility</li>
+  <li>Can also edit the size value directly in the text field next to the slider</li>
+  <li>Uses exponential scaling for fine control at small sizes</li>
+</ul>
+
+<h3>Plane Thickness Control</h3>
+<p>
+Use the <b>Plane Thickness</b> slider (top right) to control which points are visible based on distance from current plane:
+</p>
+<ul>
+  <li><b>Left</b> (thin): Only show points very close to current viewing plane</li>
+  <li><b>Right</b> (thick): Show points further away from current plane</li>
+  <li>Can also edit the thickness value directly in the text field</li>
+  <li>Useful for reducing visual clutter in 3D datasets</li>
+  <li>Uses power scaling (value^5) for intuitive control</li>
+</ul>
+
+<h3>Color Coding</h3>
+<p>
+Each interest point detection is assigned a unique color for visualization in BigDataViewer.
+Click on different rows in the table to highlight different interest point sets.
+</p>
+
+<h2>Interactive Table Features</h2>
+
+<h3>Clicking on Cells</h3>
+<p>
+<b>Left-click</b> on table cells to visualize interest points in BigDataViewer:
+</p>
+<ul>
+  <li><b>First click</b> on a cell: Shows all corresponding points (highlighted in <span style="color:red;">red</span>)</li>
+  <li><b>Second click</b> on same cell: Shows only inter-view visible correspondences (highlighted in <span style="color:green;">green</span>)</li>
+  <li><b>Third click</b> on same cell: Deselects (returns to default color)</li>
+  <li>Clicking different rows switches between different interest point detections</li>
+</ul>
+
+<h2>Context Menu Operations</h2>
+<p>
+<b>Right-click</b> on table rows to access additional operations:
+</p>
+<ul>
+  <li><b>Delete:</b> Remove the selected interest point detection(s) from the dataset</li>
+  <li>Note: Deletion is immediate and cannot be undone without reloading the XML</li>
+</ul>
+
+<h2>Keyboard Shortcuts</h2>
+
+<table border="1">
+<tr>
+  <td class="a"><b>F1</b></td>
+  <td>Show this help window.</td>
+</tr>
+</table>
+<br/>
+
+<h2>Tips and Best Practices</h2>
+<ul>
+  <li><b>Multiple Views Selected:</b> When multiple views are selected in the ViewSetup Explorer,
+      the Interest Point Explorer shows detections common to all selected views</li>
+  <li><b>Correspondence Analysis:</b> Compare #Corresponding vs #Detections to assess registration quality -
+      low ratios may indicate poor feature matching</li>
+  <li><b>Performance Mode:</b> For large datasets with many points, reduce the Plane Thickness to only
+      display points near the current viewing plane</li>
+  <li><b>Color Management:</b> Each detection gets a unique color - use the table to quickly identify
+      which points belong to which detection in BigDataViewer</li>
+  <li><b>Rename Before Processing:</b> Give detections meaningful names before running registration/stitching
+      to make it easier to track which parameters were used</li>
+</ul>
+
+<h2>Common Workflows</h2>
+
+<h3>1. Inspecting Detection Quality</h3>
+<ol>
+  <li>Select a single view in the ViewSetup Explorer</li>
+  <li>Open the Interest Point Explorer</li>
+  <li>Click on a detection row to visualize points in BDV</li>
+  <li>Adjust Point Size and Plane Thickness for optimal viewing</li>
+  <li>Check if points are well-distributed and located on actual features</li>
+</ol>
+
+<h3>2. Analyzing Correspondences</h3>
+<ol>
+  <li>Select two or more views in the ViewSetup Explorer</li>
+  <li>Click on a detection row</li>
+  <li>Click on the #Corresponding or #Correspondences column to highlight corresponding points</li>
+  <li>Click again to show only inter-view visible correspondences (green)</li>
+  <li>Verify that correspondences are correct by visual inspection</li>
+</ol>
+
+<h2>Technical Details</h2>
+
+<h3>Point Visualization</h3>
+<ul>
+  <li><b>Distance Fade:</b> Points fade based on distance from current plane (fade factor: 0.125)</li>
+  <li><b>Size Scaling:</b> Exponential scaling formula: size = base_size × 10^((slider-30)/85)</li>
+  <li><b>Plane Thickness:</b> Power scaling formula: thickness = 100 × (slider/100)^5</li>
+</ul>
+
+<h3>Data Structure</h3>
+<ul>
+  <li>Interest points are stored per view (ViewId = TimePoint + ViewSetup)</li>
+  <li>Each detection has a label/identifier</li>
+  <li>Correspondences link points across different views</li>
+  <li>Both detections and correspondences are saved in the XML metadata</li>
+</ul>
+
+<h2>See Also</h2>
+<p>
+For more information about interest point detection and registration, see the
+<a href="http://imagej.net/Multiview-Reconstruction">Multiview-Reconstruction documentation</a>.
+</p>
+
+</body>
+</html>

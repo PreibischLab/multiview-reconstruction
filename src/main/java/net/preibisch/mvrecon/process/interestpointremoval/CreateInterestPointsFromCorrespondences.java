@@ -25,8 +25,8 @@ package net.preibisch.mvrecon.process.interestpointremoval;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import mpicbg.spim.data.sequence.ViewDescription;
 import mpicbg.spim.data.sequence.ViewId;
@@ -59,10 +59,7 @@ public class CreateInterestPointsFromCorrespondences
 
 			final ArrayList< InterestPoint > newIPs = new ArrayList<>();
 
-			final HashMap< Integer, InterestPoint > oldIPs = new HashMap<>();
-			
-			for ( final InterestPoint oldIP : oldIpl.getInterestPointsCopy() )
-				oldIPs.put( oldIP.getId(), oldIP );
+			final Map< Integer, InterestPoint > oldIPs = oldIpl.getInterestPointsCopy();
 
 			final HashSet< Integer > existingPoints = new HashSet<>();
 

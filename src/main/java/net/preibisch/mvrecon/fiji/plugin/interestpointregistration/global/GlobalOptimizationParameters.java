@@ -28,6 +28,7 @@ public class GlobalOptimizationParameters
 {
 	public static int defaultGlobalOpt = 3;
 	public static int defaultSimple = 5;
+	public static boolean defaultPrealign = true;
 
 	final static double relativeBase = 2.5;
 	final static double absoluteBase = 3.5;
@@ -42,14 +43,23 @@ public class GlobalOptimizationParameters
 		ONE_ROUND_SIMPLE,
 		ONE_ROUND_ITERATIVE,
 		TWO_ROUND_SIMPLE,
-		TWO_ROUND_ITERATIVE
+		TWO_ROUND_ITERATIVE,
+		NO_OPTIMIZATION
+	}
+
+	public enum PreAlign
+	{
+		TRUE,
+		FALSE,
+		ASK
 	}
 
 	private final static String[] methodDescriptions = {
 			"One-Round",
 			"One-Round with iterative dropping of bad links",
 			"Two-Round using metadata to align unconnected Tiles",
-			"Two-Round using Metadata to align unconnected Tiles and iterative dropping of bad links" // default
+			"Two-Round using Metadata to align unconnected Tiles and iterative dropping of bad links", // default
+			"NO global optimization, just store the corresponding interest points"
 	};
 
 	private final static String[] methodDescriptionsSimple = {
@@ -57,64 +67,73 @@ public class GlobalOptimizationParameters
 			"One-Round: DO NOT handle unconnected tiles, handle wrong links STRICT (2.5x / 3.5px)",
 			"One-Round: DO NOT handle unconnected tiles, handle wrong links RELAXED (5.0x / 7.0px)",
 			"Two-Round: Handle unconnected tiles, DO NOT remove wrong links",
-			"Two-Round: Handle unconnected tiles, remove wrong links STRICT (2.5x / 3.5px)", // default
-			"Two-Round: Handle unconnected tiles, remove wrong links RELAXED (5.0x / 7.0px)",
+			"Two-Round: Handle unconnected tiles, remove wrong links STRICT (2.5x / 3.5px)",
+			"Two-Round: Handle unconnected tiles, remove wrong links RELAXED (5.0x / 7.0px)", // default
+			"NO global optimization, just store the corresponding interest points",
 			"Show full options dialog"
 	};
 
 	public GlobalOptType method;
+	public boolean preAlign;
 	public double relativeThreshold;
 	public double absoluteThreshold;
 	public boolean showExpertGrouping;
 
 	public GlobalOptimizationParameters()
 	{
-		this( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+		this( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, true, false );
 	}
 
-	public GlobalOptimizationParameters(double relativeThreshold, double absoluteThreshold, GlobalOptType method, boolean showExpertGrouping)
+	public GlobalOptimizationParameters(double relativeThreshold, double absoluteThreshold, GlobalOptType method, boolean preAlign, boolean showExpertGrouping)
 	{
 		this.relativeThreshold = relativeThreshold;
 		this.absoluteThreshold = absoluteThreshold;
 		this.method = method;
+		this.preAlign = preAlign;
 		this.showExpertGrouping = showExpertGrouping;
 	}
 
 	public static void addSimpleParametersToDialog( final GenericDialog gd )
 	{
 		gd.addChoice( "Global_optimization_strategy", methodDescriptionsSimple, methodDescriptionsSimple[ defaultSimple ] );
+		gd.addCheckbox( "Pre-align images (otherwise use current transforms as initialization)", defaultPrealign );
 	}
 
 	public static GlobalOptimizationParameters parseSimpleParametersFromDialog( final GenericDialog gd )
 	{
-		return getGlobalOptimizationParametersForSelection( defaultSimple = gd.getNextChoiceIndex() );
+		GlobalOptimizationParameters gp = 
+				getGlobalOptimizationParametersForSelection(
+						defaultSimple = gd.getNextChoiceIndex(),
+						defaultPrealign = gd.getNextBoolean() );
+
+		return gp;
 	}
 
-	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected )
+	public static GlobalOptimizationParameters getGlobalOptimizationParametersForSelection( final int selected, final boolean preAlign )
 	{
-		if ( selected == 6 )
-			return askUserForParameters( false );
+		if ( selected == 7 )
+			return askUserForParameters( false, preAlign ? PreAlign.TRUE : PreAlign.FALSE );
 		else if ( selected == 0 )
-			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, false );
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.ONE_ROUND_SIMPLE, preAlign, false );
 		else if ( selected == 1 )
-			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, preAlign, false );
 		else if ( selected == 2 )
-			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.ONE_ROUND_ITERATIVE, preAlign, false );
 		else if ( selected == 3 )
-			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.TWO_ROUND_SIMPLE, false );
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.TWO_ROUND_SIMPLE, preAlign, false );
 		else if ( selected == 4 )
-			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
-		else //if ( selected == 5 )
-			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, false );
+			return new GlobalOptimizationParameters( relativeBase, absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, preAlign, false );
+		else if ( selected == 5 )
+			return new GlobalOptimizationParameters( 2 * relativeBase, 2 * absoluteBase, GlobalOptType.TWO_ROUND_ITERATIVE, preAlign, false );
+		else //if ( selected == 6 )
+			return new GlobalOptimizationParameters( Double.MAX_VALUE, Double.MAX_VALUE, GlobalOptType.NO_OPTIMIZATION, preAlign, false );
 	}
 
 	public static GlobalOptimizationParameters askUserForSimpleParameters()
 	{
-		// ask user for parameters
 		final GenericDialog gd = new GenericDialog( "Global optimization options" );
 
 		addSimpleParametersToDialog( gd );
-		//gd.addChoice( "Global_optimization_strategy", methodDescriptionsSimple, methodDescriptionsSimple[ defaultSimple ] );
 
 		gd.showDialog();
 
@@ -122,31 +141,15 @@ public class GlobalOptimizationParameters
 			return null;
 
 		return parseSimpleParametersFromDialog( gd );
-
-		/*
-		final int selected = gd.getNextChoiceIndex();
-
-		if ( selected == 6 )
-			return askUserForParameters( false );
-		else if ( selected == 0 )
-			return new GlobalOptimizationParameters( Double.NaN, Double.NaN, GlobalOptType.ONE_ROUND_SIMPLE, false );
-		else if ( selected == 1 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.ONE_ROUND_ITERATIVE, false );
-		else if ( selected == 2 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.ONE_ROUND_ITERATIVE, false );
-		else if ( selected == 3 )
-			return new GlobalOptimizationParameters( Double.NaN, Double.NaN, GlobalOptType.TWO_ROUND_SIMPLE, false );
-		else if ( selected == 4 )
-			return new GlobalOptimizationParameters( defaultRelativeError, defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );
-		else //if ( selected == 5 )
-			return new GlobalOptimizationParameters( 2 * defaultRelativeError, 2 * defaultAbsoluteError, GlobalOptType.TWO_ROUND_ITERATIVE, false );*/
 	}
 
-	public static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping )
+	public static GlobalOptimizationParameters askUserForParameters( final boolean askForGrouping, final PreAlign preAlign )
 	{
 		// ask user for parameters
 		final GenericDialog gd = new GenericDialog("Global optimization options");
 		gd.addChoice( "Global_optimization_strategy", methodDescriptions, methodDescriptions[ defaultGlobalOpt ] );
+		if ( preAlign == PreAlign.ASK)
+			gd.addCheckbox( "Pre-align images (otherwise use current transforms as initialization)", defaultPrealign );
 		gd.addNumericField( "relative error threshold (for handling wrong links)", 2.5, 3 );
 		gd.addNumericField( "absolute error threshold (for handling wrong links)", 3.5, 3 );
 		if (askForGrouping )
@@ -159,6 +162,12 @@ public class GlobalOptimizationParameters
 		double relTh = gd.getNextNumber();
 		double absTh = gd.getNextNumber();
 		final int methodIdx = defaultGlobalOpt = gd.getNextChoiceIndex();
+		final boolean preAlignValue;
+		if ( preAlign == PreAlign.ASK )
+			preAlignValue = defaultPrealign = gd.getNextBoolean();
+		else
+			preAlignValue = (preAlign == PreAlign.TRUE);
+
 		final boolean expertGrouping = askForGrouping ? gd.getNextBoolean() : false;
 
 		final GlobalOptType method;
@@ -171,9 +180,11 @@ public class GlobalOptimizationParameters
 			method = GlobalOptType.TWO_ROUND_SIMPLE;
 			relTh = absTh = Double.MAX_VALUE;
 		}
-		else
+		else if (methodIdx == 2)
 			method = GlobalOptType.TWO_ROUND_ITERATIVE;
+		else
+			method = GlobalOptType.NO_OPTIMIZATION;
 
-		return new GlobalOptimizationParameters(relTh, absTh, method, expertGrouping);
+		return new GlobalOptimizationParameters(relTh, absTh, method, preAlignValue, expertGrouping);
 	}
 }

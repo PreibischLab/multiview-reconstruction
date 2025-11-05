@@ -24,12 +24,19 @@ package net.preibisch.mvrecon.process.splitting;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import bdv.ViewerImgLoader;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -64,11 +71,13 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.Split_Views;
+import net.preibisch.mvrecon.fiji.plugin.Split_Views.InterestPointAdding;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitMultiResolutionImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.fiji.spimdata.intensityadjust.IntensityAdjustments;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.CorrespondingInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPointLists;
@@ -76,6 +85,7 @@ import net.preibisch.mvrecon.fiji.spimdata.interestpoints.ViewInterestPoints;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunction;
 import net.preibisch.mvrecon.fiji.spimdata.pointspreadfunctions.PointSpreadFunctions;
 import net.preibisch.mvrecon.fiji.spimdata.stitchingresults.StitchingResults;
+import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 
 public class SplittingTools
 {
@@ -92,7 +102,7 @@ public class SplittingTools
 	 * @param minStepSize - step size or multipleOf for coordinates and sizes (except size of last tile), e.g. 8 - defined by the lowest downsampling step
 	 * @param assingIlluminationsFromTileIds - use illumination attribute to remember former tiles
 	 * @param optimize - whether to optimize overlap size
-	 * @param addIPs - if fake interest points should be added
+	 * @param ipAdding - if fake (corresponding) interest points should be added
 	 * @param pointDensity - how many points per 100x100x100 volume
 	 * @param minPoints - min number of generated fake points per pair
 	 * @param maxPoints - max number of generated fake points per pair
@@ -107,7 +117,7 @@ public class SplittingTools
 			final long[] minStepSize,
 			final boolean assingIlluminationsFromTileIds,
 			final boolean optimize,
-			final boolean addIPs,
+			final InterestPointAdding ipAdding,
 			final double pointDensity,
 			final int minPoints,
 			final int maxPoints,
@@ -127,6 +137,9 @@ public class SplittingTools
 
 		final HashMap< Integer, Integer > new2oldSetupId = new HashMap<>();
 		final HashMap< Integer, Interval > newSetupId2Interval = new HashMap<>();
+
+		// for setting up the corresponding interest points
+		final Map< Integer, ArrayList< Integer > > old2NewSetups = new HashMap<>();
 
 		final ArrayList< ViewSetup > newSetups = new ArrayList<>();
 		final Map< ViewId, ViewRegistration > newRegistrations = new HashMap<>();
@@ -149,6 +162,10 @@ public class SplittingTools
 
 		final Random rnd = new Random( 23424459 );
 
+		// TODO: in order to assign existing corresponding points, we need to build the Map from old to new viewId's and their transformations/sizes first
+		// TODO: because we need to know what the new corresponding point(s) is/are, 1:1 correspondence mappings become 1:n since the corresponding point
+		// TODO: may be in an overlapping area and are thus multiplied
+
 		for ( final ViewSetup oldSetup : oldSetups )
 		{
 			final int oldID = oldSetup.getId();
@@ -166,14 +183,16 @@ public class SplittingTools
 
 			final ArrayList< Interval > intervals = distributeIntervalsFixedOverlap( input, overlapPx, targetSize, minStepSize, optimize );
 
-			final HashMap< Interval, ViewSetup > interval2ViewSetup = new HashMap<>();
+			final HashMap< Integer, ViewSetup > intervalId2ViewSetup = new HashMap<>();
+
+			final ArrayList< Integer > newSetupsIds = new ArrayList<>();
+			old2NewSetups.put( oldSetup.getId(), newSetupsIds );
 
 			for ( int i = 0; i < intervals.size(); ++i )
 			{
 				final Interval interval = intervals.get( i );
 
 				IOFunctions.println( "Interval " + (i+1) + ": " + Util.printInterval( interval ) );
-				//System.out.println( "Interval " + i + ": " + Util.printInterval( interval ) );
 
 				// from the new ID get the old ID and the corresponding interval
 				new2oldSetupId.put( newId, oldID );
@@ -194,7 +213,9 @@ public class SplittingTools
 				final ViewSetup newSetup = new ViewSetup( newId, null, newDim, voxDim, newTile, channel, angle, newIllum );
 				newSetups.add( newSetup );
 
-				interval2ViewSetup.put( interval, newSetup );
+				intervalId2ViewSetup.put( i, newSetup );
+
+				newSetupsIds.add( newSetup.getId() );
 
 				// update registrations and interest points for all timepoints
 				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
@@ -204,10 +225,12 @@ public class SplittingTools
 					final ArrayList< ViewTransform > transformList = new ArrayList<>( oldVR.getTransformList() );
 
 					final AffineTransform3D translation = new AffineTransform3D();
-					translation.set( 1.0f, 0.0f, 0.0f, interval.min( 0 ),
+					translation.set(
+							1.0f, 0.0f, 0.0f, interval.min( 0 ),
 							0.0f, 1.0f, 0.0f, interval.min( 1 ),
 							0.0f, 0.0f, 1.0f, interval.min( 2 ) );
 
+					// very first transform is for splitting
 					final ViewTransformAffine transform = new ViewTransformAffine( "Image Splitting", translation );
 					transformList.add( transform );
 
@@ -215,7 +238,7 @@ public class SplittingTools
 					final ViewRegistration newVR = new ViewRegistration( newViewId.getTimePointId(), newViewId.getViewSetupId(), transformList );
 					newRegistrations.put( newViewId, newVR );
 
-					// Interest points
+					// Interest points: we need to add them here so we can later link them when we re-iterate
 					final ViewInterestPointLists newVipl = new ViewInterestPointLists( newViewId.getTimePointId(), newViewId.getViewSetupId() );
 					final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
 
@@ -225,13 +248,19 @@ public class SplittingTools
 					{
 						for ( final String label : oldVipl.getHashMap().keySet() )
 						{
-							int id = 0;
+							final String newLabel = label + "_split";
 
-							final ArrayList< InterestPoint > newIp1 = new ArrayList<>();
-							final InterestPoints oldIpl1 = oldVipl.getInterestPointList( label );
-							final List< InterestPoint > oldIp1 = oldIpl1.getInterestPointsCopy();
+							// We do keep the old interest point ids so they stay unique and we can look up correspondences easier later.
+							// Note that the same old ID will occur more than once in overlapping areas, but that's fine
+							//int id = 0;
 
-							for ( final InterestPoint ip : oldIp1 )
+							final List< InterestPoint > newIpList = new ArrayList<>();
+
+							// TODO: load outside the loop for efficiency
+							final InterestPoints oldIps = oldVipl.getInterestPointList( label );
+							final Map< Integer, InterestPoint > oldIpList = oldIps.getInterestPointsCopy();
+
+							for ( final InterestPoint ip : oldIpList.values() )
 							{
 								if ( contains( ip.getL(), interval ) )
 								{
@@ -239,21 +268,23 @@ public class SplittingTools
 									for ( int d = 0; d < interval.numDimensions(); ++d )
 										l[ d ] -= interval.min( d );// + (rnd.nextDouble() - 0.5);
 	
-									newIp1.add( new InterestPoint( id++, l ) );
+									newIpList.add( new InterestPoint( ip.getId(), l ) );
 								}
 							}
 
-							final InterestPoints newIpl1 = InterestPoints.newInstance( oldIpl1.getBaseDir(), newViewId, label + "_split" );
-							newIpl1.setInterestPoints( newIp1 );
-							newIpl1.setParameters( oldIpl1.getParameters() );
-							newIpl1.setCorrespondingInterestPoints( new ArrayList<>() );
-							newVipl.addInterestPointList( label + "_split", newIpl1 ); // still add
+							final InterestPoints newIps = InterestPoints.newInstance( oldIps.getBaseDir(), newViewId, newLabel );
+							newIps.setInterestPoints( newIpList );
+							newIps.setParameters( oldIps.getParameters() );
+							// empty for now, fill up corresponding points in the second iteration when all 'new' interest points exist
+							newIps.setCorrespondingInterestPoints( new ArrayList<>() );
+							newVipl.addInterestPointList( newLabel, newIps ); // still add
 						}
 
-						// adding random corresponding interest points in overlapping areas of introduced split views
-						if ( addIPs )
+						// adding random [corresponding] interest points in overlapping areas of introduced split views
+						if ( ipAdding != InterestPointAdding.NONE )
 						{
 							final ArrayList< InterestPoint > newIp = new ArrayList<>();
+							final ArrayList< CorrespondingInterestPoints > newCorrIp = new ArrayList<>();
 							int id = 0;
 
 							// for each overlapping tile that has not been processed yet
@@ -268,7 +299,7 @@ public class SplittingTools
 								// find the overlap
 								if ( !Intervals.isEmpty( intersection ) )
 								{
-									final ViewSetup otherSetup = interval2ViewSetup.get( otherInterval );
+									final ViewSetup otherSetup = intervalId2ViewSetup.get( j );
 									final ViewId otherViewId = new ViewId( t.getId(), otherSetup.getId() );
 									final ViewInterestPointLists otherIPLists = newInterestpoints.get( otherViewId );
 
@@ -284,14 +315,17 @@ public class SplittingTools
 									final int numPoints = Math.min( maxPoints, Math.max( minPoints, (int)Math.round( Math.ceil( pointDensity * numPixels / (100.0*100.0*100.0) ) ) ) );
 									System.out.println(numPixels / (100.0*100.0*100.0) + " " + numPoints  );
 
-									final List< InterestPoint > otherPoints = otherIPLists.getInterestPointList( fakeLabel ).getInterestPointsCopy();
+									final ArrayList< InterestPoint > otherPoints = new ArrayList<>( otherIPLists.getInterestPointList( fakeLabel ).getInterestPointsCopy().values() );
+									final ArrayList<CorrespondingInterestPoints> otherCorrIp = new ArrayList<>( otherIPLists.getInterestPointList( fakeLabel ).getCorrespondingInterestPointsCopy() );
+
+									// we know the last one is the highest because we just created them this way
 									int otherId = otherPoints.size() > 0 ? otherPoints.get( otherPoints.size() - 1 ).getId() + 1 : 0;
 
 									// find the area that does not contain interest points yet
 									final KDTree< InterestPoint > tree2;
 									final RadiusNeighborSearch< InterestPoint > search2;
 
-									if ( excludeRadius > 0 )
+									if ( excludeRadius > 0 && ipAdding == InterestPointAdding.IP )
 									{
 										// build a tree that contains new added interest points
 										final List< InterestPoint > otherIPglobal = new ArrayList<>();
@@ -317,7 +351,7 @@ public class SplittingTools
 									}
 									else
 									{
-										tree2  = null;
+										tree2 = null;
 										search2 = null;
 									}
 
@@ -339,7 +373,7 @@ public class SplittingTools
 
 										int numNeighbors = 0;
 
-										if ( excludeRadius > 0 )
+										if ( excludeRadius > 0 && ipAdding == InterestPointAdding.IP )
 										{
 											final InterestPoint tmpIP = new InterestPoint( 0, tmp );
 											if ( search2 != null )
@@ -352,19 +386,32 @@ public class SplittingTools
 										// if it's not too close to other points add the same point to both overlapping split tiles
 										if ( numNeighbors == 0 )
 										{
-											newIp.add( new InterestPoint( id++, p ) );
-											otherPoints.add( new InterestPoint( otherId++, op ) );
+											final InterestPoint myNewIp = new InterestPoint( id++, p );
+											final InterestPoint otherNewIp = new InterestPoint( otherId++, op );
+
+											newIp.add( myNewIp );
+											otherPoints.add( otherNewIp );
+
+											if ( ipAdding == InterestPointAdding.CORR )
+											{
+												newCorrIp.add( new CorrespondingInterestPoints( myNewIp.getId(), otherViewId, fakeLabel, otherNewIp.getId() ) );
+												otherCorrIp.add( new CorrespondingInterestPoints( otherNewIp.getId(), newViewId, fakeLabel, myNewIp.getId() ) );
+											}
 										}
 									}
 
 									otherIPLists.getInterestPointList( fakeLabel ).setInterestPoints( otherPoints );
+
+									if ( ipAdding == InterestPointAdding.CORR )
+										otherIPLists.getInterestPointList( fakeLabel ).setCorrespondingInterestPoints( otherCorrIp );
 								}
 							}
 
 							final InterestPoints newIpl = InterestPoints.newInstance( spimData.getBasePathURI(), newViewId, fakeLabel );
 							newIpl.setInterestPoints( newIp );
 							newIpl.setParameters(
-									"Fake points for image splitting: overlapPx=" + Arrays.toString( overlapPx ) +
+									( ipAdding == InterestPointAdding.CORR ? "Fake corresponding points " : "Fake points " ) + 
+									"for image splitting: overlapPx=" + Arrays.toString( overlapPx ) +
 									", targetSize=" + Arrays.toString( targetSize ) +
 									", minStepSize=" + Arrays.toString( minStepSize ) +
 									", optimize=" + optimize +
@@ -372,11 +419,14 @@ public class SplittingTools
 									", minPoints=" + minPoints +
 									", maxPoints=" + maxPoints +
 									", error=" + error +
-									", excludeRadius=" + excludeRadius );
-							newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
+									( ipAdding == InterestPointAdding.CORR ? "" : ", excludeRadius=" + excludeRadius ) );
+
+							if ( ipAdding == InterestPointAdding.CORR )
+								newIpl.setCorrespondingInterestPoints( newCorrIp );
+							else
+								newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
 							newVipl.addInterestPointList( fakeLabel, newIpl ); // still add
 						}
-
 					}
 					newInterestpoints.put( newViewId, newVipl );
 				}
@@ -394,6 +444,71 @@ public class SplittingTools
 				for ( final int newSetupId : new2oldSetupId.keySet() )
 					if ( new2oldSetupId.get( newSetupId ) == id.getViewSetupId() )
 						missingViews.add( new ViewId( id.getTimePointId(), newSetupId ) );
+
+		//
+		// add existing corresponding interest points
+		//
+		for ( final ViewSetup oldSetup : oldSetups )
+		{
+			for ( final int newSetupId : old2NewSetups.get( oldSetup.getId() ) )
+			{
+				// update corresponding interest points for all timepoints
+				for ( final TimePoint t : timepoints.getTimePointsOrdered() )
+				{
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): Processing corresponding interest points for old >>> new ViewId pair: " + 
+							Group.pvid( new ViewId( t.getId(), oldSetup.getId() ) ) + " >>> " + Group.pvid( new ViewId( t.getId(), newSetupId ) ) );
+
+					final ViewId oldViewId = new ViewId( t.getId(), oldSetup.getId() );
+					final ViewId newViewId = new ViewId( t.getId(), newSetupId );
+
+					final ViewInterestPointLists oldVipl = spimData.getViewInterestPoints().getViewInterestPointLists( oldViewId );
+					final ViewInterestPointLists newVipl = newInterestpoints.get( newViewId );
+
+					// only update interest points for present views
+					// oldVipl may be null for missing views
+					if ( spimData.getSequenceDescription().getMissingViews() != null && !spimData.getSequenceDescription().getMissingViews().getMissingViews().contains( oldViewId ) )
+					{
+						for ( final String label : oldVipl.getHashMap().keySet() )
+						{
+							final Collection<CorrespondingInterestPoints> corr = oldVipl.getInterestPointList( label ).getCorrespondingInterestPointsCopy();
+
+							final InterestPoints newIpl = newVipl.getInterestPointList( label + "_split" );
+							final Map< Integer, InterestPoint > newIpList = newIpl.getInterestPointsCopy();
+
+							newIpl.setCorrespondingInterestPoints(
+									// for each corresponding interest point entry
+									corr.stream()
+										.parallel()
+										.filter( c -> newIpList.containsKey( c.getDetectionId() ) ) // only look at those that are in the current new viewid
+										.map( c ->
+											// find all new setups we have correspondences with,
+											// this could be in more than one of the new views if it falls into an overlapping area
+											old2NewSetups.get( c.getCorrespondingViewId().getViewSetupId() ).stream().map( corrNewSetupId ->
+											{
+												final String newCorrLabel = c.getCorrespodingLabel() + "_split";
+												final ViewId newCorrViewId = new ViewId( t.getId(), corrNewSetupId );
+		
+												if ( newInterestpoints.get( newCorrViewId ).getInterestPointList( newCorrLabel ).getInterestPointsCopy().containsKey( c.getCorrespondingDetectionId() ) )
+												{
+													return new CorrespondingInterestPoints(
+															c.getDetectionId(),
+															newCorrViewId,
+															newCorrLabel,
+															c.getCorrespondingDetectionId() );
+												}
+												else
+												{
+													return null;
+												}
+											})
+											.filter( Objects::nonNull ) ) // .collect( Collectors.toList() ); << we can directly concatenate the streams without collecting as list and streaming again
+										.flatMap( Function.identity() ) // List::stream ) << we can directly concatenate the streams without collecting as list and streaming again
+										.collect( Collectors.toList() ) );
+						}
+					}
+				}
+			}
+		}
 
 		// instantiate the sequencedescription
 		final SequenceDescription sequenceDescription = new SequenceDescription( timepoints, newSetups, null, new MissingViews( missingViews ) );

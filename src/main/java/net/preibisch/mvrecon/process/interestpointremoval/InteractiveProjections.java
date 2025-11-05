@@ -31,8 +31,12 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import ij.ImagePlus;
 import ij.gui.OvalRoi;
@@ -62,7 +66,7 @@ public class InteractiveProjections
 
 	protected boolean isRunning, wasCanceled;
 	protected ImagePlus imp;
-	protected List< InterestPoint > ipList;
+	protected Map< Integer, InterestPoint > ipMap;
 	final protected List< Thread > runAfterFinished;
 
 	public InteractiveProjections( final SpimData2 spimData, final ViewDescription vd, final String label, final String newLabel, final int projectionDim )
@@ -75,14 +79,14 @@ public class InteractiveProjections
 		RandomAccessibleInterval< FloatType > img = spimData.getSequenceDescription().getImgLoader().getSetupImgLoader( vd.getViewSetupId() ).getFloatImage( vd.getTimePointId(), false );
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": Computing max projection along dimension " + projectionDim + " ..." );
-		final Img< FloatType > maxProj = PSFCombination.computeMaxProjection( img, new ArrayImgFactory< FloatType >(), projectionDim, true );
+		final Img< FloatType > maxProj = PSFCombination.computeMaxProjection( img, new ArrayImgFactory< FloatType >( new FloatType() ), projectionDim, true );
 		this.imp = showProjection( maxProj );
 
 		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": Loading & drawing interest points ..." );
-		this.ipList = spimData.getViewInterestPoints().getViewInterestPointLists( vd ).getInterestPointList( label ).getInterestPointsCopy();
-		drawProjectedInterestPoints( imp, ipList, projectionDim );
+		this.ipMap = spimData.getViewInterestPoints().getViewInterestPointLists( vd ).getInterestPointList( label ).getInterestPointsCopy();
+		drawProjectedInterestPoints( imp, ipMap.values(), projectionDim );
 
-		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": " + ipList.size() + " points displayed ... " );
+		IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": " + ipMap.size() + " points displayed ... " );
 
 		frame = new Frame( "Remove detections" );
 		frame.setSize( 300, 180 );
@@ -116,8 +120,8 @@ public class InteractiveProjections
 		++c.gridy;
 		frame.add( cancel, c );
 
-		removeIn.addActionListener( new RemoveInsideROIButtonListener( imp, ipList, projectionDim, true ) );
-		removeOut.addActionListener( new RemoveInsideROIButtonListener( imp, ipList, projectionDim, false ) );
+		removeIn.addActionListener( new RemoveInsideROIButtonListener( imp, ipMap, projectionDim, true ) );
+		removeOut.addActionListener( new RemoveInsideROIButtonListener( imp, ipMap, projectionDim, false ) );
 		done.addActionListener( new FinishedButtonListener( frame, false ) );
 		cancel.addActionListener( new FinishedButtonListener( frame, true ) );
 
@@ -125,11 +129,11 @@ public class InteractiveProjections
 	}
 
 	public void runWhenDone( final Thread thread ) { this.runAfterFinished.add( thread ); }
-	public List< InterestPoint > getInterestPointList() { return ipList; }
+	public Map< Integer, InterestPoint > getInterestPointMap() { return ipMap; }
 	public boolean isRunning() { return isRunning; }
 	public boolean wasCanceled() { return wasCanceled; }
 
-	protected static void drawProjectedInterestPoints( final ImagePlus imp, final List< InterestPoint > ipList, final int projectionDim )
+	protected static void drawProjectedInterestPoints( final ImagePlus imp, final Collection< InterestPoint > ipList, final int projectionDim )
 	{
 		final int xDim = getXDim( projectionDim );
 		final int yDim = getYDim( projectionDim );
@@ -203,14 +207,14 @@ public class InteractiveProjections
 	protected class RemoveInsideROIButtonListener implements ActionListener
 	{
 		final ImagePlus imp;
-		final List< InterestPoint > ipList;
+		final Map< Integer, InterestPoint > ipMap;
 		final int projectionDim, xDim, yDim;
 		final boolean inside;
 
-		public RemoveInsideROIButtonListener( final ImagePlus imp, final List< InterestPoint > ipList, final int projectionDim, final boolean inside )
+		public RemoveInsideROIButtonListener( final ImagePlus imp, final Map< Integer, InterestPoint > ipMap, final int projectionDim, final boolean inside )
 		{
 			this.imp = imp;
-			this.ipList = ipList;
+			this.ipMap = ipMap;
 			this.projectionDim = projectionDim;
 			this.inside = inside;
 			this.xDim = getXDim( projectionDim );
@@ -228,21 +232,25 @@ public class InteractiveProjections
 			}
 			else
 			{
-				int count = ipList.size();
+				int count = ipMap.size();
 
-				for ( int i = ipList.size() - 1; i >= 0; --i )
+				final HashSet< Integer > toRemove = new HashSet<>();
+
+				for ( final Entry< Integer, InterestPoint > entry : ipMap.entrySet() )
 				{
-					final double[] l = ipList.get( i ).getL();
+					final double[] l = entry.getValue().getL();
 
 					final boolean contains = roi.contains( (int)Math.round( l[ xDim ] ), (int)Math.round( l[ yDim ] ) );
 					
 					if ( inside && contains || !inside && !contains )
-						ipList.remove( i );
+						toRemove.add( entry.getKey() );
 				}
 
-				drawProjectedInterestPoints( imp, ipList, projectionDim );
+				toRemove.forEach( i -> ipMap.remove( i ) );
 
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": " + ipList.size() + " points remaining, removed " + (count - ipList.size()) + " points ... " );
+				drawProjectedInterestPoints( imp, ipMap.values(), projectionDim );
+
+				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + ": " + ipMap.size() + " points remaining, removed " + toRemove.size() + " points ... " );
 			}
 		}
 		
@@ -283,9 +291,9 @@ public class InteractiveProjections
 				if ( ip.wasCanceled() )
 					return;
 
-				final List< InterestPoint > ipList = ip.getInterestPointList();
+				final Map< Integer, InterestPoint > ipMap = ip.getInterestPointMap();
 
-				if ( ipList.size() == 0 )
+				if ( ipMap.size() == 0 )
 				{
 					IOFunctions.println( "No detections remaining. Quitting." );
 					return;
@@ -300,7 +308,7 @@ public class InteractiveProjections
 								lists.getInterestPointList( label ).getFile().getParentFile(),
 								"tpId_" + vd.getTimePointId() + "_viewSetupId_" + vd.getViewSetupId() + "." + newLabel ) );*/
 
-				newIpl.setInterestPoints( ipList );
+				newIpl.setInterestPoints( ipMap.values() );
 				newIpl.setCorrespondingInterestPoints( new ArrayList<>() );
 				newIpl.setParameters( "manually removed detections from '" +label + "'" );
 

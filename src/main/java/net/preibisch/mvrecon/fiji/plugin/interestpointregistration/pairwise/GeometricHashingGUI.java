@@ -26,6 +26,7 @@ import java.awt.Font;
 
 import net.preibisch.legacy.io.IOFunctions;
 import net.preibisch.mvrecon.fiji.plugin.interestpointregistration.TransformationModelGUI;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.MatcherPairwise;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.GroupedInterestPoint;
@@ -63,7 +64,7 @@ public class GeometricHashingGUI extends PairwiseGUI
 	}
 
 	@Override
-	public GeometricHashingGUI newInstance() { return new GeometricHashingGUI(); }
+	public GeometricHashingGUI newInstance(final SpimData2 spimData) { return new GeometricHashingGUI(); }
 
 	@Override
 	public String getDescription() { return "Fast descriptor-based (rotation invariant)";}

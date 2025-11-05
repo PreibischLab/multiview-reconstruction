@@ -22,12 +22,11 @@
  */
 package net.preibisch.mvrecon.fiji.spimdata.interestpoints;
 
-import java.io.File;
 import java.net.URI;
-import java.util.List;
+import java.util.Collection;
+import java.util.Map;
 
 import mpicbg.spim.data.sequence.ViewId;
-import util.URITools;
 
 /**
  * A list of interest points for a certain label, can save and load from textfile as specified in the XML
@@ -37,8 +36,6 @@ import util.URITools;
  */
 public abstract class InterestPoints
 {
-	public static boolean saveAsN5 = true;
-
 	URI baseDir;
 	String parameters;
 
@@ -54,30 +51,17 @@ public abstract class InterestPoints
 	public static InterestPoints instantiatefromXML( final URI baseDir, final String fromXMLInfo )
 	{
 		if ( fromXMLInfo.trim().toLowerCase().startsWith("interestpoints/") )
-			return new InterestPointsTextFileList( baseDir, new File( fromXMLInfo ) );
-		else if ( fromXMLInfo.trim().startsWith("tpId_") )
-			return new InterestPointsN5( baseDir, fromXMLInfo );
+			throw new RuntimeException( "text-file based interest points not supported anymore.");
 		else
-			throw new RuntimeException( "unknown interestpoint representation: '" + fromXMLInfo + "' -- this should not happen.");
+			return new InterestPointsN5( baseDir, fromXMLInfo );
 	}
 
 	public static InterestPoints newInstance( final URI baseDir, final ViewId viewId, final String label )
 	{
 		final InterestPoints list;
 
-		if ( saveAsN5 )
-		{
-			final String n5path = new InterestPointsN5( null, null ).createXMLRepresentation( viewId, label );
-			list = new InterestPointsN5( baseDir, n5path );
-		}
-		else
-		{
-			if ( !URITools.isFile( baseDir ) )
-				throw new RuntimeException( "InterestPointsTextFileList only works for local file systems." );
-	
-			final String fileName = new InterestPointsTextFileList( null, null ).createXMLRepresentation( viewId, label );
-			list = new InterestPointsTextFileList( baseDir, new File( fileName ) );
-		}
+		final String n5path = new InterestPointsN5( null, null ).createXMLRepresentation( viewId, label );
+		list = new InterestPointsN5( baseDir, n5path );
 
 		return list;
 	}
@@ -116,28 +100,28 @@ public abstract class InterestPoints
 	public abstract String createXMLRepresentation( final ViewId viewId, final String label );
 
 	/**
-	 * @return - a list of interest points (copied), tries to load from disc if null
+	 * @return - a map from interest point ID to interest points (copied), tries to load from disc if null
 	 */
-	public abstract List< InterestPoint > getInterestPointsCopy();
+	public abstract Map< Integer, InterestPoint > getInterestPointsCopy();
 
 	/**
-	 * @return - the list of corresponding interest points (copied), tries to load from disc if null
+	 * @return - the collection of corresponding interest points (copied), tries to load from disc if null
 	 */
-	public abstract List< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy();
+	public abstract Collection< CorrespondingInterestPoints > getCorrespondingInterestPointsCopy();
 
-	public void setInterestPoints( final List< InterestPoint > list )
+	public void setInterestPoints( final Collection< InterestPoint > list )
 	{
 		this.modifiedInterestPoints = true;
 		setInterestPointsLocal( list );
 	}
-	public void setCorrespondingInterestPoints( final List< CorrespondingInterestPoints > list )
+	public void setCorrespondingInterestPoints( final Collection< CorrespondingInterestPoints > list )
 	{
 		this.modifiedCorrespondingInterestPoints = true;
 		setCorrespondingInterestPointsLocal( list );
 	}
 
-	protected abstract void setInterestPointsLocal( final List< InterestPoint > list );
-	protected abstract void setCorrespondingInterestPointsLocal( final List< CorrespondingInterestPoints > list );
+	protected abstract void setInterestPointsLocal( final Collection< InterestPoint > list );
+	protected abstract void setCorrespondingInterestPointsLocal( final Collection< CorrespondingInterestPoints > list );
 
 	public abstract boolean saveInterestPoints( final boolean forceWrite );
 	public abstract boolean saveCorrespondingInterestPoints( final boolean forceWrite );

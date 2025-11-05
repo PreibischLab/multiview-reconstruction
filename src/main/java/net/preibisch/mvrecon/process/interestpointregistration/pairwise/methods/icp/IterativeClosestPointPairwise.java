@@ -23,8 +23,8 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.icp;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Random;
 
 import mpicbg.models.IllDefinedDataPointsException;
@@ -57,18 +57,18 @@ public class IterativeClosestPointPairwise< I extends InterestPoint > implements
 	}
 
 	@Override
-	public PairwiseResult< I > match( final List< I > listAIn, final List< I > listBIn )
+	public <V> PairwiseResult<I> match(
+			final Collection<I> listAIn,
+			final Collection<I> listBIn,
+			final V viewsA,
+			final V viewsB,
+			final String labelA,
+			final String labelB )
 	{
 		final PairwiseResult< I > result = new PairwiseResult< I >( true );
 
-		final ArrayList< I > listA = new ArrayList<>();
-		final ArrayList< I > listB = new ArrayList< I >();
-
-		for ( final I i : listAIn )
-			listA.add( i );
-
-		for ( final I i : listBIn )
-			listB.add( i );
+		final ArrayList< I > listA = new ArrayList<>( listAIn );
+		final ArrayList< I > listB = new ArrayList<>( listBIn );
 
 		// identity transform
 		Model<?> model = this.ip.getModel();

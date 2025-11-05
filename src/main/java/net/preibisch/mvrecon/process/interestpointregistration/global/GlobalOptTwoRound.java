@@ -48,6 +48,7 @@ public class GlobalOptTwoRound
 	/**
 	 * 
 	 * @param model - the transformation model to run the global optimizations on
+	 * @param preAlign - whether to call TileConfiguration.preAlign or use the current transformations
 	 * @param pmc - the pointmatch creator (makes mpicbg PointMatches from anything,
 	 * e.g. corresponding interest points or stitching results)
 	 * @param csStrong - the Iterative Convergence strategy applied to the strong links,
@@ -64,6 +65,7 @@ public class GlobalOptTwoRound
 	 */
 	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, M > computeModels(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy csStrong,
 			final LinkRemovalStrategy lms,
@@ -72,12 +74,13 @@ public class GlobalOptTwoRound
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return computeModels( model, pmc, csStrong, lms, null, wlf, csWeak, fixedViews, groupsIn );
+		return computeModels( model, preAlign, pmc, csStrong, lms, null, wlf, csWeak, fixedViews, groupsIn );
 	}
 
 	/**
 	 * 
 	 * @param model - the transformation model to run the global optimizations on
+	 * @param preAlign - whether to call TileConfiguration.preAlign or use the current transformations
 	 * @param pmc - the pointmatch creator (makes mpicbg PointMatches from anything,
 	 * e.g. corresponding interest points or stitching results)
 	 * @param csStrong - the Iterative Convergence strategy applied to the strong links,
@@ -96,6 +99,7 @@ public class GlobalOptTwoRound
 	 */
 	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, M > computeModels(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy csStrong,
 			final LinkRemovalStrategy lms,
@@ -105,12 +109,13 @@ public class GlobalOptTwoRound
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return GlobalOpt.toModels( computeTiles( model, pmc, csStrong, lms, removedInconsistentPairs, wlf, csWeak, fixedViews, groupsIn ) );
+		return GlobalOpt.toModels( computeTiles( model, preAlign, pmc, csStrong, lms, removedInconsistentPairs, wlf, csWeak, fixedViews, groupsIn ) );
 	}
 
 	/**
 	 * 
 	 * @param model - the transformation model to run the global optimizations on
+	 * @param preAlign - whether to call TileConfiguration.preAlign or use the current transformations
 	 * @param pmc - the pointmatch creator (makes mpicbg PointMatches from anything,
 	 * e.g. corresponding interest points or stitching results)
 	 * @param csStrong - the Iterative Convergence strategy applied to the strong links,
@@ -129,6 +134,7 @@ public class GlobalOptTwoRound
 	 */
 	public static < M extends Model< M > & Affine3D< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final IterativeConvergenceStrategy csStrong,
 			final LinkRemovalStrategy lms,
@@ -139,7 +145,8 @@ public class GlobalOptTwoRound
 			final Collection< Group< ViewId > > groupsIn )
 	{
 		// find strong links, run global opt iterative
-		final HashMap< ViewId, Tile< M > > models1 = GlobalOptIterative.computeTiles( model, pmc, csStrong, lms, removedInconsistentPairs, fixedViews, groupsIn );
+		final HashMap< ViewId, Tile< M > > models1 =
+				GlobalOptIterative.computeTiles( model, preAlign, pmc, csStrong, lms, removedInconsistentPairs, fixedViews, groupsIn );
 
 		// identify groups of connected views
 		final List< Set< Tile< ? > > > sets = Tile.identifyConnectedGraphs( models1.values() );
@@ -168,8 +175,8 @@ public class GlobalOptTwoRound
 		// compute the weak links using the new groups and the results of the first run
 		final WeakLinkPointMatchCreator< M > wlpmc = wlf.create( models1 );
 
-		// run global opt without iterative
-		final HashMap< ViewId, Tile< M > > models2 = GlobalOpt.computeTiles( model, wlpmc, csWeak, fixedViews, groupsNew );
+		// run global opt without iterative (here we always pre-align)
+		final HashMap< ViewId, Tile< M > > models2 = GlobalOpt.computeTiles( model, true, wlpmc, csWeak, fixedViews, groupsNew );
 
 		// the combination of models from:
 		// the first round of global opt (strong links) + averageMapBack + the second round of global opt (weak links)

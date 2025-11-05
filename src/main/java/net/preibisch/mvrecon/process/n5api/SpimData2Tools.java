@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -630,11 +631,11 @@ public class SpimData2Tools
 
 					ipLists.getHashMap().forEach( (label,interestpoints) ->
 					{
-						final List<InterestPoint> points = interestpoints.getInterestPointsCopy();
-						final List<CorrespondingInterestPoints> corr = interestpoints.getCorrespondingInterestPointsCopy();
+						final Map<Integer, InterestPoint> points = interestpoints.getInterestPointsCopy();
+						final Collection<CorrespondingInterestPoints> corr = interestpoints.getCorrespondingInterestPointsCopy();
 
 						final InterestPoints interestpointsNew = InterestPoints.newInstance( basePath, viewId, label );
-						interestpointsNew.setInterestPoints( points );
+						interestpointsNew.setInterestPoints( points.values() );
 						interestpointsNew.setCorrespondingInterestPoints( corr );
 
 						ipListsNew.addInterestPointList( label, interestpointsNew );

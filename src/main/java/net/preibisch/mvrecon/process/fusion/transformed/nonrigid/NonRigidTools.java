@@ -165,7 +165,7 @@ public class NonRigidTools
 		*/
 
 		// finding the corresponding interest points is the same for all levels
-		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
+		final HashMap< ViewId, Collection< CorrespondingIP > > annotatedIps = NonRigidTools.assembleIPsForNonRigid( viewInterestPoints, viewsToUse, labels );
 
 		// find unique interest points in the pairs of images
 		final ArrayList< HashSet< CorrespondingIP > > uniqueIPs = NonRigidTools.findUniqueInterestPoints( annotatedIps );
@@ -256,16 +256,16 @@ public class NonRigidTools
 
 		return viewsToUse;
 	}
-	public static HashMap< ViewId, ArrayList< CorrespondingIP > > assembleIPsForNonRigid(
+	public static HashMap< ViewId, Collection< CorrespondingIP > > assembleIPsForNonRigid(
 			final Map< ViewId, ViewInterestPointLists > viewInterestPoints,
 			final Collection< ? extends ViewId > viewsToUse,
 			final List< String > labels )
 	{
-		final HashMap< ViewId, ArrayList< CorrespondingIP > > annotatedIps = new HashMap<>();
+		final HashMap< ViewId, Collection< CorrespondingIP > > annotatedIps = new HashMap<>();
 
 		for ( final ViewId viewId : viewsToUse )
 		{
-			final ArrayList< CorrespondingIP > aips = new ArrayList<>();
+			final Collection< CorrespondingIP > aips = new ArrayList<>();
 
 			for ( final String label : labels )
 			{
@@ -275,10 +275,10 @@ public class NonRigidTools
 				{
 					final InterestPoints ipList = viewInterestPoints.get( viewId ).getInterestPointList( label );
 
-					final List< CorrespondingInterestPoints > cipList = ipList.getCorrespondingInterestPointsCopy();
+					final Collection< CorrespondingInterestPoints > cipList = ipList.getCorrespondingInterestPointsCopy();
 					IOFunctions.println( new Date( System.currentTimeMillis() ) + ": There are " + cipList.size() + " corresponding interest points in total (to all views)." );
 
-					final ArrayList< CorrespondingIP > aipsTmp = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, viewInterestPoints );
+					final Collection< CorrespondingIP > aipsTmp = NonRigidTools.assembleAllCorrespondingPoints( viewId, ipList, cipList, viewsToUse, viewInterestPoints );
 
 					if ( aipsTmp == null )
 						IOFunctions.println( new Date( System.currentTimeMillis() ) + ": FAILED to assemble pairs of corresponding interest points for label " + label + " in view " + Group.pvid( viewId ) );
@@ -721,11 +721,11 @@ public class NonRigidTools
 		return new ValuePair<>( uniquePointsPerView, maxDist );
 	}
 
-	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Map< ViewId, ArrayList< CorrespondingIP > > annotatedIps )
+	public static ArrayList< HashSet< CorrespondingIP > > findUniqueInterestPoints( final Map< ViewId, Collection< CorrespondingIP > > annotatedIps )
 	{
 		final ArrayList< CorrespondingIP > aips = new ArrayList<>();
 
-		for ( final ArrayList< CorrespondingIP > aipl : annotatedIps.values() )
+		for ( final Collection< CorrespondingIP > aipl : annotatedIps.values() )
 			aips.addAll( aipl );
 
 		// find unique interest points in the pairs of images
@@ -860,10 +860,10 @@ public class NonRigidTools
 		return sum.getSum() / (double)aips.size();
 	}
 
-	public static ArrayList< CorrespondingIP > assembleAllCorrespondingPoints(
+	public static Collection< CorrespondingIP > assembleAllCorrespondingPoints(
 			final ViewId viewId,
 			final InterestPoints ipList,
-			final List< ? extends CorrespondingInterestPoints > cipList,
+			final Collection< ? extends CorrespondingInterestPoints > cipList,
 			final Collection< ? extends ViewId > viewsToUse,
 			final Map< ? extends ViewId, ? extends ViewInterestPointLists > interestPointLists )
 	{
@@ -874,10 +874,7 @@ public class NonRigidTools
 		final HashSet< ViewId > views = new HashSet<>( viewsToUse );
 
 		// sort all interest points into a HashMap
-		final HashMap< Integer, InterestPoint > ips = new HashMap<>();
-
-		for ( final InterestPoint ip : ipList.getInterestPointsCopy() )
-			ips.put( ip.getId(), ip );
+		final Map< Integer, InterestPoint > ips = ipList.getInterestPointsCopy();
 
 		// sort all corresponding interest points into a HashMap
 		final HashMap< ViewId, List< IPL > > loadedIps = new HashMap<>();
@@ -936,11 +933,8 @@ public class NonRigidTools
 					return null;
 				}
 
-				final HashMap< Integer, InterestPoint > corrIps = new HashMap<>();
-
-				// sort all corresponding interest points into a HashMap
-				for ( final InterestPoint corrIp : corrIpList.getInterestPointsCopy() )
-					corrIps.put( corrIp.getId(), corrIp );
+				// get all corresponding interest points as a HashMap
+				final Map< Integer, InterestPoint > corrIps = corrIpList.getInterestPointsCopy();
 
 				ipl = new IPL( corrLabel, corrIps );
 

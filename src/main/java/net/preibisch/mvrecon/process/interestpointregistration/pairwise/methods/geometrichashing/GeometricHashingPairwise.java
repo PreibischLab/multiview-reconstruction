@@ -23,7 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.geometrichashing;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 import net.preibisch.legacy.mpicbg.PointMatchGeneric;
 import net.preibisch.mvrecon.fiji.ImgLib2Temp.Pair;
@@ -47,7 +47,13 @@ public class GeometricHashingPairwise< I extends InterestPoint > implements Matc
 	}
 
 	@Override
-	public PairwiseResult< I > match( final List< I > listAIn, final List< I > listBIn )
+	public <V> PairwiseResult<I> match(
+			final Collection<I> listAIn,
+			final Collection<I> listBIn,
+			final V viewsA,
+			final V viewsB,
+			final String labelA,
+			final String labelB )
 	{
 		final PairwiseResult< I > result = new PairwiseResult<>( true );
 		final GeometricHasher< I > hasher = new GeometricHasher<>();
@@ -65,7 +71,7 @@ public class GeometricHashingPairwise< I extends InterestPoint > implements Matc
 			return result;
 		}
 
-		final ArrayList< PointMatchGeneric< I > > candidates = hasher.extractCorrespondenceCandidates( 
+		final ArrayList< PointMatchGeneric< I > > candidates = hasher.extractCorrespondenceCandidates(
 				listA,
 				listB,
 				gp.getDifferenceThreshold(),

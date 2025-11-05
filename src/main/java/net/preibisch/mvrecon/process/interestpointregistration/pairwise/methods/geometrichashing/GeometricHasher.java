@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.geometrichashing;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 
 import net.imglib2.KDTree;
@@ -43,7 +44,7 @@ import net.preibisch.mvrecon.process.pointcloud.pointdescriptor.matcher.SubsetMa
  */
 public class GeometricHasher< I extends InterestPoint >
 {
-	public ArrayList< PointMatchGeneric< I > > extractCorrespondenceCandidates( 
+	public ArrayList< PointMatchGeneric< I > > extractCorrespondenceCandidates(
 			final ArrayList< I > nodeListA,
 			final ArrayList< I > nodeListB,
 			final double differenceThreshold,
@@ -113,7 +114,7 @@ public class GeometricHasher< I extends InterestPoint >
 
 	public static < I extends InterestPoint > ArrayList< LocalCoordinateSystemPointDescriptor< I > > createLocalCoordinateSystemPointDescriptors( 
 			final KDTree< I > tree,
-			final ArrayList< I > basisPoints,
+			final Collection< I > basisPoints,
 			final int redundancy,
 			final boolean normalize )
 	{

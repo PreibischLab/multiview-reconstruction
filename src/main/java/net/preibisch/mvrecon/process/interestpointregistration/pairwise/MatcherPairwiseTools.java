@@ -218,8 +218,8 @@ public class MatcherPairwiseTools
 			final InterestPoints listA,
 			final InterestPoints listB )
 	{
-		final List< CorrespondingInterestPoints > corrListA = listA.getCorrespondingInterestPointsCopy();
-		final List< CorrespondingInterestPoints > corrListB = listB.getCorrespondingInterestPointsCopy();
+		final Collection< CorrespondingInterestPoints > corrListA = listA.getCorrespondingInterestPointsCopy();
+		final Collection< CorrespondingInterestPoints > corrListB = listB.getCorrespondingInterestPointsCopy();
 
 		for ( final PointMatchGeneric< I > pm : correspondences )
 		{
@@ -263,7 +263,7 @@ public class MatcherPairwiseTools
 
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
-			final Map< V, HashMap< String, List< I > > > interestpoints,
+			final Map< V, HashMap< String, Collection< I > > > interestpoints,
 			final MatcherPairwise< I > matcher,
 			final boolean matchAcrossLabels )
 	{
@@ -272,7 +272,7 @@ public class MatcherPairwiseTools
 
 	public static < V, I extends InterestPoint > List< Pair< Pair< V, V >, PairwiseResult< I > > > computePairs(
 			final List< Pair< V, V > > pairs,
-			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
+			final Map< V, ? extends Map<String, ? extends Collection< I > > > interestpoints,
 			final MatcherPairwise< I > matcher,
 			final boolean matchAcrossLabels,
 			final ExecutorService exec )
@@ -384,17 +384,17 @@ public class MatcherPairwiseTools
 
 	public static < V, I extends InterestPoint > ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > getCallables(
 			final List< MatchingTask< V > > tasks,
-			final Map< V, ? extends Map<String, ? extends List< I > > > interestpoints,
+			final Map< V, ? extends Map<String, ? extends Collection< I > > > interestpoints,
 			final MatcherPairwise< I > matcher )
 	{
 		final ArrayList< Callable< Pair< Pair< V, V >, PairwiseResult< I > > > > callables = new ArrayList<>(); // your tasks
 
 		for ( final MatchingTask<V> task : tasks )
 		{
-			final Map<String, ? extends List<I>> mapA = interestpoints.get( task.vA );
-			final Map<String, ? extends List<I>> mapB = interestpoints.get( task.vB );
+			final Map<String, ? extends Collection<I>> mapA = interestpoints.get( task.vA );
+			final Map<String, ? extends Collection<I>> mapB = interestpoints.get( task.vB );
 
-			final List< I > listA, listB;
+			final Collection< I > listA, listB;
 
 			if ( matcher.requiresInterestPointDuplication() )
 			{
@@ -418,7 +418,15 @@ public class MatcherPairwiseTools
 				@Override
 				public Pair< Pair< V, V >, PairwiseResult< I > > call() throws Exception
 				{
-					final PairwiseResult< I > pwr = matcher.match( listA, listB );
+					final PairwiseResult< I > pwr =
+							matcher.match(
+									listA,
+									listB,
+									task.getPair().getA(),
+									task.getPair().getB(),
+									task.labelA,
+									task.labelB );
+
 					pwr.setLabelA( task.labelA );
 					pwr.setLabelB( task.labelB );
 					assignLoggingDescriptions( task.getPair(), pwr );

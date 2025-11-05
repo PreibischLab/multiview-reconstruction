@@ -97,6 +97,7 @@ public class TestGlobalOptTwoRound
 
 		final HashMap< ViewId, TranslationModel3D > computeResults = GlobalOptTwoRound.computeModels(
 				new TranslationModel3D(),
+				true,
 				pmc,
 				cs,
 				new MaxErrorLinkRemoval(),

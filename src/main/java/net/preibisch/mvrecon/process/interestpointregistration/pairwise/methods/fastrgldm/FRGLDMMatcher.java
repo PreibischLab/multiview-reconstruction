@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.methods.fastrgldm;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 
 import net.imglib2.KDTree;
@@ -102,7 +103,7 @@ public class FRGLDMMatcher< I extends InterestPoint >
 
 	public static < I extends InterestPoint > ArrayList< TranslationInvariantLocalCoordinateSystemPointDescriptor< I > > createLocalCoordinateSystemPointDescriptors( 
 			final KDTree< I > tree,
-			final ArrayList< I > basisPoints,
+			final Collection< I > basisPoints,
 			final int redundancy )
 	{
 		final int[][] neighborIndicies = SubsetMatcher.computePD( 3 + redundancy, 3, 1 );

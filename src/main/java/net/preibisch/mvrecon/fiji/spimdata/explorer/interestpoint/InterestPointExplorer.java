@@ -58,7 +58,7 @@ public class InterestPointExplorer< AS extends SpimData2 >
 		this.xml = xml;
 		this.viewSetupExplorer = viewSetupExplorer;
 
-		frame = new JFrame( "Interest Point Explorer" );
+		frame = new JFrame( "Interest Point Explorer (Press F1 for help)" );
 		panel = new InterestPointExplorerPanel( viewSetupExplorer.getPanel().getSpimData().getViewInterestPoints(), viewSetupExplorer );
 		frame.add( panel, BorderLayout.CENTER );
 

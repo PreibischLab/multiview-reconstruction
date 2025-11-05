@@ -58,12 +58,13 @@ public class GlobalOpt
 {
 	public static < M extends Model< M > > HashMap< ViewId, M > computeModels(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final ConvergenceStrategy cs,
 			final Collection< ViewId > fixedViews,
 			final Collection< Group< ViewId > > groupsIn )
 	{
-		return toModels( computeTiles( model, pmc, cs, fixedViews, groupsIn ) );
+		return toModels( computeTiles( model, preAlign, pmc, cs, fixedViews, groupsIn ) );
 	}
 
 	/*
@@ -72,6 +73,7 @@ public class GlobalOpt
 	 */
 	public static < M extends Model< M > > HashMap< ViewId, Tile< M > > computeTiles(
 			final M model,
+			final boolean preAlign,
 			final PointMatchCreator pmc,
 			final ConvergenceStrategy cs,
 			final Collection< ViewId > fixedViews,
@@ -99,13 +101,18 @@ public class GlobalOpt
 		}
 		
 		// now perform the global optimization
-		try 
+		try
 		{
-			int unaligned = tc.preAlign().size();
-			if ( unaligned > 0 )
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
-			else
-				IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+			if ( preAlign )
+			{
+				int unaligned = tc.preAlign().size();
+				if ( unaligned > 0 )
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+				else
+					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+			}
+
+			IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): starting solve ..." );
 
 			tc.optimizeSilently(new ErrorStatistic( cs.getMaxPlateauWidth() + 1 ), cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );
 			//tc.optimize( cs.getMaxError(), cs.getMaxIterations(), cs.getMaxPlateauWidth() );

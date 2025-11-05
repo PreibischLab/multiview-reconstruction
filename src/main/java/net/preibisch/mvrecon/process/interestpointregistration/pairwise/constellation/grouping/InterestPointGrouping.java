@@ -23,6 +23,7 @@
 package net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,15 +37,15 @@ import mpicbg.spim.data.sequence.ViewId;
  * 
  * @author spreibi
  */
-public abstract class InterestPointGrouping< V extends ViewId > implements Grouping< V, HashMap< String, List< GroupedInterestPoint< V > > > >
+public abstract class InterestPointGrouping< V extends ViewId > implements Grouping< V, HashMap< String, Collection< GroupedInterestPoint< V > > > >
 {
 	// all interestpoints
-	final Map< V, HashMap< String, List< InterestPoint > > > interestpoints;
+	final Map< V, HashMap< String, Collection< InterestPoint > > > interestpoints;
 
 	final HashMap< String, Long > before = new HashMap<>();
 	final HashMap< String, Long > after = new HashMap<>();
 
-	public InterestPointGrouping( final Map< V, HashMap< String, List< InterestPoint > > > interestpoints )
+	public InterestPointGrouping( final Map< V, HashMap< String, Collection< InterestPoint > > > interestpoints )
 	{
 		this.interestpoints = interestpoints;
 	}
@@ -53,9 +54,9 @@ public abstract class InterestPointGrouping< V extends ViewId > implements Group
 	public HashMap< String, Long >  countAfter() { return after; }
 
 	@Override
-	public HashMap< String, List< GroupedInterestPoint< V > > > group( final Group< V > group )
+	public HashMap< String, Collection< GroupedInterestPoint< V > > > group( final Group< V > group )
 	{
-		final Map< V, HashMap< String, List< InterestPoint > > > toMerge = new HashMap<>();
+		final Map< V, HashMap< String, Collection< InterestPoint > > > toMerge = new HashMap<>();
 
 		this.before.clear();
 		this.after.clear();
@@ -93,7 +94,7 @@ public abstract class InterestPointGrouping< V extends ViewId > implements Group
 		}
 
 		// merge
-		final HashMap< String, List< GroupedInterestPoint< V > > > merged = merge( toMerge );
+		final HashMap< String, Collection< GroupedInterestPoint< V > > > merged = merge( toMerge );
 
 		// statistics
 		for ( final V view : group )
@@ -103,5 +104,5 @@ public abstract class InterestPointGrouping< V extends ViewId > implements Group
 		return merged;
 	}
 
-	protected abstract HashMap< String, List< GroupedInterestPoint< V > > > merge( Map< V, HashMap< String, List< InterestPoint > > > toMerge );
+	protected abstract HashMap< String, Collection< GroupedInterestPoint< V > > > merge( Map< V, HashMap< String, Collection< InterestPoint > > > toMerge );
 }

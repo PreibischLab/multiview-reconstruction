@@ -242,6 +242,8 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 		addHelp();
 		addReCenterShortcut();
 		addViewSetupIdShortcut(); // 'v' or 'V'
+		addSelectionDialog(); // '+' to open selection dialog
+		addHistoryNavigation(); // '<' and '>' to navigate selection history
 
 		addScreenshot(); // 's' or 'S'
 
@@ -411,18 +413,30 @@ public class ViewSetupExplorerPanel< AS extends SpimData2 > extends FilteredAndG
 				*/
 
 				if ( b != null && b.bdv != null )
-				{	
+				{
 					updateBDV( b.bdv, colorMode, data, firstSelectedVD, selectedRows);
-					
+
 				}
-					
-				
+
+				// Save selection to history
+				saveSelectionToHistory();
+
+
 			}
 
-			
+
 		};
 	}
-	
+
+	@Override
+	protected void clearGroupingCheckboxes()
+	{
+		if ( groupTilesCheckbox != null )
+			groupTilesCheckbox.setSelected( false );
+		if ( groupIllumsCheckbox != null )
+			groupIllumsCheckbox.setSelected( false );
+	}
+
 	public static void updateBDV(final BigDataViewer bdv, final boolean colorMode, final AbstractSpimData< ? > data,
 			BasicViewDescription< ? > firstVD,
 			final Collection< List< BasicViewDescription< ? >> > selectedRows)

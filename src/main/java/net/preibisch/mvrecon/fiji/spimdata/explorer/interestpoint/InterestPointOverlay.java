@@ -30,6 +30,7 @@ import java.util.HashMap;
 
 import net.imglib2.RealLocalizable;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.preibisch.mvrecon.fiji.spimdata.interestpoints.InterestPoint;
 import bdv.viewer.OverlayRenderer;
 import bdv.viewer.TransformListener;
 import bdv.viewer.ViewerPanel;
@@ -41,6 +42,12 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 	{
 		public HashMap< ? extends ViewId, ? extends Collection< ? extends RealLocalizable > > getLocalCoordinates( final int timepointIndex );
 		public void getLocalToGlobalTransform( final ViewId viewId, final int timepointIndex, final AffineTransform3D transform );
+		public int getCorrespondenceColorId( final ViewId viewId, final int detectionId, final int timepointIndex );
+		public int getShapeType( final ViewId viewId, final int timepointIndex );
+		public double getDistanceFade();
+		public boolean isFilterMode();
+		public double getPointSizeScale();
+		public double getPlaneThickness();
 	}
 
 	private final Collection< ? extends InterestPointSource > interestPointSources;
@@ -49,27 +56,93 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 
 	private final ViewerPanel viewer;
 
-	private Color col = Color.green.darker();
+	private final HashMap< ViewId, Color > viewColors = new HashMap<>();
 
-	public void setColor( final Color col ) { this.col = col; }
-
-	/** screen pixels [x,y,z] **/
-	private Color getColor( final double[] gPos )
+	private Color getGreenShadeForView( final ViewId viewId )
 	{
-		if ( Math.abs( gPos[ 2 ] ) < 3 )
-			return Color.red;
-
-		int alpha = 255 - (int)Math.round( Math.abs( gPos[ 2 ] ) );
-
-		if ( alpha < 64 )
-			alpha = 64;
-
-		return new Color( col.getRed(), col.getGreen(), col.getBlue(), alpha );
+		if ( !viewColors.containsKey( viewId ) )
+		{
+			// Use view setup ID to generate consistent but distinct green shades
+			final int id = viewId.getViewSetupId();
+			// Generate green variations using HSB color space
+			// Vary hue in wide range: from yellow through green to cyan
+			final float hue = 0.15f + (id * 0.11f) % 0.40f; // 0.15-0.55 (yellow to cyan)
+			final float saturation = 0.7f; // Keep saturation consistent
+			final float brightness = 0.8f; // Keep brightness consistent
+			viewColors.put( viewId, Color.getHSBColor( hue, saturation, brightness ) );
+		}
+		return viewColors.get( viewId );
 	}
 
-	private double getPointSize( final double[] gPos )
+	private Color getColorForCorrespondence( final int corrId )
 	{
-		return 3.0;
+		// Generate distinct colors for correspondence pairs
+		// Vary hue across spectrum (avoiding red ~0.0 which is reserved for current plane)
+		final float hue = 0.15f + (corrId * 0.17f) % 0.70f; // 0.15-0.85, skipping red
+		final float saturation = 0.8f;
+		final float brightness = 0.9f;
+		return Color.getHSBColor( hue, saturation, brightness );
+	}
+
+	/** screen pixels [x,y,z] **/
+	private Color getColor( final double[] gPos, final ViewId viewId, final int detectionId, final InterestPointSource pointSource, final int t )
+	{
+		// In filter mode, don't color points red - show them in their normal colors
+		if ( !pointSource.isFilterMode() && Math.abs( gPos[ 2 ] ) < pointSource.getPlaneThickness() )
+			return Color.red;
+
+		// Apply distance fade factor with exponential decay
+		final double fadeFactor = pointSource.getDistanceFade();
+		final int alpha;
+
+		// In filter mode, disable distance fade (all points within plane thickness should be fully visible)
+		if ( pointSource.isFilterMode() || fadeFactor == 0 )
+		{
+			// No fade - all points fully opaque
+			alpha = 255;
+		}
+		else
+		{
+			// Exponential decay: alpha drops off exponentially with distance
+			// Scale factor 0.3 makes points at distance ~10 nearly invisible at max fade
+			final double distance = Math.abs( gPos[ 2 ] );
+			alpha = (int)( 255.0 * Math.exp( -distance * fadeFactor * 0.3 ) );
+		}
+
+		// Check if we should use correspondence-based coloring
+		final int corrId = pointSource.getCorrespondenceColorId( viewId, detectionId, t );
+		final Color baseColor;
+		if ( corrId >= 0 )
+		{
+			// Use correspondence-based color
+			baseColor = getColorForCorrespondence( corrId );
+		}
+		else
+		{
+			// Use view-based color
+			baseColor = getGreenShadeForView( viewId );
+		}
+
+		return new Color( baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha );
+	}
+
+	private double getPointSize( final InterestPointSource pointSource )
+	{
+		return 3.0 * pointSource.getPointSizeScale();
+	}
+
+	private void drawCross( final Graphics2D graphics, final int x, final int y, final int size )
+	{
+		// Draw horizontal and vertical lines (+ shape)
+		graphics.drawLine( x - size, y, x + size, y );
+		graphics.drawLine( x, y - size, x, y + size );
+	}
+
+	private void drawDiagonalCross( final Graphics2D graphics, final int x, final int y, final int size )
+	{
+		// Draw diagonal lines at 45° (× shape)
+		graphics.drawLine( x - size, y - size, x + size, y + size );
+		graphics.drawLine( x - size, y + size, x + size, y - size );
 	}
 
 	public InterestPointOverlay( final ViewerPanel viewer, final Collection< ? extends InterestPointSource > interestPointSources )
@@ -98,21 +171,51 @@ public class InterestPointOverlay implements OverlayRenderer, TransformListener<
 		{
 			final HashMap< ? extends ViewId, ? extends Collection< ? extends RealLocalizable > > coordinates = pointSource.getLocalCoordinates( t );
 
+			final boolean filterMode = pointSource.isFilterMode();
+
 			for ( final ViewId viewId : coordinates.keySet() )
 			{
 				pointSource.getLocalToGlobalTransform( viewId, t, transform );
 				transform.preConcatenate( viewerTransform );
 
+				final int shapeType = pointSource.getShapeType( viewId, t );
+
 				for ( final RealLocalizable p : coordinates.get( viewId ) )
 				{
 					p.localize( lPos );
 					transform.apply( lPos, gPos );
-					final double size = getPointSize( gPos );
+
+					// In filter mode, skip points that are not on the current plane (performance optimization)
+					if ( filterMode && Math.abs( gPos[ 2 ] ) >= pointSource.getPlaneThickness() )
+						continue;
+
+					final double size = getPointSize( pointSource );
 					final int x = ( int ) ( gPos[ 0 ] - 0.5 * size );
 					final int y = ( int ) ( gPos[ 1 ] - 0.5 * size );
 					final int w = ( int ) size;
-					graphics.setColor( getColor( gPos ) );
-					graphics.fillOval( x, y, w, w );
+
+					// Get detection ID if this is an InterestPoint
+					final int detectionId = ( p instanceof InterestPoint ) ?
+						((InterestPoint)p).getId() : -1;
+
+					graphics.setColor( getColor( gPos, viewId, detectionId, pointSource, t ) );
+
+					// Draw shape based on type
+					if ( shapeType == 1 )
+					{
+						// Cross (+) - 3x larger than default
+						drawCross( graphics, x + w / 2, y + w / 2, (w * 2) / 2 );
+					}
+					else if ( shapeType == 2 )
+					{
+						// Diagonal cross (×) - 3x larger than default
+						drawDiagonalCross( graphics, x + w / 2, y + w / 2, (w * 2) / 2 );
+					}
+					else
+					{
+						// Circle (default)
+						graphics.fillOval( x, y, w, w );
+					}
 				}
 			}
 		}
