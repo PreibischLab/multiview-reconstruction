@@ -35,8 +35,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import bdv.ViewerImgLoader;
 import mpicbg.spim.data.registration.ViewRegistration;
@@ -89,6 +87,8 @@ import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constell
 
 public class SplittingTools
 {
+	public static final String IMAGE_SPLITTING_NAME = "Image Splitting";
+
 	//public static boolean assingIlluminationsFromTileIds = false;
 	//public static double error = 0.5;
 	//public static int minPoints = 20;
@@ -231,7 +231,7 @@ public class SplittingTools
 							0.0f, 0.0f, 1.0f, interval.min( 2 ) );
 
 					// very first transform is for splitting
-					final ViewTransformAffine transform = new ViewTransformAffine( "Image Splitting", translation );
+					final ViewTransformAffine transform = new ViewTransformAffine( IMAGE_SPLITTING_NAME, translation );
 					transformList.add( transform );
 
 					final ViewId newViewId = new ViewId( t.getId(), newSetup.getId() );
