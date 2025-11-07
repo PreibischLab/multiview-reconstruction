@@ -1,4 +1,4 @@
-package net.preibisch.mvrecon.process.interestpointregistration;
+package net.preibisch.mvrecon.process.fusion.tps;
 
 
 import ij.IJ;
