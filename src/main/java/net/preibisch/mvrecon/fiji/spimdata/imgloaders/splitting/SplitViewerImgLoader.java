@@ -85,6 +85,10 @@ public class SplitViewerImgLoader implements ViewerImgLoader, MultiResolutionImg
 
 	private boolean isOpen = false;
 
+	public HashMap< Integer, Integer > new2oldSetupId() { return new2oldSetupId; }
+	public HashMap< Integer, Interval > newSetupId2Interval() { return newSetupId2Interval; }
+	public SequenceDescription underlyingSequenceDescription() { return oldSD; }
+
 	@Override
 	public SplitViewerSetupImgLoader<?,?> getSetupImgLoader( final int setupId )
 	{
