@@ -39,6 +39,7 @@ public class TpsDemo {
 			{50, -100, -100, -100, -100} 	// y displacement
 		};
 
+		System.out.println( points.length + ", " + points[ 0 ].length );
 		ThinplateSplineTransform transform = buildTransform(points, displacements);
 
 		RealRandomAccessibleView< UnsignedByteType > interp = img.view().extend(Extension.zero()).interpolate(Interpolation.nLinear());

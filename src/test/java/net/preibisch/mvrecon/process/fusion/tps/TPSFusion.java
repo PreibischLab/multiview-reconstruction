@@ -17,6 +17,8 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import mpicbg.spim.data.sequence.ViewSetup;
 import net.imglib2.Interval;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.preibisch.mvrecon.fiji.plugin.Split_Views;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
@@ -34,7 +36,7 @@ public class TPSFusion
 			return null;
 	}
 
-	public static void getCoefficients( final SpimData2 data, final Collection< ViewId > underlyingViewsToProcess )
+	public static HashMap< ViewId, Pair< double[][], double[][] > > getCoefficients( final SpimData2 data, final Collection< ViewId > underlyingViewsToProcess )
 	{
 		final SplitViewerImgLoader splitImgLoader = ( SplitViewerImgLoader ) data.getSequenceDescription().getImgLoader();
 
@@ -50,12 +52,24 @@ public class TPSFusion
 
 		underlyingViewSetupsToProcess.forEach( v -> System.out.println( "ViewSetup " + v + " was split into setup id's: " + Arrays.toString( old2newSetupId.get( v ).toArray() )));
 
+		final HashMap< ViewId, Pair< double[][], double[][] > > underlyingViewId2TPSCoefficients = new HashMap<>();
+
 		for ( final ViewId underlyingViewId : underlyingViewsToProcess )
 		{
-			System.out.println( "Processing underlyingViewId: " + Group.pvid( underlyingViewId ) + ", which was split into " + old2newSetupId.get( underlyingViewId.getViewSetupId() ).size() + " pieces." );
+			System.out.println( "\nProcessing underlyingViewId: " + Group.pvid( underlyingViewId ) + ", which was split into " + old2newSetupId.get( underlyingViewId.getViewSetupId() ).size() + " pieces." );
 
-			for ( final int splitViewSetupId : old2newSetupId.get( underlyingViewId.getViewSetupId() ) )
+			final List<Integer> splitSetupIds = old2newSetupId.get( underlyingViewId.getViewSetupId() );
+
+			//double[][] points = new double[][]{
+			//	{sx / 2, 0, sx, 0, sx}, // x
+			//	{sy / 2, 0, 0, sy, sy}  // y };
+
+			final double[][] source = new double[3][splitSetupIds.size()];
+			final double[][] target = new double[3][splitSetupIds.size()];
+
+			for ( int i = 0; i < splitSetupIds.size(); ++i )
 			{
+				final int splitViewSetupId = splitSetupIds.get( i );
 				//final ViewSetup splitViewSetup = splitSD.getViewSetups().get( splitViewSetupId );
 				final ViewId splitViewId = new ViewId( underlyingViewId.getTimePointId(), splitViewSetupId );
 
@@ -78,11 +92,22 @@ public class TPSFusion
 				final double[] q = new double[ p.length ];
 				vr.getModel().apply( p, q );
 
+				for ( int d = 0; d < p.length; ++d )
+				{
+					source[ d ][ i ] = p[ d ];
+					target[ d ][ i ] = q[ d ];
+				}
+
 				System.out.println( "\tCenter point: " + Arrays.toString( p ) + " maps into global output space to: " + Arrays.toString( q ) );
 			}
 
-			System.exit( 0 );
+			underlyingViewId2TPSCoefficients.put( underlyingViewId, new ValuePair<>( source, target ) );
+
+			System.out.println( "source: " + Arrays.deepToString( source ) );
+			System.out.println( "target: " + Arrays.deepToString( target ) );
 		}
+
+		return underlyingViewId2TPSCoefficients;
 	}
 
 	public static HashMap<Integer, List<Integer>> old2newSetupId( final HashMap<Integer, Integer> new2oldSetupId )
@@ -113,6 +138,6 @@ public class TPSFusion
 				underlyingSD.getViewDescriptions().values().stream()
 				.filter( vd -> vd.getViewSetup().getChannel().getId() == 0 ).collect( Collectors.toList() );
 
-		getCoefficients( data, viewIds );
+		final HashMap< ViewId, Pair< double[][], double[][] > > underlyingViewId2TPSCoefficients = getCoefficients( data, viewIds );
 	}
 }
