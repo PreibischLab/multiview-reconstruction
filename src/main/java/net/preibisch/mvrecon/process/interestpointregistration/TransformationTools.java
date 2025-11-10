@@ -872,8 +872,11 @@ public class TransformationTools
 
 	public static double getAverageAnisotropyFactor( final SpimData spimData, final Collection< ? extends ViewId > views )
 	{
-		final SequenceDescription seq = spimData.getSequenceDescription();
+		return getAverageAnisotropyFactor( spimData.getSequenceDescription(), views );
+	}
 
+	public static double getAverageAnisotropyFactor( final SequenceDescription seq, final Collection< ? extends ViewId > views )
+	{
 		double avgFactor = 0;
 		int count = 0;
 
