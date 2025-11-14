@@ -139,13 +139,9 @@ public class BlkAffineFusion
 			final int[] blockSize )
 	{
 		// go through the views and check if they are all 2-dimensional
-		final boolean is2d = viewIds.stream()
-				.map( viewDescriptions::get )
-				.map( BasicViewDescription::getViewSetup )
-				.filter( BasicViewSetup::hasSize )
-				.allMatch( vs -> vs.getSize().dimension( 2 ) == 1 );
+		final boolean is2d = is2d( viewIds, viewDescriptions );
 
-		if ( !supports( is2d, fusionType, intensityAdjustmentModels ) )
+		if ( !supports( is2d, intensityAdjustmentModels ) )
 		{
 			if ( intensityAdjustmentCoefficients != null )
 				// TODO: support intensity adjustmen with Coefficients in LazyAffineFusion
@@ -386,10 +382,17 @@ public class BlkAffineFusion
 		return t;
 	}
 
+	protected static boolean is2d( final Collection< ? extends ViewId > viewIds, final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions )
+	{
+		return viewIds.stream()
+		.map( viewDescriptions::get )
+		.map( BasicViewDescription::getViewSetup )
+		.filter( BasicViewSetup::hasSize )
+		.allMatch( vs -> vs.getSize().dimension( 2 ) == 1 );
+	}
 
 	private static boolean supports(
 			final boolean is2d,
-			final FusionType fusionType,
 			final Map< ViewId, AffineModel1D > intensityAdjustments )
 	{
 		if ( is2d )
