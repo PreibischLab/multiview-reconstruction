@@ -50,6 +50,7 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
+import net.preibisch.mvrecon.process.fusion.blk.BlkThinPlateSplineFusion;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.TransformationTools;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -69,21 +70,14 @@ public class TestTPSFusion
 	}
 
 	public static HashMap< ViewId, Pair< double[][], double[][] > > getCoefficients(
-			final SpimData2 data,
+			final SplitViewerImgLoader splitImgLoader,
+			final Map<ViewId, ViewRegistration> splitRegMap,
 			final Collection< ViewId > underlyingViewsToProcess,
 			final double anisotropyFactor,
 			final double downsampling )
 	{
-		final SplitViewerImgLoader splitImgLoader = ( SplitViewerImgLoader ) data.getSequenceDescription().getImgLoader();
-
 		final HashMap<Integer, Integer> new2oldSetupId = splitImgLoader.new2oldSetupId();
-		final HashMap<Integer, Interval> newSetupId2Interval = splitImgLoader.newSetupId2Interval();
-		final Map<ViewId, ViewRegistration> viewRegMap = data.getViewRegistrations().getViewRegistrations();
-
-		final List< Integer > underlyingViewSetupsToProcess = underlyingViewsToProcess.stream().map( v -> v.getViewSetupId() ).distinct().collect( Collectors.toList() );
-		final HashMap<Integer, List<Integer>> old2newSetupId = old2newSetupId( new2oldSetupId );
-
-		underlyingViewSetupsToProcess.forEach( v -> System.out.println( "ViewSetup " + v + " was split into setup id's: " + Arrays.toString( old2newSetupId.get( v ).toArray() )));
+		final HashMap<Integer, List<Integer>> old2newSetupId = BlkThinPlateSplineFusion.old2newSetupId( new2oldSetupId );
 
 		final HashMap< ViewId, Pair< double[][], double[][] > > underlyingViewId2TPSCoefficients = new HashMap<>();
 
@@ -91,83 +85,18 @@ public class TestTPSFusion
 		{
 			System.out.println( "\nProcessing underlyingViewId: " + Group.pvid( underlyingViewId ) + ", which was split into " + old2newSetupId.get( underlyingViewId.getViewSetupId() ).size() + " pieces." );
 
-			final List<Integer> splitSetupIds = old2newSetupId.get( underlyingViewId.getViewSetupId() );
+			final Pair<double[][], double[][]> coeff =
+					BlkThinPlateSplineFusion.getCoefficients(splitImgLoader, old2newSetupId, splitRegMap, underlyingViewId, anisotropyFactor, downsampling);
 
-			final double[][] source = new double[3][splitSetupIds.size()];
-			final double[][] target = new double[3][splitSetupIds.size()];
+			underlyingViewId2TPSCoefficients.put( underlyingViewId, coeff );
 
-			for ( int i = 0; i < splitSetupIds.size(); ++i )
-			{
-				final int splitViewSetupId = splitSetupIds.get( i );
-				final ViewId splitViewId = new ViewId( underlyingViewId.getTimePointId(), splitViewSetupId );
-
-				//System.out.println( "\tProcessing splitViewId: " + Group.pvid( splitViewId ) + ":" );
-
-				final ViewRegistration vr = viewRegMap.get( splitViewId );
-				final List<ViewTransform> vrList = vr.getTransformList();
-
-				// just making sure this is the split transform
-				if ( !vrList.get( vrList.size() - 1).getName().equals(SplittingTools.IMAGE_SPLITTING_NAME) )
-					throw new RuntimeException( "First transformation is not " + SplittingTools.IMAGE_SPLITTING_NAME + " for " + Group.pvid( splitViewId ) + ", stopping." );
-
-				// this transformation puts the Zero-Min View of the underlying image where it actually is
-				final ViewTransform splitTransform = vrList.get( vrList.size() - 1);
-				//System.out.println( "\t" + SplittingTools.IMAGE_SPLITTING_NAME + " transformation: " + splitTransform );
-
-				// get the remaining model
-				vr.updateModel();
-				final AffineTransform3D model = vr.getModel().copy();
-
-				// preserve anisotropy
-				if ( !Double.isNaN( anisotropyFactor ) )
-					TransformVirtual.scaleTransform( model, new double[] { 1.0, 1.0, 1.0/anisotropyFactor } );
-
-				// downsampling
-				if ( !Double.isNaN( downsampling ) )
-					TransformVirtual.scaleTransform( model, 1.0 / downsampling );
-
-				// create a point in the middle of the Zero-Min View and the corresponding point in the global output space
-				final Interval splitInterval = newSetupId2Interval.get( splitViewSetupId );
-
-				final double[] p = new double[] { splitInterval.dimension( 0 ) / 2.0, splitInterval.dimension( 1 ) / 2.0, splitInterval.dimension( 2 ) / 2.0 };
-				final double[] q = new double[ p.length ];
-				model.apply( p, q );
-
-				for ( int d = 0; d < p.length; ++d )
-				{
-					p[ d ] += splitTransform.asAffine3D().get(d, 3); // add the translation offsets of each split view
-					source[ d ][ i ] = p[ d ];
-					target[ d ][ i ] = q[ d ];
-				}
-
-				//System.out.println( "\tCenter point: " + Arrays.toString( p ) + " maps into global output space to: " + Arrays.toString( q ) );
-			}
-
-			underlyingViewId2TPSCoefficients.put( underlyingViewId, new ValuePair<>( source, target ) );
-
-			System.out.println( "source: " + Arrays.deepToString( source ) );
-			System.out.println( "target: " + Arrays.deepToString( target ) );
+			System.out.println( "source: " + Arrays.deepToString( coeff.getA() ) );
+			System.out.println( "target: " + Arrays.deepToString( coeff.getB() ) );
 		}
 
 		return underlyingViewId2TPSCoefficients;
 	}
 
-	public static HashMap<Integer, List<Integer>> old2newSetupId( final HashMap<Integer, Integer> new2oldSetupId )
-	{
-		final HashMap<Integer, List<Integer>> old2newSetupId = new HashMap<>();
-
-		new2oldSetupId.forEach( (k,v) -> old2newSetupId.computeIfAbsent( v, newKey -> new ArrayList<>() ).add( k ) );
-
-		return old2newSetupId;
-	}
-
-	public static List<ViewId> splitViewIds( final List< ViewId > underlyingViewIds, final HashMap< Integer, List<Integer>> old2newSetupId )
-	{
-		return underlyingViewIds.stream().flatMap( underlyingViewId ->
-			old2newSetupId.get( underlyingViewId.getViewSetupId() ).stream().map( splitSetupId ->
-				new ViewId( underlyingViewId.getTimePointId(), splitSetupId ) )
-		).collect( Collectors.toList());
-	}
 
 	public static void main( String[] args ) throws SpimDataException
 	{
@@ -198,7 +127,8 @@ public class TestTPSFusion
 		}
 
 		// get all split ViewIds for the set of underlying ViewIds
-		final List<ViewId> splitViewIds = splitViewIds( underlyingViewIds, old2newSetupId( splitImgLoader.new2oldSetupId() ) );
+		final List<ViewId> splitViewIds =
+				BlkThinPlateSplineFusion.splitViewIds( underlyingViewIds, BlkThinPlateSplineFusion.old2newSetupId( splitImgLoader.new2oldSetupId() ) );
 
 		System.out.println( "Split viewIds: " + splitViewIds.size() );
 
@@ -206,7 +136,7 @@ public class TestTPSFusion
 		final double anisotropyFactor = TransformationTools.getAverageAnisotropyFactor( data, underlyingViewIds );
 
 		final HashMap< ViewId, Pair< double[][], double[][] > > coeff =
-				getCoefficients( data, underlyingViewIds, anisotropyFactor, downsampling );
+				getCoefficients( splitImgLoader, data.getViewRegistrations().getViewRegistrations(), underlyingViewIds, anisotropyFactor, downsampling );
 
 		// we estimate the bounding box using the split imagel loader, which will be closer to real bounding box
 		BoundingBox boundingBox = new BoundingBoxMaximal( splitViewIds, data ).estimate( "Full Bounding Box" );
