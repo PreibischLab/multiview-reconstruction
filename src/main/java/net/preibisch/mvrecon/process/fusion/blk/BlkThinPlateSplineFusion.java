@@ -18,7 +18,10 @@ import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Dimensions;
 import net.imglib2.Interval;
+import net.imglib2.RandomAccessible;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
 import net.imglib2.converter.Converter;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -27,9 +30,13 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
+import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
+import net.preibisch.mvrecon.process.fusion.intensity.FastLinearIntensityMap;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
@@ -48,7 +55,7 @@ public class BlkThinPlateSplineFusion
 			final double anisotropyFactor,
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
-			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients,
+			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients, // from underlying viewids
 			final Interval fusionInterval,
 			final T type,
 			final int[] blockSize )
@@ -93,15 +100,31 @@ public class BlkThinPlateSplineFusion
 				.filter( fusionInterval )
 				.offset( fusionInterval.minAsLongArray() );
 
+		// all split views that overlap with the bounding box are mapped to the underlying views
 		final List<ViewId> overlappingUnderlyingViewIds = underlyingViewIds( splitOverlap.getViewIds(), splitImgLoader.new2oldSetupId() );
+
 		final List< BlockSupplier< FloatType > > images = new ArrayList<>( overlappingUnderlyingViewIds.size() );
 
 		for ( final ViewId underlyingViewId : overlappingUnderlyingViewIds )
 		{
+			// ignore downsampling for now
 			final Pair<double[][], double[][]> coeff =
 					getCoefficients(splitImgLoader, old2newSetupId, splitViewRegistrations, underlyingViewId, anisotropyFactor, Double.NaN );
 
-			
+			final Coefficients coefficients =
+					(intensityAdjustmentCoefficients == null) ? null : intensityAdjustmentCoefficients.get( underlyingViewId );
+
+			final RandomAccessibleInterval inputImg =
+					//DownsampleTools.openDownsampled( under, viewId, model, usedDownsampleFactors );
+					splitImgLoader.getUnderlyingImgLoader().getSetupImgLoader( underlyingViewId.getViewSetupId() ).getImage( underlyingViewId.getTimePointId() );
+
+			BlockSupplier< FloatType > blocks = BlockSupplier.of( extendInput( inputImg ) )
+					.andThen( Convert.convert( new FloatType() ) );
+
+			if ( coefficients != null )
+				blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
+
+			// we should re-use the thin plate spline coordinate transformations for image and weights
 		}
 
 		return null;
@@ -195,4 +218,28 @@ public class BlkThinPlateSplineFusion
 
 		return old2newSetupId;
 	}
+
+	private static < T extends NativeType< T > > RandomAccessible< T > extendInput(
+			final RandomAccessible< T > input )
+	{
+		if ( input instanceof IntervalView )
+		{
+			return extendInput( ( ( IntervalView< T > ) input ).getSource() );
+		}
+//		else if ( input instanceof MixedTransformView )
+//		{
+//			final MixedTransformView< T > view = ( MixedTransformView< T > ) input;
+//			return new MixedTransformView<>( extendInput( view.getSource() ), view.getTransformToSource() );
+//		}
+		else if ( input instanceof RandomAccessibleInterval )
+		{
+			return Views.extendBorder( ( RandomAccessibleInterval< T > ) input );
+		}
+		else
+		{
+			// must already be extended then ...
+			return input;
+		}
+	}
+
 }
