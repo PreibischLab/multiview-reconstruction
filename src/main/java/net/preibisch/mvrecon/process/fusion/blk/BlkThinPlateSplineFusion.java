@@ -1,9 +1,9 @@
 package net.preibisch.mvrecon.process.fusion.blk;
 
-import static net.imglib2.algorithm.blocks.transform.Transform.Interpolation.NEARESTNEIGHBOR;
-import static net.imglib2.algorithm.blocks.transform.Transform.Interpolation.NLINEAR;
+import static net.imglib2.util.Util.safeInt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,47 +16,62 @@ import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.Dimensions;
+import net.imglib2.Cursor;
 import net.imglib2.Interval;
+import net.imglib2.Localizable;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealInterval;
+import net.imglib2.RealRandomAccess;
 import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
-import net.imglib2.algorithm.blocks.transform.Transform.Interpolation;
+import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.ThinplateSplineTransform;
+import net.imglib2.realtransform.interval.IntervalSamplingMethod;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.IntervalView;
+import net.imglib2.view.RandomAccessibleIntervalCursor;
 import net.imglib2.view.Views;
+import net.imglib2.view.fluent.RealRandomAccessibleView;
+import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
+import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
-import net.preibisch.mvrecon.process.downsampling.DownsampleTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
 import net.preibisch.mvrecon.process.fusion.intensity.FastLinearIntensityMap;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.splitting.SplittingTools;
+import util.BlockSupplierUtils;
 
 public class BlkThinPlateSplineFusion
 {
+	public static int defaultExpansion = LazyFusionTools.defaultNonrigidExpansion;
 
 	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
 			final SplitViewerImgLoader splitImgLoader,
 			final Collection< ? extends ViewId > splitViewIdsInput,
-			final Map< ViewId, ViewRegistration > splitViewRegistrations,
+			final Map< ViewId, ViewRegistration > splitViewRegistrations, // already adjusted for anisotropy
 			final Map< ViewId, ? extends BasicViewDescription< ? > > splitViewDescriptions,
 			final FusionType fusionType,
 			final double anisotropyFactor,
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final int interpolationMethod,
 			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients, // from underlying viewids
-			final Interval fusionInterval,
+			final Interval fusionInterval,  // already adjusted for anisotropy???
 			final T type,
 			final int[] blockSize )
 	{
@@ -95,7 +110,7 @@ public class BlkThinPlateSplineFusion
 				splitViewIds,
 				splitViewModels,
 				LazyFusionTools.assembleDimensions( splitViewIds, splitViewDescriptions ),
-				LazyFusionTools.defaultNonrigidExpansion,
+				defaultExpansion,
 				3 )
 				.filter( fusionInterval )
 				.offset( fusionInterval.minAsLongArray() );
@@ -109,7 +124,7 @@ public class BlkThinPlateSplineFusion
 		{
 			// ignore downsampling for now
 			final Pair<double[][], double[][]> coeff =
-					getCoefficients(splitImgLoader, old2newSetupId, splitViewRegistrations, underlyingViewId, anisotropyFactor, Double.NaN );
+					getCoefficients(splitImgLoader, old2newSetupId, splitViewRegistrations, underlyingViewId, Double.NaN, Double.NaN );
 
 			final Coefficients coefficients =
 					(intensityAdjustmentCoefficients == null) ? null : intensityAdjustmentCoefficients.get( underlyingViewId );
@@ -124,10 +139,100 @@ public class BlkThinPlateSplineFusion
 			if ( coefficients != null )
 				blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
-			// we should re-use the thin plate spline coordinate transformations for image and weights
+			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
+			blocks = blocks.andThen( new TPSImageTransform( fusionInterval, coeff.getA(), coeff.getB(), null ) );
+
+			images.add( blocks );
 		}
 
 		return null;
+	}
+
+	private static class TPSImageTransform implements UnaryBlockOperator<FloatType, FloatType>
+	{
+		final Interval boundingBox;
+		final double[][] source, target;
+		final ThinplateSplineTransform transform;
+
+		public TPSImageTransform(
+				final Interval boundingBox,
+				final double[][] source,
+				final double[][] target,
+				final ThinplateSplineTransform transform )
+		{
+			this.boundingBox = boundingBox;
+			this.source = source;
+			this.target = target;
+
+			if ( transform == null )
+				this.transform = new ThinplateSplineTransform( target, source ); // we go from output to input
+			else
+				this.transform = transform.copy();
+		}
+
+		@Override
+		public void compute( final BlockSupplier<FloatType> src, final Interval interval, final Object dest )
+		{
+			final BlockInterval blockInterval =
+					BlockInterval.asBlockInterval(
+							Intervals.translate( interval, boundingBox.minAsLongArray() ) );
+
+			final float[] fdest = Cast.unchecked( dest );
+			final int[] size = blockInterval.size();
+			final int len = safeInt( Intervals.numElements( size ) );
+
+			// figure out the interval we need to fetch from the src image
+			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
+			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
+
+			// check that the transformed interval is overlapping with the src image first
+			if ( Intervals.isEmpty( Intervals.intersect( blockInterval, srcInterval ) ) )
+			{
+				// TODO: is that necessary?
+				Arrays.fill( fdest, 0f );
+
+				return;
+			}
+
+			// request the required src data as a copy and translate it to its actual position
+			final RandomAccessibleInterval< FloatType > img =
+					Views.translate( BlockSupplierUtils.arrayImg( src, srcInterval ), srcInterval.minAsLongArray() );
+
+			// get an interpolator for the copied block
+			final RealRandomAccessibleView< FloatType > interp =
+					img.view().extend(Extension.zero()).interpolate(Interpolation.clampingNLinear());
+
+			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
+			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( srcInterval ) ).cursor();
+			final RealRandomAccess< FloatType > rra = interp.realRandomAccess();
+
+			for ( int x = 0; x < len; ++x )
+			{
+				rra.setPosition( cursor.next() );
+				fdest[ x ] = rra.get().get();
+			}
+		}
+
+		private static final FloatType type = new FloatType();
+
+		@Override
+		public FloatType getSourceType() { return type; }
+
+		@Override
+		public FloatType getTargetType() { return type; }
+
+		@Override
+		public int numSourceDimensions() { return 3; }
+
+		@Override
+		public int numTargetDimensions() { return 3; }
+
+		@Override
+		public UnaryBlockOperator<FloatType, FloatType> independentCopy()
+		{
+			return new TPSImageTransform( boundingBox, source, target, transform );
+		}
+		
 	}
 
 	public static Pair< double[][], double[][] > getCoefficients(
