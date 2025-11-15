@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ij.ImageJ;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewTransform;
@@ -19,33 +20,33 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ThinplateSplineTransform;
 import net.imglib2.realtransform.interval.IntervalSamplingMethod;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.IntervalView;
-import net.imglib2.view.RandomAccessibleIntervalCursor;
 import net.imglib2.view.Views;
-import net.imglib2.view.fluent.RealRandomAccessibleView;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
+import net.imglib2.view.fluent.RealRandomAccessibleView;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
@@ -69,11 +70,9 @@ public class BlkThinPlateSplineFusion
 			final FusionType fusionType,
 			final double anisotropyFactor,
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
-			final int interpolationMethod,
 			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients, // from underlying viewids
 			final Interval fusionInterval,  // already adjusted for anisotropy???
-			final T type,
-			final int[] blockSize )
+			final T type )
 	{
 		// assemble all underlying viewIds (which will expand the list of splitViews to all the underlying viewids consist of)
 		final List< ViewId > underlyingViewIds = underlyingViewIds( splitViewIdsInput, splitImgLoader.new2oldSetupId() );
@@ -141,6 +140,10 @@ public class BlkThinPlateSplineFusion
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
 			blocks = blocks.andThen( new TPSImageTransform( fusionInterval, coeff.getA(), coeff.getB(), null ) );
+
+			new ImageJ();
+			ImageJFunctions.show( BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+			SimpleMultiThreading.threadHaltUnClean();
 
 			images.add( blocks );
 		}
