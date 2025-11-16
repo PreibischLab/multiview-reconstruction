@@ -225,6 +225,11 @@ public class BlkThinPlateSplineFusion
 					rra.setPosition( loc );
 					fdest[ x ] = rra.get().get();
 				}
+				else
+				{
+					// TODO: is that necessary?
+					fdest[ x ] = 0;
+				}
 			}
 		}
 
