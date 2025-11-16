@@ -216,9 +216,13 @@ public class BlkThinPlateSplineFusion
 			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 			final RealRandomAccess< FloatType > rra = interp.realRandomAccess();
 
+			final double[] loc = new double[ 3 ];
+
 			for ( int x = 0; x < len; ++x )
 			{
-				rra.setPosition( cursor.next() );
+				cursor.next().localize( loc );
+				transform.apply( loc, loc );
+				rra.setPosition( loc );
 				fdest[ x ] = rra.get().get();
 			}
 		}
