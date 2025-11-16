@@ -18,6 +18,7 @@ import mpicbg.spim.data.registration.ViewTransform;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Cursor;
+import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
@@ -41,6 +42,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
@@ -139,7 +141,8 @@ public class BlkThinPlateSplineFusion
 				blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
-			blocks = blocks.andThen( new TPSImageTransform( fusionInterval, coeff.getA(), coeff.getB(), null ) );
+			final Interval sourceImageInterval = new FinalInterval( underlyingSD.getViewDescription( underlyingViewId ).getViewSetup().getSize() );
+			blocks = blocks.andThen( new TPSImageTransform( sourceImageInterval, fusionInterval, coeff.getA(), coeff.getB(), null ) );
 
 			new ImageJ();
 			ImageJFunctions.show( BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
@@ -153,16 +156,18 @@ public class BlkThinPlateSplineFusion
 
 	private static class TPSImageTransform implements UnaryBlockOperator<FloatType, FloatType>
 	{
-		final Interval boundingBox;
+		final Interval sourceImageInterval, boundingBox;
 		final double[][] source, target;
 		final ThinplateSplineTransform transform;
 
 		public TPSImageTransform(
+				final Interval sourceImageInterval,
 				final Interval boundingBox,
 				final double[][] source,
 				final double[][] target,
 				final ThinplateSplineTransform transform )
 		{
+			this.sourceImageInterval = sourceImageInterval;
 			this.boundingBox = boundingBox;
 			this.source = source;
 			this.target = target;
@@ -186,14 +191,16 @@ public class BlkThinPlateSplineFusion
 
 			// figure out the interval we need to fetch from the src image
 			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
-			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
+			final Interval srcInterval = /*Intervals.expand(*/ Intervals.smallestContainingInterval( srcRealInterval );//, defaultExpansion );
 
-			// check that the transformed interval is overlapping with the src image first
-			if ( Intervals.isEmpty( Intervals.intersect( blockInterval, srcInterval ) ) )
+			System.out.println( Util.printInterval( blockInterval ) + " maps to " + Util.printInterval( srcInterval ) );
+
+			// check that the transformed src interval is overlapping with the input image
+			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
 			{
 				// TODO: is that necessary?
 				Arrays.fill( fdest, 0f );
-
+				System.out.println( "empty" );
 				return;
 			}
 
@@ -206,7 +213,7 @@ public class BlkThinPlateSplineFusion
 					img.view().extend(Extension.zero()).interpolate(Interpolation.clampingNLinear());
 
 			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
-			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( srcInterval ) ).cursor();
+			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 			final RealRandomAccess< FloatType > rra = interp.realRandomAccess();
 
 			for ( int x = 0; x < len; ++x )
@@ -233,7 +240,7 @@ public class BlkThinPlateSplineFusion
 		@Override
 		public UnaryBlockOperator<FloatType, FloatType> independentCopy()
 		{
-			return new TPSImageTransform( boundingBox, source, target, transform );
+			return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform );
 		}
 		
 	}
