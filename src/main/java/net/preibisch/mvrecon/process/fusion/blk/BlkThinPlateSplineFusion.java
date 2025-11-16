@@ -24,6 +24,7 @@ import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
+import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
@@ -141,8 +142,7 @@ public class BlkThinPlateSplineFusion
 				blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
-			final Interval sourceImageInterval = new FinalInterval( underlyingSD.getViewDescription( underlyingViewId ).getViewSetup().getSize() );
-			blocks = blocks.andThen( new TPSImageTransform( sourceImageInterval, fusionInterval, coeff.getA(), coeff.getB(), null ) );
+			blocks = blocks.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null ) );
 
 			new ImageJ();
 			ImageJFunctions.show( BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
@@ -191,16 +191,13 @@ public class BlkThinPlateSplineFusion
 
 			// figure out the interval we need to fetch from the src image
 			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
-			final Interval srcInterval = /*Intervals.expand(*/ Intervals.smallestContainingInterval( srcRealInterval );//, defaultExpansion );
-
-			System.out.println( Util.printInterval( blockInterval ) + " maps to " + Util.printInterval( srcInterval ) );
+			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
 
 			// check that the transformed src interval is overlapping with the input image
 			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
 			{
 				// TODO: is that necessary?
 				Arrays.fill( fdest, 0f );
-				System.out.println( "empty" );
 				return;
 			}
 
@@ -222,8 +219,12 @@ public class BlkThinPlateSplineFusion
 			{
 				cursor.next().localize( loc );
 				transform.apply( loc, loc );
-				rra.setPosition( loc );
-				fdest[ x ] = rra.get().get();
+
+				if ( Intervals.contains( sourceImageInterval, new RealPoint( loc ) ))
+				{
+					rra.setPosition( loc );
+					fdest[ x ] = rra.get().get();
+				}
 			}
 		}
 
