@@ -24,6 +24,7 @@ import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
+import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
@@ -220,7 +221,7 @@ public class BlkThinPlateSplineFusion
 				cursor.next().localize( loc );
 				transform.apply( loc, loc );
 
-				if ( Intervals.contains( sourceImageInterval, new RealPoint( loc ) ))
+				if ( contains3d( sourceImageInterval, loc ))
 				{
 					rra.setPosition( loc );
 					fdest[ x ] = rra.get().get();
@@ -316,6 +317,20 @@ public class BlkThinPlateSplineFusion
 		}
 
 		return new ValuePair<>( source, target );
+	}
+
+	private static boolean contains3d( final RealInterval containing, final double[] contained )
+	{
+		if ( contained[ 0 ] < containing.realMin( 0 ) || contained[ 0 ] > containing.realMax( 0 ) )
+			return false;
+
+		if ( contained[ 1 ] < containing.realMin( 1 ) || contained[ 1 ] > containing.realMax( 1 ) )
+			return false;
+
+		if ( contained[ 2 ] < containing.realMin( 2 ) || contained[ 2 ] > containing.realMax( 2 ) )
+			return false;
+
+		return true;
 	}
 
 	public static List<ViewId> underlyingViewIds( final Collection< ? extends ViewId > splitViewIds, final HashMap< Integer, Integer > new2oldSetupId )
