@@ -36,6 +36,7 @@ import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
+import net.imglib2.algorithm.blocks.transform.Transform;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -120,6 +121,7 @@ public class BlkThinPlateSplineFusion
 		final Map<ViewId, AffineTransform3D> splitViewModels =
 				splitViewRegistrations.entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getModel() ) );
 
+		/*
 		final Overlap splitOverlap = new Overlap(
 				splitViewIds,
 				splitViewModels,
@@ -131,15 +133,45 @@ public class BlkThinPlateSplineFusion
 
 		// all split views that overlap with the bounding box are mapped to the underlying views
 		final List<ViewId> overlappingUnderlyingViewIds = underlyingViewIds( splitOverlap.getViewIds(), splitImgLoader.new2oldSetupId() );
+		*/
 
-		final List< BlockSupplier< FloatType > > images = new ArrayList<>( overlappingUnderlyingViewIds.size() );
-		final List< BlockSupplier< FloatType > > weights = new ArrayList<>( overlappingUnderlyingViewIds.size() );
+		//
+		// build the overlap for the underlying views so they can be used later
+		//
 
-		for ( final ViewId underlyingViewId : overlappingUnderlyingViewIds )
+		// first we need a transform for every underlying view, which we base off the coefficients
+		final HashMap< ViewId, AffineTransform3D > underlyingViewIdToTransform = new HashMap<>();
+		final HashMap< ViewId, Pair<double[][], double[][]> > underlyingViewIdToCoefficients = new HashMap<>();
+
+		for ( final ViewId underlyingViewId : sortedUnderlyingViewIds )
 		{
 			// ignore downsampling for now
 			final Pair<double[][], double[][]> coeff =
 					getCoefficients(splitImgLoader, old2newSetupId, splitViewRegistrations, underlyingViewId, Double.NaN, Double.NaN );
+
+			// approx affine transform for adjusting blending weights
+			final AffineTransform3D t = getTransform( coeff.getA(), coeff.getB() );
+			System.out.println( Group.pvid( underlyingViewId ) + ": " + t );
+
+			underlyingViewIdToTransform.put( underlyingViewId, t );
+			underlyingViewIdToCoefficients.put( underlyingViewId, coeff );
+		}
+
+		final Overlap underlyingOverlap = new Overlap(
+				sortedUnderlyingViewIds,
+				underlyingViewIdToTransform,
+				LazyFusionTools.assembleDimensions( splitViewIds, splitViewDescriptions ),
+				defaultExpansion, // TODO: the default expansion should be computed from the difference of the split overlap and underlying overlap
+				3 )
+				.filter( fusionInterval )
+				.offset( fusionInterval.minAsLongArray() );
+
+		final List< BlockSupplier< FloatType > > images = new ArrayList<>( underlyingOverlap.numViews() );
+		final List< BlockSupplier< FloatType > > weights = new ArrayList<>( underlyingOverlap.numViews() );
+
+		for ( final ViewId underlyingViewId : underlyingOverlap.getViewIds() )
+		{
+			final Pair<double[][], double[][]> coeff = underlyingViewIdToCoefficients.get( underlyingViewId );
 
 			final Coefficients coefficients =
 					(intensityAdjustmentCoefficients == null) ? null : intensityAdjustmentCoefficients.get( underlyingViewId );
@@ -164,20 +196,25 @@ public class BlkThinPlateSplineFusion
 			final float[] blending = Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
 			final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
 
-			// approx affine transform for adjusting blending weights
-			final AffineTransform3D t = getTransform( coeff.getA(), coeff.getB() );
-			System.out.println( t );
-
 			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
 			FusionTools.adjustBlending(
 					new FinalInterval( inputImg ),
 					Group.pvid( underlyingViewId ),
 					blending,
 					border,
-					t );
+					underlyingViewIdToTransform.get( underlyingViewId ) );
 
-			final TPSBlending weightBlockSupplier =
-					new TPSBlending( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, border, blending );
+			final BlockSupplier< FloatType > weightBlockSupplier;
+
+			switch ( fusionType )
+			{
+				case AVG_BLEND:
+				case CLOSEST_PIXEL_WINS: // we need to use the blending weights, whatever weight is highest wins
+					weightBlockSupplier = new TPSBlending( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, border, blending );
+					break;
+				default:
+					throw new IllegalStateException(); // unsupported weights
+			}
 
 			weights.add( weightBlockSupplier );
 
@@ -185,47 +222,43 @@ public class BlkThinPlateSplineFusion
 			ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
 			ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
 			SimpleMultiThreading.threadHaltUnClean();
-
+		}
+/*
+		final BlockSupplier< FloatType > floatBlocks;
+		switch ( fusionType )
+		{
+			case AVG:
+			case AVG_CONTENT:
+			case AVG_BLEND_CONTENT:
+			case AVG_BLEND:
+				floatBlocks = WeightedAverage.of( images, weights, overlap );
+				break;
+			case MAX_INTENSITY:
+				floatBlocks = MaxIntensity.of( images, masks, overlap );
+				break;
+			case LOWEST_VIEWID_WINS:
+				floatBlocks = LowestViewIdWins.of( images, masks, overlap );
+				break;
+			case HIGHEST_VIEWID_WINS:
+				floatBlocks = HighestViewIdWins.of( images, masks, overlap );
+				break;
+			case CLOSEST_PIXEL_WINS:
+				floatBlocks = ClosestPixelWins.of( images, weights, overlap );
+				break;
+			default:
+				// should never happen
+				throw new IllegalStateException();
 		}
 
+		final BlockSupplier< T > blocks = convertToOutputType(
+				floatBlocks,
+				converter, type )
+				.tile( 32 );
+		
+		System.out.println( Util.printInterval( new FinalInterval( fusionInterval.dimensionsAsLongArray() ) ) );
+		
+		return blocks;*/
 		return null;
-	}
-
-	private static AffineTransform3D getTransform( final double[][] source, final double[][] target )
-	{
-		final ArrayList< PointMatch > matches = new ArrayList<>();
-
-		//final double[][] source = new double[3][splitSetupIds.size()];
-		//final double[][] target = new double[3][splitSetupIds.size()];
-
-		for ( int i = 0; i < source[ 0 ].length; ++i )
-		{
-			final Point s = new Point( new double[] { source[ 0 ][ i ], source[ 1 ][ i ], source[ 2 ][ i ] } );
-			final Point t = new Point( new double[] { target[ 0 ][ i ], target[ 1 ][ i ], target[ 2 ][ i ] } );
-
-			matches.add( new PointMatch( s, t ) );
-		}
-
-		final AffineModel3D m = new AffineModel3D();
-		try
-		{
-			m.fit( matches );
-		} catch (NotEnoughDataPointsException | IllDefinedDataPointsException e)
-		{
-			e.printStackTrace();
-		}
-
-		final double[][] mm = new double[ 3 ][ 4 ];
-		m.toMatrix( mm );
-
-		final AffineTransform3D t = new AffineTransform3D();
-
-		t.set(
-				mm[0][0], mm[0][1], mm[0][2], mm[0][3],
-				mm[1][0], mm[1][1], mm[1][2], mm[1][3],
-				mm[2][0], mm[2][1], mm[2][2], mm[2][3] );
-
-		return t;
 	}
 
 	private static class TPSBlending implements BlockSupplier< FloatType >
@@ -488,6 +521,43 @@ public class BlkThinPlateSplineFusion
 		}
 
 		return new ValuePair<>( source, target );
+	}
+
+	private static AffineTransform3D getTransform( final double[][] source, final double[][] target )
+	{
+		final ArrayList< PointMatch > matches = new ArrayList<>();
+
+		//final double[][] source = new double[3][splitSetupIds.size()];
+		//final double[][] target = new double[3][splitSetupIds.size()];
+
+		for ( int i = 0; i < source[ 0 ].length; ++i )
+		{
+			final Point s = new Point( new double[] { source[ 0 ][ i ], source[ 1 ][ i ], source[ 2 ][ i ] } );
+			final Point t = new Point( new double[] { target[ 0 ][ i ], target[ 1 ][ i ], target[ 2 ][ i ] } );
+
+			matches.add( new PointMatch( s, t ) );
+		}
+
+		final AffineModel3D m = new AffineModel3D();
+		try
+		{
+			m.fit( matches );
+		} catch (NotEnoughDataPointsException | IllDefinedDataPointsException e)
+		{
+			e.printStackTrace();
+		}
+
+		final double[][] mm = new double[ 3 ][ 4 ];
+		m.toMatrix( mm );
+
+		final AffineTransform3D t = new AffineTransform3D();
+
+		t.set(
+				mm[0][0], mm[0][1], mm[0][2], mm[0][3],
+				mm[1][0], mm[1][1], mm[1][2], mm[1][3],
+				mm[2][0], mm[2][1], mm[2][2], mm[2][3] );
+
+		return t;
 	}
 
 	private static boolean contains3d( final RealInterval containing, final double[] contained )
