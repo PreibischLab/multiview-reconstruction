@@ -296,7 +296,7 @@ public class BlkAffineFusion
 		//return BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), blockSize );
 	}
 
-	private static < T extends NativeType< T > > BlockSupplier< T > convertToOutputType(
+	protected static < T extends NativeType< T > > BlockSupplier< T > convertToOutputType(
 			final BlockSupplier< FloatType > floatBlocks,
 			final Converter< FloatType, T > converter,
 			final T type )
@@ -346,7 +346,7 @@ public class BlkAffineFusion
 		return blocks.andThen( Transform.affine( transform, interpolation ) );
 	}
 
-	private static < T extends NativeType< T > > RandomAccessible< T > extendInput(
+	protected static < T extends NativeType< T > > RandomAccessible< T > extendInput(
 			final RandomAccessible< T > input )
 	{
 		if ( input instanceof IntervalView )
