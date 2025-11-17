@@ -6,9 +6,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import bdv.ViewerImgLoader;
+import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
+import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
@@ -56,8 +60,10 @@ public class TestBlkThinPlateSplineFusion
 		BoundingBox boundingBox = new BoundingBoxMaximal( splitViewIds, data ).estimate( "Full Bounding Box" );
 		System.out.println( boundingBox );
 
-		BlkThinPlateSplineFusion.init(
-				null,//final Converter< FloatType, T > converter,
+		new ImageJ();
+
+		final BlockSupplier<UnsignedByteType> supplier = BlkThinPlateSplineFusion.init(
+				(i,o) -> { o.set( Math.round( i.get() )); },
 				splitImgLoader,
 				splitViewIds,
 				data.getViewRegistrations().getViewRegistrations(), // already adjusted for anisotropy
@@ -68,5 +74,11 @@ public class TestBlkThinPlateSplineFusion
 				null,
 				boundingBox,  // already adjusted for anisotropy???
 				new UnsignedByteType() );
+
+		ImageJFunctions.show( BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+
+		// 850, 1050, 100
+		System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
+
 	}
 }

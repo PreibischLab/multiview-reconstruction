@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import ij.ImageJ;
-import mpicbg.models.Affine3D;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -27,20 +25,15 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
-import net.imglib2.algorithm.blocks.transform.Transform;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ThinplateSplineTransform;
 import net.imglib2.realtransform.interval.IntervalSamplingMethod;
@@ -52,7 +45,6 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
@@ -64,7 +56,6 @@ import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
 import net.preibisch.mvrecon.process.fusion.intensity.FastLinearIntensityMap;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
-import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccess;
 import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.splitting.SplittingTools;
@@ -95,17 +86,14 @@ public class BlkThinPlateSplineFusion
 		if ( BlkAffineFusion.is2d( splitViewIds, splitViewDescriptions ) )
 			throw new UnsupportedOperationException( "BlkThinPlateSplineFusion: 2D fusion not supported." );
 
-		if ( fusionType != FusionType.CLOSEST_PIXEL_WINS )
-			throw new UnsupportedOperationException( "BlkThinPlateSplineFusion: only FusionType.CLOSEST_PIXEL_WINS supported right now." );
+		if ( fusionType != FusionType.CLOSEST_PIXEL_WINS && fusionType != FusionType.AVG_BLEND )
+			throw new UnsupportedOperationException( "BlkThinPlateSplineFusion: only FusionType.CLOSEST_PIXEL_WINS and FusionType.AVG_BLEND supported right now." );
 
 		final SequenceDescription underlyingSD = splitImgLoader.underlyingSequenceDescription();
 
 		System.out.println( "Split viewIds: " + splitViewIdsInput.size() );
 		System.out.println( "Underlying viewIds: " + underlyingViewIds.size() );
 		System.out.println( "Complete split viewIds: " + splitViewIds.size() );
-
-		//final HashMap< ViewId, Dimensions > viewDimensions = LazyFusionTools.assembleDimensions( underlyingViewIds, viewDescriptions );
-		//final Interpolation interpolation = ( interpolationMethod == 1 ) ? NLINEAR : NEARESTNEIGHBOR;
 
 		// to be able to use the "lowest ViewId" wins strategy
 		final List< ? extends ViewId > sortedUnderlyingViewIds = new ArrayList<>( underlyingViewIds );
@@ -115,13 +103,13 @@ public class BlkThinPlateSplineFusion
 		else
 			Collections.sort( sortedUnderlyingViewIds, (c1,c2) -> Integer.compare( fusionMap.get( c1.getViewSetupId() ), fusionMap.get( c2.getViewSetupId() ) ) );
 
+		/*
 		// Which split views to process (use un-altered bounding box and registrations).
 		// Final filtering happens per Cell.
 		// Here we just pre-filter everything outside the fusionInterval.
 		final Map<ViewId, AffineTransform3D> splitViewModels =
 				splitViewRegistrations.entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getModel() ) );
 
-		/*
 		final Overlap splitOverlap = new Overlap(
 				splitViewIds,
 				splitViewModels,
@@ -160,7 +148,7 @@ public class BlkThinPlateSplineFusion
 		final Overlap underlyingOverlap = new Overlap(
 				sortedUnderlyingViewIds,
 				underlyingViewIdToTransform,
-				LazyFusionTools.assembleDimensions( splitViewIds, splitViewDescriptions ),
+				LazyFusionTools.assembleDimensions( sortedUnderlyingViewIds, underlyingSD.getViewDescriptions() ),
 				defaultExpansion, // TODO: the default expansion should be computed from the difference of the split overlap and underlying overlap
 				3 )
 				.filter( fusionInterval )
@@ -176,13 +164,13 @@ public class BlkThinPlateSplineFusion
 			final Coefficients coefficients =
 					(intensityAdjustmentCoefficients == null) ? null : intensityAdjustmentCoefficients.get( underlyingViewId );
 
+			// TODO: support loading downsampled images, but this means we will need to update the source[][] coefficients too
 			final RandomAccessibleInterval inputImg =
 					//DownsampleTools.openDownsampled( under, viewId, model, usedDownsampleFactors );
 					splitImgLoader.getUnderlyingImgLoader().getSetupImgLoader( underlyingViewId.getViewSetupId() ).getImage( underlyingViewId.getTimePointId() );
 
 			BlockSupplier< FloatType > imageBlockSupplier =
-					BlockSupplier.of( BlkAffineFusion.extendInput( inputImg ) )
-					.andThen( Convert.convert( new FloatType() ) );
+					BlockSupplier.of( BlkAffineFusion.extendInput( inputImg ) ).andThen( Convert.convert( new FloatType() ) );
 
 			if ( coefficients != null )
 				imageBlockSupplier = imageBlockSupplier.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
@@ -204,6 +192,7 @@ public class BlkThinPlateSplineFusion
 					border,
 					underlyingViewIdToTransform.get( underlyingViewId ) );
 
+			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
 			final BlockSupplier< FloatType > weightBlockSupplier;
 
 			switch ( fusionType )
@@ -218,15 +207,24 @@ public class BlkThinPlateSplineFusion
 
 			weights.add( weightBlockSupplier );
 
-			new ImageJ();
-			ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-			ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-			SimpleMultiThreading.threadHaltUnClean();
+			//if ( underlyingViewId.getViewSetupId() == 5 )
+			{
+				//ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+				//ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+				//SimpleMultiThreading.threadHaltUnClean();
+
+				// 850, 1050, 100
+				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
+				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
+			}
 		}
 
 		final BlockSupplier< FloatType > floatBlocks;
 		switch ( fusionType )
 		{
+			case AVG_BLEND:
+				floatBlocks = WeightedAverage.of( images, weights, underlyingOverlap );
+				break;
 			case CLOSEST_PIXEL_WINS:
 				floatBlocks = ClosestPixelWins.of( images, weights, underlyingOverlap );
 				break;
