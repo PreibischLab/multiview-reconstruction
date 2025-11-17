@@ -181,7 +181,7 @@ public class BlkThinPlateSplineFusion
 					splitImgLoader.getUnderlyingImgLoader().getSetupImgLoader( underlyingViewId.getViewSetupId() ).getImage( underlyingViewId.getTimePointId() );
 
 			BlockSupplier< FloatType > imageBlockSupplier =
-					BlockSupplier.of( extendInput( inputImg ) )
+					BlockSupplier.of( BlkAffineFusion.extendInput( inputImg ) )
 					.andThen( Convert.convert( new FloatType() ) );
 
 			if ( coefficients != null )
@@ -223,42 +223,26 @@ public class BlkThinPlateSplineFusion
 			ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
 			SimpleMultiThreading.threadHaltUnClean();
 		}
-/*
+
 		final BlockSupplier< FloatType > floatBlocks;
 		switch ( fusionType )
 		{
-			case AVG:
-			case AVG_CONTENT:
-			case AVG_BLEND_CONTENT:
-			case AVG_BLEND:
-				floatBlocks = WeightedAverage.of( images, weights, overlap );
-				break;
-			case MAX_INTENSITY:
-				floatBlocks = MaxIntensity.of( images, masks, overlap );
-				break;
-			case LOWEST_VIEWID_WINS:
-				floatBlocks = LowestViewIdWins.of( images, masks, overlap );
-				break;
-			case HIGHEST_VIEWID_WINS:
-				floatBlocks = HighestViewIdWins.of( images, masks, overlap );
-				break;
 			case CLOSEST_PIXEL_WINS:
-				floatBlocks = ClosestPixelWins.of( images, weights, overlap );
+				floatBlocks = ClosestPixelWins.of( images, weights, underlyingOverlap );
 				break;
 			default:
 				// should never happen
 				throw new IllegalStateException();
 		}
 
-		final BlockSupplier< T > blocks = convertToOutputType(
+		final BlockSupplier< T > blocks = BlkAffineFusion.convertToOutputType(
 				floatBlocks,
 				converter, type )
 				.tile( 32 );
 		
 		System.out.println( Util.printInterval( new FinalInterval( fusionInterval.dimensionsAsLongArray() ) ) );
 		
-		return blocks;*/
-		return null;
+		return blocks;
 	}
 
 	private static class TPSBlending implements BlockSupplier< FloatType >
@@ -599,28 +583,4 @@ public class BlkThinPlateSplineFusion
 
 		return old2newSetupId;
 	}
-
-	private static < T extends NativeType< T > > RandomAccessible< T > extendInput(
-			final RandomAccessible< T > input )
-	{
-		if ( input instanceof IntervalView )
-		{
-			return extendInput( ( ( IntervalView< T > ) input ).getSource() );
-		}
-//		else if ( input instanceof MixedTransformView )
-//		{
-//			final MixedTransformView< T > view = ( MixedTransformView< T > ) input;
-//			return new MixedTransformView<>( extendInput( view.getSource() ), view.getTransformToSource() );
-//		}
-		else if ( input instanceof RandomAccessibleInterval )
-		{
-			return Views.extendBorder( ( RandomAccessibleInterval< T > ) input );
-		}
-		else
-		{
-			// must already be extended then ...
-			return input;
-		}
-	}
-
 }
