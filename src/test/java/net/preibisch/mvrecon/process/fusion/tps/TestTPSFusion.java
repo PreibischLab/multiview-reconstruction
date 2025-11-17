@@ -61,14 +61,6 @@ import net.preibisch.mvrecon.process.splitting.SplittingTools;
  */
 public class TestTPSFusion
 {
-	public static ViewerImgLoader getUnderlyingImageLoader( final SpimData2 data )
-	{
-		if ( SplitViewerImgLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) )
-			return ( ( SplitViewerImgLoader ) data.getSequenceDescription().getImgLoader() ).getUnderlyingImgLoader();
-		else
-			return null;
-	}
-
 	public static HashMap< ViewId, Pair< double[][], double[][] > > getCoefficients(
 			final SplitViewerImgLoader splitImgLoader,
 			final Map<ViewId, ViewRegistration> splitRegMap,
@@ -104,7 +96,7 @@ public class TestTPSFusion
 				new XmlIoSpimData2().load(
 						URI.create("file:/Users/preibischs/SparkTest/Stitching/dataset.split.xml") );
 
-		final ViewerImgLoader underlyingImgLoader = getUnderlyingImageLoader(data);
+		final ViewerImgLoader underlyingImgLoader = BlkThinPlateSplineFusion.getUnderlyingImageLoader(data);
 
 		if ( underlyingImgLoader == null )
 			return;

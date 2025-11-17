@@ -31,7 +31,7 @@ public class TestBlkThinPlateSplineFusion
 				new XmlIoSpimData2().load(
 						URI.create("file:/Users/preibischs/SparkTest/Stitching/dataset.split.xml") );
 
-		final ViewerImgLoader underlyingImgLoader = TestTPSFusion.getUnderlyingImageLoader(data);
+		final ViewerImgLoader underlyingImgLoader = BlkThinPlateSplineFusion.getUnderlyingImageLoader(data);
 
 		if ( underlyingImgLoader == null )
 			return;

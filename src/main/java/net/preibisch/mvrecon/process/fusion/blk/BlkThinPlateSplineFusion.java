@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import bdv.ViewerImgLoader;
 import mpicbg.models.AffineModel3D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.NotEnoughDataPointsException;
@@ -28,7 +29,6 @@ import net.imglib2.Localizable;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
@@ -50,6 +50,7 @@ import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
 import net.imglib2.view.fluent.RealRandomAccessibleView;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
@@ -207,16 +208,17 @@ public class BlkThinPlateSplineFusion
 
 			weights.add( weightBlockSupplier );
 
-			//if ( underlyingViewId.getViewSetupId() == 5 )
+			/*
+			if ( underlyingViewId.getViewSetupId() == 5 )
 			{
 				//ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
 				//ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-				//SimpleMultiThreading.threadHaltUnClean();
 
 				// 850, 1050, 100
 				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
 				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
 			}
+			*/
 		}
 
 		final BlockSupplier< FloatType > floatBlocks;
@@ -580,5 +582,13 @@ public class BlkThinPlateSplineFusion
 		new2oldSetupId.forEach( (k,v) -> old2newSetupId.computeIfAbsent( v, newKey -> new ArrayList<>() ).add( k ) );
 
 		return old2newSetupId;
+	}
+
+	public static ViewerImgLoader getUnderlyingImageLoader( final SpimData2 data )
+	{
+		if ( SplitViewerImgLoader.class.isInstance( data.getSequenceDescription().getImgLoader() ) )
+			return ( ( SplitViewerImgLoader ) data.getSequenceDescription().getImgLoader() ).getUnderlyingImgLoader();
+		else
+			return null;
 	}
 }
