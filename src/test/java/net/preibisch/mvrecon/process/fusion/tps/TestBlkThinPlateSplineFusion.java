@@ -62,7 +62,7 @@ public class TestBlkThinPlateSplineFusion
 				splitViewIds,
 				data.getViewRegistrations().getViewRegistrations(), // already adjusted for anisotropy
 				data.getSequenceDescription().getViewDescriptions(),
-				FusionType.MAX_INTENSITY,
+				FusionType.CLOSEST_PIXEL_WINS,
 				Double.NaN,
 				null,
 				null,

@@ -382,7 +382,7 @@ public class BlkAffineFusion
 		return t;
 	}
 
-	protected static boolean is2d( final Collection< ? extends ViewId > viewIds, final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions )
+	public static boolean is2d( final Collection< ? extends ViewId > viewIds, final Map< ViewId, ? extends BasicViewDescription< ? > > viewDescriptions )
 	{
 		return viewIds.stream()
 		.map( viewDescriptions::get )

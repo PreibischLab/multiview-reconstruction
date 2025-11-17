@@ -12,6 +12,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import ij.ImageJ;
+import mpicbg.models.Affine3D;
+import mpicbg.models.AffineModel3D;
+import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.Point;
+import mpicbg.models.PointMatch;
 import mpicbg.spim.data.generic.sequence.BasicViewDescription;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewTransform;
@@ -24,9 +30,8 @@ import net.imglib2.Localizable;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
-import net.imglib2.RealLocalizable;
-import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
@@ -53,10 +58,13 @@ import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
 import net.imglib2.view.fluent.RealRandomAccessibleView;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
+import net.preibisch.mvrecon.process.fusion.FusionTools;
 import net.preibisch.mvrecon.process.fusion.intensity.Coefficients;
 import net.preibisch.mvrecon.process.fusion.intensity.FastLinearIntensityMap;
 import net.preibisch.mvrecon.process.fusion.lazy.LazyFusionTools;
 import net.preibisch.mvrecon.process.fusion.transformed.TransformVirtual;
+import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccess;
+import net.preibisch.mvrecon.process.fusion.transformed.weights.BlendingRealRandomAccessible;
 import net.preibisch.mvrecon.process.interestpointregistration.pairwise.constellation.grouping.Group;
 import net.preibisch.mvrecon.process.splitting.SplittingTools;
 import util.BlockSupplierUtils;
@@ -85,6 +93,9 @@ public class BlkThinPlateSplineFusion
 
 		if ( BlkAffineFusion.is2d( splitViewIds, splitViewDescriptions ) )
 			throw new UnsupportedOperationException( "BlkThinPlateSplineFusion: 2D fusion not supported." );
+
+		if ( fusionType != FusionType.CLOSEST_PIXEL_WINS )
+			throw new UnsupportedOperationException( "BlkThinPlateSplineFusion: only FusionType.CLOSEST_PIXEL_WINS supported right now." );
 
 		final SequenceDescription underlyingSD = splitImgLoader.underlyingSequenceDescription();
 
@@ -122,6 +133,7 @@ public class BlkThinPlateSplineFusion
 		final List<ViewId> overlappingUnderlyingViewIds = underlyingViewIds( splitOverlap.getViewIds(), splitImgLoader.new2oldSetupId() );
 
 		final List< BlockSupplier< FloatType > > images = new ArrayList<>( overlappingUnderlyingViewIds.size() );
+		final List< BlockSupplier< FloatType > > weights = new ArrayList<>( overlappingUnderlyingViewIds.size() );
 
 		for ( final ViewId underlyingViewId : overlappingUnderlyingViewIds )
 		{
@@ -136,23 +148,182 @@ public class BlkThinPlateSplineFusion
 					//DownsampleTools.openDownsampled( under, viewId, model, usedDownsampleFactors );
 					splitImgLoader.getUnderlyingImgLoader().getSetupImgLoader( underlyingViewId.getViewSetupId() ).getImage( underlyingViewId.getTimePointId() );
 
-			BlockSupplier< FloatType > blocks = BlockSupplier.of( extendInput( inputImg ) )
+			BlockSupplier< FloatType > imageBlockSupplier =
+					BlockSupplier.of( extendInput( inputImg ) )
 					.andThen( Convert.convert( new FloatType() ) );
 
 			if ( coefficients != null )
-				blocks = blocks.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
+				imageBlockSupplier = imageBlockSupplier.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
-			blocks = blocks.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null ) );
+			imageBlockSupplier = imageBlockSupplier.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null ) );
+
+			images.add( imageBlockSupplier );
+
+			// instantiate blending if necessary
+			final float[] blending = Util.getArrayFromValue( FusionTools.defaultBlendingRange, 3 );
+			final float[] border = Util.getArrayFromValue( FusionTools.defaultBlendingBorder, 3 );
+
+			// approx affine transform for adjusting blending weights
+			final AffineTransform3D t = getTransform( coeff.getA(), coeff.getB() );
+			System.out.println( t );
+
+			// adjust both for z-scaling (anisotropy), downsampling, and registrations itself
+			FusionTools.adjustBlending(
+					new FinalInterval( inputImg ),
+					Group.pvid( underlyingViewId ),
+					blending,
+					border,
+					t );
+
+			final TPSBlending weightBlockSupplier =
+					new TPSBlending( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, border, blending );
+
+			weights.add( weightBlockSupplier );
 
 			new ImageJ();
-			ImageJFunctions.show( BlockAlgoUtils.cellImg( blocks, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+			ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+			ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
 			SimpleMultiThreading.threadHaltUnClean();
 
-			images.add( blocks );
 		}
 
 		return null;
+	}
+
+	private static AffineTransform3D getTransform( final double[][] source, final double[][] target )
+	{
+		final ArrayList< PointMatch > matches = new ArrayList<>();
+
+		//final double[][] source = new double[3][splitSetupIds.size()];
+		//final double[][] target = new double[3][splitSetupIds.size()];
+
+		for ( int i = 0; i < source[ 0 ].length; ++i )
+		{
+			final Point s = new Point( new double[] { source[ 0 ][ i ], source[ 1 ][ i ], source[ 2 ][ i ] } );
+			final Point t = new Point( new double[] { target[ 0 ][ i ], target[ 1 ][ i ], target[ 2 ][ i ] } );
+
+			matches.add( new PointMatch( s, t ) );
+		}
+
+		final AffineModel3D m = new AffineModel3D();
+		try
+		{
+			m.fit( matches );
+		} catch (NotEnoughDataPointsException | IllDefinedDataPointsException e)
+		{
+			e.printStackTrace();
+		}
+
+		final double[][] mm = new double[ 3 ][ 4 ];
+		m.toMatrix( mm );
+
+		final AffineTransform3D t = new AffineTransform3D();
+
+		t.set(
+				mm[0][0], mm[0][1], mm[0][2], mm[0][3],
+				mm[1][0], mm[1][1], mm[1][2], mm[1][3],
+				mm[2][0], mm[2][1], mm[2][2], mm[2][3] );
+
+		return t;
+	}
+
+	private static class TPSBlending implements BlockSupplier< FloatType >
+	{
+		final Interval sourceImageInterval, boundingBox;
+		final double[][] source, target;
+		final ThinplateSplineTransform transform;
+
+		final float[] border, blending;
+		final BlendingRealRandomAccessible blend;
+
+		public TPSBlending(
+				final Interval sourceImageInterval,
+				final Interval boundingBox,
+				final double[][] source,
+				final double[][] target,
+				final ThinplateSplineTransform transform,
+				final float[] border,
+				final float[] blending )
+		{
+			this.sourceImageInterval = sourceImageInterval;
+			this.boundingBox = boundingBox;
+			this.source = source;
+			this.target = target;
+
+			if ( transform == null )
+				this.transform = new ThinplateSplineTransform( target, source ); // we go from output to input
+			else
+				this.transform = transform.copy();
+
+			this.blending = blending;
+			this.border = border;
+			this.blend = new BlendingRealRandomAccessible( sourceImageInterval, border, blending );
+		}
+
+		@Override
+		public void copy( final Interval interval, final Object dest )
+		{
+			final BlockInterval blockInterval =
+					BlockInterval.asBlockInterval(
+							Intervals.translate( interval, boundingBox.minAsLongArray() ) );
+
+			final float[] fdest = Cast.unchecked( dest );
+			final int[] size = blockInterval.size();
+			final int len = safeInt( Intervals.numElements( size ) );
+
+			// figure out the interval we need to fetch from the src image
+			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
+			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
+
+			// check that the transformed src interval is overlapping with the input image
+			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
+			{
+				// TODO: is that necessary?
+				Arrays.fill( fdest, 0f );
+				return;
+			}
+
+			// get an interpolator for the blending
+			final RealRandomAccess< FloatType > rra = blend.realRandomAccess();
+
+			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
+			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
+
+			final double[] loc = new double[ 3 ];
+
+			for ( int x = 0; x < len; ++x )
+			{
+				cursor.next().localize( loc );
+				transform.apply( loc, loc );
+
+				if ( contains3d( sourceImageInterval, loc ))
+				{
+					rra.setPosition( loc );
+					fdest[ x ] = rra.get().get();
+				}
+				else
+				{
+					// TODO: is that necessary?
+					fdest[ x ] = 0;
+				}
+			}
+			
+		}
+
+		private static final FloatType type = new FloatType();
+
+		@Override
+		public FloatType getType() { return type; }
+
+		@Override
+		public int numDimensions() { return 3; }
+
+		@Override
+		public BlockSupplier<FloatType> threadSafe() { return independentCopy(); }
+
+		@Override
+		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending(sourceImageInterval, boundingBox, source, target, transform, border, blending );}
 	}
 
 	private static class TPSImageTransform implements UnaryBlockOperator<FloatType, FloatType>
