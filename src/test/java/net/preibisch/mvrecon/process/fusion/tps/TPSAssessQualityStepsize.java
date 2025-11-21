@@ -10,16 +10,18 @@ import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imglib2.Cursor;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
 import net.imglib2.Localizable;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.algorithm.blocks.BlockAlgoUtils;
-import net.imglib2.algorithm.blocks.BlockSupplier;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.realtransform.ThinplateSplineTransform;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Util;
+import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
-import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -27,8 +29,56 @@ import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLo
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.fusion.blk.BlkThinPlateSplineFusion;
 
-public class TestBlkThinPlateSplineFusion
+public class TPSAssessQualityStepsize
 {
+	public static void visualize(
+			final Interval boundingBox,
+			final double[][] source,
+			final double[][] target,
+			final long[] stepSize )
+	{
+		visualize(null, boundingBox, source, target, stepSize);
+	}
+
+	public static void visualize(
+			final Interval sourceImageInterval,
+			final Interval boundingBox,
+			final double[][] source,
+			final double[][] target,
+			final long[] stepSize )
+	{
+		final ThinplateSplineTransform transform = new ThinplateSplineTransform( target, source ); // we go from output to input
+
+		final RandomAccessibleInterval<DoubleType> interpField =
+				BlkThinPlateSplineFusion.interpolatedField( transform, boundingBox, stepSize );
+
+		final RandomAccessibleInterval<DoubleType> fullField =
+				BlkThinPlateSplineFusion.fullDeformationField( transform, boundingBox );
+
+		if ( sourceImageInterval != null )
+		{
+			for ( int d = 0; d < 3; ++d )
+			{
+				final long min = sourceImageInterval.min( d );
+				final long max = sourceImageInterval.max( d );
+
+				Views.hyperSlice( interpField, 3, d ).forEach( t -> {
+					final double v = t.get();
+					if ( v < min || v > max )
+						t.set( 0 );
+				});
+
+				Views.hyperSlice( fullField, 3, d ).forEach( t -> {
+					final double v = t.get();
+					if ( v < min || v > max )
+						t.set( 0 );
+				});
+			}
+		}
+
+		ImageJFunctions.show( Views.hyperSlice( interpField, 3, 0 ) ).setTitle( "xInterp" );
+		ImageJFunctions.show( Views.hyperSlice( fullField, 3, 0 ) ).setTitle( "xFull" );
+	}
 
 	public static void main( String[] args ) throws SpimDataException
 	{
@@ -65,25 +115,19 @@ public class TestBlkThinPlateSplineFusion
 		BoundingBox boundingBox = new BoundingBoxMaximal( splitViewIds, data ).estimate( "Full Bounding Box" );
 		System.out.println( boundingBox );
 
+		final HashMap< ViewId, Pair< double[][], double[][] > > coeff =
+				TestTPSFusion.getCoefficients( splitImgLoader, data.getViewRegistrations().getViewRegistrations(), underlyingViewIds, Double.NaN, Double.NaN );
+
 		new ImageJ();
+		final ViewId v = new ViewId( 0, 0 );
 
-		final BlockSupplier<UnsignedByteType> supplier = BlkThinPlateSplineFusion.init(
-				(i,o) -> { o.set( Math.round( i.get() )); },
-				splitImgLoader,
-				splitViewIds,
-				data.getViewRegistrations().getViewRegistrations(), // already adjusted for anisotropy
-				data.getSequenceDescription().getViewDescriptions(),
-				FusionType.CLOSEST_PIXEL_WINS,
-				Double.NaN,
-				null,
-				null,
-				boundingBox,  // already adjusted for anisotropy???
-				new UnsignedByteType() );
+		final Interval slice = new FinalInterval(
+				boundingBox.minAsLongArray(),
+				new long[] { boundingBox.max( 0 ), boundingBox.max( 1 ), boundingBox.min( 2 ) } );
 
-		ImageJFunctions.show( BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-
-		// 850, 1050, 100
-		System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
-
+		visualize( slice, coeff.get( v ).getA(), coeff.get( v ).getB(), new long[] { 10, 10, 10 } );
+		visualize(
+				new FinalInterval( underlyingSD.getViewDescription( v ).getViewSetup().getSize() ),
+				slice, coeff.get( v ).getA(), coeff.get( v ).getB(), new long[] { 10, 10, 10 } );
 	}
 }

@@ -26,25 +26,39 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
+import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
+import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
+import net.imglib2.img.AbstractImg;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.basictypeaccess.array.DoubleArray;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.RealViews;
+import net.imglib2.realtransform.Scale3D;
 import net.imglib2.realtransform.ThinplateSplineTransform;
 import net.imglib2.realtransform.interval.IntervalSamplingMethod;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
@@ -208,17 +222,15 @@ public class BlkThinPlateSplineFusion
 
 			weights.add( weightBlockSupplier );
 
-			/*
-			if ( underlyingViewId.getViewSetupId() == 5 )
+			if ( underlyingViewId.getViewSetupId() == 0 )
 			{
 				//ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-				//ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
+				ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { (int)fusionInterval.dimension( 0 ), (int)fusionInterval.dimension( 1 ), 1 } ) );
 
 				// 850, 1050, 100
 				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
 				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
 			}
-			*/
 		}
 
 		final BlockSupplier< FloatType > floatBlocks;
@@ -247,6 +259,8 @@ public class BlkThinPlateSplineFusion
 
 	private static class TPSBlending implements BlockSupplier< FloatType >
 	{
+		private static int stepSize = 10;
+
 		final Interval sourceImageInterval, boundingBox;
 		final double[][] source, target;
 		final ThinplateSplineTransform transform;
@@ -281,17 +295,13 @@ public class BlkThinPlateSplineFusion
 		@Override
 		public void copy( final Interval interval, final Object dest )
 		{
-			final BlockInterval blockInterval =
-					BlockInterval.asBlockInterval(
-							Intervals.translate( interval, boundingBox.minAsLongArray() ) );
+			final BlockInterval blockInterval = blockInterval( interval, boundingBox );
 
 			final float[] fdest = Cast.unchecked( dest );
-			final int[] size = blockInterval.size();
-			final int len = safeInt( Intervals.numElements( size ) );
+			final int len = safeInt( Intervals.numElements( blockInterval.size() ) );
 
 			// figure out the interval we need to fetch from the src image
-			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
-			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
+			final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
 
 			// check that the transformed src interval is overlapping with the input image
 			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
@@ -304,28 +314,37 @@ public class BlkThinPlateSplineFusion
 			// get an interpolator for the blending
 			final RealRandomAccess< FloatType > rra = blend.realRandomAccess();
 
-			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
-			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
-
 			final double[] loc = new double[ 3 ];
 
-			for ( int x = 0; x < len; ++x )
+			if ( stepSize <= 1 )
 			{
-				cursor.next().localize( loc );
-				transform.apply( loc, loc );
+				// get a cursor over the srcInterval and a realrandomaccess for the interpolator
+				final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 
-				if ( contains3d( sourceImageInterval, loc ))
+				for ( int x = 0; x < len; ++x )
 				{
-					rra.setPosition( loc );
-					fdest[ x ] = rra.get().get();
-				}
-				else
-				{
-					// TODO: is that necessary?
-					fdest[ x ] = 0;
+					cursor.next().localize( loc );
+					transform.apply( loc, loc );
+
+					if ( contains3d( sourceImageInterval, loc ))
+					{
+						rra.setPosition( loc );
+						fdest[ x ] = rra.get().get();
+					}
+					else
+					{
+						// TODO: is that necessary?
+						fdest[ x ] = 0;
+					}
 				}
 			}
-			
+			else
+			{
+				final RandomAccessibleInterval<DoubleType> interpField =
+						interpolatedField( transform, blockInterval, new long[] { stepSize, stepSize, stepSize } );
+				
+				throw new RuntimeException( "still needs to be implemented." );
+			}
 		}
 
 		private static final FloatType type = new FloatType();
@@ -341,6 +360,20 @@ public class BlkThinPlateSplineFusion
 
 		@Override
 		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending(sourceImageInterval, boundingBox, source, target, transform, border, blending );}
+	}
+
+	public static BlockInterval blockInterval( final Interval interval, final Interval boundingBox )
+	{
+		return BlockInterval.asBlockInterval( Intervals.translate( interval, boundingBox.minAsLongArray() ) );
+	}
+
+	public static Interval srcInterval( final ThinplateSplineTransform transform, final Interval blockInterval, final int expansion )
+	{
+		// figure out the interval we need to fetch from the src image
+		final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
+		final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), expansion );
+
+		return srcInterval;
 	}
 
 	private static class TPSImageTransform implements UnaryBlockOperator<FloatType, FloatType>
@@ -370,17 +403,13 @@ public class BlkThinPlateSplineFusion
 		@Override
 		public void compute( final BlockSupplier<FloatType> src, final Interval interval, final Object dest )
 		{
-			final BlockInterval blockInterval =
-					BlockInterval.asBlockInterval(
-							Intervals.translate( interval, boundingBox.minAsLongArray() ) );
+			final BlockInterval blockInterval = blockInterval( interval, boundingBox );
 
 			final float[] fdest = Cast.unchecked( dest );
-			final int[] size = blockInterval.size();
-			final int len = safeInt( Intervals.numElements( size ) );
+			final int len = safeInt( Intervals.numElements( blockInterval.size() ) );
 
 			// figure out the interval we need to fetch from the src image
-			final RealInterval srcRealInterval = transform.boundingInterval( blockInterval, IntervalSamplingMethod.CORNERS );
-			final Interval srcInterval = Intervals.expand( Intervals.smallestContainingInterval( srcRealInterval ), defaultExpansion );
+			final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
 
 			// check that the transformed src interval is overlapping with the input image
 			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
@@ -442,6 +471,95 @@ public class BlkThinPlateSplineFusion
 			return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform );
 		}
 		
+	}
+
+	public static RandomAccessibleInterval<DoubleType> fullDeformationField(
+			final ThinplateSplineTransform transform,
+			final Interval blockInterval )
+	{
+		final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
+
+		final RandomAccessibleInterval<DoubleType> xFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+		final RandomAccessibleInterval<DoubleType> yFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+		final RandomAccessibleInterval<DoubleType> zFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+
+		final double[] loc = new double[ 3 ];
+
+		while ( cursor.hasNext() )
+		{
+			cursor.next().localize( loc );
+			transform.apply( loc, loc );
+
+			xFull.getAt( cursor ).set( loc[ 0 ] );
+			yFull.getAt( cursor ).set( loc[ 1 ] );
+			zFull.getAt( cursor ).set( loc[ 2 ] );
+		}
+
+		return Views.stack( xFull, yFull, zFull );
+	}
+
+	public static RandomAccessibleInterval<DoubleType> interpolatedField(
+			final ThinplateSplineTransform transform,
+			final Interval blockInterval,
+			final long[] stepSize )
+	{
+		// create a stepSize bigger interval to make sure the last pixel is interpolated properly
+		final long[] min = blockInterval.minAsLongArray();
+		final long[] max = blockInterval.maxAsLongArray();
+		Arrays.setAll( max, d -> max[ d ] + stepSize[ d ] );
+
+		final RandomAccessibleInterval<Localizable> subsampledPositionsExtended =
+				Views.subsample(
+						Intervals.positions( new FinalInterval( min, max ) ),
+						stepSize );
+		
+		final int elements = (int)subsampledPositionsExtended.size();
+
+		final double[] x = new double[ elements ];
+		final double[] y = new double[ elements ];
+		final double[] z = new double[ elements ];
+
+		final double[] loc = new double[ 3 ];
+
+		int i = 0;
+		for ( final Localizable l : Views.flatIterable( subsampledPositionsExtended ) )
+		{
+			l.localize( loc );
+			transform.apply( loc, loc );
+
+			x[ i ] = loc[ 0 ];
+			y[ i ] = loc[ 1 ];
+			z[ i ] = loc[ 2 ];
+
+			++i;
+			//System.out.println( Util.printCoordinates( l ) );
+		}
+
+		final ArrayImg<DoubleType, DoubleArray> xImg = ArrayImgs.doubles( x, subsampledPositionsExtended.dimensionsAsLongArray() );
+		final ArrayImg<DoubleType, DoubleArray> yImg = ArrayImgs.doubles( y, subsampledPositionsExtended.dimensionsAsLongArray() );
+		final ArrayImg<DoubleType, DoubleArray> zImg = ArrayImgs.doubles( z, subsampledPositionsExtended.dimensionsAsLongArray() );
+
+		//ImageJFunctions.show( xImg ).setTitle( "xImg" );
+
+		final RandomAccessibleInterval<DoubleType> xInterp = Views.interval(
+				RealViews.affine(
+						xImg.view().extend(Extension.border()).interpolate(Interpolation.nLinear()),
+						new Scale3D( stepSize[ 0 ], stepSize[ 1 ], stepSize[ 2 ] )),
+				new FinalInterval(blockInterval.dimensionsAsLongArray()));
+
+		final RandomAccessibleInterval<DoubleType> yInterp = Views.interval(
+				RealViews.affine(
+						yImg.view().extend(Extension.border()).interpolate(Interpolation.nLinear()),
+						new Scale3D( stepSize[ 0 ], stepSize[ 1 ], stepSize[ 2 ] )),
+				new FinalInterval(blockInterval.dimensionsAsLongArray()));
+
+		final RandomAccessibleInterval<DoubleType> zInterp = Views.interval(
+				RealViews.affine(
+						zImg.view().extend(Extension.border()).interpolate(Interpolation.nLinear()),
+						new Scale3D( stepSize[ 0 ], stepSize[ 1 ], stepSize[ 2 ] )),
+				new FinalInterval(blockInterval.dimensionsAsLongArray()));
+
+		return Views.stack( xInterp, yInterp, zInterp );
 	}
 
 	public static Pair< double[][], double[][] > getCoefficients(
@@ -544,7 +662,7 @@ public class BlkThinPlateSplineFusion
 		return t;
 	}
 
-	private static boolean contains3d( final RealInterval containing, final double[] contained )
+	public static boolean contains3d( final RealInterval containing, final double[] contained )
 	{
 		if ( contained[ 0 ] < containing.realMin( 0 ) || contained[ 0 ] > containing.realMax( 0 ) )
 			return false;
@@ -591,4 +709,5 @@ public class BlkThinPlateSplineFusion
 		else
 			return null;
 	}
+
 }
