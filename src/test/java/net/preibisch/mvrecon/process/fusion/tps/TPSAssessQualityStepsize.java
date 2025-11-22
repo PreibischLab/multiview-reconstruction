@@ -22,6 +22,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
+import net.imglib2.view.composite.GenericComposite;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
@@ -49,35 +50,83 @@ public class TPSAssessQualityStepsize
 	{
 		final ThinplateSplineTransform transform = new ThinplateSplineTransform( target, source ); // we go from output to input
 
-		final RandomAccessibleInterval<DoubleType> interpField =
+		RandomAccessibleInterval<DoubleType> interpField =
 				BlkThinPlateSplineFusion.interpolatedField( transform, boundingBox, stepSize );
 
 		final RandomAccessibleInterval<DoubleType> fullField =
-				BlkThinPlateSplineFusion.fullDeformationField( transform, boundingBox );
+				fullDeformationField( transform, boundingBox );
 
 		if ( sourceImageInterval != null )
 		{
-			for ( int d = 0; d < 3; ++d )
+			final double[] loc = new double[ 3 ];
+
+			for ( final GenericComposite<DoubleType> gct : Views.collapse( fullField ) )
 			{
-				final long min = sourceImageInterval.min( d );
-				final long max = sourceImageInterval.max( d );
+				loc[ 0 ] = gct.get( 0 ).get();
+				loc[ 1 ] = gct.get( 1 ).get();
+				loc[ 2 ] = gct.get( 2 ).get();
 
-				Views.hyperSlice( interpField, 3, d ).forEach( t -> {
-					final double v = t.get();
-					if ( v < min || v > max )
-						t.set( 0 );
-				});
-
-				Views.hyperSlice( fullField, 3, d ).forEach( t -> {
-					final double v = t.get();
-					if ( v < min || v > max )
-						t.set( 0 );
-				});
+				if ( !BlkThinPlateSplineFusion.contains3d( sourceImageInterval, loc ) )
+				{
+					gct.get( 0 ).set( 0 );
+					gct.get( 1 ).set( 0 );
+					gct.get( 2 ).set( 0 );
+				}
 			}
+
+			final RandomAccessibleInterval<DoubleType> interpFieldCopy =
+					Views.translate( ArrayImgs.doubles( interpField.dimensionsAsLongArray() ), interpField.minAsLongArray() );
+
+			final Cursor<GenericComposite<DoubleType>> cIn = Views.flatIterable( Views.collapse( interpField ) ).cursor();
+			final Cursor<GenericComposite<DoubleType>> cOut = Views.flatIterable( Views.collapse( interpFieldCopy ) ).cursor();
+
+			while ( cIn.hasNext() )
+			{
+				final GenericComposite<DoubleType> in = cIn.next();
+				final GenericComposite<DoubleType> out = cOut.next();
+
+				loc[ 0 ] = in.get( 0 ).get();
+				loc[ 1 ] = in.get( 1 ).get();
+				loc[ 2 ] = in.get( 2 ).get();
+
+				if ( BlkThinPlateSplineFusion.contains3d( sourceImageInterval, loc ) )
+				{
+					out.get( 0 ).set( loc[ 0 ] );
+					out.get( 1 ).set( loc[ 1 ] );
+					out.get( 2 ).set( loc[ 2 ] );
+				}
+			}
+
+			interpField = interpFieldCopy;
 		}
 
-		ImageJFunctions.show( Views.hyperSlice( interpField, 3, 0 ) ).setTitle( "xInterp" );
-		ImageJFunctions.show( Views.hyperSlice( fullField, 3, 0 ) ).setTitle( "xFull" );
+		ImageJFunctions.show( interpField ).setTitle( "interpolated_"+sourceImageInterval );
+		ImageJFunctions.show( fullField ).setTitle( "full_"+sourceImageInterval );
+	}
+
+	public static RandomAccessibleInterval<DoubleType> fullDeformationField(
+			final ThinplateSplineTransform transform,
+			final Interval blockInterval )
+	{
+		final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
+
+		final RandomAccessibleInterval<DoubleType> xFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+		final RandomAccessibleInterval<DoubleType> yFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+		final RandomAccessibleInterval<DoubleType> zFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
+
+		final double[] loc = new double[ 3 ];
+
+		while ( cursor.hasNext() )
+		{
+			cursor.next().localize( loc );
+			transform.apply( loc, loc );
+
+			xFull.getAt( cursor ).set( loc[ 0 ] );
+			yFull.getAt( cursor ).set( loc[ 1 ] );
+			zFull.getAt( cursor ).set( loc[ 2 ] );
+		}
+
+		return Views.stack( xFull, yFull, zFull );
 	}
 
 	public static void main( String[] args ) throws SpimDataException
@@ -122,8 +171,8 @@ public class TPSAssessQualityStepsize
 		final ViewId v = new ViewId( 0, 0 );
 
 		final Interval slice = new FinalInterval(
-				boundingBox.minAsLongArray(),
-				new long[] { boundingBox.max( 0 ), boundingBox.max( 1 ), boundingBox.min( 2 ) } );
+				new long[] { boundingBox.min( 0 ), boundingBox.min( 1 ), (boundingBox.min( 2 )+ boundingBox.max( 2 ))/2 },
+				new long[] { boundingBox.max( 0 ), boundingBox.max( 1 ), (boundingBox.min( 2 )+ boundingBox.max( 2 ))/2 } );
 
 		visualize( slice, coeff.get( v ).getA(), coeff.get( v ).getB(), new long[] { 10, 10, 10 } );
 		visualize(
