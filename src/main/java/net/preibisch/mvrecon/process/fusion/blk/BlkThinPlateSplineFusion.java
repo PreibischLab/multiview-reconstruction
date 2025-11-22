@@ -26,24 +26,17 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
-import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.algorithm.blocks.UnaryBlockOperator;
 import net.imglib2.algorithm.blocks.convert.Convert;
 import net.imglib2.blocks.BlockInterval;
 import net.imglib2.converter.Converter;
-import net.imglib2.img.AbstractImg;
-import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.realtransform.Scale3D;
@@ -58,7 +51,6 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
@@ -91,7 +83,8 @@ public class BlkThinPlateSplineFusion
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients, // from underlying viewids
 			final Interval fusionInterval,  // already adjusted for anisotropy???
-			final T type )
+			final T type,
+			final int[] blockSize )
 	{
 		// assemble all underlying viewIds (which will expand the list of splitViews to all the underlying viewids consist of)
 		final List< ViewId > underlyingViewIds = underlyingViewIds( splitViewIdsInput, splitImgLoader.new2oldSetupId() );
@@ -106,9 +99,9 @@ public class BlkThinPlateSplineFusion
 
 		final SequenceDescription underlyingSD = splitImgLoader.underlyingSequenceDescription();
 
-		System.out.println( "Split viewIds: " + splitViewIdsInput.size() );
-		System.out.println( "Underlying viewIds: " + underlyingViewIds.size() );
-		System.out.println( "Complete split viewIds: " + splitViewIds.size() );
+		//System.out.println( "Split viewIds: " + splitViewIdsInput.size() );
+		//System.out.println( "Underlying viewIds: " + underlyingViewIds.size() );
+		//System.out.println( "Complete split viewIds: " + splitViewIds.size() );
 
 		// to be able to use the "lowest ViewId" wins strategy
 		final List< ? extends ViewId > sortedUnderlyingViewIds = new ArrayList<>( underlyingViewIds );
@@ -117,26 +110,6 @@ public class BlkThinPlateSplineFusion
 			Collections.sort( sortedUnderlyingViewIds );
 		else
 			Collections.sort( sortedUnderlyingViewIds, (c1,c2) -> Integer.compare( fusionMap.get( c1.getViewSetupId() ), fusionMap.get( c2.getViewSetupId() ) ) );
-
-		/*
-		// Which split views to process (use un-altered bounding box and registrations).
-		// Final filtering happens per Cell.
-		// Here we just pre-filter everything outside the fusionInterval.
-		final Map<ViewId, AffineTransform3D> splitViewModels =
-				splitViewRegistrations.entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getModel() ) );
-
-		final Overlap splitOverlap = new Overlap(
-				splitViewIds,
-				splitViewModels,
-				LazyFusionTools.assembleDimensions( splitViewIds, splitViewDescriptions ),
-				defaultExpansion,
-				3 )
-				.filter( fusionInterval )
-				.offset( fusionInterval.minAsLongArray() );
-
-		// all split views that overlap with the bounding box are mapped to the underlying views
-		final List<ViewId> overlappingUnderlyingViewIds = underlyingViewIds( splitOverlap.getViewIds(), splitImgLoader.new2oldSetupId() );
-		*/
 
 		//
 		// build the overlap for the underlying views so they can be used later
@@ -154,7 +127,7 @@ public class BlkThinPlateSplineFusion
 
 			// approx affine transform for adjusting blending weights
 			final AffineTransform3D t = getTransform( coeff.getA(), coeff.getB() );
-			System.out.println( Group.pvid( underlyingViewId ) + ": " + t );
+			//System.out.println( Group.pvid( underlyingViewId ) + ": " + t );
 
 			underlyingViewIdToTransform.put( underlyingViewId, t );
 			underlyingViewIdToCoefficients.put( underlyingViewId, coeff );
@@ -221,16 +194,6 @@ public class BlkThinPlateSplineFusion
 			}
 
 			weights.add( weightBlockSupplier );
-
-			if ( underlyingViewId.getViewSetupId() == 0 )
-			{
-				//ImageJFunctions.show( BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-				ImageJFunctions.show( BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { (int)fusionInterval.dimension( 0 ), (int)fusionInterval.dimension( 1 ), 1 } ) );
-
-				// 850, 1050, 100
-				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( imageBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
-				System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( weightBlockSupplier, fusionInterval.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
-			}
 		}
 
 		final BlockSupplier< FloatType > floatBlocks;
@@ -250,17 +213,15 @@ public class BlkThinPlateSplineFusion
 		final BlockSupplier< T > blocks = BlkAffineFusion.convertToOutputType(
 				floatBlocks,
 				converter, type )
-				.tile( 32 );
-		
-		System.out.println( Util.printInterval( new FinalInterval( fusionInterval.dimensionsAsLongArray() ) ) );
-		
+				.tile( blockSize );
+
+		//System.out.println( Util.printInterval( new FinalInterval( fusionInterval.dimensionsAsLongArray() ) ) );
+
 		return blocks;
 	}
 
 	private static class TPSBlending implements BlockSupplier< FloatType >
 	{
-		private static int stepSize = 10;
-
 		final Interval sourceImageInterval, boundingBox;
 		final double[][] source, target;
 		final ThinplateSplineTransform transform;
@@ -300,50 +261,35 @@ public class BlkThinPlateSplineFusion
 			final float[] fdest = Cast.unchecked( dest );
 			final int len = safeInt( Intervals.numElements( blockInterval.size() ) );
 
-			// figure out the interval we need to fetch from the src image
-			final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
+			// we do not need to check that the transformed src interval is overlapping with the input image,
+			// this is done by e.g. ClosestPixelWins
 
-			// check that the transformed src interval is overlapping with the input image
-			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
-			{
-				// TODO: is that necessary?
-				Arrays.fill( fdest, 0f );
-				return;
-			}
+			// figure out the interval we need to fetch from the src image
+			//final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
 
 			// get an interpolator for the blending
 			final RealRandomAccess< FloatType > rra = blend.realRandomAccess();
 
 			final double[] loc = new double[ 3 ];
 
-			if ( stepSize <= 1 )
-			{
-				// get a cursor over the srcInterval and a realrandomaccess for the interpolator
-				final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
+			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
+			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 
-				for ( int x = 0; x < len; ++x )
+			for ( int x = 0; x < len; ++x )
+			{
+				cursor.next().localize( loc );
+				transform.apply( loc, loc );
+
+				if ( contains3d( sourceImageInterval, loc ))
 				{
-					cursor.next().localize( loc );
-					transform.apply( loc, loc );
-
-					if ( contains3d( sourceImageInterval, loc ))
-					{
-						rra.setPosition( loc );
-						fdest[ x ] = rra.get().get();
-					}
-					else
-					{
-						// TODO: is that necessary?
-						fdest[ x ] = 0;
-					}
+					rra.setPosition( loc );
+					fdest[ x ] = rra.get().get();
 				}
-			}
-			else
-			{
-				final RandomAccessibleInterval<DoubleType> interpField =
-						interpolatedField( transform, blockInterval, new long[] { stepSize, stepSize, stepSize } );
-				
-				throw new RuntimeException( "still needs to be implemented." );
+				else
+				{
+					// TODO: is that necessary?
+					fdest[ x ] = 0;
+				}
 			}
 		}
 
@@ -359,7 +305,7 @@ public class BlkThinPlateSplineFusion
 		public BlockSupplier<FloatType> threadSafe() { return independentCopy(); }
 
 		@Override
-		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending(sourceImageInterval, boundingBox, source, target, transform, border, blending );}
+		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending( sourceImageInterval, boundingBox, source, target, transform, border, blending );}
 	}
 
 	public static BlockInterval blockInterval( final Interval interval, final Interval boundingBox )
@@ -408,16 +354,11 @@ public class BlkThinPlateSplineFusion
 			final float[] fdest = Cast.unchecked( dest );
 			final int len = safeInt( Intervals.numElements( blockInterval.size() ) );
 
+			// we do not need to check that the transformed src interval is overlapping with the input image,
+			// this is done by e.g. ClosestPixelWins
+
 			// figure out the interval we need to fetch from the src image
 			final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
-
-			// check that the transformed src interval is overlapping with the input image
-			if ( Intervals.isEmpty( Intervals.intersect( srcInterval, sourceImageInterval ) ) )
-			{
-				// TODO: is that necessary?
-				Arrays.fill( fdest, 0f );
-				return;
-			}
 
 			// request the required src data as a copy and translate it to its actual position
 			final RandomAccessibleInterval< FloatType > img =
@@ -426,12 +367,12 @@ public class BlkThinPlateSplineFusion
 			// get an interpolator for the copied block
 			final RealRandomAccessibleView< FloatType > interp =
 					img.view().extend(Extension.zero()).interpolate(Interpolation.clampingNLinear());
-
-			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
-			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 			final RealRandomAccess< FloatType > rra = interp.realRandomAccess();
 
 			final double[] loc = new double[ 3 ];
+
+			// get a cursor over the srcInterval
+			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 
 			for ( int x = 0; x < len; ++x )
 			{
@@ -466,36 +407,7 @@ public class BlkThinPlateSplineFusion
 		public int numTargetDimensions() { return 3; }
 
 		@Override
-		public UnaryBlockOperator<FloatType, FloatType> independentCopy()
-		{
-			return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform );
-		}
-		
-	}
-
-	public static RandomAccessibleInterval<DoubleType> fullDeformationField(
-			final ThinplateSplineTransform transform,
-			final Interval blockInterval )
-	{
-		final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
-
-		final RandomAccessibleInterval<DoubleType> xFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
-		final RandomAccessibleInterval<DoubleType> yFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
-		final RandomAccessibleInterval<DoubleType> zFull = Views.translate( ArrayImgs.doubles( blockInterval.dimensionsAsLongArray() ), blockInterval.minAsLongArray() );
-
-		final double[] loc = new double[ 3 ];
-
-		while ( cursor.hasNext() )
-		{
-			cursor.next().localize( loc );
-			transform.apply( loc, loc );
-
-			xFull.getAt( cursor ).set( loc[ 0 ] );
-			yFull.getAt( cursor ).set( loc[ 1 ] );
-			zFull.getAt( cursor ).set( loc[ 2 ] );
-		}
-
-		return Views.stack( xFull, yFull, zFull );
+		public UnaryBlockOperator<FloatType, FloatType> independentCopy() { return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform ); }
 	}
 
 	public static RandomAccessibleInterval<DoubleType> interpolatedField(

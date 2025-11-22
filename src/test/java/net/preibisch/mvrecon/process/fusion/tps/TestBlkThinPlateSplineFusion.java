@@ -3,6 +3,7 @@ package net.preibisch.mvrecon.process.fusion.tps;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import bdv.ViewerImgLoader;
@@ -10,19 +11,14 @@ import ij.ImageJ;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.sequence.SequenceDescription;
 import mpicbg.spim.data.sequence.ViewId;
-import net.imglib2.Localizable;
-import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.Interval;
 import net.imglib2.algorithm.blocks.BlockAlgoUtils;
 import net.imglib2.algorithm.blocks.BlockSupplier;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.util.Intervals;
-import net.imglib2.util.Util;
-import net.imglib2.view.Views;
 import net.preibisch.mvrecon.fiji.plugin.fusion.FusionGUI.FusionType;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
-import net.preibisch.mvrecon.fiji.spimdata.boundingbox.BoundingBox;
 import net.preibisch.mvrecon.fiji.spimdata.imgloaders.splitting.SplitViewerImgLoader;
 import net.preibisch.mvrecon.process.boundingbox.BoundingBoxMaximal;
 import net.preibisch.mvrecon.process.fusion.blk.BlkThinPlateSplineFusion;
@@ -62,10 +58,16 @@ public class TestBlkThinPlateSplineFusion
 		final List< ViewId > splitViewIds = BlkThinPlateSplineFusion.splitViewIds( underlyingViewIds, old2newSetupId );
 
 		// we estimate the bounding box using the split imagel loader, which will be closer to real bounding box
-		BoundingBox boundingBox = new BoundingBoxMaximal( splitViewIds, data ).estimate( "Full Bounding Box" );
+		Interval boundingBox = new BoundingBoxMaximal( splitViewIds, data ).estimate( "Full Bounding Box" );
 		System.out.println( boundingBox );
 
+		// for testing
+		//boundingBox = Intervals.createMinMax( -496, -719, 870, 482, 707, 1129 );
+
 		new ImageJ();
+
+		final int[] blockSize = new int[] { 128, 128, 4 };
+		BlkThinPlateSplineFusion.defaultExpansion = 10;
 
 		final BlockSupplier<UnsignedByteType> supplier = BlkThinPlateSplineFusion.init(
 				(i,o) -> { o.set( Math.round( i.get() )); },
@@ -77,13 +79,10 @@ public class TestBlkThinPlateSplineFusion
 				Double.NaN,
 				null,
 				null,
-				boundingBox,  // already adjusted for anisotropy???
-				new UnsignedByteType() );
+				boundingBox, // already adjusted for anisotropy???
+				new UnsignedByteType(),
+				blockSize );
 
-		ImageJFunctions.show( BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ) );
-
-		// 850, 1050, 100
-		System.out.println( "850, 1050, 100: " +  BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), new int[] { 128, 128, 1 } ).getAt( 850, 1050, 100 ).get() );
-
+		ImageJFunctions.show( BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), blockSize ), Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() ) );
 	}
 }
