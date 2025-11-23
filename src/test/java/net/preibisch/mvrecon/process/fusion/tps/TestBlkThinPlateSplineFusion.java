@@ -83,6 +83,8 @@ public class TestBlkThinPlateSplineFusion
 				new UnsignedByteType(),
 				blockSize );
 
-		ImageJFunctions.show( BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), blockSize ), Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() ) );
+		ImageJFunctions.show(
+				BlockAlgoUtils.cellImg( supplier, boundingBox.dimensionsAsLongArray(), blockSize ),
+				Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() ) );
 	}
 }
