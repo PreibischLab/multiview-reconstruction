@@ -70,7 +70,8 @@ import util.BlockSupplierUtils;
 
 public class BlkThinPlateSplineFusion
 {
-	public static int defaultExpansion = LazyFusionTools.defaultNonrigidExpansion;
+	// TODO: the default expansion should be computed from the difference of the split overlap and underlying overlap
+	public static int defaultIntervalExpansion = LazyFusionTools.defaultNonrigidExpansion;
 
 	public static < T extends RealType< T > & NativeType< T > > BlockSupplier< T > init(
 			final Converter< FloatType, T > converter,
@@ -79,6 +80,7 @@ public class BlkThinPlateSplineFusion
 			final Map< ViewId, ViewRegistration > splitViewRegistrations, // already adjusted for anisotropy
 			final Map< ViewId, ? extends BasicViewDescription< ? > > splitViewDescriptions,
 			final FusionType fusionType,
+			final int intervalExpansion,
 			final double anisotropyFactor,
 			final Map< Integer, Integer > fusionMap, // old setupId > new setupId for fusion order, only makes sense with FusionType.FIRST_LOW or FusionType.FIRST_HIGH
 			final Map< ViewId, Coefficients > intensityAdjustmentCoefficients, // from underlying viewids
@@ -137,7 +139,7 @@ public class BlkThinPlateSplineFusion
 				sortedUnderlyingViewIds,
 				underlyingViewIdToTransform,
 				LazyFusionTools.assembleDimensions( sortedUnderlyingViewIds, underlyingSD.getViewDescriptions() ),
-				defaultExpansion, // TODO: the default expansion should be computed from the difference of the split overlap and underlying overlap
+				intervalExpansion, // TODO: the default expansion should be computed from the difference of the split overlap and underlying overlap
 				3 )
 				.filter( fusionInterval )
 				.offset( fusionInterval.minAsLongArray() );
@@ -164,7 +166,7 @@ public class BlkThinPlateSplineFusion
 				imageBlockSupplier = imageBlockSupplier.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
-			imageBlockSupplier = imageBlockSupplier.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null ) );
+			imageBlockSupplier = imageBlockSupplier.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, intervalExpansion ) );
 
 			images.add( imageBlockSupplier );
 
@@ -327,13 +329,15 @@ public class BlkThinPlateSplineFusion
 		final Interval sourceImageInterval, boundingBox;
 		final double[][] source, target;
 		final ThinplateSplineTransform transform;
+		final int intervalExpansion;
 
 		public TPSImageTransform(
 				final Interval sourceImageInterval,
 				final Interval boundingBox,
 				final double[][] source,
 				final double[][] target,
-				final ThinplateSplineTransform transform )
+				final ThinplateSplineTransform transform,
+				final int intervalExpansion )
 		{
 			this.sourceImageInterval = sourceImageInterval;
 			this.boundingBox = boundingBox;
@@ -344,6 +348,8 @@ public class BlkThinPlateSplineFusion
 				this.transform = new ThinplateSplineTransform( target, source ); // we go from output to input
 			else
 				this.transform = transform.copy();
+
+			this.intervalExpansion = intervalExpansion;
 		}
 
 		@Override
@@ -358,7 +364,7 @@ public class BlkThinPlateSplineFusion
 			// this is done by e.g. ClosestPixelWins
 
 			// figure out the interval we need to fetch from the src image
-			final Interval srcInterval = srcInterval( transform, blockInterval, defaultExpansion );
+			final Interval srcInterval = srcInterval( transform, blockInterval, intervalExpansion );
 
 			// request the required src data as a copy and translate it to its actual position
 			final RandomAccessibleInterval< FloatType > img =
@@ -407,7 +413,7 @@ public class BlkThinPlateSplineFusion
 		public int numTargetDimensions() { return 3; }
 
 		@Override
-		public UnaryBlockOperator<FloatType, FloatType> independentCopy() { return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform ); }
+		public UnaryBlockOperator<FloatType, FloatType> independentCopy() { return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform, intervalExpansion ); }
 	}
 
 	public static RandomAccessibleInterval<DoubleType> interpolatedField(

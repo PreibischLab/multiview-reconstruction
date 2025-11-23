@@ -67,7 +67,7 @@ public class TestBlkThinPlateSplineFusion
 		new ImageJ();
 
 		final int[] blockSize = new int[] { 128, 128, 4 };
-		BlkThinPlateSplineFusion.defaultExpansion = 10;
+		final int intervalExpansion = 10;
 
 		final BlockSupplier<UnsignedByteType> supplier = BlkThinPlateSplineFusion.init(
 				(i,o) -> { o.set( Math.round( i.get() )); },
@@ -76,6 +76,7 @@ public class TestBlkThinPlateSplineFusion
 				data.getViewRegistrations().getViewRegistrations(), // already adjusted for anisotropy
 				data.getSequenceDescription().getViewDescriptions(),
 				FusionType.CLOSEST_PIXEL_WINS,
+				intervalExpansion,
 				Double.NaN,
 				null,
 				null,
