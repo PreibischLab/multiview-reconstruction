@@ -77,8 +77,8 @@ public class TPSAssessQualityStepsize
 			final RandomAccessibleInterval<DoubleType> interpFieldCopy =
 					Views.translate( ArrayImgs.doubles( interpField.dimensionsAsLongArray() ), interpField.minAsLongArray() );
 
-			final Cursor<GenericComposite<DoubleType>> cIn = Views.flatIterable( Views.collapse( interpField ) ).cursor();
-			final Cursor<GenericComposite<DoubleType>> cOut = Views.flatIterable( Views.collapse( interpFieldCopy ) ).cursor();
+			final Cursor<? extends GenericComposite<DoubleType>> cIn = Views.flatIterable( Views.collapse( interpField ) ).cursor();
+			final Cursor<? extends GenericComposite<DoubleType>> cOut = Views.flatIterable( Views.collapse( interpFieldCopy ) ).cursor();
 
 			while ( cIn.hasNext() )
 			{
