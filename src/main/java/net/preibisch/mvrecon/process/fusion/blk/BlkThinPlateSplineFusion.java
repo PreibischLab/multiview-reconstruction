@@ -2,6 +2,7 @@ package net.preibisch.mvrecon.process.fusion.blk;
 
 import static net.imglib2.util.Util.safeInt;
 
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.apache.solr.common.util.Hash;
 
 import bdv.ViewerImgLoader;
 import mpicbg.models.AffineModel3D;
@@ -26,6 +29,7 @@ import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.Localizable;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealRandomAccess;
@@ -52,6 +56,8 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import net.imglib2.view.composite.CompositeView;
+import net.imglib2.view.composite.GenericComposite;
 import net.imglib2.view.fluent.RandomAccessibleIntervalView.Extension;
 import net.imglib2.view.fluent.RandomAccessibleView.Interpolation;
 import net.imglib2.view.fluent.RealRandomAccessibleView;
@@ -147,6 +153,8 @@ public class BlkThinPlateSplineFusion
 		final List< BlockSupplier< FloatType > > images = new ArrayList<>( underlyingOverlap.numViews() );
 		final List< BlockSupplier< FloatType > > weights = new ArrayList<>( underlyingOverlap.numViews() );
 
+		final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap = new HashMap();
+
 		for ( final ViewId underlyingViewId : underlyingOverlap.getViewIds() )
 		{
 			final Pair<double[][], double[][]> coeff = underlyingViewIdToCoefficients.get( underlyingViewId );
@@ -166,7 +174,9 @@ public class BlkThinPlateSplineFusion
 				imageBlockSupplier = imageBlockSupplier.andThen( FastLinearIntensityMap.linearIntensityMap( coefficients, inputImg ) );
 
 			// TODO: we should re-use the thin plate spline coordinate transformations for image and weights
-			imageBlockSupplier = imageBlockSupplier.andThen( new TPSImageTransform( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, intervalExpansion ) );
+			final TPSImageTransform imageTransform =
+					new TPSImageTransform( underlyingViewId, lastTransformMap, new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, intervalExpansion );
+			imageBlockSupplier = imageBlockSupplier.andThen( imageTransform );
 
 			images.add( imageBlockSupplier );
 
@@ -189,7 +199,7 @@ public class BlkThinPlateSplineFusion
 			{
 				case AVG_BLEND:
 				case CLOSEST_PIXEL_WINS: // we need to use the blending weights, whatever weight is highest wins
-					weightBlockSupplier = new TPSBlending( new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, border, blending );
+					weightBlockSupplier = new TPSBlending( underlyingViewId, lastTransformMap, new FinalInterval( inputImg ), fusionInterval, coeff.getA(), coeff.getB(), null, border, blending );
 					break;
 				default:
 					throw new IllegalStateException(); // unsupported weights
@@ -231,7 +241,12 @@ public class BlkThinPlateSplineFusion
 		final float[] border, blending;
 		final BlendingRealRandomAccessible blend;
 
+		final ViewId viewId;
+		final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap;
+
 		public TPSBlending(
+				final ViewId viewId,
+				final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap,
 				final Interval sourceImageInterval,
 				final Interval boundingBox,
 				final double[][] source,
@@ -240,6 +255,8 @@ public class BlkThinPlateSplineFusion
 				final float[] border,
 				final float[] blending )
 		{
+			this.viewId = viewId;
+			this.lastTransformMap = lastTransformMap;
 			this.sourceImageInterval = sourceImageInterval;
 			this.boundingBox = boundingBox;
 			this.source = source;
@@ -277,20 +294,50 @@ public class BlkThinPlateSplineFusion
 			// get a cursor over the srcInterval and a realrandomaccess for the interpolator
 			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 
-			for ( int x = 0; x < len; ++x )
-			{
-				cursor.next().localize( loc );
-				transform.apply( loc, loc );
+			final RandomAccessibleInterval<DoubleType> lastTransforms = getLastTransforms( viewId, blockInterval, lastTransformMap );
 
-				if ( contains3d( sourceImageInterval, loc ))
+			if ( lastTransforms == null )
+			{
+				for ( int x = 0; x < len; ++x )
 				{
-					rra.setPosition( loc );
-					fdest[ x ] = rra.get().get();
+					cursor.next().localize( loc );
+					transform.apply( loc, loc );
+	
+					if ( contains3d( sourceImageInterval, loc ))
+					{
+						rra.setPosition( loc );
+						fdest[ x ] = rra.get().get();
+					}
+					else
+					{
+						// TODO: is that necessary?
+						fdest[ x ] = 0;
+					}
 				}
-				else
+			}
+			else
+			{
+				final CompositeView<DoubleType, ? extends GenericComposite<DoubleType>>.CompositeRandomAccess rv =
+						Views.collapse( lastTransforms ).randomAccess();
+
+				for ( int x = 0; x < len; ++x )
 				{
-					// TODO: is that necessary?
-					fdest[ x ] = 0;
+					rv.setPosition( cursor.next() );
+					final GenericComposite<DoubleType> v = rv.get();
+					loc[ 0 ] = v.get( 0 ).get();
+					loc[ 1 ] = v.get( 1 ).get();
+					loc[ 2 ] = v.get( 2 ).get();
+
+					if ( contains3d( sourceImageInterval, loc ))
+					{
+						rra.setPosition( loc );
+						fdest[ x ] = rra.get().get();
+					}
+					else
+					{
+						// TODO: is that necessary?
+						fdest[ x ] = 0;
+					}
 				}
 			}
 		}
@@ -307,7 +354,7 @@ public class BlkThinPlateSplineFusion
 		public BlockSupplier<FloatType> threadSafe() { return independentCopy(); }
 
 		@Override
-		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending( sourceImageInterval, boundingBox, source, target, transform, border, blending );}
+		public BlockSupplier<FloatType> independentCopy() { return new TPSBlending( viewId, lastTransformMap, sourceImageInterval, boundingBox, source, target, transform, border, blending );}
 	}
 
 	public static BlockInterval blockInterval( final Interval interval, final Interval boundingBox )
@@ -331,7 +378,12 @@ public class BlkThinPlateSplineFusion
 		final ThinplateSplineTransform transform;
 		final int intervalExpansion;
 
+		final ViewId viewId;
+		final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap;
+
 		public TPSImageTransform(
+				final ViewId viewId,
+				final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap,
 				final Interval sourceImageInterval,
 				final Interval boundingBox,
 				final double[][] source,
@@ -339,6 +391,8 @@ public class BlkThinPlateSplineFusion
 				final ThinplateSplineTransform transform,
 				final int intervalExpansion )
 		{
+			this.viewId = viewId;
+			this.lastTransformMap = lastTransformMap;
 			this.sourceImageInterval = sourceImageInterval;
 			this.boundingBox = boundingBox;
 			this.source = source;
@@ -380,10 +434,22 @@ public class BlkThinPlateSplineFusion
 			// get a cursor over the srcInterval
 			final Cursor<Localizable> cursor = Views.flatIterable( Intervals.positions( blockInterval ) ).cursor();
 
+			final RandomAccessibleInterval< DoubleType > vectors = Views.translate(
+					ArrayImgs.doubles( blockInterval.dimension( 0 ), blockInterval.dimension( 1 ), blockInterval.dimension( 2 ), 3 ),
+					new long[] { blockInterval.min(0), blockInterval.min(1), blockInterval.min(2), 0 } );
+
+			final CompositeView<DoubleType, ? extends GenericComposite<DoubleType>>.CompositeRandomAccess rv =
+					Views.collapse( vectors ).randomAccess();
+
 			for ( int x = 0; x < len; ++x )
 			{
 				cursor.next().localize( loc );
 				transform.apply( loc, loc );
+
+				rv.setPosition( cursor );
+				rv.get().get( 0 ).set( loc[ 0 ] );
+				rv.get().get( 1 ).set( loc[ 1 ] );
+				rv.get().get( 2 ).set( loc[ 2 ] );
 
 				if ( contains3d( sourceImageInterval, loc ))
 				{
@@ -396,6 +462,8 @@ public class BlkThinPlateSplineFusion
 					fdest[ x ] = 0;
 				}
 			}
+
+			setLastTransforms( viewId, vectors, lastTransformMap );
 		}
 
 		private static final FloatType type = new FloatType();
@@ -413,7 +481,49 @@ public class BlkThinPlateSplineFusion
 		public int numTargetDimensions() { return 3; }
 
 		@Override
-		public UnaryBlockOperator<FloatType, FloatType> independentCopy() { return new TPSImageTransform( sourceImageInterval, boundingBox, source, target, transform, intervalExpansion ); }
+		public UnaryBlockOperator<FloatType, FloatType> independentCopy() { return new TPSImageTransform( viewId, lastTransformMap, sourceImageInterval, boundingBox, source, target, transform, intervalExpansion ); }
+	}
+
+	private static synchronized RandomAccessibleInterval<DoubleType> getLastTransforms(
+			final ViewId viewId,
+			final Interval interval,
+			final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap )
+	{
+		if ( lastTransformMap == null )
+			return null;
+
+		final SoftReference<RandomAccessibleInterval<DoubleType>> softRef = lastTransformMap.get( viewId );
+
+		if ( softRef == null )
+			return null;
+
+		final RandomAccessibleInterval<DoubleType> lastTransforms = softRef.get();
+
+		if ( lastTransforms == null )
+		{
+			//System.out.println( "softref null for " + Group.pvid( viewId ) + ", interval " + Util.printInterval( interval ));
+			return null;
+		}
+
+		if ( Intervals.equals( interval, Intervals.hyperSlice( lastTransforms, 3 ) ) )
+		{
+			//System.out.println( "SUCCESS for " + Group.pvid( viewId ) + ", interval " + Util.printInterval( interval ));
+			return lastTransforms;
+		}
+		else
+		{
+			//System.out.println( "Intervals don't match for " + Group.pvid( viewId ) + ", interval " + Util.printInterval( interval ));
+			return null;
+		}
+	}
+
+	private static synchronized void setLastTransforms(
+			final ViewId viewId,
+			final RandomAccessibleInterval<DoubleType> lastTransforms,
+			final HashMap< ViewId, SoftReference< RandomAccessibleInterval< DoubleType > > > lastTransformMap )
+	{
+		if ( lastTransformMap != null )
+			lastTransformMap.put( viewId, new SoftReference<RandomAccessibleInterval<DoubleType>>( lastTransforms ) );
 	}
 
 	public static RandomAccessibleInterval<DoubleType> interpolatedField(
