@@ -501,7 +501,7 @@ public class BlkThinPlateSplineFusion
 
 		if ( lastTransforms == null )
 		{
-			//System.out.println( "softref null for " + Group.pvid( viewId ) + ", interval " + Util.printInterval( interval ));
+			//System.out.println( "softref returned null for " + Group.pvid( viewId ) + ", interval " + Util.printInterval( interval ));
 			return null;
 		}
 
